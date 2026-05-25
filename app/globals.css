@@ -16,3 +16,46 @@ body {
   color: #2b2620;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Opening splash (임시 — 추후 sweep_logo_intro 자산으로 교체) */
+.splash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #661f20;
+  animation: splashFade 1.7s ease forwards;
+}
+.splash-wordmark {
+  position: relative;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.splash-wordmark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: sweep 1.2s ease forwards;
+}
+@keyframes sweep {
+  to {
+    transform: translateX(120%);
+  }
+}
+@keyframes splashFade {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
