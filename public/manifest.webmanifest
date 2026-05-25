@@ -1,0 +1,13 @@
+{
+  "name": "MFH · Mission for Honduras",
+  "short_name": "MFH",
+  "description": "선교 활동 기록·인사이트·포트폴리오 플랫폼",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#661F20",
+  "theme_color": "#661F20",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
