@@ -86,15 +86,17 @@ export default async function Home() {
             <div className="text-lg font-bold text-primary">프로젝트</div>
             <div className="mt-1 text-xs text-muted">장·단기 관리</div>
           </Link>
-          {[
-            { label: '할 일', desc: '실무 Task' },
-            { label: '인사이트', desc: '분야별·종합 분석' },
-          ].map((m) => (
-            <div key={m.label} className="rounded-2xl border border-line bg-surface-subtle p-5">
-              <div className="text-lg font-bold text-faint">{m.label}</div>
-              <div className="mt-1 text-xs text-faint">준비 중</div>
-            </div>
-          ))}
+          <Link
+            href="/tasks"
+            className="rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+          >
+            <div className="text-lg font-bold text-primary">할 일</div>
+            <div className="mt-1 text-xs text-muted">실무 Task</div>
+          </Link>
+          <div className="rounded-2xl border border-line bg-surface-subtle p-5">
+            <div className="text-lg font-bold text-faint">인사이트</div>
+            <div className="mt-1 text-xs text-faint">준비 중</div>
+          </div>
         </section>
 
         <form action="/auth/signout" method="post" className="mt-10">

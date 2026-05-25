@@ -46,6 +46,13 @@ export type Project = {
 
 export type Task = {
   id: string
-  title: string
+  user_id: string
   project_id: string | null
+  title: string
+  done: boolean
+  priority: string
+  importance: number
+  due_date: string | null
+  completed_at: string | null
+  created_at: string
 }
