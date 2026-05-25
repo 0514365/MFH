@@ -17,6 +17,7 @@ type Props = {
 export default function TaskForm({ mode, initial, presetProjectId }: Props) {
   const router = useRouter()
   const [title, setTitle] = useState(initial?.title ?? '')
+  const [description, setDescription] = useState(initial?.description ?? '')
   const [projectId, setProjectId] = useState(initial?.project_id ?? presetProjectId ?? '')
   const [priority, setPriority] = useState(initial?.priority ?? 'med')
   const [importance, setImportance] = useState<number>(initial?.importance ?? 0)
@@ -53,6 +54,7 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
     const payload = {
       user_id: user.id,
       title: title.trim(),
+      description: description.trim() || null,
       project_id: projectId || null,
       priority,
       importance,
@@ -111,6 +113,15 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
 
       <label className="mb-1 block text-xs text-muted">제목</label>
       <input value={title} onChange={(e) => setTitle(e.target.value)} className={input} placeholder="예: 건축 설계 도면 검토" />
+
+      <label className={small}>설명 (선택)</label>
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        rows={2}
+        className={input}
+        placeholder="간단한 메모"
+      />
 
       <label className={small}>관련 프로젝트 (선택)</label>
       <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={input}>

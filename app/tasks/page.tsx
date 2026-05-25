@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 type TaskRow = {
   id: string
   title: string
+  description: string | null
   done: boolean
   priority: string
   importance: number
@@ -26,7 +27,7 @@ export default async function TasksList() {
 
   const { data } = await supabase
     .from('tasks')
-    .select('id, title, done, priority, importance, due_date, project_id, projects(title)')
+    .select('id, title, description, done, priority, importance, due_date, project_id, projects(title)')
     .order('done', { ascending: true })
     .order('due_date', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
@@ -63,6 +64,7 @@ export default async function TasksList() {
                 <div className={`truncate text-sm font-semibold ${t.done ? 'text-faint line-through' : 'text-ink'}`}>
                   {t.title}
                 </div>
+                {t.description && <div className="mt-0.5 line-clamp-1 text-xs text-muted">{t.description}</div>}
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   {t.projects?.title && (
                     <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">

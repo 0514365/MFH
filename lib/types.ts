@@ -49,6 +49,7 @@ export type Task = {
   user_id: string
   project_id: string | null
   title: string
+  description: string | null
   done: boolean
   priority: string
   importance: number
