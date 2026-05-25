@@ -93,7 +93,14 @@ export default async function Home() {
             <div className="text-lg font-bold text-primary">할 일</div>
             <div className="mt-1 text-xs text-muted">실무 Task</div>
           </Link>
-          <div className="rounded-2xl border border-line bg-surface-subtle p-5">
+          <Link
+            href="/calendar"
+            className="rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+          >
+            <div className="text-lg font-bold text-primary">캘린더</div>
+            <div className="mt-1 text-xs text-muted">월·주 일정</div>
+          </Link>
+          <div className="col-span-2 rounded-2xl border border-line bg-surface-subtle p-5">
             <div className="text-lg font-bold text-faint">인사이트</div>
             <div className="mt-1 text-xs text-faint">준비 중</div>
           </div>

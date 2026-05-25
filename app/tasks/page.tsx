@@ -40,6 +40,9 @@ export default async function TasksList() {
           <Link href="/" className="text-xs text-muted underline">
             ← 홈
           </Link>
+          <Link href="/calendar" className="ml-3 text-xs text-muted underline">
+            캘린더
+          </Link>
           <h1 className="font-display text-2xl font-extrabold text-primary">할 일</h1>
         </div>
         <Link href="/tasks/new" className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white">
