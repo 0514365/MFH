@@ -31,7 +31,16 @@ export type JournalEntry = {
 
 export type Project = {
   id: string
+  user_id: string
   title: string
+  description: string | null
+  status: string
+  priority: string
+  importance: number
+  start_date: string | null
+  due_date: string | null
+  created_at: string
+  updated_at: string
 }
 
 export type Task = {

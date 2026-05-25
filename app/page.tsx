@@ -79,8 +79,14 @@ export default async function Home() {
             <div className="text-lg font-bold text-primary">일지</div>
             <div className="mt-1 text-xs text-muted">일일 활동 기록</div>
           </Link>
+          <Link
+            href="/projects"
+            className="rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+          >
+            <div className="text-lg font-bold text-primary">프로젝트</div>
+            <div className="mt-1 text-xs text-muted">장·단기 관리</div>
+          </Link>
           {[
-            { label: '프로젝트', desc: '장·단기 관리' },
             { label: '할 일', desc: '실무 Task' },
             { label: '인사이트', desc: '분야별·종합 분석' },
           ].map((m) => (
