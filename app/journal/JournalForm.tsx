@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { JOURNAL_CATEGORIES } from '@/lib/constants'
 import { readPhotoMeta, uploadJournalPhoto } from '@/lib/photo'
+import { haversineMeters } from '@/lib/geo'
 import type { JournalEntry, Project, Task } from '@/lib/types'
+import DateField from './DateField'
 
 function todayStr() {
   const d = new Date()
@@ -19,6 +21,8 @@ type Props = {
   initial?: JournalEntry | null
   initialPhotoUrl?: string | null
 }
+
+type PastPlace = { id: string; name: string; lat: number; lng: number }
 
 export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
   const router = useRouter()
@@ -48,6 +52,11 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
   const [photoLng, setPhotoLng] = useState(initial?.photo_lng != null ? String(initial.photo_lng) : '')
   const [applyPhotoDate, setApplyPhotoDate] = useState(false)
 
+  const [placeName, setPlaceName] = useState(initial?.place_name ?? '')
+  const [pastPlaces, setPastPlaces] = useState<PastPlace[]>([])
+  const [placeNames, setPlaceNames] = useState<string[]>([])
+  const [placeSuggestion, setPlaceSuggestion] = useState<{ name: string; dist: number } | null>(null)
+
   const [projects, setProjects] = useState<Project[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [saving, setSaving] = useState(false)
@@ -65,7 +74,54 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
       .select('id, title, project_id')
       .order('created_at', { ascending: false })
       .then(({ data }) => setTasks((data ?? []) as Task[]))
-  }, [])
+    void supabase
+      .from('journal_entries')
+      .select('id, place_name, photo_lat, photo_lng')
+      .not('place_name', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(500)
+      .then(({ data }) => {
+        const rows = (data ?? []) as {
+          id: string
+          place_name: string | null
+          photo_lat: number | null
+          photo_lng: number | null
+        }[]
+        const pp: PastPlace[] = []
+        const names: string[] = []
+        for (const r of rows) {
+          if (r.id === initial?.id) continue
+          const nm = (r.place_name ?? '').trim()
+          if (!nm) continue
+          if (!names.includes(nm)) names.push(nm)
+          if (r.photo_lat != null && r.photo_lng != null) {
+            pp.push({ id: r.id, name: nm, lat: r.photo_lat, lng: r.photo_lng })
+          }
+        }
+        setPastPlaces(pp)
+        setPlaceNames(names)
+      })
+  }, [initial?.id])
+
+  // 좌표가 있고 장소가 비어 있으면, 과거 기록에서 가장 가까운 장소(200m 이내)를 추천
+  useEffect(() => {
+    if (placeName) {
+      setPlaceSuggestion(null)
+      return
+    }
+    const la = Number(photoLat)
+    const ln = Number(photoLng)
+    if (!photoLat || !photoLng || Number.isNaN(la) || Number.isNaN(ln) || pastPlaces.length === 0) {
+      setPlaceSuggestion(null)
+      return
+    }
+    let best: { name: string; dist: number } | null = null
+    for (const p of pastPlaces) {
+      const d = haversineMeters(la, ln, p.lat, p.lng)
+      if (best === null || d < best.dist) best = { name: p.name, dist: d }
+    }
+    setPlaceSuggestion(best && best.dist <= 200 ? best : null)
+  }, [photoLat, photoLng, pastPlaces, placeName])
 
   async function onPick(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null
@@ -171,6 +227,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
       photo_lat: latNum != null && !Number.isNaN(latNum) ? latNum : null,
       photo_lng: lngNum != null && !Number.isNaN(lngNum) ? lngNum : null,
       photo_meta: photoPath ? metaRaw : null,
+      place_name: placeName.trim() || null,
     }
 
     let resultId = initial?.id ?? null
@@ -213,6 +270,9 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
   const big = 'mb-1 mt-5 block text-sm font-bold text-primary'
   const small = 'mb-1 mt-4 block text-xs text-muted'
   const showPhoto = preview ?? existingUrl
+  const placeMatches = placeNames
+    .filter((n) => n !== placeName && (!placeName || n.toLowerCase().includes(placeName.toLowerCase())))
+    .slice(0, 6)
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
@@ -227,7 +287,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
       </h1>
 
       <label className="mb-1 block text-xs text-muted">일지 날짜</label>
-      <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} className={input} />
+      <DateField value={entryDate} onChange={setEntryDate} placeholder="날짜 선택" />
       <p className="mt-1 text-xs text-faint">사진 촬영일과 별개로, 이 기록의 날짜입니다.</p>
 
       <label className={small}>사역 분류</label>
@@ -267,11 +327,40 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
       )}
       {photoNote && <p className="mt-2 text-xs text-faint">{photoNote}</p>}
 
+      <label className={small}>장소 (사진 위치 이름)</label>
+      <input
+        value={placeName}
+        onChange={(e) => setPlaceName(e.target.value)}
+        className={input}
+        placeholder="예: 자포탈 더좋은교회"
+      />
+      {placeSuggestion && (
+        <button
+          type="button"
+          onClick={() => setPlaceName(placeSuggestion.name)}
+          className="mt-2 block text-xs font-semibold text-accent underline"
+        >
+          📍 근처 기록 위치: ‘{placeSuggestion.name}’ 사용 (약 {Math.round(placeSuggestion.dist)}m)
+        </button>
+      )}
+      {placeMatches.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {placeMatches.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setPlaceName(n)}
+              className="rounded-full bg-surface-subtle px-2.5 py-1 text-[11px] text-muted"
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      )}
+
       <label className={small}>촬영일 (메타데이터 · 수정 가능)</label>
-      <input type="date" value={photoTakenAt} onChange={(e) => changeTakenAt(e.target.value)} className={input} />
-      <label
-        className={`mt-2 flex items-center gap-2 text-xs ${photoTakenAt ? 'text-muted' : 'text-faint'}`}
-      >
+      <DateField value={photoTakenAt} onChange={changeTakenAt} placeholder="촬영일 없음" />
+      <label className={`mt-2 flex items-center gap-2 text-xs ${photoTakenAt ? 'text-muted' : 'text-faint'}`}>
         <input
           type="checkbox"
           checked={applyPhotoDate}
@@ -281,7 +370,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
         촬영일을 일지 날짜로 사용
       </label>
 
-      <label className={small}>위치 (위도 / 경도 · 수정 가능)</label>
+      <label className={small}>좌표 (위도 / 경도 · 수정 가능)</label>
       <div className="flex gap-2">
         <input
           value={photoLat}

@@ -48,8 +48,13 @@ export default async function JournalDetail({ params }: { params: { id: string }
       <Link href="/journal" className="text-xs text-muted underline">
         ← 일지
       </Link>
-      <div className="mb-4 mt-2 flex items-center gap-2">
+      <div className="mb-4 mt-2 flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold text-muted">{entry.entry_date}</span>
+        {entry.place_name && (
+          <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
+            📍 {entry.place_name}
+          </span>
+        )}
         {entry.category && (
           <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">{entry.category}</span>
         )}
@@ -72,7 +77,7 @@ export default async function JournalDetail({ params }: { params: { id: string }
                 rel="noreferrer"
                 href={`https://maps.google.com/?q=${lat},${lng}`}
               >
-                위치 {lat.toFixed(4)}, {lng.toFixed(4)}
+                지도에서 열기
               </a>
             )}
           </figcaption>

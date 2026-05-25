@@ -23,6 +23,7 @@ export type JournalEntry = {
   photo_lat: number | null
   photo_lng: number | null
   photo_meta: Record<string, unknown> | null
+  place_name: string | null
   project_id: string | null
   task_id: string | null
   created_at: string

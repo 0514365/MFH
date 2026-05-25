@@ -49,8 +49,13 @@ export default async function JournalList() {
                 href={`/journal/${e.id}`}
                 className="block rounded-2xl border border-line bg-surface p-4 transition hover:border-primary"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold text-muted">{e.entry_date}</span>
+                  {e.place_name && (
+                    <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
+                      📍 {e.place_name}
+                    </span>
+                  )}
                   {e.category && (
                     <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">{e.category}</span>
                   )}
