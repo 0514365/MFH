@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { Project } from '@/lib/types'
 import { StatusBadge, PriorityBadge, CategoryBadge, ImportanceStars, fmtDate } from '../badges'
+import { ProgressRing } from '../Progress'
 import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
@@ -17,6 +18,12 @@ export default async function ProjectDetail({ params }: { params: { id: string }
   const { data } = await supabase.from('projects').select('*').eq('id', params.id).maybeSingle()
   const project = data as Project | null
   if (!project) notFound()
+
+  const { data: taskRows } = await supabase.from('tasks').select('id, done').eq('project_id', params.id)
+  const tlist = (taskRows ?? []) as { id: string; done: boolean }[]
+  const total = tlist.length
+  const done = tlist.filter((t) => t.done).length
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0
 
   const period =
     project.start_date || project.due_date
@@ -43,8 +50,17 @@ export default async function ProjectDetail({ params }: { params: { id: string }
       )}
 
       <section className="mt-8">
-        <h2 className="mb-2 text-sm font-bold text-primary">연결된 할 일</h2>
-        <p className="text-sm text-faint">할 일 기능은 다음 단계에서 연결됩니다.</p>
+        <h2 className="mb-2 text-sm font-bold text-primary">진행 상황</h2>
+        <div className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-4">
+          <ProgressRing done={done} total={total} size={60} />
+          <div className="min-w-0">
+            <div className="font-bold text-ink">{total > 0 ? `${pct}% 완료` : '할 일 없음'}</div>
+            <div className="mt-0.5 text-xs text-muted">
+              {total > 0 ? `완료 ${done} / 전체 ${total}` : '연결된 할 일이 아직 없습니다'}
+            </div>
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-faint">할 일을 추가·연결하면 진행률이 자동으로 계산됩니다.</p>
       </section>
 
       <div className="mt-10 flex items-center gap-4">
