@@ -26,18 +26,18 @@ export default async function JournalList() {
           <Link href="/" className="text-xs text-muted underline">
             ← 홈
           </Link>
-          <h1 className="font-display text-2xl font-extrabold text-brand-primary">일지</h1>
+          <h1 className="font-display text-2xl font-extrabold text-primary">일지</h1>
         </div>
         <Link
           href="/journal/new"
-          className="rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white"
+          className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white"
         >
           + 새 일지
         </Link>
       </div>
 
       {entries.length === 0 ? (
-        <p className="mt-16 text-center text-sm leading-relaxed text-ink/50">
+        <p className="mt-16 text-center text-sm leading-relaxed text-faint">
           아직 일지가 없습니다.
           <br />첫 일지를 기록해 보세요.
         </p>
@@ -47,21 +47,21 @@ export default async function JournalList() {
             <li key={e.id}>
               <Link
                 href={`/journal/${e.id}`}
-                className="block rounded-2xl border border-line bg-white p-4 transition hover:border-brand-primary"
+                className="block rounded-2xl border border-line bg-surface p-4 transition hover:border-primary"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-brand-accent">{e.entry_date}</span>
+                  <span className="text-xs font-semibold text-muted">{e.entry_date}</span>
                   {e.category && (
-                    <span className="rounded-full bg-paper px-2 py-0.5 text-[11px] text-ink/60">{e.category}</span>
+                    <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">{e.category}</span>
                   )}
                   {e.prayer_candidate && (
-                    <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-[11px] text-brand-primary">
+                    <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] text-primary">
                       기도후보
                     </span>
                   )}
                 </div>
                 <div className="mt-1 font-bold text-ink">{e.headline || '(제목 없음)'}</div>
-                {e.today && <div className="mt-1 line-clamp-2 text-sm text-ink/60">{e.today}</div>}
+                {e.today && <div className="mt-1 line-clamp-2 text-sm text-muted">{e.today}</div>}
               </Link>
             </li>
           ))}

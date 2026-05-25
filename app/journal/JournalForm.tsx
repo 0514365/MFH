@@ -195,9 +195,9 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
   }
 
   const input =
-    'w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-brand-primary'
-  const big = 'mb-1 mt-5 block text-sm font-bold text-brand-primary'
-  const small = 'mb-1 mt-4 block text-xs text-ink/60'
+    'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
+  const big = 'mb-1 mt-5 block text-sm font-bold text-primary'
+  const small = 'mb-1 mt-4 block text-xs text-muted'
   const showPhoto = preview ?? existingUrl
 
   return (
@@ -208,11 +208,11 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
       >
         ← 일지
       </Link>
-      <h1 className="mb-4 mt-2 font-display text-2xl font-extrabold text-brand-primary">
+      <h1 className="mb-4 mt-2 font-display text-2xl font-extrabold text-primary">
         {mode === 'edit' ? '일지 수정' : '새 일지'}
       </h1>
 
-      <label className="mb-1 block text-xs text-ink/60">날짜</label>
+      <label className="mb-1 block text-xs text-muted">날짜</label>
       <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} className={input} />
 
       <label className={small}>사역 분류</label>
@@ -241,7 +241,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
       <textarea value={prayer} onChange={(e) => setPrayer(e.target.value)} rows={3} className={input} />
 
       <label className={big}>📷 사진</label>
-      <input type="file" accept="image/*" onChange={onPick} className="block w-full text-sm text-ink/70" />
+      <input type="file" accept="image/*" onChange={onPick} className="block w-full text-sm text-muted" />
       {showPhoto && (
         <div className="mt-3">
           <img src={showPhoto} alt="" className="w-full rounded-xl border border-line" />
@@ -253,7 +253,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
 
       <label className={small}>촬영일 (메타데이터 · 수정 가능)</label>
       <input type="date" value={photoTakenAt} onChange={(e) => changeTakenAt(e.target.value)} className={input} />
-      <label className="mt-2 flex items-center gap-2 text-xs text-ink/70">
+      <label className="mt-2 flex items-center gap-2 text-xs text-muted">
         <input type="checkbox" checked={applyPhotoDate} onChange={(e) => toggleApply(e.target.checked)} />
         촬영일을 일지 날짜로 사용
       </label>
@@ -276,7 +276,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
         />
       </div>
 
-      <label className="mt-4 flex items-center gap-2 text-sm text-ink/70">
+      <label className="mt-4 flex items-center gap-2 text-sm text-muted">
         <input type="checkbox" checked={prayerCandidate} onChange={(e) => setPrayerCandidate(e.target.checked)} />
         편지 기도제목 후보로 표시
       </label>
@@ -306,7 +306,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
       <button
         onClick={save}
         disabled={saving}
-        className="mt-6 w-full rounded-xl bg-brand-primary py-3 text-sm font-semibold text-white disabled:opacity-50"
+        className="mt-6 w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
       >
         {saving ? '저장 중…' : mode === 'edit' ? '수정 저장' : '저장'}
       </button>

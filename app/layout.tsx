@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
+import { montserrat } from '@/lib/fonts'
+import { light, tokensToCssVars } from '@/lib/palette'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -17,16 +19,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ko">
+    <html lang="ko" className={montserrat.variable}>
       <head>
+        <style dangerouslySetInnerHTML={{ __html: `:root{${tokensToCssVars(light)}}` }} />
         <link
           rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css"
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"
         />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>

@@ -10,8 +10,8 @@ function Section({ label, text }: { label: string; text: string | null }) {
   if (!text) return null
   return (
     <section className="mb-5">
-      <h2 className="mb-1 text-sm font-bold text-brand-primary">{label}</h2>
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink/80">{text}</p>
+      <h2 className="mb-1 text-sm font-bold text-primary">{label}</h2>
+      <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">{text}</p>
     </section>
   )
 }
@@ -49,12 +49,12 @@ export default async function JournalDetail({ params }: { params: { id: string }
         ← 일지
       </Link>
       <div className="mb-4 mt-2 flex items-center gap-2">
-        <span className="text-xs font-semibold text-brand-accent">{entry.entry_date}</span>
+        <span className="text-xs font-semibold text-muted">{entry.entry_date}</span>
         {entry.category && (
-          <span className="rounded-full bg-paper px-2 py-0.5 text-[11px] text-ink/60">{entry.category}</span>
+          <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">{entry.category}</span>
         )}
         {entry.prayer_candidate && (
-          <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-[11px] text-brand-primary">기도후보</span>
+          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] text-primary">기도후보</span>
         )}
       </div>
       {entry.headline && <h1 className="mb-6 text-xl font-extrabold text-ink">{entry.headline}</h1>}
@@ -62,7 +62,7 @@ export default async function JournalDetail({ params }: { params: { id: string }
       {photoUrl && (
         <figure className="mb-6">
           <img src={photoUrl} alt="" className="w-full rounded-2xl border border-line" />
-          <figcaption className="mt-2 text-xs text-ink/50">
+          <figcaption className="mt-2 text-xs text-faint">
             {taken && <span>촬영일 {taken}</span>}
             {taken && lat != null && lng != null && <span> · </span>}
             {lat != null && lng != null && (
@@ -85,7 +85,7 @@ export default async function JournalDetail({ params }: { params: { id: string }
       <Section label="📌 기도제목" text={entry.prayer} />
 
       <div className="mt-10 flex items-center gap-4">
-        <Link href={`/journal/${entry.id}/edit`} className="text-xs font-semibold text-brand-primary underline">
+        <Link href={`/journal/${entry.id}/edit`} className="text-xs font-semibold text-accent underline">
           수정
         </Link>
         <DeleteButton id={entry.id} photoPath={entry.photo_path} />

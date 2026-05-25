@@ -12,8 +12,8 @@ export default async function Home() {
   if (!hasEnv) {
     return (
       <main className="mx-auto max-w-md px-6 py-16">
-        <h1 className="font-display text-3xl font-extrabold text-brand-primary">MFH</h1>
-        <p className="mt-4 text-sm text-ink/70">
+        <h1 className="font-display text-3xl font-extrabold text-primary">MFH</h1>
+        <p className="mt-4 text-sm text-muted">
           Supabase 환경변수가 설정되지 않았습니다. Vercel 환경변수를 등록한 뒤 다시 배포해 주세요.
         </p>
       </main>
@@ -39,14 +39,14 @@ export default async function Home() {
     <SplashGate>
       <main className="mx-auto max-w-md px-5 py-8">
         <header className="mb-6">
-          <p className="font-display text-[11px] font-semibold tracking-[0.25em] text-brand-accent">
+          <p className="font-display text-[11px] font-semibold tracking-[0.25em] text-accent">
             MISSION FOR HONDURAS
           </p>
-          <h1 className="font-display text-4xl font-extrabold text-brand-primary">MFH</h1>
-          <p className="mt-1 text-xs text-ink/50">{user.email}</p>
+          <h1 className="font-display text-4xl font-extrabold text-primary">MFH</h1>
+          <p className="mt-1 text-xs text-faint">{user.email}</p>
         </header>
 
-        <section className="mb-7 rounded-2xl bg-brand-primary p-5 text-white">
+        <section className="mb-7 rounded-2xl bg-primary p-5 text-white">
           <div className="text-[11px] font-semibold tracking-widest text-white/70">{year} 주제</div>
           {theme?.theme ? (
             <>
@@ -74,19 +74,19 @@ export default async function Home() {
         <section className="grid grid-cols-2 gap-3">
           <Link
             href="/journal"
-            className="rounded-2xl border border-line bg-white p-5 transition hover:border-brand-primary"
+            className="rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
           >
-            <div className="text-lg font-bold text-brand-primary">일지</div>
-            <div className="mt-1 text-xs text-ink/60">일일 활동 기록</div>
+            <div className="text-lg font-bold text-primary">일지</div>
+            <div className="mt-1 text-xs text-muted">일일 활동 기록</div>
           </Link>
           {[
             { label: '프로젝트', desc: '장·단기 관리' },
             { label: '할 일', desc: '실무 Task' },
             { label: '인사이트', desc: '분야별·종합 분석' },
           ].map((m) => (
-            <div key={m.label} className="rounded-2xl border border-line bg-white/60 p-5">
-              <div className="text-lg font-bold text-ink/40">{m.label}</div>
-              <div className="mt-1 text-xs text-ink/40">준비 중</div>
+            <div key={m.label} className="rounded-2xl border border-line bg-surface-subtle p-5">
+              <div className="text-lg font-bold text-faint">{m.label}</div>
+              <div className="mt-1 text-xs text-faint">준비 중</div>
             </div>
           ))}
         </section>
