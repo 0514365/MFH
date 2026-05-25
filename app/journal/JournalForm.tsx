@@ -39,6 +39,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
   const [existingUrl, setExistingUrl] = useState<string | null>(initialPhotoUrl ?? null)
   const [removePhoto, setRemovePhoto] = useState(false)
   const [metaRaw, setMetaRaw] = useState<Record<string, unknown> | null>(initial?.photo_meta ?? null)
+  const [photoNote, setPhotoNote] = useState<string | null>(null)
 
   const [photoTakenAt, setPhotoTakenAt] = useState(
     initial?.photo_taken_at ? initial.photo_taken_at.slice(0, 10) : ''
@@ -72,6 +73,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
     if (!f) {
       setFile(null)
       setPreview(null)
+      setPhotoNote(null)
       return
     }
     setFile(f)
@@ -87,6 +89,17 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
     }
     if (m.lat != null) setPhotoLat(String(m.lat))
     if (m.lng != null) setPhotoLng(String(m.lng))
+
+    if (m.takenAt || m.lat != null) {
+      const parts: string[] = []
+      if (m.takenAt) parts.push('촬영일')
+      if (m.lat != null) parts.push('위치')
+      setPhotoNote(`사진에서 ${parts.join(' · ')} 정보를 불러왔습니다.`)
+    } else {
+      setPhotoNote(
+        '이 사진에는 촬영일·위치 정보가 없습니다. 편집본이나 메신저로 받은 사진일 수 있어요. 필요하면 아래에서 촬영일을 직접 입력하세요.'
+      )
+    }
   }
 
   function changeTakenAt(val: string) {
@@ -105,6 +118,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
     setPreview(null)
     setExistingUrl(null)
     setRemovePhoto(true)
+    setPhotoNote(null)
   }
 
   async function save() {
@@ -212,8 +226,9 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
         {mode === 'edit' ? '일지 수정' : '새 일지'}
       </h1>
 
-      <label className="mb-1 block text-xs text-muted">날짜</label>
+      <label className="mb-1 block text-xs text-muted">일지 날짜</label>
       <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} className={input} />
+      <p className="mt-1 text-xs text-faint">사진 촬영일과 별개로, 이 기록의 날짜입니다.</p>
 
       <label className={small}>사역 분류</label>
       <select value={category} onChange={(e) => setCategory(e.target.value)} className={input}>
@@ -250,11 +265,19 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
           </button>
         </div>
       )}
+      {photoNote && <p className="mt-2 text-xs text-faint">{photoNote}</p>}
 
       <label className={small}>촬영일 (메타데이터 · 수정 가능)</label>
       <input type="date" value={photoTakenAt} onChange={(e) => changeTakenAt(e.target.value)} className={input} />
-      <label className="mt-2 flex items-center gap-2 text-xs text-muted">
-        <input type="checkbox" checked={applyPhotoDate} onChange={(e) => toggleApply(e.target.checked)} />
+      <label
+        className={`mt-2 flex items-center gap-2 text-xs ${photoTakenAt ? 'text-muted' : 'text-faint'}`}
+      >
+        <input
+          type="checkbox"
+          checked={applyPhotoDate}
+          disabled={!photoTakenAt}
+          onChange={(e) => toggleApply(e.target.checked)}
+        />
         촬영일을 일지 날짜로 사용
       </label>
 
