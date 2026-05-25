@@ -84,7 +84,10 @@ export default async function JournalDetail({ params }: { params: { id: string }
       <Section label="💭 묵상·깨달음" text={entry.meditation} />
       <Section label="📌 기도제목" text={entry.prayer} />
 
-      <div className="mt-10">
+      <div className="mt-10 flex items-center gap-4">
+        <Link href={`/journal/${entry.id}/edit`} className="text-xs font-semibold text-brand-primary underline">
+          수정
+        </Link>
         <DeleteButton id={entry.id} photoPath={entry.photo_path} />
       </div>
     </main>
