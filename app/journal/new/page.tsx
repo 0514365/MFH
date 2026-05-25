@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { JOURNAL_CATEGORIES } from '@/lib/constants'
+import { readPhotoMeta, uploadJournalPhoto, type PhotoMeta } from '@/lib/photo'
 import type { Project, Task } from '@/lib/types'
 
 function todayStr() {
@@ -27,6 +28,10 @@ export default function NewJournal() {
   const [taskId, setTaskId] = useState('')
   const [projects, setProjects] = useState<Project[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [meta, setMeta] = useState<PhotoMeta | null>(null)
+  const [dateAuto, setDateAuto] = useState(false)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
@@ -44,9 +49,29 @@ export default function NewJournal() {
       .then(({ data }) => setTasks((data ?? []) as Task[]))
   }, [])
 
+  async function onPick(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null
+    if (preview) URL.revokeObjectURL(preview)
+    setMeta(null)
+    setDateAuto(false)
+    if (!f) {
+      setFile(null)
+      setPreview(null)
+      return
+    }
+    setFile(f)
+    setPreview(URL.createObjectURL(f))
+    const m = await readPhotoMeta(f)
+    setMeta(m)
+    if (m.takenAt) {
+      setEntryDate(m.takenAt.slice(0, 10))
+      setDateAuto(true)
+    }
+  }
+
   async function save() {
     if (!headline.trim() && !todayText.trim()) {
-      setMsg('제목 또는 \u201c오늘 있었던 일\u201d을 입력해 주세요.')
+      setMsg('제목 또는 오늘 있었던 일을 입력해 주세요.')
       return
     }
     setSaving(true)
@@ -59,6 +84,18 @@ export default function NewJournal() {
       router.replace('/login')
       return
     }
+
+    let photoPath: string | null = null
+    if (file) {
+      try {
+        photoPath = await uploadJournalPhoto(supabase, user.id, file)
+      } catch (err) {
+        setSaving(false)
+        setMsg('사진 업로드 실패: ' + (err instanceof Error ? err.message : '알 수 없는 오류'))
+        return
+      }
+    }
+
     const { error } = await supabase.from('journal_entries').insert({
       user_id: user.id,
       entry_date: entryDate,
@@ -71,6 +108,11 @@ export default function NewJournal() {
       prayer_candidate: prayerCandidate,
       project_id: projectId || null,
       task_id: taskId || null,
+      photo_path: photoPath,
+      photo_taken_at: meta?.takenAt ?? null,
+      photo_lat: meta?.lat ?? null,
+      photo_lng: meta?.lng ?? null,
+      photo_meta: meta?.raw ?? null,
     })
     setSaving(false)
     if (error) {
@@ -120,6 +162,34 @@ export default function NewJournal() {
 
       <label className={big}>📌 기도제목</label>
       <textarea value={prayer} onChange={(e) => setPrayer(e.target.value)} rows={3} className={input} />
+
+      <label className={big}>📷 사진</label>
+      <input type="file" accept="image/*" onChange={onPick} className="block w-full text-sm text-ink/70" />
+      {preview && (
+        <div className="mt-3">
+          <img src={preview} alt="" className="w-full rounded-xl border border-line" />
+          <div className="mt-2 space-y-0.5 text-xs text-ink/60">
+            <div>
+              {meta?.takenAt ? `촬영일 ${meta.takenAt.slice(0, 10)}` : '촬영일 정보 없음'}
+              {dateAuto && ' · 날짜 자동 적용됨'}
+            </div>
+            <div>
+              {meta?.lat != null && meta?.lng != null ? (
+                <a
+                  className="underline"
+                  target="_blank"
+                  rel="noreferrer"
+                  href={`https://maps.google.com/?q=${meta.lat},${meta.lng}`}
+                >
+                  위치 {meta.lat.toFixed(5)}, {meta.lng.toFixed(5)}
+                </a>
+              ) : (
+                '위치 정보 없음'
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <label className="mt-4 flex items-center gap-2 text-sm text-ink/70">
         <input type="checkbox" checked={prayerCandidate} onChange={(e) => setPrayerCandidate(e.target.checked)} />

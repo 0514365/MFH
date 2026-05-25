@@ -19,6 +19,10 @@ export type JournalEntry = {
   prayer: string | null
   prayer_candidate: boolean
   photo_path: string | null
+  photo_taken_at: string | null
+  photo_lat: number | null
+  photo_lng: number | null
+  photo_meta: Record<string, unknown> | null
   project_id: string | null
   task_id: string | null
   created_at: string

@@ -31,6 +31,18 @@ export default async function JournalDetail({ params }: { params: { id: string }
   const entry = data as JournalEntry | null
   if (!entry) notFound()
 
+  let photoUrl: string | null = null
+  if (entry.photo_path) {
+    const { data: signed } = await supabase.storage
+      .from('journal-photos')
+      .createSignedUrl(entry.photo_path, 3600)
+    photoUrl = signed?.signedUrl ?? null
+  }
+
+  const taken = entry.photo_taken_at ? entry.photo_taken_at.slice(0, 10) : null
+  const lat = entry.photo_lat
+  const lng = entry.photo_lng
+
   return (
     <main className="mx-auto max-w-md px-5 py-8">
       <Link href="/journal" className="text-xs text-muted underline">
@@ -47,13 +59,33 @@ export default async function JournalDetail({ params }: { params: { id: string }
       </div>
       {entry.headline && <h1 className="mb-6 text-xl font-extrabold text-ink">{entry.headline}</h1>}
 
+      {photoUrl && (
+        <figure className="mb-6">
+          <img src={photoUrl} alt="" className="w-full rounded-2xl border border-line" />
+          <figcaption className="mt-2 text-xs text-ink/50">
+            {taken && <span>촬영일 {taken}</span>}
+            {taken && lat != null && lng != null && <span> · </span>}
+            {lat != null && lng != null && (
+              <a
+                className="underline"
+                target="_blank"
+                rel="noreferrer"
+                href={`https://maps.google.com/?q=${lat},${lng}`}
+              >
+                위치 {lat.toFixed(4)}, {lng.toFixed(4)}
+              </a>
+            )}
+          </figcaption>
+        </figure>
+      )}
+
       <Section label="🌿 오늘 있었던 일" text={entry.today} />
       <Section label="🙏 감사·응답" text={entry.thanks} />
       <Section label="💭 묵상·깨달음" text={entry.meditation} />
       <Section label="📌 기도제목" text={entry.prayer} />
 
       <div className="mt-10">
-        <DeleteButton id={entry.id} />
+        <DeleteButton id={entry.id} photoPath={entry.photo_path} />
       </div>
     </main>
   )

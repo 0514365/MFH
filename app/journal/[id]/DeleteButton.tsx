@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 
-export default function DeleteButton({ id }: { id: string }) {
+export default function DeleteButton({ id, photoPath }: { id: string; photoPath: string | null }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
 
@@ -17,6 +17,13 @@ export default function DeleteButton({ id }: { id: string }) {
       setBusy(false)
       window.alert('삭제 실패: ' + error.message)
       return
+    }
+    if (photoPath) {
+      try {
+        await supabase.storage.from('journal-photos').remove([photoPath])
+      } catch {
+        // 사진 삭제 실패는 무시(일지는 이미 삭제됨)
+      }
     }
     router.replace('/journal')
     router.refresh()
