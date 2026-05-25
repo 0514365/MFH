@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { Project } from '@/lib/types'
-import { StatusBadge, PriorityBadge, ImportanceStars, fmtDate } from '../badges'
+import { StatusBadge, PriorityBadge, CategoryBadge, ImportanceStars, fmtDate } from '../badges'
 import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
@@ -32,6 +32,7 @@ export default async function ProjectDetail({ params }: { params: { id: string }
       <div className="mb-3 mt-2 flex flex-wrap items-center gap-2">
         <StatusBadge value={project.status} />
         <PriorityBadge value={project.priority} />
+        <CategoryBadge value={project.category} />
         <ImportanceStars value={project.importance} />
       </div>
       <h1 className="text-2xl font-extrabold text-ink">{project.title}</h1>

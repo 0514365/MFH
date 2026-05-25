@@ -34,6 +34,7 @@ export type Project = {
   user_id: string
   title: string
   description: string | null
+  category: string | null
   status: string
   priority: string
   importance: number

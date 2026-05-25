@@ -20,9 +20,14 @@ export function PriorityBadge({ value }: { value: string }) {
   return <span className={`rounded-full px-2 py-0.5 text-[11px] ${cls}`}>{priorityLabel(value)}</span>
 }
 
+export function CategoryBadge({ value }: { value: string | null }) {
+  if (!value) return null
+  return <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">{value}</span>
+}
+
 export function ImportanceStars({ value }: { value: number }) {
   if (!value) return null
-  return <span className="text-[11px] text-accent">{'★'.repeat(value)}</span>
+  return <span className="text-[11px] text-yellow-400">{'★'.repeat(value)}</span>
 }
 
 export function fmtDate(d: string | null): string {

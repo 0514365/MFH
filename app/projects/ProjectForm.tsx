@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import { PRIORITIES, PROJECT_STATUSES, IMPORTANCE_MAX } from '@/lib/constants'
+import { JOURNAL_CATEGORIES, PRIORITIES, PROJECT_STATUSES, IMPORTANCE_MAX } from '@/lib/constants'
 import type { Project } from '@/lib/types'
 import DateField from '../journal/DateField'
 
@@ -17,6 +17,7 @@ export default function ProjectForm({ mode, initial }: Props) {
   const router = useRouter()
   const [title, setTitle] = useState(initial?.title ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
+  const [category, setCategory] = useState(initial?.category ?? '')
   const [status, setStatus] = useState(initial?.status ?? 'active')
   const [priority, setPriority] = useState(initial?.priority ?? 'med')
   const [importance, setImportance] = useState<number>(initial?.importance ?? 0)
@@ -44,6 +45,7 @@ export default function ProjectForm({ mode, initial }: Props) {
       user_id: user.id,
       title: title.trim(),
       description: description.trim() || null,
+      category: category || null,
       status,
       priority,
       importance,
@@ -94,6 +96,16 @@ export default function ProjectForm({ mode, initial }: Props) {
       <label className={small}>설명</label>
       <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={input} />
 
+      <label className={small}>사역 분류</label>
+      <select value={category} onChange={(e) => setCategory(e.target.value)} className={input}>
+        <option value="">선택 안 함</option>
+        {JOURNAL_CATEGORIES.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
+
       <label className={small}>상태</label>
       <select value={status} onChange={(e) => setStatus(e.target.value)} className={input}>
         {PROJECT_STATUSES.map((s) => (
@@ -121,7 +133,7 @@ export default function ProjectForm({ mode, initial }: Props) {
               key={n}
               type="button"
               onClick={() => setImportance(importance === n ? n - 1 : n)}
-              className={`text-2xl leading-none ${n <= importance ? 'text-accent' : 'text-faint'}`}
+              className={`text-2xl leading-none ${n <= importance ? 'text-yellow-400' : 'text-faint'}`}
               aria-label={`중요도 ${n}`}
             >
               ★

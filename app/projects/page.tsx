@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { Project } from '@/lib/types'
-import { StatusBadge, PriorityBadge, ImportanceStars, fmtDate } from './badges'
+import { StatusBadge, PriorityBadge, CategoryBadge, ImportanceStars, fmtDate } from './badges'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,6 +53,7 @@ export default async function ProjectsList() {
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge value={p.status} />
                   <PriorityBadge value={p.priority} />
+                  <CategoryBadge value={p.category} />
                   <ImportanceStars value={p.importance} />
                   {p.due_date && <span className="text-[11px] text-muted">~ {fmtDate(p.due_date)}</span>}
                 </div>
