@@ -2,9 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { statusLabel } from '@/lib/constants'
 import {
   monthGrid,
   weekGrid,
+  chunkWeeks,
+  layoutWeekBars,
   addMonth,
   addWeek,
   todayKey,
@@ -15,13 +18,16 @@ import {
   DOW_LABELS,
   type Cell,
   type DateKey,
+  type BarItem,
 } from '@/lib/calendar'
 
 export type CalItem = {
   id: string
   type: 'project' | 'task'
   title: string
-  date: DateKey
+  start: DateKey
+  end: DateKey
+  status: string
   priority: string
   done: boolean
   href: string
@@ -29,14 +35,27 @@ export type CalItem = {
 
 type Mode = 'month' | 'week'
 
-// 우선순위 → 점 색 (색-슬래시 opacity 미사용: var 매핑이라 동작 안 함)
-function priDot(priority: string): string {
-  return priority === 'high' ? 'bg-accent' : priority === 'low' ? 'bg-faint' : 'bg-primary'
-}
+const BAR_H = 20 // 막대 1개 높이(+간격 포함 단위)
+const NUM_H = 22 // 날짜 숫자 영역 높이
 
-// 타입 → 점 모양: 프로젝트=네모, 할 일=원
-function shape(type: CalItem['type']): string {
-  return type === 'project' ? 'rounded-sm' : 'rounded-full'
+// 우선순위 → 막대 배경 틴트 + 좌측 색바
+function barTone(priority: string): string {
+  if (priority === 'high') return 'bg-accent-soft border-accent'
+  if (priority === 'low') return 'bg-surface-subtle border-faint'
+  return 'bg-primary-soft border-primary'
+}
+function barText(priority: string): string {
+  if (priority === 'high') return 'text-accent'
+  if (priority === 'low') return 'text-muted'
+  return 'text-primary'
+}
+function dotColor(priority: string): string {
+  if (priority === 'high') return 'bg-accent'
+  if (priority === 'low') return 'bg-faint'
+  return 'bg-primary'
+}
+function priRank(priority: string): number {
+  return priority === 'high' ? 0 : priority === 'low' ? 2 : 1
 }
 
 export default function CalendarView({ items }: { items: CalItem[] }) {
@@ -47,19 +66,34 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
   const [weekKey, setWeekKey] = useState<DateKey>(today)
   const [selected, setSelected] = useState<DateKey>(today)
 
-  const byDate = useMemo(() => {
-    const map: Record<string, CalItem[]> = {}
-    for (const it of items) (map[it.date] ??= []).push(it)
-    return map
+  const byId = useMemo(() => {
+    const m: Record<string, CalItem> = {}
+    for (const it of items) m[it.id] = it
+    return m
   }, [items])
 
-  const cells: Cell[] = mode === 'month' ? monthGrid(cur.y, cur.m) : weekGrid(weekKey)
-  const selItems = byDate[selected] ?? []
+  const bars: BarItem[] = useMemo(
+    () => items.map((it) => ({ id: it.id, start: it.start, end: it.end })),
+    [items],
+  )
+
+  const weeks: Cell[][] =
+    mode === 'month' ? chunkWeeks(monthGrid(cur.y, cur.m)) : [weekGrid(weekKey)]
 
   const title =
     mode === 'month'
       ? `${cur.y}년 ${MONTH_LABELS[cur.m - 1]}`
-      : `${parseKey(weekKey).y}년 ${weekRangeLabel(cells)}`
+      : `${parseKey(weekKey).y}년 ${weekRangeLabel(weeks[0])}`
+
+  // 선택일에 걸치는 항목(기간 포함) → 프로젝트 먼저, 우선순위순
+  const selItems = useMemo(() => {
+    return items
+      .filter((it) => it.start <= selected && selected <= it.end)
+      .sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'project' ? -1 : 1
+        return priRank(a.priority) - priRank(b.priority)
+      })
+  }, [items, selected])
 
   function prev() {
     if (mode === 'month') setCur(addMonth(cur.y, cur.m, -1))
@@ -75,7 +109,8 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
     setSelected(today)
   }
 
-  const cellMinH = mode === 'month' ? 'min-h-[46px]' : 'min-h-[72px]'
+  // 반응형 셀 최소 높이: 가로/세로(vh)에 따라 유기적. 주 뷰는 더 크게.
+  const baseMinH = mode === 'month' ? 'clamp(58px, 11vh, 116px)' : 'clamp(120px, 46vh, 460px)'
 
   return (
     <div>
@@ -113,13 +148,13 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
         <button type="button" onClick={prev} className="rounded-lg px-3 py-1 text-xl leading-none text-muted">
           ‹
         </button>
-        <div className="font-display text-base font-bold text-ink">{title}</div>
+        <div className="font-display text-base font-bold text-ink md:text-lg">{title}</div>
         <button type="button" onClick={next} className="rounded-lg px-3 py-1 text-xl leading-none text-muted">
           ›
         </button>
       </div>
 
-      <div className="grid grid-cols-7 text-center text-[11px] font-semibold">
+      <div className="grid grid-cols-7 text-center text-[11px] font-semibold md:text-xs">
         {DOW_LABELS.map((d, i) => (
           <div key={d} className={`py-1 ${i === 0 ? 'text-accent' : 'text-faint'}`}>
             {d}
@@ -127,42 +162,72 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
-        {cells.map((c) => {
-          const dayItems = byDate[c.key] ?? []
-          const isToday = c.key === today
-          const isSel = c.key === selected
-          const dow = new Date(c.year, c.month - 1, c.day).getDay()
-          const cellCls = isSel
-            ? 'border-primary bg-primary-soft'
-            : isToday
-              ? 'border-accent bg-surface'
-              : 'border-line bg-surface'
-          const numCls = isToday || dow === 0 ? 'text-accent' : 'text-muted'
+      <div className="space-y-1">
+        {weeks.map((week, wi) => {
+          const segs = layoutWeekBars(week, bars)
+          const maxLane = segs.reduce((mx, s) => Math.max(mx, s.lane), -1)
+          const minH = `max(${baseMinH}, ${NUM_H + (maxLane + 1) * BAR_H + 6}px)`
           return (
-            <button
-              type="button"
-              key={c.key}
-              onClick={() => setSelected(c.key)}
-              className={`${cellMinH} rounded-lg border p-1 text-left transition ${cellCls} ${
-                c.inMonth ? '' : 'opacity-40'
-              }`}
-            >
-              <div className={`text-[11px] font-semibold ${numCls}`}>{c.day}</div>
-              <div className="mt-0.5 flex flex-wrap gap-0.5">
-                {dayItems.slice(0, 4).map((it) => (
-                  <span
-                    key={it.id}
-                    className={`h-1.5 w-1.5 ${shape(it.type)} ${priDot(it.priority)} ${
-                      it.done ? 'opacity-30' : ''
-                    }`}
-                  />
-                ))}
-                {dayItems.length > 4 && (
-                  <span className="text-[9px] leading-none text-faint">+{dayItems.length - 4}</span>
-                )}
+            <div key={wi} className="relative" style={{ minHeight: minH }}>
+              <div className="grid h-full grid-cols-7 gap-px overflow-hidden rounded-lg bg-line">
+                {week.map((c) => {
+                  const isToday = c.key === today
+                  const isSel = c.key === selected
+                  const dow = new Date(c.year, c.month - 1, c.day).getDay()
+                  const numCls = isToday || dow === 0 ? 'text-accent' : 'text-muted'
+                  return (
+                    <button
+                      type="button"
+                      key={c.key}
+                      onClick={() => setSelected(c.key)}
+                      style={{ minHeight: minH }}
+                      className={`relative text-left transition ${
+                        isSel ? 'bg-primary-soft' : 'bg-surface'
+                      } ${c.inMonth ? '' : 'opacity-45'} ${isToday ? 'ring-1 ring-inset ring-accent' : ''}`}
+                    >
+                      <span className={`absolute left-1 top-0.5 text-[11px] font-semibold md:text-xs ${numCls}`}>
+                        {c.day}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
-            </button>
+
+              <div className="pointer-events-none absolute inset-0">
+                {segs.map((sg) => {
+                  const it = byId[sg.id]
+                  if (!it) return null
+                  const left = `${(sg.startCol / 7) * 100}%`
+                  const width = `${((sg.endCol - sg.startCol + 1) / 7) * 100}%`
+                  const top = `${NUM_H + sg.lane * BAR_H}px`
+                  const round = sg.isStart && sg.isEnd ? 'rounded' : sg.isStart ? 'rounded-l' : sg.isEnd ? 'rounded-r' : ''
+                  return (
+                    <Link
+                      key={`${sg.id}-${sg.startCol}`}
+                      href={it.href}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ left, width, top, height: `${BAR_H - 4}px` }}
+                      className={`pointer-events-auto absolute mx-0.5 flex items-center gap-1 overflow-hidden border-l-[3px] px-1.5 ${round} ${barTone(
+                        it.priority,
+                      )} ${it.done ? 'opacity-50' : ''}`}
+                    >
+                      <span
+                        className={`truncate text-[11px] font-semibold ${barText(it.priority)} ${
+                          it.done ? 'line-through' : ''
+                        }`}
+                      >
+                        {it.title}
+                      </span>
+                      {it.type === 'project' && (
+                        <span className={`ml-auto hidden shrink-0 text-[10px] opacity-70 md:inline ${barText(it.priority)}`}>
+                          {statusLabel(it.status)}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
           )
         })}
       </div>
@@ -171,34 +236,44 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
         <div className="mb-2 text-xs font-semibold text-muted">{fmtKey(selected)}</div>
         {selItems.length === 0 ? (
           <p className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-xs text-faint">
-            이 날짜에 마감 항목이 없습니다.
+            이 날짜에 항목이 없습니다.
           </p>
         ) : (
           <ul className="space-y-2">
-            {selItems.map((it) => (
-              <li key={it.id}>
-                <Link
-                  href={it.href}
-                  className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2.5 transition hover:border-primary"
-                >
-                  <span
-                    className={`h-2.5 w-2.5 shrink-0 ${shape(it.type)} ${priDot(it.priority)} ${
-                      it.done ? 'opacity-30' : ''
-                    }`}
-                  />
-                  <span
-                    className={`min-w-0 flex-1 truncate text-sm font-semibold ${
-                      it.done ? 'text-faint line-through' : 'text-ink'
-                    }`}
+            {selItems.map((it) => {
+              const span = it.start !== it.end
+              return (
+                <li key={it.id}>
+                  <Link
+                    href={it.href}
+                    className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2.5 transition hover:border-primary"
                   >
-                    {it.title}
-                  </span>
-                  <span className="shrink-0 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] text-muted">
-                    {it.type === 'project' ? '프로젝트' : '할 일'}
-                  </span>
-                </Link>
-              </li>
-            ))}
+                    <span
+                      className={`h-2.5 w-2.5 shrink-0 ${it.type === 'project' ? 'rounded-sm' : 'rounded-full'} ${dotColor(
+                        it.priority,
+                      )} ${it.done ? 'opacity-30' : ''}`}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className={`block truncate text-sm font-semibold ${
+                          it.done ? 'text-faint line-through' : 'text-ink'
+                        }`}
+                      >
+                        {it.title}
+                      </span>
+                      {span && (
+                        <span className="mt-0.5 block text-[11px] text-muted">
+                          {fmtKey(it.start)} – {fmtKey(it.end)}
+                        </span>
+                      )}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] text-muted">
+                      {it.type === 'project' ? '프로젝트' : '할 일'}
+                    </span>
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

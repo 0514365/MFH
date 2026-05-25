@@ -14,8 +14,7 @@ export default async function CalendarPage() {
 
   const { data: projData } = await supabase
     .from('projects')
-    .select('id, title, due_date, priority, status')
-    .not('due_date', 'is', null)
+    .select('id, title, start_date, due_date, priority, status')
 
   const { data: taskData } = await supabase
     .from('tasks')
@@ -25,7 +24,8 @@ export default async function CalendarPage() {
   const projects = (projData ?? []) as {
     id: string
     title: string
-    due_date: string
+    start_date: string | null
+    due_date: string | null
     priority: string
     status: string
   }[]
@@ -38,20 +38,32 @@ export default async function CalendarPage() {
   }[]
 
   const items: CalItem[] = [
-    ...projects.map((p) => ({
-      id: p.id,
-      type: 'project' as const,
-      title: p.title,
-      date: p.due_date,
-      priority: p.priority,
-      done: p.status === 'done',
-      href: `/projects/${p.id}`,
-    })),
+    // 프로젝트: start_date~due_date 기간 막대. 한쪽만 있으면 그날 하루로.
+    ...projects
+      .filter((p) => p.start_date || p.due_date)
+      .map((p) => {
+        const start = (p.start_date ?? p.due_date) as string
+        const end = (p.due_date ?? p.start_date) as string
+        return {
+          id: p.id,
+          type: 'project' as const,
+          title: p.title,
+          start: start <= end ? start : end,
+          end: start <= end ? end : start,
+          status: p.status,
+          priority: p.priority,
+          done: p.status === 'done',
+          href: `/projects/${p.id}`,
+        }
+      }),
+    // 할 일: due_date 하루.
     ...tasks.map((t) => ({
       id: t.id,
       type: 'task' as const,
       title: t.title,
-      date: t.due_date,
+      start: t.due_date,
+      end: t.due_date,
+      status: t.done ? 'done' : 'active',
       priority: t.priority,
       done: t.done,
       href: `/tasks/${t.id}/edit`,
@@ -59,7 +71,7 @@ export default async function CalendarPage() {
   ]
 
   return (
-    <main className="mx-auto max-w-md px-5 py-8">
+    <main className="mx-auto max-w-md px-5 py-8 md:max-w-4xl">
       <div className="mb-5">
         <Link href="/" className="text-xs text-muted underline">
           ← 홈
@@ -81,10 +93,10 @@ export default async function CalendarPage() {
           <span className="h-2.5 w-2.5 rounded-full bg-faint" /> 낮음
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm bg-muted" /> 프로젝트
+          <span className="h-3 w-4 rounded-sm border-l-2 border-muted bg-surface-subtle" /> 프로젝트(기간)
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-muted" /> 할 일
+          <span className="h-3 w-3 rounded-sm bg-surface-subtle" /> 할 일(하루)
         </span>
       </div>
     </main>
