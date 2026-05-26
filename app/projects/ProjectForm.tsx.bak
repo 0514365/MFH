@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import { JOURNAL_CATEGORIES, STATUSES, normalizeStatus, IMPORTANCE_MAX } from '@/lib/constants'
+import { JOURNAL_CATEGORIES, PRIORITIES, PROJECT_STATUSES, IMPORTANCE_MAX } from '@/lib/constants'
 import type { Project } from '@/lib/types'
 import DateField from '../journal/DateField'
 
@@ -18,8 +18,8 @@ export default function ProjectForm({ mode, initial }: Props) {
   const [title, setTitle] = useState(initial?.title ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [category, setCategory] = useState(initial?.category ?? '')
-  const [status, setStatus] = useState(normalizeStatus(initial?.status))
-  const priority = initial?.priority ?? 'med'
+  const [status, setStatus] = useState(initial?.status ?? 'active')
+  const [priority, setPriority] = useState(initial?.priority ?? 'med')
   const [importance, setImportance] = useState<number>(initial?.importance ?? 0)
   const [startDate, setStartDate] = useState(initial?.start_date ?? '')
   const [dueDate, setDueDate] = useState(initial?.due_date ?? '')
@@ -107,10 +107,19 @@ export default function ProjectForm({ mode, initial }: Props) {
       </select>
 
       <label className={small}>상태</label>
-      <select value={status} onChange={(e) => setStatus(normalizeStatus(e.target.value))} className={input}>
-        {STATUSES.map((s) => (
+      <select value={status} onChange={(e) => setStatus(e.target.value)} className={input}>
+        {PROJECT_STATUSES.map((s) => (
           <option key={s.value} value={s.value}>
             {s.label}
+          </option>
+        ))}
+      </select>
+
+      <label className={small}>우선순위</label>
+      <select value={priority} onChange={(e) => setPriority(e.target.value)} className={input}>
+        {PRIORITIES.map((p) => (
+          <option key={p.value} value={p.value}>
+            {p.label}
           </option>
         ))}
       </select>

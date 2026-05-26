@@ -1,18 +1,13 @@
-import { priorityLabel, normalizeStatus, statusV2Label, type StatusValue } from '@/lib/constants'
-
-const STATUS_CLS: Record<StatusValue, string> = {
-  upcoming: 'bg-status-upcoming text-on-status-upcoming',
-  in_progress: 'bg-status-progress text-on-status-progress',
-  done: 'bg-status-done text-on-status-done',
-}
+import { priorityLabel, statusLabel } from '@/lib/constants'
 
 export function StatusBadge({ value }: { value: string }) {
-  const v = normalizeStatus(value)
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-[11px] ${STATUS_CLS[v]}`}>
-      {statusV2Label(value)}
-    </span>
-  )
+  const cls =
+    value === 'active'
+      ? 'bg-primary-soft text-primary'
+      : value === 'done'
+        ? 'bg-surface-subtle text-faint'
+        : 'bg-surface-subtle text-muted'
+  return <span className={`rounded-full px-2 py-0.5 text-[11px] ${cls}`}>{statusLabel(value)}</span>
 }
 
 export function PriorityBadge({ value }: { value: string }) {

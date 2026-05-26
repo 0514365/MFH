@@ -2,11 +2,12 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { Project } from '@/lib/types'
-import ProjectsList from './ProjectsList'
+import { StatusBadge, PriorityBadge, CategoryBadge, ImportanceStars, fmtDate } from './badges'
+import { ProgressRing } from './Progress'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ProjectsPage() {
+export default async function ProjectsList() {
   const supabase = createClient()
   const {
     data: { user },
@@ -62,7 +63,39 @@ export default async function ProjectsPage() {
         </div>
       </div>
 
-      <ProjectsList projects={projects} counts={counts} />
+      {projects.length === 0 ? (
+        <p className="mt-16 text-center text-sm leading-relaxed text-faint">
+          아직 프로젝트가 없습니다.
+          <br />첫 프로젝트를 만들어 보세요.
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {projects.map((p) => {
+            const c = counts[p.id] ?? { total: 0, done: 0 }
+            return (
+              <li key={p.id}>
+                <Link
+                  href={`/projects/${p.id}`}
+                  className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition hover:border-primary"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge value={p.status} />
+                      <PriorityBadge value={p.priority} />
+                      <CategoryBadge value={p.category} />
+                      <ImportanceStars value={p.importance} />
+                      {p.due_date && <span className="text-[11px] text-muted">~ {fmtDate(p.due_date)}</span>}
+                    </div>
+                    <div className="mt-1.5 font-bold text-ink">{p.title}</div>
+                    {p.description && <div className="mt-1 line-clamp-2 text-sm text-muted">{p.description}</div>}
+                  </div>
+                  <ProgressRing done={c.done} total={c.total} />
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </main>
   )
 }
