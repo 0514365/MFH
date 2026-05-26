@@ -488,10 +488,29 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
       return
     }
 
-    // 고스트/인라인 정리
+    // 고스트 정리(항상)
     if (d.ghost) killGhost(d.ghost)
     const liveCard = document.querySelector(`.cal-card[data-cardid="${d.id}"]`) as HTMLElement | null
     if (liveCard) liveCard.style.opacity = ''
+
+    // 움직이지 않음 → 클릭 처리. ※ el 인라인 스타일(% width 등)은 절대 건드리지 않는다.
+    if (!d.moved) {
+      if (d.el) {
+        // pointerdown 에서 set 한 willChange/zIndex 만 되돌림(width/transform 은 손대지 않음)
+        d.el.style.willChange = ''
+        d.el.style.zIndex = ''
+        d.el.style.opacity = ''
+      }
+      if (d.itemType === 'project') {
+        setSelBar(it.id)
+        setSelected(it.start)
+      } else {
+        router.push(it.href)
+      }
+      return
+    }
+
+    // 드래그였음 → 인라인 변경분 원복(직후 setAllItems 리렌더로 % width 재적용됨)
     if (d.el) {
       d.el.style.transform = ''
       d.el.style.width = ''
@@ -500,23 +519,15 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
       d.el.style.opacity = ''
     }
 
-    // 움직이지 않음 → 클릭 처리
-    if (!d.moved) {
-      if (d.itemType === 'project') {
-        setSelBar(it.id)
-        setSelected(it.start)
-      } else {
-        router.push(it.href) // 카드 단순 클릭 = 상세
-      }
-      return
-    }
-
     let ns = it.start
     let ne = it.end
 
     if (d.kind === 'move') {
       const dropKey = d.dropKey
-      if (!dropKey) return // 달력 밖 드롭 = 취소
+      if (!dropKey) {
+        setAllItems((arr) => [...arr]) // 취소 — 인라인 복구
+        return
+      }
       if (d.itemType === 'project') {
         const len = diffDays(d.originStart, d.originEnd) // 기간 유지
         ns = dropKey
@@ -538,7 +549,11 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
       }
     }
 
-    if (ns === it.start && ne === it.end) return
+    if (ns === it.start && ne === it.end) {
+      // 변경 없음(같은 칸 드롭 등) — 인라인 width 지운 것 복구 위해 강제 리렌더.
+      setAllItems((arr) => [...arr])
+      return
+    }
 
     const prevItems = allItems
     setAllItems((arr) => arr.map((x) => (x.id === it.id ? { ...x, start: ns, end: ne } : x)))
