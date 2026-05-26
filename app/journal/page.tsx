@@ -23,14 +23,14 @@ export default async function JournalList() {
   return (
     <main className="mx-auto max-w-md px-5 py-8">
       <PageHeader
-        title="일지"
+        title="Log"
         current="journal"
         action={
           <Link
             href="/journal/new"
             className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white"
           >
-            + 새 일지
+            + Log
           </Link>
         }
       />

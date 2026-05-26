@@ -29,11 +29,11 @@ export default async function TasksPage() {
   return (
     <main className="mx-auto max-w-md px-5 py-8">
       <PageHeader
-        title="할 일"
+        title="To-Do"
         current="tasks"
         action={
           <Link href="/tasks/new" className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white">
-            + 새 할 일
+            + To-Do
           </Link>
         }
       />

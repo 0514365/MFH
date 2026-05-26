@@ -34,14 +34,14 @@ export default async function ProjectsPage() {
   return (
     <main className="mx-auto max-w-md px-5 py-8">
       <PageHeader
-        title="프로젝트"
+        title="Projects"
         current="projects"
         action={
           <Link
             href="/projects/new"
             className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white"
           >
-            + 새 프로젝트
+            + Project
           </Link>
         }
       />
