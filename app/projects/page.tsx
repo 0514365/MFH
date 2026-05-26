@@ -41,7 +41,11 @@ export default async function ProjectsList() {
           <Link href="/calendar" className="ml-3 text-xs text-muted underline">
             캘린더
           </Link>
-          <h1 className="font-display text-2xl font-extrabold text-primary">프로젝트</h1>
+          <div className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-mark.svg" alt="" className="h-7 w-7 shrink-0" />
+            <h1 className="font-display text-2xl font-extrabold text-primary">프로젝트</h1>
+          </div>
         </div>
         <Link
           href="/projects/new"

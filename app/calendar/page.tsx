@@ -79,7 +79,11 @@ export default async function CalendarPage() {
         <Link href="/" className="text-xs text-muted underline">
           ← 홈
         </Link>
-        <h1 className="font-display text-2xl font-extrabold text-primary">캘린더</h1>
+        <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-mark.svg" alt="" className="h-7 w-7 shrink-0" />
+          <h1 className="font-display text-2xl font-extrabold text-primary">캘린더</h1>
+        </div>
         <p className="mt-1 text-xs text-muted">프로젝트·할 일 마감 일정</p>
       </div>
 

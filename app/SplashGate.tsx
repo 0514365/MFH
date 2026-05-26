@@ -204,6 +204,25 @@ export default function SplashGate({ children }: { children: ReactNode }) {
           padding: 7px 12px;
           cursor: pointer;
         }
+        /* 데스크탑: 무대·로고 확대 */
+        @media (min-width: 768px) {
+          .mfh-stage {
+            max-width: 760px;
+            max-height: none;
+          }
+          .mfh-logo {
+            width: min(56%, 600px);
+          }
+          .mfh-kicker {
+            font-size: 14px;
+          }
+          .mfh-theme {
+            font-size: 34px;
+          }
+          .mfh-goals li {
+            font-size: 16px;
+          }
+        }
       `}</style>
     </>
   )
