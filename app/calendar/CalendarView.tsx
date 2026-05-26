@@ -1,7 +1,9 @@
 'use client'
-
-import { useMemo, useState } from 'react'
+// MFH-DND-V1
+import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase-browser'
 import { statusLabel } from '@/lib/constants'
 import {
   monthGrid,
@@ -15,6 +17,7 @@ import {
   fmtKey,
   fmtTime,
   fmtTimeShort,
+  shiftKey,
   weekRangeLabel,
   MONTH_LABELS,
   DOW_LABELS,
@@ -37,9 +40,22 @@ export type CalItem = {
 }
 
 type Mode = 'month' | 'week'
+type DragMode = 'move' | 'resize-start' | 'resize-end'
+type Drag = {
+  id: string
+  type: 'project' | 'task'
+  mode: DragMode
+  originStart: DateKey
+  originEnd: DateKey
+  startX: number
+  cellW: number // 1칸 px (드래그 시작 시 캡처)
+  deltaDays: number // 현재 미리보기 시프트
+  moved: boolean // 임계 초과 여부(클릭/드래그 구분)
+}
 
 const BAR_H = 20 // 막대 1개 높이(+간격 포함 단위)
 const NUM_H = 22 // 날짜 숫자 영역 높이
+const DRAG_THRESHOLD = 4 // px
 
 function barTone(priority: string): string {
   if (priority === 'high') return 'bg-accent-soft border-accent'
@@ -60,7 +76,8 @@ function priRank(priority: string): number {
   return priority === 'high' ? 0 : priority === 'low' ? 2 : 1
 }
 
-export default function CalendarView({ items }: { items: CalItem[] }) {
+export default function CalendarView({ items: initialItems }: { items: CalItem[] }) {
+  const router = useRouter()
   const today = todayKey()
   const t = parseKey(today)
   const [mode, setMode] = useState<Mode>('month')
@@ -68,19 +85,48 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
   const [weekKey, setWeekKey] = useState<DateKey>(today)
   const [selected, setSelected] = useState<DateKey>(today)
 
+  // 낙관적 갱신을 위해 items 를 로컬 state 로 보유.
+  const [items, setItems] = useState<CalItem[]>(initialItems)
+  const [drag, setDrag] = useState<Drag | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const weekRefs = useRef<(HTMLDivElement | null)[]>([])
+
   const byId = useMemo(() => {
     const m: Record<string, CalItem> = {}
     for (const it of items) m[it.id] = it
     return m
   }, [items])
 
-  // 막대 입력은 (시작일 → 시간) 순으로 정렬해 같은 날 안에서 시간순으로 쌓이게 한다.
+  // 드래그 중인 항목의 미리보기(시프트 적용) 좌표를 계산.
+  function previewRange(it: CalItem): { start: DateKey; end: DateKey } {
+    if (!drag || drag.id !== it.id || drag.deltaDays === 0) return { start: it.start, end: it.end }
+    if (drag.mode === 'move') {
+      return { start: shiftKey(drag.originStart, drag.deltaDays), end: shiftKey(drag.originEnd, drag.deltaDays) }
+    }
+    if (drag.mode === 'resize-start') {
+      let ns = shiftKey(drag.originStart, drag.deltaDays)
+      if (ns > drag.originEnd) ns = drag.originEnd // start 가 end 넘지 못함
+      return { start: ns, end: drag.originEnd }
+    }
+    // resize-end
+    let ne = shiftKey(drag.originEnd, drag.deltaDays)
+    if (ne < drag.originStart) ne = drag.originStart
+    return { start: drag.originStart, end: ne }
+  }
+
+  // 막대 입력은 (시작일 → 시간) 순. 드래그 중이면 미리보기 좌표로 배치.
   const bars: BarItem[] = useMemo(() => {
-    const sorted = [...items].sort((a, b) =>
-      a.start < b.start ? -1 : a.start > b.start ? 1 : (a.time ?? '').localeCompare(b.time ?? ''),
+    const withPv = items.map((it) => {
+      const pv = previewRange(it)
+      return { it, start: pv.start, end: pv.end }
+    })
+    const sorted = withPv.sort((a, b) =>
+      a.start < b.start ? -1 : a.start > b.start ? 1 : (a.it.time ?? '').localeCompare(b.it.time ?? ''),
     )
-    return sorted.map((it) => ({ id: it.id, start: it.start, end: it.end }))
-  }, [items])
+    return sorted.map((x) => ({ id: x.it.id, start: x.start, end: x.end }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, drag])
 
   const weeks: Cell[][] =
     mode === 'month' ? chunkWeeks(monthGrid(cur.y, cur.m)) : [weekGrid(weekKey)]
@@ -90,7 +136,6 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
       ? `${cur.y}년 ${MONTH_LABELS[cur.m - 1]}`
       : `${parseKey(weekKey).y}년 ${weekRangeLabel(weeks[0])}`
 
-  // 선택일에 걸치는 항목: 종일/프로젝트 먼저 → 시간 오름차순 → 타입 → 우선순위
   const selItems = useMemo(() => {
     return items
       .filter((it) => it.start <= selected && selected <= it.end)
@@ -117,10 +162,85 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
     setSelected(today)
   }
 
+  // ── 드래그 핸들러 ───────────────────────────────
+  function onBarPointerDown(e: React.PointerEvent, it: CalItem, dmode: DragMode, weekIdx: number) {
+    if (saving) return
+    if (e.button !== undefined && e.button !== 0) return // 좌클릭만
+    const wrap = weekRefs.current[weekIdx]
+    if (!wrap) return
+    const cellW = wrap.getBoundingClientRect().width / 7
+    e.preventDefault()
+    e.stopPropagation()
+    ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+    setDrag({
+      id: it.id,
+      type: it.type,
+      mode: dmode,
+      originStart: it.start,
+      originEnd: it.end,
+      startX: e.clientX,
+      cellW: cellW > 0 ? cellW : 1,
+      deltaDays: 0,
+      moved: false,
+    })
+  }
+
+  function onBarPointerMove(e: React.PointerEvent) {
+    if (!drag) return
+    const dx = e.clientX - drag.startX
+    const moved = drag.moved || Math.abs(dx) >= DRAG_THRESHOLD
+    const deltaDays = Math.round(dx / drag.cellW)
+    if (deltaDays === drag.deltaDays && moved === drag.moved) return
+    setDrag({ ...drag, deltaDays, moved })
+  }
+
+  async function onBarPointerUp(e: React.PointerEvent, it: CalItem) {
+    if (!drag || drag.id !== it.id) {
+      setDrag(null)
+      return
+    }
+    const d = drag
+    // 임계 미만 = 클릭으로 간주 → 네비게이트.
+    if (!d.moved || d.deltaDays === 0) {
+      setDrag(null)
+      router.push(it.href)
+      return
+    }
+    const pv = previewRange(it)
+    setDrag(null)
+    if (pv.start === it.start && pv.end === it.end) return
+
+    // 낙관적 갱신
+    const prevItems = items
+    setItems((arr) => arr.map((x) => (x.id === it.id ? { ...x, start: pv.start, end: pv.end } : x)))
+    setSaving(true)
+    try {
+      const supabase = createClient()
+      if (it.type === 'project') {
+        const { error } = await supabase
+          .from('projects')
+          .update({ start_date: pv.start, due_date: pv.end })
+          .eq('id', it.id)
+        if (error) throw error
+      } else {
+        // 할 일: due_date 만 이동(due_time 유지). task 는 span 없으므로 start=end.
+        const { error } = await supabase.from('tasks').update({ due_date: pv.end }).eq('id', it.id)
+        if (error) throw error
+      }
+      router.refresh()
+    } catch (err) {
+      console.error('calendar drag save failed', err)
+      setItems(prevItems) // rollback
+      alert('일정 변경 저장에 실패했습니다. 다시 시도해 주세요.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const baseMinH = mode === 'month' ? 'clamp(58px, 11vh, 116px)' : 'clamp(120px, 46vh, 460px)'
 
   return (
-    <div>
+    <div className={saving ? 'pointer-events-none opacity-60' : ''}>
       <div className="mb-3 flex items-center justify-between">
         <div className="inline-flex rounded-xl border border-line p-0.5 text-xs">
           <button
@@ -200,7 +320,12 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
                 })}
               </div>
 
-              <div className="pointer-events-none absolute inset-0">
+              <div
+                ref={(el) => {
+                  weekRefs.current[wi] = el
+                }}
+                className="pointer-events-none absolute inset-0"
+              >
                 {segs.map((sg) => {
                   const it = byId[sg.id]
                   if (!it) return null
@@ -210,34 +335,55 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
                   const round =
                     sg.isStart && sg.isEnd ? 'rounded' : sg.isStart ? 'rounded-l' : sg.isEnd ? 'rounded-r' : ''
                   const showTime = it.type === 'task' && it.time
+                  const isDragging = drag?.id === it.id
+                  const canResize = it.type === 'project'
                   return (
-                    <Link
+                    <div
                       key={`${sg.id}-${sg.startCol}`}
-                      href={it.href}
-                      onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => onBarPointerDown(e, it, 'move', wi)}
+                      onPointerMove={onBarPointerMove}
+                      onPointerUp={(e) => onBarPointerUp(e, it)}
                       style={{ left, width, top, height: `${BAR_H - 4}px` }}
-                      className={`pointer-events-auto absolute mx-0.5 flex items-center gap-1 overflow-hidden border-l-[3px] px-1.5 ${round} ${barTone(
+                      className={`pointer-events-auto absolute mx-0.5 flex cursor-grab touch-none items-center gap-1 overflow-hidden border-l-[3px] px-1.5 active:cursor-grabbing ${round} ${barTone(
                         it.priority,
-                      )} ${it.done ? 'opacity-50' : ''}`}
+                      )} ${it.done ? 'opacity-50' : ''} ${isDragging ? 'opacity-80 ring-1 ring-inset ring-primary' : ''}`}
                     >
+                      {/* 시작 핸들(프로젝트·이 주에 시작) */}
+                      {canResize && sg.isStart && (
+                        <span
+                          onPointerDown={(e) => onBarPointerDown(e, it, 'resize-start', wi)}
+                          className="absolute left-0 top-0 h-full w-2 cursor-ew-resize"
+                        />
+                      )}
                       {showTime && (
                         <span className={`shrink-0 text-[10px] font-bold ${barText(it.priority)}`}>
                           {fmtTimeShort(it.time)}
                         </span>
                       )}
                       <span
-                        className={`truncate text-[11px] font-semibold ${barText(it.priority)} ${
+                        className={`pointer-events-none truncate text-[11px] font-semibold ${barText(it.priority)} ${
                           it.done ? 'line-through' : ''
                         }`}
                       >
                         {it.title}
                       </span>
                       {it.type === 'project' && (
-                        <span className={`ml-auto hidden shrink-0 text-[10px] opacity-70 md:inline ${barText(it.priority)}`}>
+                        <span
+                          className={`pointer-events-none ml-auto hidden shrink-0 text-[10px] opacity-70 md:inline ${barText(
+                            it.priority,
+                          )}`}
+                        >
                           {statusLabel(it.status)}
                         </span>
                       )}
-                    </Link>
+                      {/* 끝 핸들(프로젝트·이 주에 끝) */}
+                      {canResize && sg.isEnd && (
+                        <span
+                          onPointerDown={(e) => onBarPointerDown(e, it, 'resize-end', wi)}
+                          className="absolute right-0 top-0 h-full w-2 cursor-ew-resize"
+                        />
+                      )}
+                    </div>
                   )
                 })}
               </div>
@@ -245,6 +391,10 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
           )
         })}
       </div>
+
+      <p className="mt-2 text-center text-[10px] text-faint">
+        막대를 끌어 날짜 이동 · 프로젝트는 양 끝을 끌어 기간 조절
+      </p>
 
       <div className="mt-5">
         <div className="mb-2 text-xs font-semibold text-muted">{fmtKey(selected)}</div>

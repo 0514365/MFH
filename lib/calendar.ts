@@ -187,3 +187,18 @@ export function fmtTimeShort(time: string | null | undefined): string {
   else if (h > 12) h -= 12
   return `${h}:${m}`
 }
+
+// 키 ± 일수 시프트(드래그앤드롭용). 타임존 영향 피하려 로컬 Date 생성자 사용.
+export function shiftKey(key: DateKey, deltaDays: number): DateKey {
+  const { y, m, d } = parseKey(key)
+  const dt = new Date(y, m - 1, d + deltaDays)
+  return toKey(dt.getFullYear(), dt.getMonth() + 1, dt.getDate())
+}
+
+// 두 키 사이의 일수 차(b - a). 양수 = b가 미래.
+export function diffDays(a: DateKey, b: DateKey): number {
+  const pa = parseKey(a)
+  const pb = parseKey(b)
+  const ms = new Date(pb.y, pb.m - 1, pb.d).getTime() - new Date(pa.y, pa.m - 1, pa.d).getTime()
+  return Math.round(ms / 86400000)
+}
