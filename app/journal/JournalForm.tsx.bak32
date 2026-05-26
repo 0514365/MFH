@@ -1,4 +1,4 @@
-// MFH-JOURNAL-REDESIGN-V3
+// MFH-JOURNAL-REDESIGN-V2
 'use client'
 
 import Link from 'next/link'
@@ -335,7 +335,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
   const innerBox = 'rounded-2xl border border-line bg-surface-subtle p-4'
 
   return (
-    <main className="mx-auto max-w-md px-4 py-8 sm:max-w-3xl lg:max-w-6xl">
+    <main className="mx-auto max-w-md px-4 py-8 md:max-w-4xl">
       <Link
         href={mode === 'edit' && initial ? `/journal/${initial.id}` : '/journal'}
         className="text-xs text-muted underline"
@@ -348,7 +348,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
 
       {/* 헤더 줄: 날짜+오늘 / 사역분류 — 카드로 묶음 */}
       <div className={`${card} mb-4`}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 landscape:grid-cols-2 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs text-muted">일지 날짜</label>
             <div className="flex items-center gap-2">
@@ -378,7 +378,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1.5fr_1fr] lg:grid-cols-[1.8fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 landscape:grid-cols-[1.6fr_1fr] md:grid-cols-[1.8fr_1fr]">
         {/* ── 좌측 카드: 본문 ── */}
         <div className={`${card} min-w-0`}>
           <label className="mb-1 block text-xs text-muted">한 줄 머리말</label>
@@ -394,12 +394,12 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
             value={todayText}
             onChange={(e) => setTodayText(e.target.value)}
             rows={5}
-            className={`${input} resize-y`}
+            className={`${input} landscape:min-h-[120px] landscape:resize-y`}
             placeholder="오늘 한 일·만난 사람·있었던 일을 사실대로 기록하세요"
           />
 
           {/* 감사·묵상: 접이식. 데스크탑은 2열 칩, 모바일은 세로 스택. */}
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
             {(['thanks', 'meditation'] as SubKey[]).map((k) => (
               <div key={k}>
                 <button
@@ -451,9 +451,9 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
 
         {/* ── 우측 카드: 사진 + 연계 ── */}
         <div className={`${card} min-w-0`}>
-          <div className="flex items-center justify-between gap-2">
-            <span className="shrink-0 whitespace-nowrap text-sm font-bold text-primary">📷 사진</span>
-            <label className="shrink-0 cursor-pointer whitespace-nowrap rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-muted hover:border-primary">
+          <div className="flex items-center justify-between">
+            <label className={sectionTitle}>📷 사진</label>
+            <label className="cursor-pointer rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-muted hover:border-primary">
               파일 선택
               <input type="file" accept="image/*" onChange={onPick} className="hidden" />
             </label>
