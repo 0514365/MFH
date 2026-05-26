@@ -13,6 +13,8 @@ import {
   todayKey,
   parseKey,
   fmtKey,
+  fmtTime,
+  fmtTimeShort,
   weekRangeLabel,
   MONTH_LABELS,
   DOW_LABELS,
@@ -27,6 +29,7 @@ export type CalItem = {
   title: string
   start: DateKey
   end: DateKey
+  time: string | null
   status: string
   priority: string
   done: boolean
@@ -38,7 +41,6 @@ type Mode = 'month' | 'week'
 const BAR_H = 20 // 막대 1개 높이(+간격 포함 단위)
 const NUM_H = 22 // 날짜 숫자 영역 높이
 
-// 우선순위 → 막대 배경 틴트 + 좌측 색바
 function barTone(priority: string): string {
   if (priority === 'high') return 'bg-accent-soft border-accent'
   if (priority === 'low') return 'bg-surface-subtle border-faint'
@@ -72,10 +74,13 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
     return m
   }, [items])
 
-  const bars: BarItem[] = useMemo(
-    () => items.map((it) => ({ id: it.id, start: it.start, end: it.end })),
-    [items],
-  )
+  // 막대 입력은 (시작일 → 시간) 순으로 정렬해 같은 날 안에서 시간순으로 쌓이게 한다.
+  const bars: BarItem[] = useMemo(() => {
+    const sorted = [...items].sort((a, b) =>
+      a.start < b.start ? -1 : a.start > b.start ? 1 : (a.time ?? '').localeCompare(b.time ?? ''),
+    )
+    return sorted.map((it) => ({ id: it.id, start: it.start, end: it.end }))
+  }, [items])
 
   const weeks: Cell[][] =
     mode === 'month' ? chunkWeeks(monthGrid(cur.y, cur.m)) : [weekGrid(weekKey)]
@@ -85,11 +90,14 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
       ? `${cur.y}년 ${MONTH_LABELS[cur.m - 1]}`
       : `${parseKey(weekKey).y}년 ${weekRangeLabel(weeks[0])}`
 
-  // 선택일에 걸치는 항목(기간 포함) → 프로젝트 먼저, 우선순위순
+  // 선택일에 걸치는 항목: 종일/프로젝트 먼저 → 시간 오름차순 → 타입 → 우선순위
   const selItems = useMemo(() => {
     return items
       .filter((it) => it.start <= selected && selected <= it.end)
       .sort((a, b) => {
+        const ta = a.time ?? ''
+        const tb = b.time ?? ''
+        if (ta !== tb) return ta.localeCompare(tb)
         if (a.type !== b.type) return a.type === 'project' ? -1 : 1
         return priRank(a.priority) - priRank(b.priority)
       })
@@ -109,7 +117,6 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
     setSelected(today)
   }
 
-  // 반응형 셀 최소 높이: 가로/세로(vh)에 따라 유기적. 주 뷰는 더 크게.
   const baseMinH = mode === 'month' ? 'clamp(58px, 11vh, 116px)' : 'clamp(120px, 46vh, 460px)'
 
   return (
@@ -200,7 +207,9 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
                   const left = `${(sg.startCol / 7) * 100}%`
                   const width = `${((sg.endCol - sg.startCol + 1) / 7) * 100}%`
                   const top = `${NUM_H + sg.lane * BAR_H}px`
-                  const round = sg.isStart && sg.isEnd ? 'rounded' : sg.isStart ? 'rounded-l' : sg.isEnd ? 'rounded-r' : ''
+                  const round =
+                    sg.isStart && sg.isEnd ? 'rounded' : sg.isStart ? 'rounded-l' : sg.isEnd ? 'rounded-r' : ''
+                  const showTime = it.type === 'task' && it.time
                   return (
                     <Link
                       key={`${sg.id}-${sg.startCol}`}
@@ -211,6 +220,11 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
                         it.priority,
                       )} ${it.done ? 'opacity-50' : ''}`}
                     >
+                      {showTime && (
+                        <span className={`shrink-0 text-[10px] font-bold ${barText(it.priority)}`}>
+                          {fmtTimeShort(it.time)}
+                        </span>
+                      )}
                       <span
                         className={`truncate text-[11px] font-semibold ${barText(it.priority)} ${
                           it.done ? 'line-through' : ''
@@ -261,11 +275,13 @@ export default function CalendarView({ items }: { items: CalItem[] }) {
                       >
                         {it.title}
                       </span>
-                      {span && (
+                      {span ? (
                         <span className="mt-0.5 block text-[11px] text-muted">
                           {fmtKey(it.start)} – {fmtKey(it.end)}
                         </span>
-                      )}
+                      ) : it.time ? (
+                        <span className="mt-0.5 block text-[11px] text-muted">{fmtTime(it.time)}</span>
+                      ) : null}
                     </span>
                     <span className="shrink-0 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] text-muted">
                       {it.type === 'project' ? '프로젝트' : '할 일'}

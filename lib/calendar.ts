@@ -158,3 +158,32 @@ export function layoutWeekBars(weekCells: Cell[], bars: BarItem[]): BarSeg[] {
   }
   return out
 }
+
+// ─────────────────────────────────────────────
+// 시간 표시
+// ─────────────────────────────────────────────
+
+// 'HH:MM' / 'HH:MM:SS' → '오전 9:00' · '오후 1:30' (없으면 빈 문자열)
+export function fmtTime(time: string | null | undefined): string {
+  if (!time) return ''
+  const parts = time.split(':')
+  let h = parseInt(parts[0], 10)
+  if (Number.isNaN(h)) return ''
+  const m = parts[1] ?? '00'
+  const ampm = h < 12 ? '오전' : '오후'
+  if (h === 0) h = 12
+  else if (h > 12) h -= 12
+  return `${ampm} ${h}:${m}`
+}
+
+// 막대용 짧은 시간 'H:MM' (24h 아님, 오전/오후 생략) — '9:00'
+export function fmtTimeShort(time: string | null | undefined): string {
+  if (!time) return ''
+  const parts = time.split(':')
+  let h = parseInt(parts[0], 10)
+  if (Number.isNaN(h)) return ''
+  const m = parts[1] ?? '00'
+  if (h === 0) h = 12
+  else if (h > 12) h -= 12
+  return `${h}:${m}`
+}

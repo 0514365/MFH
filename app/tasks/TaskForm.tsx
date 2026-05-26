@@ -16,12 +16,15 @@ type Props = {
 
 export default function TaskForm({ mode, initial, presetProjectId }: Props) {
   const router = useRouter()
+  // due_time 은 스키마에 추가된 컬럼(types.Task 미반영 가능) → 안전하게 교차 타입으로 읽음
+  const init = initial as (Task & { due_time?: string | null }) | null | undefined
   const [title, setTitle] = useState(initial?.title ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [projectId, setProjectId] = useState(initial?.project_id ?? presetProjectId ?? '')
   const [priority, setPriority] = useState(initial?.priority ?? 'med')
   const [importance, setImportance] = useState<number>(initial?.importance ?? 0)
   const [dueDate, setDueDate] = useState(initial?.due_date ?? '')
+  const [dueTime, setDueTime] = useState((init?.due_time ?? '').slice(0, 5))
   const [done, setDone] = useState(initial?.done ?? false)
   const [projects, setProjects] = useState<{ id: string; title: string }[]>([])
   const [saving, setSaving] = useState(false)
@@ -59,6 +62,8 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
       priority,
       importance,
       due_date: dueDate || null,
+      // 마감일이 없으면 시간만 단독 저장하지 않음(캘린더 표시 기준이 날짜이므로)
+      due_time: dueDate && dueTime ? dueTime : null,
       done,
       completed_at: done ? (initial?.completed_at ?? new Date().toISOString()) : null,
     }
@@ -162,6 +167,16 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
 
       <label className={small}>마감일</label>
       <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
+
+      <label className={small}>마감 시간 (선택)</label>
+      <input
+        type="time"
+        value={dueTime}
+        onChange={(e) => setDueTime(e.target.value)}
+        disabled={!dueDate}
+        className={`${input} disabled:opacity-50`}
+      />
+      {!dueDate && <p className="mt-1 text-[11px] text-faint">마감일을 먼저 정하면 시간을 추가할 수 있어요.</p>}
 
       <label className="mt-4 flex items-center gap-2 text-sm text-muted">
         <input type="checkbox" checked={done} onChange={(e) => setDone(e.target.checked)} />

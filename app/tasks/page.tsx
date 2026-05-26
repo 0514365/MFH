@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { PriorityBadge, ImportanceStars, fmtDate } from '../projects/badges'
+import { fmtTime } from '@/lib/calendar'
 import TaskCheck from './TaskCheck'
 
 export const dynamic = 'force-dynamic'
@@ -14,6 +15,7 @@ type TaskRow = {
   priority: string
   importance: number
   due_date: string | null
+  due_time: string | null
   project_id: string | null
   projects: { title: string } | null
 }
@@ -27,9 +29,10 @@ export default async function TasksList() {
 
   const { data } = await supabase
     .from('tasks')
-    .select('id, title, description, done, priority, importance, due_date, project_id, projects(title)')
+    .select('id, title, description, done, priority, importance, due_date, due_time, project_id, projects(title)')
     .order('done', { ascending: true })
     .order('due_date', { ascending: true, nullsFirst: false })
+    .order('due_time', { ascending: true, nullsFirst: true })
     .order('created_at', { ascending: false })
   const tasks = (data ?? []) as unknown as TaskRow[]
 
@@ -76,7 +79,12 @@ export default async function TasksList() {
                   )}
                   <PriorityBadge value={t.priority} />
                   <ImportanceStars value={t.importance} />
-                  {t.due_date && <span className="text-[11px] text-muted">~ {fmtDate(t.due_date)}</span>}
+                  {t.due_date && (
+                    <span className="text-[11px] text-muted">
+                      ~ {fmtDate(t.due_date)}
+                      {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
+                    </span>
+                  )}
                 </div>
               </Link>
             </li>

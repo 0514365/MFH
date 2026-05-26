@@ -18,7 +18,7 @@ export default async function CalendarPage() {
 
   const { data: taskData } = await supabase
     .from('tasks')
-    .select('id, title, due_date, priority, done')
+    .select('id, title, due_date, due_time, priority, done')
     .not('due_date', 'is', null)
 
   const projects = (projData ?? []) as {
@@ -33,6 +33,7 @@ export default async function CalendarPage() {
     id: string
     title: string
     due_date: string
+    due_time: string | null
     priority: string
     done: boolean
   }[]
@@ -50,19 +51,21 @@ export default async function CalendarPage() {
           title: p.title,
           start: start <= end ? start : end,
           end: start <= end ? end : start,
+          time: null,
           status: p.status,
           priority: p.priority,
           done: p.status === 'done',
           href: `/projects/${p.id}`,
         }
       }),
-    // 할 일: due_date 하루.
+    // 할 일: due_date 하루(+ 선택적 시간).
     ...tasks.map((t) => ({
       id: t.id,
       type: 'task' as const,
       title: t.title,
       start: t.due_date,
       end: t.due_date,
+      time: t.due_time,
       status: t.done ? 'done' : 'active',
       priority: t.priority,
       done: t.done,
