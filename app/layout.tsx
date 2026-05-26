@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 import { montserrat } from '@/lib/fonts'
 import { light, tokensToCssVars } from '@/lib/palette'
+import BottomNav from '@/components/BottomNav'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -28,7 +29,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <BottomNav />
+      </body>
     </html>
   )
 }
