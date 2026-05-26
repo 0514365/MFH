@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import PageHeader from '@/components/PageHeader'
 import type { JournalEntry } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -21,20 +22,18 @@ export default async function JournalList() {
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
-      <div className="mb-5 flex items-end justify-between">
-        <div>
-          <Link href="/" className="text-xs text-muted underline">
-            ← 홈
+      <PageHeader
+        title="일지"
+        current="journal"
+        action={
+          <Link
+            href="/journal/new"
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white"
+          >
+            + 새 일지
           </Link>
-          <h1 className="font-display text-2xl font-extrabold text-primary">일지</h1>
-        </div>
-        <Link
-          href="/journal/new"
-          className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white"
-        >
-          + 새 일지
-        </Link>
-      </div>
+        }
+      />
 
       {entries.length === 0 ? (
         <p className="mt-16 text-center text-sm leading-relaxed text-faint">
