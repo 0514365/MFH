@@ -1,38 +1,44 @@
 'use client'
 
-// MFH-PROJECTS-LIST-V2
+// MFH-TASKS-LIST-V1
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import type { Project } from '@/lib/types'
 import { STATUSES, normalizeStatus, type StatusValue } from '@/lib/constants'
-import { StatusBadge, CategoryBadge, ImportanceStars, fmtDate } from './badges'
-import { ProgressRing } from './Progress'
+import { fmtTime } from '@/lib/calendar'
+import { StatusBadge, CategoryBadge, ImportanceStars, fmtDate } from '../projects/badges'
+import TaskCheck from './TaskCheck'
 
-type Counts = Record<string, { total: number; done: number }>
+export type TaskListRow = {
+  id: string
+  title: string
+  description: string | null
+  done: boolean
+  priority: string
+  importance: number
+  status: string | null
+  category: string | null
+  due_date: string | null
+  due_time: string | null
+  project_id: string | null
+  projects: { title: string } | null
+}
+
 type SortKey = 'due' | 'importance'
 
 const chip =
   'rounded-full border border-line bg-surface px-3 py-1 text-xs text-muted transition hover:border-primary'
 const chipOn = 'border-primary bg-primary-soft text-primary outline outline-1 outline-primary'
 
-// Status 칩 = 항상 배지색(카드 StatusBadge 와 동일). 선택 시 같은 색 + 진한 동색 테두리로 강조.
-// 동적 조합 금지 → 상태3 × 선택2 = 정적 전체 문자열 분기 반환(JIT 안전).
-const statusChipBase = 'rounded-full px-3 py-1 text-xs transition'
-function statusChipCls(v: StatusValue, active: boolean): string {
+// Status 칩만 활성 시 배지색(정적 전체 문자열 — JIT 안전)
+function statusFilterCls(v: StatusValue): string {
   switch (v) {
     case 'in_progress':
-      return active
-        ? `${statusChipBase} border-2 border-on-status-progress bg-status-progress font-semibold text-on-status-progress`
-        : `${statusChipBase} border border-transparent bg-status-progress text-on-status-progress`
+      return 'bg-status-progress text-on-status-progress border-on-status-progress'
     case 'done':
-      return active
-        ? `${statusChipBase} border-2 border-on-status-done bg-status-done font-semibold text-on-status-done`
-        : `${statusChipBase} border border-transparent bg-status-done text-on-status-done`
+      return 'bg-status-done text-on-status-done border-on-status-done'
     case 'upcoming':
     default:
-      return active
-        ? `${statusChipBase} border-2 border-on-status-upcoming bg-status-upcoming font-semibold text-on-status-upcoming`
-        : `${statusChipBase} border border-transparent bg-status-upcoming text-on-status-upcoming`
+      return 'bg-status-upcoming text-on-status-upcoming border-on-status-upcoming'
   }
 }
 
@@ -40,16 +46,12 @@ function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]
 }
 
-export default function ProjectsList({
-  projects,
-  counts,
-}: {
-  projects: Project[]
-  counts: Counts
-}) {
+export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
+  const [hideDone, setHideDone] = useState(true)
   const [fStatus, setFStatus] = useState<StatusValue[]>([])
   const [fImportance, setFImportance] = useState<number[]>([])
   const [fCategory, setFCategory] = useState<string[]>([])
+  const [fProject, setFProject] = useState<string[]>([])
   const [sortKey, setSortKey] = useState<SortKey>('due')
   const [asc, setAsc] = useState(true)
   const [filterOpen, setFilterOpen] = useState(false)
@@ -58,24 +60,32 @@ export default function ProjectsList({
   // 데이터에 실제로 존재하는 값만 칩으로 노출
   const importanceOpts = useMemo(
     () =>
-      Array.from(new Set(projects.map((p) => p.importance).filter((n): n is number => !!n))).sort(
+      Array.from(new Set(tasks.map((t) => t.importance).filter((n): n is number => !!n))).sort(
         (a, b) => b - a,
       ),
-    [projects],
+    [tasks],
   )
   const categoryOpts = useMemo(
-    () =>
-      Array.from(
-        new Set(projects.map((p) => p.category).filter((c): c is string => !!c)),
-      ).sort(),
-    [projects],
+    () => Array.from(new Set(tasks.map((t) => t.category).filter((c): c is string => !!c))).sort(),
+    [tasks],
   )
+  const projectOpts = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const t of tasks) {
+      if (t.project_id && t.projects?.title) map.set(t.project_id, t.projects.title)
+    }
+    return Array.from(map, ([id, title]) => ({ id, title })).sort((a, b) =>
+      a.title.localeCompare(b.title),
+    )
+  }, [tasks])
 
   const filtered = useMemo(() => {
-    let list = projects.filter((p) => {
-      if (fStatus.length && !fStatus.includes(normalizeStatus(p.status))) return false
-      if (fImportance.length && !fImportance.includes(p.importance)) return false
-      if (fCategory.length && !(p.category && fCategory.includes(p.category))) return false
+    let list = tasks.filter((t) => {
+      if (hideDone && t.done) return false
+      if (fStatus.length && !fStatus.includes(normalizeStatus(t.status))) return false
+      if (fImportance.length && !fImportance.includes(t.importance)) return false
+      if (fCategory.length && !(t.category && fCategory.includes(t.category))) return false
+      if (fProject.length && !(t.project_id && fProject.includes(t.project_id))) return false
       return true
     })
     const dir = asc ? 1 : -1
@@ -87,23 +97,33 @@ export default function ProjectsList({
         if (!av && !bv) return 0
         if (!av) return 1
         if (!bv) return -1
-        return av < bv ? -1 * dir : av > bv ? 1 * dir : 0
+        if (av !== bv) return av < bv ? -1 * dir : 1 * dir
+        // 같은 날짜면 시간으로 보조 정렬(시간 없는 건 뒤로)
+        const at = a.due_time ?? ''
+        const bt = b.due_time ?? ''
+        if (!at && !bt) return 0
+        if (!at) return 1
+        if (!bt) return -1
+        return at < bt ? -1 * dir : at > bt ? 1 * dir : 0
       }
       // importance
       return ((a.importance ?? 0) - (b.importance ?? 0)) * dir
     })
     return list
-  }, [projects, fStatus, fImportance, fCategory, sortKey, asc])
+  }, [tasks, hideDone, fStatus, fImportance, fCategory, fProject, sortKey, asc])
 
-  const activeCount = fStatus.length + fImportance.length + fCategory.length
+  const activeCount =
+    (hideDone ? 0 : 1) + fStatus.length + fImportance.length + fCategory.length + fProject.length
   const hasFilter = activeCount > 0
   const sortChanged = sortKey !== 'due' || !asc
   const canReset = hasFilter || sortChanged
 
   function resetAll() {
+    setHideDone(true)
     setFStatus([])
     setFImportance([])
     setFCategory([])
+    setFProject([])
     setSortKey('due')
     setAsc(true)
   }
@@ -167,6 +187,19 @@ export default function ProjectsList({
       {/* 필터 칩바 (접이식) */}
       {filterOpen && (
         <div className="mb-3 space-y-2 rounded-xl border border-line bg-surface-subtle p-3">
+          {/* 완료 숨김 */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-[11px] font-semibold text-faint">완료</span>
+            <button
+              type="button"
+              onClick={() => setHideDone((v) => !v)}
+              className={`${chip} ${hideDone ? chipOn : ''}`}
+            >
+              완료 숨김
+            </button>
+          </div>
+
+          {/* 상태 */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="mr-1 text-[11px] font-semibold text-faint">상태</span>
             {STATUSES.map((s) => (
@@ -174,7 +207,7 @@ export default function ProjectsList({
                 key={s.value}
                 type="button"
                 onClick={() => setFStatus((a) => toggle(a, s.value))}
-                className={statusChipCls(s.value, fStatus.includes(s.value))}
+                className={`${chip} ${fStatus.includes(s.value) ? statusFilterCls(s.value) : ''}`}
               >
                 {s.label}
               </button>
@@ -212,6 +245,22 @@ export default function ProjectsList({
               ))}
             </div>
           )}
+
+          {projectOpts.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[11px] font-semibold text-faint">프로젝트</span>
+              {projectOpts.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setFProject((a) => toggle(a, p.id))}
+                  className={`${chip} ${fProject.includes(p.id) ? chipOn : ''}`}
+                >
+                  {p.title}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -240,44 +289,53 @@ export default function ProjectsList({
       )}
 
       {/* 리스트 */}
-      {projects.length === 0 ? (
+      {tasks.length === 0 ? (
         <p className="mt-16 text-center text-sm leading-relaxed text-faint">
-          아직 프로젝트가 없습니다.
-          <br />첫 프로젝트를 만들어 보세요.
+          아직 할 일이 없습니다.
+          <br />첫 할 일을 만들어 보세요.
         </p>
       ) : filtered.length === 0 ? (
         <p className="mt-16 text-center text-sm leading-relaxed text-faint">
-          조건에 맞는 프로젝트가 없습니다.
+          조건에 맞는 할 일이 없습니다.
         </p>
       ) : (
-        <ul className="space-y-3">
-          {filtered.map((p) => {
-            const c = counts[p.id] ?? { total: 0, done: 0 }
-            return (
-              <li key={p.id}>
-                <Link
-                  href={`/projects/${p.id}`}
-                  className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition hover:border-primary"
+        <ul className="space-y-2">
+          {filtered.map((t) => (
+            <li
+              key={t.id}
+              className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3"
+            >
+              <TaskCheck id={t.id} done={t.done} />
+              <Link href={`/tasks/${t.id}/edit`} className="min-w-0 flex-1">
+                <div
+                  className={`truncate text-sm font-semibold ${
+                    t.done ? 'text-faint line-through' : 'text-ink'
+                  }`}
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusBadge value={p.status} />
-                      <CategoryBadge value={p.category} />
-                      <ImportanceStars value={p.importance} />
-                      {p.due_date && (
-                        <span className="text-[11px] text-muted">~ {fmtDate(p.due_date)}</span>
-                      )}
-                    </div>
-                    <div className="mt-1.5 font-bold text-ink">{p.title}</div>
-                    {p.description && (
-                      <div className="mt-1 line-clamp-2 text-sm text-muted">{p.description}</div>
-                    )}
-                  </div>
-                  <ProgressRing done={c.done} total={c.total} />
-                </Link>
-              </li>
-            )
-          })}
+                  {t.title}
+                </div>
+                {t.description && (
+                  <div className="mt-0.5 line-clamp-1 text-xs text-muted">{t.description}</div>
+                )}
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <StatusBadge value={t.status ?? 'upcoming'} />
+                  {t.projects?.title && (
+                    <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
+                      {t.projects.title}
+                    </span>
+                  )}
+                  <CategoryBadge value={t.category} />
+                  <ImportanceStars value={t.importance} />
+                  {t.due_date && (
+                    <span className="text-[11px] text-muted">
+                      ~ {fmtDate(t.due_date)}
+                      {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            </li>
+          ))}
         </ul>
       )}
     </>

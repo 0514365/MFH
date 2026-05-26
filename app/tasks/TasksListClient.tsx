@@ -29,16 +29,24 @@ const chip =
   'rounded-full border border-line bg-surface px-3 py-1 text-xs text-muted transition hover:border-primary'
 const chipOn = 'border-primary bg-primary-soft text-primary outline outline-1 outline-primary'
 
-// Status 칩만 활성 시 배지색(정적 전체 문자열 — JIT 안전)
-function statusFilterCls(v: StatusValue): string {
+// Status 칩 = 항상 배지색(카드 StatusBadge 와 동일). 선택 시 같은 색 + 진한 동색 테두리로 강조.
+// 동적 조합 금지 → 상태3 × 선택2 = 정적 전체 문자열 분기 반환(JIT 안전).
+const statusChipBase = 'rounded-full px-3 py-1 text-xs transition'
+function statusChipCls(v: StatusValue, active: boolean): string {
   switch (v) {
     case 'in_progress':
-      return 'bg-status-progress text-on-status-progress border-on-status-progress'
+      return active
+        ? `${statusChipBase} border-2 border-on-status-progress bg-status-progress font-semibold text-on-status-progress`
+        : `${statusChipBase} border border-transparent bg-status-progress text-on-status-progress`
     case 'done':
-      return 'bg-status-done text-on-status-done border-on-status-done'
+      return active
+        ? `${statusChipBase} border-2 border-on-status-done bg-status-done font-semibold text-on-status-done`
+        : `${statusChipBase} border border-transparent bg-status-done text-on-status-done`
     case 'upcoming':
     default:
-      return 'bg-status-upcoming text-on-status-upcoming border-on-status-upcoming'
+      return active
+        ? `${statusChipBase} border-2 border-on-status-upcoming bg-status-upcoming font-semibold text-on-status-upcoming`
+        : `${statusChipBase} border border-transparent bg-status-upcoming text-on-status-upcoming`
   }
 }
 
@@ -207,7 +215,7 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
                 key={s.value}
                 type="button"
                 onClick={() => setFStatus((a) => toggle(a, s.value))}
-                className={`${chip} ${fStatus.includes(s.value) ? statusFilterCls(s.value) : ''}`}
+                className={statusChipCls(s.value, fStatus.includes(s.value))}
               >
                 {s.label}
               </button>
