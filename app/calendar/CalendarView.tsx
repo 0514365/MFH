@@ -1,7 +1,8 @@
 'use client'
 // MFH-DND-V1
 // MFH-CAL-FILTER-V1
-import { useMemo, useRef, useState } from 'react'
+// MFH-CAL-PERF-V1
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -112,8 +113,21 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
 
   // 필터
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+  const [filterOpen, setFilterOpen] = useState(false) // 모바일 접이식
 
   const weekRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // 드래그 성능: 진행 중 값은 ref 에 두고, deltaDays 가 칸 단위로 바뀔 때만 rAF 로 setState.
+  const dragRef = useRef<Drag | null>(null)
+  const rafRef = useRef<number | null>(null)
+  useEffect(() => {
+    dragRef.current = drag
+  }, [drag])
+  useEffect(() => {
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
 
   // 사용 중인 사역분류만 칩으로 노출(데이터에 있는 것 우선, 순서는 상수 기준).
   const usedCategories = useMemo(() => {
@@ -122,11 +136,8 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
   }, [allItems])
 
   const filterActiveAny =
-    filters.status.length +
-      filters.priority.length +
-      filters.importance.length +
-      filters.category.length >
-      0 || !filters.hideDone
+    filters.status.length + filters.priority.length + filters.importance.length + filters.category.length > 0 ||
+    !filters.hideDone
 
   // 필터 적용된 표시 대상.
   const items = useMemo(() => {
@@ -146,38 +157,43 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
     return m
   }, [items])
 
-  // 드래그 중인 항목의 미리보기(시프트 적용) 좌표를 계산.
-  function previewRange(it: CalItem): { start: DateKey; end: DateKey } {
-    if (!drag || drag.id !== it.id || drag.deltaDays === 0) return { start: it.start, end: it.end }
-    if (drag.mode === 'move') {
-      return { start: shiftKey(drag.originStart, drag.deltaDays), end: shiftKey(drag.originEnd, drag.deltaDays) }
-    }
-    if (drag.mode === 'resize-start') {
-      let ns = shiftKey(drag.originStart, drag.deltaDays)
-      if (ns > drag.originEnd) ns = drag.originEnd // start 가 end 넘지 못함
-      return { start: ns, end: drag.originEnd }
-    }
-    // resize-end
-    let ne = shiftKey(drag.originEnd, drag.deltaDays)
-    if (ne < drag.originStart) ne = drag.originStart
-    return { start: drag.originStart, end: ne }
-  }
+  // 드래그 중인 항목의 미리보기(시프트 적용) 좌표.
+  const previewRange = useCallback(
+    (it: CalItem): { start: DateKey; end: DateKey } => {
+      if (!drag || drag.id !== it.id || drag.deltaDays === 0) return { start: it.start, end: it.end }
+      if (drag.mode === 'move') {
+        return { start: shiftKey(drag.originStart, drag.deltaDays), end: shiftKey(drag.originEnd, drag.deltaDays) }
+      }
+      if (drag.mode === 'resize-start') {
+        let ns = shiftKey(drag.originStart, drag.deltaDays)
+        if (ns > drag.originEnd) ns = drag.originEnd
+        return { start: ns, end: drag.originEnd }
+      }
+      let ne = shiftKey(drag.originEnd, drag.deltaDays)
+      if (ne < drag.originStart) ne = drag.originStart
+      return { start: drag.originStart, end: ne }
+    },
+    [drag],
+  )
 
-  // 막대 입력은 (시작일 → 시간) 순. 드래그 중이면 미리보기 좌표로 배치.
-  const bars: BarItem[] = useMemo(() => {
-    const withPv = items.map((it) => {
-      const pv = previewRange(it)
-      return { it, start: pv.start, end: pv.end }
-    })
-    const sorted = withPv.sort((a, b) =>
-      a.start < b.start ? -1 : a.start > b.start ? 1 : (a.it.time ?? '').localeCompare(b.it.time ?? ''),
+  // 기본(드래그 무관) 막대 배열은 items 가 바뀔 때만 계산.
+  const baseBars: BarItem[] = useMemo(() => {
+    const sorted = [...items].sort((a, b) =>
+      a.start < b.start ? -1 : a.start > b.start ? 1 : (a.time ?? '').localeCompare(b.time ?? ''),
     )
-    return sorted.map((x) => ({ id: x.it.id, start: x.start, end: x.end }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, drag])
+    return sorted.map((it) => ({ id: it.id, start: it.start, end: it.end }))
+  }, [items])
 
-  const weeks: Cell[][] =
-    mode === 'month' ? chunkWeeks(monthGrid(cur.y, cur.m)) : [weekGrid(weekKey)]
+  // 드래그 중에는 대상 1개의 좌표만 미리보기로 치환(전체 재정렬·재계산 회피 → 버벅임 완화).
+  const bars: BarItem[] = useMemo(() => {
+    if (!drag || drag.deltaDays === 0) return baseBars
+    const it = byId[drag.id]
+    if (!it) return baseBars
+    const pv = previewRange(it)
+    return baseBars.map((b) => (b.id === drag.id ? { id: b.id, start: pv.start, end: pv.end } : b))
+  }, [baseBars, drag, byId, previewRange])
+
+  const weeks: Cell[][] = mode === 'month' ? chunkWeeks(monthGrid(cur.y, cur.m)) : [weekGrid(weekKey)]
 
   const title =
     mode === 'month'
@@ -210,19 +226,18 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
     setSelected(today)
   }
 
-  // ── 드래그 핸들러 ───────────────────────────────
-  // 데스크톱(마우스)만 드래그. 터치/펜은 기존 동작(탭=상세 이동) 유지 → onClick 으로 처리.
+  // ── 드래그 핸들러 (데스크톱 마우스 전용) ─────────────
   function onBarPointerDown(e: React.PointerEvent, it: CalItem, dmode: DragMode, weekIdx: number) {
     if (e.pointerType !== 'mouse') return // 모바일 유지
     if (saving) return
-    if (e.button !== undefined && e.button !== 0) return // 좌클릭만
+    if (e.button !== undefined && e.button !== 0) return
     const wrap = weekRefs.current[weekIdx]
     if (!wrap) return
     const cellW = wrap.getBoundingClientRect().width / 7
     e.preventDefault()
     e.stopPropagation()
     ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
-    setDrag({
+    const next: Drag = {
       id: it.id,
       type: it.type,
       mode: dmode,
@@ -232,37 +247,55 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
       cellW: cellW > 0 ? cellW : 1,
       deltaDays: 0,
       moved: false,
-    })
+    }
+    dragRef.current = next
+    setDrag(next)
   }
 
   function onBarPointerMove(e: React.PointerEvent) {
-    if (!drag || e.pointerType !== 'mouse') return
-    const dx = e.clientX - drag.startX
-    const moved = drag.moved || Math.abs(dx) >= DRAG_THRESHOLD
-    const deltaDays = Math.round(dx / drag.cellW)
-    if (deltaDays === drag.deltaDays && moved === drag.moved) return
-    setDrag({ ...drag, deltaDays, moved })
+    const d = dragRef.current
+    if (!d || e.pointerType !== 'mouse') return
+    const clientX = e.clientX
+    if (rafRef.current != null) return // 이번 프레임은 이미 예약됨 → 스킵(스로틀)
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null
+      const cur = dragRef.current
+      if (!cur) return
+      const dx = clientX - cur.startX
+      const moved = cur.moved || Math.abs(dx) >= DRAG_THRESHOLD
+      const deltaDays = Math.round(dx / cur.cellW)
+      if (deltaDays === cur.deltaDays && moved === cur.moved) return // 변화 없으면 리렌더 안 함
+      const updated = { ...cur, deltaDays, moved }
+      dragRef.current = updated
+      setDrag(updated)
+    })
   }
 
   async function onBarPointerUp(e: React.PointerEvent, it: CalItem) {
     if (e.pointerType !== 'mouse') return // 모바일 유지
-    if (!drag || drag.id !== it.id) {
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    const d = dragRef.current
+    if (!d || d.id !== it.id) {
+      dragRef.current = null
       setDrag(null)
       return
     }
-    const d = drag
-    // 임계 미만 = 클릭으로 간주 → 선택만(상세 이동은 더블클릭).
+    // 임계 미만 = 클릭 → 선택만(상세 이동은 더블클릭).
     if (!d.moved || d.deltaDays === 0) {
+      dragRef.current = null
       setDrag(null)
       setSelBar(it.id)
-      setSelected(it.start) // 하단 목록도 그날로 맞춤
+      setSelected(it.start)
       return
     }
     const pv = previewRange(it)
+    dragRef.current = null
     setDrag(null)
     if (pv.start === it.start && pv.end === it.end) return
 
-    // 낙관적 갱신
     const prevItems = allItems
     setAllItems((arr) => arr.map((x) => (x.id === it.id ? { ...x, start: pv.start, end: pv.end } : x)))
     setSaving(true)
@@ -275,14 +308,13 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
           .eq('id', it.id)
         if (error) throw error
       } else {
-        // 할 일: due_date 만 이동(due_time 유지). task 는 span 없으므로 start=end.
         const { error } = await supabase.from('tasks').update({ due_date: pv.end }).eq('id', it.id)
         if (error) throw error
       }
       router.refresh()
     } catch (err) {
       console.error('calendar drag save failed', err)
-      setAllItems(prevItems) // rollback
+      setAllItems(prevItems)
       alert('일정 변경 저장에 실패했습니다. 다시 시도해 주세요.')
     } finally {
       setSaving(false)
@@ -291,15 +323,10 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
 
   // 모바일(터치)·더블클릭(데스크톱) 상세 이동.
   function onBarClick(e: React.MouseEvent, it: CalItem) {
-    // 데스크톱 단일클릭은 pointerup 에서 선택 처리하므로 여기선 막는다.
-    // 모바일(터치)은 pointerType 추적이 click 단계에 없으므로, detail 로 더블클릭 판별.
     if (e.detail >= 2) {
-      // 더블클릭 = 상세
       router.push(it.href)
       return
     }
-    // 터치 단일 탭: 화면 폭이 좁고 hover 없는 환경에서만 즉시 이동하도록,
-    // matchMedia 로 coarse pointer(터치) 면 이동.
     if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
       router.push(it.href)
     }
@@ -327,64 +354,107 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
     </button>
   )
 
+  // 필터 칩 묶음(데스크톱=가로 스크롤 한 줄 / 모바일 패널=줄바꿈).
+  const FilterChips = ({ wrap }: { wrap: boolean }) => (
+    <div className={wrap ? 'flex flex-wrap items-center gap-1.5' : 'flex flex-nowrap items-center gap-1.5'}>
+      <FilterChip active={filters.hideDone} onClick={() => setFilters((f) => ({ ...f, hideDone: !f.hideDone }))}>
+        완료 숨김
+      </FilterChip>
+      <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
+      {PROJECT_STATUSES.map((s) => (
+        <FilterChip
+          key={s.value}
+          active={filters.status.includes(s.value)}
+          onClick={() => setFilters((f) => ({ ...f, status: toggle(f.status, s.value) }))}
+        >
+          {s.label}
+        </FilterChip>
+      ))}
+      <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
+      {PRIORITIES.map((p) => (
+        <FilterChip
+          key={p.value}
+          active={filters.priority.includes(p.value)}
+          onClick={() => setFilters((f) => ({ ...f, priority: toggle(f.priority, p.value) }))}
+        >
+          {p.label}
+        </FilterChip>
+      ))}
+      <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
+      {Array.from({ length: IMPORTANCE_MAX }, (_, i) => i + 1).map((n) => (
+        <FilterChip
+          key={n}
+          active={filters.importance.includes(n)}
+          onClick={() => setFilters((f) => ({ ...f, importance: toggle(f.importance, n) }))}
+        >
+          {'★'.repeat(n)}
+        </FilterChip>
+      ))}
+      {usedCategories.length > 0 && <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />}
+      {usedCategories.map((c) => (
+        <FilterChip
+          key={c}
+          active={filters.category.includes(c)}
+          onClick={() => setFilters((f) => ({ ...f, category: toggle(f.category, c) }))}
+        >
+          {c}
+        </FilterChip>
+      ))}
+    </div>
+  )
+
   return (
     <div className={saving ? 'pointer-events-none opacity-60' : ''}>
-      {/* 필터 칩바 */}
-      <div className="mb-3 space-y-1.5">
-        <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-1">
-          <FilterChip active={filters.hideDone} onClick={() => setFilters((f) => ({ ...f, hideDone: !f.hideDone }))}>
-            완료 숨김
-          </FilterChip>
-          <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
-          {PROJECT_STATUSES.map((s) => (
-            <FilterChip
-              key={s.value}
-              active={filters.status.includes(s.value)}
-              onClick={() => setFilters((f) => ({ ...f, status: toggle(f.status, s.value) }))}
-            >
-              {s.label}
-            </FilterChip>
-          ))}
-          <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
-          {PRIORITIES.map((p) => (
-            <FilterChip
-              key={p.value}
-              active={filters.priority.includes(p.value)}
-              onClick={() => setFilters((f) => ({ ...f, priority: toggle(f.priority, p.value) }))}
-            >
-              {p.label}
-            </FilterChip>
-          ))}
-          <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
-          {Array.from({ length: IMPORTANCE_MAX }, (_, i) => i + 1).map((n) => (
-            <FilterChip
-              key={n}
-              active={filters.importance.includes(n)}
-              onClick={() => setFilters((f) => ({ ...f, importance: toggle(f.importance, n) }))}
-            >
-              {'★'.repeat(n)}
-            </FilterChip>
-          ))}
-          {usedCategories.length > 0 && <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />}
-          {usedCategories.map((c) => (
-            <FilterChip
-              key={c}
-              active={filters.category.includes(c)}
-              onClick={() => setFilters((f) => ({ ...f, category: toggle(f.category, c) }))}
-            >
-              {c}
-            </FilterChip>
-          ))}
-        </div>
-        {filterActiveAny ? (
+      {/* 필터: 데스크톱(≥768px)=항상 노출 칩바 / 모바일=접이식 */}
+      <div className="mb-3">
+        {/* 모바일 토글 버튼 */}
+        <div className="flex items-center justify-between md:hidden">
           <button
             type="button"
-            onClick={() => setFilters(EMPTY_FILTERS)}
-            className="text-[11px] font-semibold text-faint underline-offset-2 hover:text-accent hover:underline"
+            onClick={() => setFilterOpen((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              filterActiveAny ? 'border-primary bg-primary-soft text-primary' : 'border-line bg-surface text-muted'
+            }`}
           >
-            필터 초기화
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 5h18M6 12h12M10 19h4" strokeLinecap="round" />
+            </svg>
+            필터
+            {filterActiveAny && <span className="h-1.5 w-1.5 rounded-full bg-accent" />}
           </button>
-        ) : null}
+          {filterActiveAny && (
+            <button
+              type="button"
+              onClick={() => setFilters(EMPTY_FILTERS)}
+              className="text-[11px] font-semibold text-faint hover:text-accent"
+            >
+              초기화
+            </button>
+          )}
+        </div>
+
+        {/* 모바일 접이식 패널 */}
+        {filterOpen && (
+          <div className="mt-2 rounded-xl border border-line bg-surface-subtle p-2.5 md:hidden">
+            <FilterChips wrap />
+          </div>
+        )}
+
+        {/* 데스크톱/아이패드 칩바 */}
+        <div className="hidden md:block">
+          <div className="overflow-x-auto pb-1">
+            <FilterChips wrap={false} />
+          </div>
+          {filterActiveAny && (
+            <button
+              type="button"
+              onClick={() => setFilters(EMPTY_FILTERS)}
+              className="mt-1 text-[11px] font-semibold text-faint underline-offset-2 hover:text-accent hover:underline"
+            >
+              필터 초기화
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mb-3 flex items-center justify-between">
@@ -454,7 +524,7 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                       key={c.key}
                       onClick={() => {
                         setSelected(c.key)
-                        setSelBar(null) // 빈 칸 클릭 = 막대 선택 해제
+                        setSelBar(null)
                       }}
                       style={{ minHeight: minH }}
                       className={`relative text-left transition ${
@@ -501,7 +571,6 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                         isDragging || isSelBar ? 'opacity-90 ring-2 ring-inset ring-primary' : ''
                       }`}
                     >
-                      {/* 시작 핸들(프로젝트·이 주에 시작, 선택 시에만 노출) */}
                       {canResize && sg.isStart && isSelBar && (
                         <span
                           onPointerDown={(e) => onBarPointerDown(e, it, 'resize-start', wi)}
@@ -529,7 +598,6 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                           {statusLabel(it.status)}
                         </span>
                       )}
-                      {/* 끝 핸들(프로젝트·이 주에 끝, 선택 시에만 노출) */}
                       {canResize && sg.isEnd && isSelBar && (
                         <span
                           onPointerDown={(e) => onBarPointerDown(e, it, 'resize-end', wi)}
