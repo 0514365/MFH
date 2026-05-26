@@ -4,6 +4,7 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { STATUSES, normalizeStatus, type StatusValue } from '@/lib/constants'
+import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import { fmtTime } from '@/lib/calendar'
 import { StatusBadge, CategoryBadge, ImportanceStars, fmtDate } from '../projects/badges'
 import TaskCheck from './TaskCheck'
@@ -24,35 +25,6 @@ export type TaskListRow = {
 }
 
 type SortKey = 'due' | 'importance'
-
-const chip =
-  'rounded-full border border-line bg-surface px-3 py-1 text-xs text-muted transition hover:border-primary'
-const chipOn = 'border-primary bg-primary-soft text-primary outline outline-1 outline-primary'
-
-// Status 칩 = 항상 배지색(카드 StatusBadge 와 동일). 선택 시 같은 색 + 진한 동색 테두리로 강조.
-// 동적 조합 금지 → 상태3 × 선택2 = 정적 전체 문자열 분기 반환(JIT 안전).
-const statusChipBase = 'rounded-full px-3 py-1 text-xs transition'
-function statusChipCls(v: StatusValue, active: boolean): string {
-  switch (v) {
-    case 'in_progress':
-      return active
-        ? `${statusChipBase} border-2 border-on-status-progress bg-status-progress font-semibold text-on-status-progress`
-        : `${statusChipBase} border border-transparent bg-status-progress text-on-status-progress`
-    case 'done':
-      return active
-        ? `${statusChipBase} border-2 border-on-status-done bg-status-done font-semibold text-on-status-done`
-        : `${statusChipBase} border border-transparent bg-status-done text-on-status-done`
-    case 'upcoming':
-    default:
-      return active
-        ? `${statusChipBase} border-2 border-on-status-upcoming bg-status-upcoming font-semibold text-on-status-upcoming`
-        : `${statusChipBase} border border-transparent bg-status-upcoming text-on-status-upcoming`
-  }
-}
-
-function toggle<T>(arr: T[], v: T): T[] {
-  return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]
-}
 
 export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
   const [hideDone, setHideDone] = useState(true)

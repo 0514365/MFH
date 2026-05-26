@@ -20,6 +20,7 @@ import {
   JOURNAL_CATEGORIES,
   IMPORTANCE_MAX,
 } from '@/lib/constants'
+import { statusChipCls, toggle } from '@/lib/statusChip'
 import {
   monthGrid,
   weekGrid,
@@ -103,12 +104,6 @@ function statusBadgeCls(status: string): string {
   if (s === 'done') return 'bg-status-done text-on-status-done'
   return 'bg-status-upcoming text-on-status-upcoming'
 }
-function statusFilterCls(status: string): string {
-  const s = normalizeStatus(status)
-  if (s === 'in_progress') return 'bg-status-progress text-on-status-progress border-on-status-progress'
-  if (s === 'done') return 'bg-status-done text-on-status-done border-on-status-done'
-  return 'bg-status-upcoming text-on-status-upcoming border-on-status-upcoming'
-}
 function priRank(priority: string): number {
   return priority === 'high' ? 0 : priority === 'low' ? 2 : 1
 }
@@ -121,10 +116,6 @@ type Filters = {
   category: string[]
 }
 const EMPTY_FILTERS: Filters = { hideDone: true, status: [], priority: [], importance: [], category: [] }
-
-function toggle<T>(arr: T[], v: T): T[] {
-  return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]
-}
 
 // 포인터 좌표 아래의 날짜 셀 키를 찾는다(고스트는 pointer-events:none 이라 무시됨).
 function dayKeyAtPoint(x: number, y: number): DateKey | null {
@@ -627,16 +618,19 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
         완료 숨김
       </FilterChip>
       <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
-      {STATUSES.map((s) => (
-        <FilterChip
-          key={s.value}
-          active={filters.status.includes(s.value)}
-          onClick={() => setFilters((f) => ({ ...f, status: toggle(f.status, s.value) }))}
-          activeCls={statusFilterCls(s.value)}
-        >
-          {s.label}
-        </FilterChip>
-      ))}
+      {STATUSES.map((s) => {
+        const active = filters.status.includes(s.value)
+        return (
+          <button
+            key={s.value}
+            type="button"
+            onClick={() => setFilters((f) => ({ ...f, status: toggle(f.status, s.value) }))}
+            className={`shrink-0 ${statusChipCls(s.value, active)}`}
+          >
+            {s.label}
+          </button>
+        )
+      })}
       <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
       {PRIORITIES.map((p) => (
         <FilterChip
