@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import { normalizeStatus } from '@/lib/constants'
 import CalendarView, { type CalItem } from './CalendarView'
 
 export const dynamic = 'force-dynamic'
 // MFH-CAL-FILTER-V1
+// MFH-CAL-STATUS-V1
 
 export default async function CalendarPage() {
   const supabase = createClient()
@@ -19,7 +21,7 @@ export default async function CalendarPage() {
 
   const { data: taskData } = await supabase
     .from('tasks')
-    .select('id, title, due_date, due_time, priority, importance, done, category')
+    .select('id, title, due_date, due_time, priority, importance, done, status, category')
     .not('due_date', 'is', null)
 
   const projects = (projData ?? []) as {
@@ -40,6 +42,7 @@ export default async function CalendarPage() {
     priority: string
     importance: number | null
     done: boolean
+    status: string | null
     category: string | null
   }[]
 
@@ -50,6 +53,7 @@ export default async function CalendarPage() {
       .map((p) => {
         const start = (p.start_date ?? p.due_date) as string
         const end = (p.due_date ?? p.start_date) as string
+        const status = normalizeStatus(p.status)
         return {
           id: p.id,
           type: 'project' as const,
@@ -57,29 +61,32 @@ export default async function CalendarPage() {
           start: start <= end ? start : end,
           end: start <= end ? end : start,
           time: null,
-          status: p.status,
+          status,
           priority: p.priority,
           importance: p.importance ?? 0,
           category: p.category ?? null,
-          done: p.status === 'done',
+          done: status === 'done',
           href: `/projects/${p.id}`,
         }
       }),
     // 할 일: due_date 하루(+ 선택적 시간).
-    ...tasks.map((t) => ({
-      id: t.id,
-      type: 'task' as const,
-      title: t.title,
-      start: t.due_date,
-      end: t.due_date,
-      time: t.due_time,
-      status: t.done ? 'done' : 'active',
-      priority: t.priority,
-      importance: t.importance ?? 0,
-      category: t.category ?? null,
-      done: t.done,
-      href: `/tasks/${t.id}/edit`,
-    })),
+    ...tasks.map((t) => {
+      const status = t.done ? 'done' : normalizeStatus(t.status)
+      return {
+        id: t.id,
+        type: 'task' as const,
+        title: t.title,
+        start: t.due_date,
+        end: t.due_date,
+        time: t.due_time,
+        status,
+        priority: t.priority,
+        importance: t.importance ?? 0,
+        category: t.category ?? null,
+        done: t.done || status === 'done',
+        href: `/tasks/${t.id}/edit`,
+      }
+    }),
   ]
 
   return (
@@ -99,19 +106,19 @@ export default async function CalendarPage() {
 
       <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-accent" /> 높음
+          <span className="h-2.5 w-2.5 rounded-full bg-status-upcoming" /> Upcoming
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-primary" /> 보통
+          <span className="h-2.5 w-2.5 rounded-full bg-status-progress" /> In Progress
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-faint" /> 낮음
+          <span className="h-2.5 w-2.5 rounded-full bg-status-done" /> Done
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="h-3 w-4 rounded-sm border-l-2 border-muted bg-surface-subtle" /> 프로젝트(기간)
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-sm bg-surface-subtle" /> 할 일(하루)
+          <span className="h-3 w-3 rounded-full bg-surface-subtle" /> 할 일(하루)
         </span>
       </div>
     </main>
