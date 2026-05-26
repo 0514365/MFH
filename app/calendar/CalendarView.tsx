@@ -5,6 +5,7 @@
 // MFH-CAL-STATUS-V1
 // MFH-CAL-DRAG-V2
 // MFH-CAL-DRAG-V3
+// MFH-CAL-SELECT-FIX
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -841,10 +842,10 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                       onPointerMove={onPointerMoveGlobal}
                       onPointerUp={(e) => onPointerUpGlobal(e, it)}
                       onClick={(e) => onBarClick(e, it)}
-                      style={{ left, width, top, height: `${BAR_H - 4}px`, WebkitTouchCallout: 'none' }}
+                      style={{ left, width, top, height: `${BAR_H - 4}px`, WebkitTouchCallout: 'none', outlineOffset: '-2px' }}
                       className={`cal-bar pointer-events-auto absolute mx-0.5 flex cursor-pointer touch-none select-none items-center gap-1 overflow-hidden border-l-[3px] px-1.5 md:cursor-grab md:active:cursor-grabbing ${round} ${statusBarCls(
                         it.status,
-                      )} ${it.done ? 'opacity-50' : ''} ${isSelBar ? 'opacity-90 ring-2 ring-inset ring-primary' : ''}`}
+                      )} ${it.done ? 'opacity-50' : ''} ${isSelBar ? 'opacity-90 outline outline-2 outline-primary' : ''}`}
                     >
                       {it.type === 'project' && sg.isStart && isSelBar && (
                         <span
