@@ -1,3 +1,4 @@
+// MFH-JOURNAL-REDESIGN-V1
 'use client'
 
 import Link from 'next/link'
@@ -23,6 +24,8 @@ type Props = {
 }
 
 type PastPlace = { id: string; name: string; lat: number; lng: number }
+
+type SubKey = 'thanks' | 'meditation'
 
 export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
   const router = useRouter()
@@ -61,6 +64,15 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+
+  // 리디자인 UI 상태 (저장 로직과 무관 — 펼침/접힘·위치버튼만)
+  const [openSubs, setOpenSubs] = useState<Record<SubKey, boolean>>({
+    thanks: Boolean(initial?.thanks),
+    meditation: Boolean(initial?.meditation),
+  })
+  const [showManualCoord, setShowManualCoord] = useState(false)
+  const [geoBusy, setGeoBusy] = useState(false)
+  const [geoMsg, setGeoMsg] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -177,6 +189,33 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
     setPhotoNote(null)
   }
 
+  // 「현재 위치」 — 좌표만 채움. 장소 추천은 기존 200m 로직이 자동 처리.
+  function useCurrentLocation() {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGeoMsg('이 기기에서는 위치를 사용할 수 없습니다.')
+      return
+    }
+    setGeoBusy(true)
+    setGeoMsg(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPhotoLat(String(pos.coords.latitude))
+        setPhotoLng(String(pos.coords.longitude))
+        setGeoBusy(false)
+        setGeoMsg('현재 위치 좌표를 불러왔습니다.')
+      },
+      (err) => {
+        setGeoBusy(false)
+        setGeoMsg(
+          err.code === err.PERMISSION_DENIED
+            ? '위치 권한이 거부되었습니다. 브라우저 설정에서 허용해 주세요.'
+            : '현재 위치를 가져오지 못했습니다.'
+        )
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
   async function save() {
     if (!headline.trim() && !todayText.trim()) {
       setMsg('제목 또는 오늘 있었던 일을 입력해 주세요.')
@@ -267,15 +306,31 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
 
   const input =
     'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
-  const big = 'mb-1 mt-5 block text-sm font-bold text-primary'
+  const big = 'mb-1 block text-sm font-bold text-primary'
   const small = 'mb-1 mt-4 block text-xs text-muted'
   const showPhoto = preview ?? existingUrl
+  const hasPhotoInfo = Boolean(showPhoto || file)
   const placeMatches = placeNames
     .filter((n) => n !== placeName && (!placeName || n.toLowerCase().includes(placeName.toLowerCase())))
     .slice(0, 6)
 
+  function toggleSub(k: SubKey) {
+    setOpenSubs((s) => ({ ...s, [k]: !s[k] }))
+  }
+
+  const subFilled: Record<SubKey, boolean> = {
+    thanks: Boolean(thanks.trim()),
+    meditation: Boolean(meditation.trim()),
+  }
+  const subLabel: Record<SubKey, string> = {
+    thanks: '🙏 감사·응답',
+    meditation: '💭 묵상·깨달음',
+  }
+  const subValue: Record<SubKey, string> = { thanks, meditation }
+  const subSet: Record<SubKey, (v: string) => void> = { thanks: setThanks, meditation: setMeditation }
+
   return (
-    <main className="mx-auto max-w-md px-5 py-8">
+    <main className="mx-auto max-w-md px-5 py-8 md:max-w-4xl">
       <Link
         href={mode === 'edit' && initial ? `/journal/${initial.id}` : '/journal'}
         className="text-xs text-muted underline"
@@ -286,142 +341,246 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
         {mode === 'edit' ? '일지 수정' : '새 일지'}
       </h1>
 
-      <label className="mb-1 block text-xs text-muted">일지 날짜</label>
-      <DateField value={entryDate} onChange={setEntryDate} placeholder="날짜 선택" />
-      <p className="mt-1 text-xs text-faint">사진 촬영일과 별개로, 이 기록의 날짜입니다.</p>
+      <div className="grid grid-cols-1 gap-x-8 md:grid-cols-[1.8fr_1fr]">
+        {/* ── 좌측: 본문 ── */}
+        <div className="min-w-0">
+          <div className="flex items-end justify-between gap-3">
+            <label className="mb-1 block text-xs text-muted">일지 날짜</label>
+            <button
+              type="button"
+              onClick={() => setEntryDate(todayStr())}
+              className="mb-1 rounded-lg bg-accent px-3 py-1 text-xs font-semibold text-white"
+            >
+              오늘
+            </button>
+          </div>
+          <DateField value={entryDate} onChange={setEntryDate} placeholder="날짜 선택" />
+          <p className="mt-1 text-xs text-faint">사진 촬영일과 별개로, 이 기록의 날짜입니다.</p>
 
-      <label className={small}>사역 분류</label>
-      <select value={category} onChange={(e) => setCategory(e.target.value)} className={input}>
-        <option value="">선택 안 함</option>
-        {JOURNAL_CATEGORIES.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
+          <label className={small}>사역 분류</label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className={input}>
+            <option value="">선택 안 함</option>
+            {JOURNAL_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
 
-      <label className={small}>한 줄 머리말</label>
-      <input value={headline} onChange={(e) => setHeadline(e.target.value)} className={input} placeholder="오늘의 한 줄" />
+          <label className={small}>한 줄 머리말</label>
+          <input
+            value={headline}
+            onChange={(e) => setHeadline(e.target.value)}
+            className={input}
+            placeholder="오늘의 한 줄"
+          />
 
-      <label className={big}>🌿 오늘 있었던 일</label>
-      <textarea value={todayText} onChange={(e) => setTodayText(e.target.value)} rows={4} className={input} />
+          <label className="mb-1 mt-5 block text-sm font-bold text-primary">🌿 오늘 있었던 일</label>
+          <textarea value={todayText} onChange={(e) => setTodayText(e.target.value)} rows={5} className={input} />
 
-      <label className={big}>🙏 감사·응답</label>
-      <textarea value={thanks} onChange={(e) => setThanks(e.target.value)} rows={3} className={input} />
+          {/* 감사·묵상: 접이식. 데스크탑은 2열 칩, 모바일은 세로 스택. */}
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {(['thanks', 'meditation'] as SubKey[]).map((k) => (
+              <div key={k}>
+                <button
+                  type="button"
+                  onClick={() => toggleSub(k)}
+                  className={`flex w-full items-center justify-between rounded-xl border px-4 py-2.5 text-sm font-bold transition ${
+                    openSubs[k] || subFilled[k]
+                      ? 'border-primary text-primary'
+                      : 'border-line text-muted hover:border-primary'
+                  }`}
+                >
+                  <span>{subLabel[k]}</span>
+                  <span className="text-xs">
+                    {subFilled[k] && !openSubs[k] ? '작성됨' : openSubs[k] ? '▾' : '＋'}
+                  </span>
+                </button>
+                {openSubs[k] && (
+                  <textarea
+                    value={subValue[k]}
+                    onChange={(e) => subSet[k](e.target.value)}
+                    rows={3}
+                    className={`${input} mt-2`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
 
-      <label className={big}>💭 묵상·깨달음</label>
-      <textarea value={meditation} onChange={(e) => setMeditation(e.target.value)} rows={3} className={input} />
+          {/* 기도제목: 기본 펼침 + 편지후보 체크 */}
+          <label className="mb-1 mt-5 block text-sm font-bold text-primary">📌 기도제목</label>
+          <textarea
+            value={prayer}
+            onChange={(e) => setPrayer(e.target.value)}
+            rows={3}
+            className={input}
+            placeholder="예: 자포탈 교회 건축 / 가정 평강"
+          />
+          <label className="mt-2 flex items-center gap-2 text-sm text-muted">
+            <input
+              type="checkbox"
+              checked={prayerCandidate}
+              onChange={(e) => setPrayerCandidate(e.target.checked)}
+            />
+            이번 달 편지 기도제목 후보로 표시
+          </label>
+        </div>
 
-      <label className={big}>📌 기도제목</label>
-      <textarea value={prayer} onChange={(e) => setPrayer(e.target.value)} rows={3} className={input} />
+        {/* ── 우측: 사진 + 연계 ── */}
+        <div className="mt-6 min-w-0 md:mt-0">
+          <label className="mb-1 block text-sm font-bold text-primary">📷 사진</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={onPick}
+            className="block w-full text-sm text-muted"
+          />
+          {showPhoto && (
+            <div className="mt-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={showPhoto} alt="" className="w-full rounded-xl border border-line" />
+              <button
+                type="button"
+                onClick={removeCurrentPhoto}
+                className="mt-2 text-xs text-danger underline"
+              >
+                사진 제거
+              </button>
+            </div>
+          )}
+          {photoNote && <p className="mt-2 text-xs text-faint">{photoNote}</p>}
 
-      <label className={big}>📷 사진</label>
-      <input type="file" accept="image/*" onChange={onPick} className="block w-full text-sm text-muted" />
-      {showPhoto && (
-        <div className="mt-3">
-          <img src={showPhoto} alt="" className="w-full rounded-xl border border-line" />
-          <button type="button" onClick={removeCurrentPhoto} className="mt-2 text-xs text-danger underline">
-            사진 제거
+          {/* 사진 정보 묶음 — 사진 있을 때만 펼침 */}
+          {hasPhotoInfo ? (
+            <div className="mt-4 rounded-2xl border border-line bg-surface-subtle p-4">
+              <p className="mb-3 text-xs font-bold text-muted">사진 정보</p>
+
+              <label className="mb-1 block text-xs text-muted">장소 (사진 위치 이름)</label>
+              <input
+                value={placeName}
+                onChange={(e) => setPlaceName(e.target.value)}
+                className={input}
+                placeholder="예: 자포탈 더좋은교회"
+              />
+              {placeSuggestion && (
+                <button
+                  type="button"
+                  onClick={() => setPlaceName(placeSuggestion.name)}
+                  className="mt-2 block text-xs font-semibold text-accent underline"
+                >
+                  📍 근처 기록 위치: ‘{placeSuggestion.name}’ 사용 (약 {Math.round(placeSuggestion.dist)}m)
+                </button>
+              )}
+              {placeMatches.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {placeMatches.map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setPlaceName(n)}
+                      className="rounded-full bg-surface px-2.5 py-1 text-[11px] text-muted"
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <label className="mb-1 mt-4 block text-xs text-muted">촬영일 (메타데이터 · 수정 가능)</label>
+              <DateField value={photoTakenAt} onChange={changeTakenAt} placeholder="촬영일 없음" />
+              <label
+                className={`mt-2 flex items-center gap-2 text-xs ${
+                  photoTakenAt ? 'text-muted' : 'text-faint'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={applyPhotoDate}
+                  disabled={!photoTakenAt}
+                  onChange={(e) => toggleApply(e.target.checked)}
+                />
+                촬영일을 일지 날짜로 사용
+              </label>
+
+              <label className="mb-1 mt-4 block text-xs text-muted">위치 좌표</label>
+              <button
+                type="button"
+                onClick={useCurrentLocation}
+                disabled={geoBusy}
+                className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-primary transition hover:border-primary disabled:opacity-50"
+              >
+                {geoBusy ? '위치 확인 중…' : '📍 현재 위치 사용'}
+              </button>
+              {(photoLat || photoLng) && (
+                <p className="mt-2 text-xs text-faint">
+                  좌표: {photoLat || '—'}, {photoLng || '—'}
+                </p>
+              )}
+              {geoMsg && <p className="mt-1 text-xs text-faint">{geoMsg}</p>}
+
+              <button
+                type="button"
+                onClick={() => setShowManualCoord((v) => !v)}
+                className="mt-2 text-xs text-muted underline"
+              >
+                {showManualCoord ? '직접 입력 닫기' : '좌표 직접 입력'}
+              </button>
+              {showManualCoord && (
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={photoLat}
+                    onChange={(e) => setPhotoLat(e.target.value)}
+                    className={input}
+                    placeholder="위도"
+                    inputMode="decimal"
+                  />
+                  <input
+                    value={photoLng}
+                    onChange={(e) => setPhotoLng(e.target.value)}
+                    className={input}
+                    placeholder="경도"
+                    inputMode="decimal"
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-faint">사진을 선택하면 장소·촬영일·위치 정보를 입력할 수 있습니다.</p>
+          )}
+
+          {/* 연계 한 줄 */}
+          <label className="mb-1 mt-5 block text-sm font-bold text-primary">🔗 연계</label>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={input}>
+              <option value="">프로젝트 없음</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+            <select value={taskId} onChange={(e) => setTaskId(e.target.value)} className={input}>
+              <option value="">할 일 없음</option>
+              {tasks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {msg && <p className="mt-4 text-sm text-danger">{msg}</p>}
+
+          <button
+            onClick={save}
+            disabled={saving}
+            className="mt-6 w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {saving ? '저장 중…' : mode === 'edit' ? '수정 저장' : '저장'}
           </button>
         </div>
-      )}
-      {photoNote && <p className="mt-2 text-xs text-faint">{photoNote}</p>}
-
-      <label className={small}>장소 (사진 위치 이름)</label>
-      <input
-        value={placeName}
-        onChange={(e) => setPlaceName(e.target.value)}
-        className={input}
-        placeholder="예: 자포탈 더좋은교회"
-      />
-      {placeSuggestion && (
-        <button
-          type="button"
-          onClick={() => setPlaceName(placeSuggestion.name)}
-          className="mt-2 block text-xs font-semibold text-accent underline"
-        >
-          📍 근처 기록 위치: ‘{placeSuggestion.name}’ 사용 (약 {Math.round(placeSuggestion.dist)}m)
-        </button>
-      )}
-      {placeMatches.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {placeMatches.map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setPlaceName(n)}
-              className="rounded-full bg-surface-subtle px-2.5 py-1 text-[11px] text-muted"
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <label className={small}>촬영일 (메타데이터 · 수정 가능)</label>
-      <DateField value={photoTakenAt} onChange={changeTakenAt} placeholder="촬영일 없음" />
-      <label className={`mt-2 flex items-center gap-2 text-xs ${photoTakenAt ? 'text-muted' : 'text-faint'}`}>
-        <input
-          type="checkbox"
-          checked={applyPhotoDate}
-          disabled={!photoTakenAt}
-          onChange={(e) => toggleApply(e.target.checked)}
-        />
-        촬영일을 일지 날짜로 사용
-      </label>
-
-      <label className={small}>좌표 (위도 / 경도 · 수정 가능)</label>
-      <div className="flex gap-2">
-        <input
-          value={photoLat}
-          onChange={(e) => setPhotoLat(e.target.value)}
-          className={input}
-          placeholder="위도"
-          inputMode="decimal"
-        />
-        <input
-          value={photoLng}
-          onChange={(e) => setPhotoLng(e.target.value)}
-          className={input}
-          placeholder="경도"
-          inputMode="decimal"
-        />
       </div>
-
-      <label className="mt-4 flex items-center gap-2 text-sm text-muted">
-        <input type="checkbox" checked={prayerCandidate} onChange={(e) => setPrayerCandidate(e.target.checked)} />
-        편지 기도제목 후보로 표시
-      </label>
-
-      <label className={small}>관련 프로젝트 (선택)</label>
-      <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={input}>
-        <option value="">없음</option>
-        {projects.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.title}
-          </option>
-        ))}
-      </select>
-
-      <label className={small}>관련 할 일 (선택)</label>
-      <select value={taskId} onChange={(e) => setTaskId(e.target.value)} className={input}>
-        <option value="">없음</option>
-        {tasks.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.title}
-          </option>
-        ))}
-      </select>
-
-      {msg && <p className="mt-4 text-sm text-danger">{msg}</p>}
-
-      <button
-        onClick={save}
-        disabled={saving}
-        className="mt-6 w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
-      >
-        {saving ? '저장 중…' : mode === 'edit' ? '수정 저장' : '저장'}
-      </button>
     </main>
   )
 }
