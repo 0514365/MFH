@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase-server'
 import CalendarView, { type CalItem } from './CalendarView'
 
 export const dynamic = 'force-dynamic'
+// MFH-CAL-FILTER-V1
 
 export default async function CalendarPage() {
   const supabase = createClient()
@@ -14,11 +15,11 @@ export default async function CalendarPage() {
 
   const { data: projData } = await supabase
     .from('projects')
-    .select('id, title, start_date, due_date, priority, status')
+    .select('id, title, start_date, due_date, priority, importance, status, category')
 
   const { data: taskData } = await supabase
     .from('tasks')
-    .select('id, title, due_date, due_time, priority, done')
+    .select('id, title, due_date, due_time, priority, importance, done, category')
     .not('due_date', 'is', null)
 
   const projects = (projData ?? []) as {
@@ -27,7 +28,9 @@ export default async function CalendarPage() {
     start_date: string | null
     due_date: string | null
     priority: string
+    importance: number | null
     status: string
+    category: string | null
   }[]
   const tasks = (taskData ?? []) as {
     id: string
@@ -35,7 +38,9 @@ export default async function CalendarPage() {
     due_date: string
     due_time: string | null
     priority: string
+    importance: number | null
     done: boolean
+    category: string | null
   }[]
 
   const items: CalItem[] = [
@@ -54,6 +59,8 @@ export default async function CalendarPage() {
           time: null,
           status: p.status,
           priority: p.priority,
+          importance: p.importance ?? 0,
+          category: p.category ?? null,
           done: p.status === 'done',
           href: `/projects/${p.id}`,
         }
@@ -68,6 +75,8 @@ export default async function CalendarPage() {
       time: t.due_time,
       status: t.done ? 'done' : 'active',
       priority: t.priority,
+      importance: t.importance ?? 0,
+      category: t.category ?? null,
       done: t.done,
       href: `/tasks/${t.id}/edit`,
     })),

@@ -1,10 +1,11 @@
 'use client'
 // MFH-DND-V1
+// MFH-CAL-FILTER-V1
 import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import { statusLabel } from '@/lib/constants'
+import { statusLabel, PRIORITIES, PROJECT_STATUSES, JOURNAL_CATEGORIES, IMPORTANCE_MAX } from '@/lib/constants'
 import {
   monthGrid,
   weekGrid,
@@ -35,6 +36,8 @@ export type CalItem = {
   time: string | null
   status: string
   priority: string
+  importance: number
+  category: string | null
   done: boolean
   href: string
 }
@@ -76,6 +79,20 @@ function priRank(priority: string): number {
   return priority === 'high' ? 0 : priority === 'low' ? 2 : 1
 }
 
+// ── 필터 ───────────────────────────────────────
+type Filters = {
+  hideDone: boolean
+  status: string[] // 빈 배열 = 전체
+  priority: string[]
+  importance: number[]
+  category: string[]
+}
+const EMPTY_FILTERS: Filters = { hideDone: true, status: [], priority: [], importance: [], category: [] }
+
+function toggle<T>(arr: T[], v: T): T[] {
+  return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]
+}
+
 export default function CalendarView({ items: initialItems }: { items: CalItem[] }) {
   const router = useRouter()
   const today = todayKey()
@@ -86,11 +103,42 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
   const [selected, setSelected] = useState<DateKey>(today)
 
   // 낙관적 갱신을 위해 items 를 로컬 state 로 보유.
-  const [items, setItems] = useState<CalItem[]>(initialItems)
+  const [allItems, setAllItems] = useState<CalItem[]>(initialItems)
   const [drag, setDrag] = useState<Drag | null>(null)
   const [saving, setSaving] = useState(false)
 
+  // 선택(데스크톱: 1클릭=선택, 더블클릭=상세). 모바일은 사용 안 함.
+  const [selBar, setSelBar] = useState<string | null>(null)
+
+  // 필터
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+
   const weekRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // 사용 중인 사역분류만 칩으로 노출(데이터에 있는 것 우선, 순서는 상수 기준).
+  const usedCategories = useMemo(() => {
+    const set = new Set(allItems.map((it) => it.category).filter(Boolean) as string[])
+    return JOURNAL_CATEGORIES.filter((c) => set.has(c))
+  }, [allItems])
+
+  const filterActiveAny =
+    filters.status.length +
+      filters.priority.length +
+      filters.importance.length +
+      filters.category.length >
+      0 || !filters.hideDone
+
+  // 필터 적용된 표시 대상.
+  const items = useMemo(() => {
+    return allItems.filter((it) => {
+      if (filters.hideDone && it.done) return false
+      if (filters.status.length && !filters.status.includes(it.status)) return false
+      if (filters.priority.length && !filters.priority.includes(it.priority)) return false
+      if (filters.importance.length && !filters.importance.includes(it.importance)) return false
+      if (filters.category.length && !(it.category && filters.category.includes(it.category))) return false
+      return true
+    })
+  }, [allItems, filters])
 
   const byId = useMemo(() => {
     const m: Record<string, CalItem> = {}
@@ -163,7 +211,9 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
   }
 
   // ── 드래그 핸들러 ───────────────────────────────
+  // 데스크톱(마우스)만 드래그. 터치/펜은 기존 동작(탭=상세 이동) 유지 → onClick 으로 처리.
   function onBarPointerDown(e: React.PointerEvent, it: CalItem, dmode: DragMode, weekIdx: number) {
+    if (e.pointerType !== 'mouse') return // 모바일 유지
     if (saving) return
     if (e.button !== undefined && e.button !== 0) return // 좌클릭만
     const wrap = weekRefs.current[weekIdx]
@@ -186,7 +236,7 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
   }
 
   function onBarPointerMove(e: React.PointerEvent) {
-    if (!drag) return
+    if (!drag || e.pointerType !== 'mouse') return
     const dx = e.clientX - drag.startX
     const moved = drag.moved || Math.abs(dx) >= DRAG_THRESHOLD
     const deltaDays = Math.round(dx / drag.cellW)
@@ -195,15 +245,17 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
   }
 
   async function onBarPointerUp(e: React.PointerEvent, it: CalItem) {
+    if (e.pointerType !== 'mouse') return // 모바일 유지
     if (!drag || drag.id !== it.id) {
       setDrag(null)
       return
     }
     const d = drag
-    // 임계 미만 = 클릭으로 간주 → 네비게이트.
+    // 임계 미만 = 클릭으로 간주 → 선택만(상세 이동은 더블클릭).
     if (!d.moved || d.deltaDays === 0) {
       setDrag(null)
-      router.push(it.href)
+      setSelBar(it.id)
+      setSelected(it.start) // 하단 목록도 그날로 맞춤
       return
     }
     const pv = previewRange(it)
@@ -211,8 +263,8 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
     if (pv.start === it.start && pv.end === it.end) return
 
     // 낙관적 갱신
-    const prevItems = items
-    setItems((arr) => arr.map((x) => (x.id === it.id ? { ...x, start: pv.start, end: pv.end } : x)))
+    const prevItems = allItems
+    setAllItems((arr) => arr.map((x) => (x.id === it.id ? { ...x, start: pv.start, end: pv.end } : x)))
     setSaving(true)
     try {
       const supabase = createClient()
@@ -230,17 +282,111 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
       router.refresh()
     } catch (err) {
       console.error('calendar drag save failed', err)
-      setItems(prevItems) // rollback
+      setAllItems(prevItems) // rollback
       alert('일정 변경 저장에 실패했습니다. 다시 시도해 주세요.')
     } finally {
       setSaving(false)
     }
   }
 
+  // 모바일(터치)·더블클릭(데스크톱) 상세 이동.
+  function onBarClick(e: React.MouseEvent, it: CalItem) {
+    // 데스크톱 단일클릭은 pointerup 에서 선택 처리하므로 여기선 막는다.
+    // 모바일(터치)은 pointerType 추적이 click 단계에 없으므로, detail 로 더블클릭 판별.
+    if (e.detail >= 2) {
+      // 더블클릭 = 상세
+      router.push(it.href)
+      return
+    }
+    // 터치 단일 탭: 화면 폭이 좁고 hover 없는 환경에서만 즉시 이동하도록,
+    // matchMedia 로 coarse pointer(터치) 면 이동.
+    if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
+      router.push(it.href)
+    }
+  }
+
   const baseMinH = mode === 'month' ? 'clamp(58px, 11vh, 116px)' : 'clamp(120px, 46vh, 460px)'
+
+  const FilterChip = ({
+    active,
+    onClick,
+    children,
+  }: {
+    active: boolean
+    onClick: () => void
+    children: React.ReactNode
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
+        active ? 'border-primary bg-primary text-white' : 'border-line bg-surface text-muted hover:border-primary'
+      }`}
+    >
+      {children}
+    </button>
+  )
 
   return (
     <div className={saving ? 'pointer-events-none opacity-60' : ''}>
+      {/* 필터 칩바 */}
+      <div className="mb-3 space-y-1.5">
+        <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-1">
+          <FilterChip active={filters.hideDone} onClick={() => setFilters((f) => ({ ...f, hideDone: !f.hideDone }))}>
+            완료 숨김
+          </FilterChip>
+          <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
+          {PROJECT_STATUSES.map((s) => (
+            <FilterChip
+              key={s.value}
+              active={filters.status.includes(s.value)}
+              onClick={() => setFilters((f) => ({ ...f, status: toggle(f.status, s.value) }))}
+            >
+              {s.label}
+            </FilterChip>
+          ))}
+          <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
+          {PRIORITIES.map((p) => (
+            <FilterChip
+              key={p.value}
+              active={filters.priority.includes(p.value)}
+              onClick={() => setFilters((f) => ({ ...f, priority: toggle(f.priority, p.value) }))}
+            >
+              {p.label}
+            </FilterChip>
+          ))}
+          <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
+          {Array.from({ length: IMPORTANCE_MAX }, (_, i) => i + 1).map((n) => (
+            <FilterChip
+              key={n}
+              active={filters.importance.includes(n)}
+              onClick={() => setFilters((f) => ({ ...f, importance: toggle(f.importance, n) }))}
+            >
+              {'★'.repeat(n)}
+            </FilterChip>
+          ))}
+          {usedCategories.length > 0 && <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />}
+          {usedCategories.map((c) => (
+            <FilterChip
+              key={c}
+              active={filters.category.includes(c)}
+              onClick={() => setFilters((f) => ({ ...f, category: toggle(f.category, c) }))}
+            >
+              {c}
+            </FilterChip>
+          ))}
+        </div>
+        {filterActiveAny ? (
+          <button
+            type="button"
+            onClick={() => setFilters(EMPTY_FILTERS)}
+            className="text-[11px] font-semibold text-faint underline-offset-2 hover:text-accent hover:underline"
+          >
+            필터 초기화
+          </button>
+        ) : null}
+      </div>
+
       <div className="mb-3 flex items-center justify-between">
         <div className="inline-flex rounded-xl border border-line p-0.5 text-xs">
           <button
@@ -306,7 +452,10 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                     <button
                       type="button"
                       key={c.key}
-                      onClick={() => setSelected(c.key)}
+                      onClick={() => {
+                        setSelected(c.key)
+                        setSelBar(null) // 빈 칸 클릭 = 막대 선택 해제
+                      }}
                       style={{ minHeight: minH }}
                       className={`relative text-left transition ${
                         isSel ? 'bg-primary-soft' : 'bg-surface'
@@ -336,6 +485,7 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                     sg.isStart && sg.isEnd ? 'rounded' : sg.isStart ? 'rounded-l' : sg.isEnd ? 'rounded-r' : ''
                   const showTime = it.type === 'task' && it.time
                   const isDragging = drag?.id === it.id
+                  const isSelBar = selBar === it.id
                   const canResize = it.type === 'project'
                   return (
                     <div
@@ -343,16 +493,19 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                       onPointerDown={(e) => onBarPointerDown(e, it, 'move', wi)}
                       onPointerMove={onBarPointerMove}
                       onPointerUp={(e) => onBarPointerUp(e, it)}
+                      onClick={(e) => onBarClick(e, it)}
                       style={{ left, width, top, height: `${BAR_H - 4}px` }}
-                      className={`pointer-events-auto absolute mx-0.5 flex cursor-grab touch-none items-center gap-1 overflow-hidden border-l-[3px] px-1.5 active:cursor-grabbing ${round} ${barTone(
+                      className={`pointer-events-auto absolute mx-0.5 flex cursor-pointer touch-none items-center gap-1 overflow-hidden border-l-[3px] px-1.5 md:cursor-grab md:active:cursor-grabbing ${round} ${barTone(
                         it.priority,
-                      )} ${it.done ? 'opacity-50' : ''} ${isDragging ? 'opacity-80 ring-1 ring-inset ring-primary' : ''}`}
+                      )} ${it.done ? 'opacity-50' : ''} ${
+                        isDragging || isSelBar ? 'opacity-90 ring-2 ring-inset ring-primary' : ''
+                      }`}
                     >
-                      {/* 시작 핸들(프로젝트·이 주에 시작) */}
-                      {canResize && sg.isStart && (
+                      {/* 시작 핸들(프로젝트·이 주에 시작, 선택 시에만 노출) */}
+                      {canResize && sg.isStart && isSelBar && (
                         <span
                           onPointerDown={(e) => onBarPointerDown(e, it, 'resize-start', wi)}
-                          className="absolute left-0 top-0 h-full w-2 cursor-ew-resize"
+                          className="absolute left-0 top-0 hidden h-full w-2 cursor-ew-resize bg-primary opacity-40 md:block"
                         />
                       )}
                       {showTime && (
@@ -376,11 +529,11 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                           {statusLabel(it.status)}
                         </span>
                       )}
-                      {/* 끝 핸들(프로젝트·이 주에 끝) */}
-                      {canResize && sg.isEnd && (
+                      {/* 끝 핸들(프로젝트·이 주에 끝, 선택 시에만 노출) */}
+                      {canResize && sg.isEnd && isSelBar && (
                         <span
                           onPointerDown={(e) => onBarPointerDown(e, it, 'resize-end', wi)}
-                          className="absolute right-0 top-0 h-full w-2 cursor-ew-resize"
+                          className="absolute right-0 top-0 hidden h-full w-2 cursor-ew-resize bg-primary opacity-40 md:block"
                         />
                       )}
                     </div>
@@ -392,8 +545,8 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
         })}
       </div>
 
-      <p className="mt-2 text-center text-[10px] text-faint">
-        막대를 끌어 날짜 이동 · 프로젝트는 양 끝을 끌어 기간 조절
+      <p className="mt-2 hidden text-center text-[10px] text-faint md:block">
+        막대 클릭=선택 · 끌어서 이동 · 더블클릭=상세 · 프로젝트는 선택 후 양 끝으로 기간 조절
       </p>
 
       <div className="mt-5">
@@ -433,6 +586,11 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                         <span className="mt-0.5 block text-[11px] text-muted">{fmtTime(it.time)}</span>
                       ) : null}
                     </span>
+                    {it.category && (
+                      <span className="hidden shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary sm:inline">
+                        {it.category}
+                      </span>
+                    )}
                     <span className="shrink-0 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] text-muted">
                       {it.type === 'project' ? '프로젝트' : '할 일'}
                     </span>
