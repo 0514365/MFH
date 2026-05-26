@@ -4,6 +4,7 @@
 // MFH-CAL-PERF-V1
 // MFH-CAL-STATUS-V1
 // MFH-CAL-DRAG-V2
+// MFH-CAL-DRAG-V3
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -29,6 +30,7 @@ import {
   fmtTime,
   fmtTimeShort,
   shiftKey,
+  diffDays,
   weekRangeLabel,
   MONTH_LABELS,
   DOW_LABELS,
@@ -53,26 +55,30 @@ export type CalItem = {
 }
 
 type Mode = 'month' | 'week'
-type DragMode = 'move' | 'resize-start' | 'resize-end'
 
 const BAR_H = 20
 const NUM_H = 22
 const DRAG_THRESHOLD = 4
-const DESKTOP_MAX_CARDS = 3
+const MAX_CARDS = 3
+const LONGPRESS_MS = 400
 
-// 드래그 진행 상태(모두 ref — 리렌더 유발 안 함)
+// 드래그 진행 상태(ref — 리렌더 유발 안 함). 고스트는 fixed 복제본.
 type DragState = {
   id: string
-  type: 'project' | 'task'
-  mode: DragMode
+  itemType: 'project' | 'task'
+  kind: 'move' | 'resize-start' | 'resize-end'
+  pointerType: string
   originStart: DateKey
   originEnd: DateKey
   startX: number
+  startY: number
   cellW: number
-  el: HTMLElement // 드래그 중인 막대 DOM
-  baseLeftPx: number // 막대의 시작 left(px, 부모 기준)
-  baseWidthPx: number // 막대의 시작 width(px)
-  deltaDays: number // 현재 스냅된 칸 델타
+  // resize 전용
+  el?: HTMLElement
+  baseWidthPx?: number
+  // move 전용(고스트)
+  ghost?: HTMLDivElement
+  dropKey?: DateKey | null
   moved: boolean
 }
 
@@ -111,13 +117,30 @@ function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]
 }
 
-// ── 할 일 카드(데스크톱) — memo 로 드래그 중 불필요 리렌더 차단 ──
-const TaskCard = memo(function TaskCard({ it }: { it: CalItem }) {
+// 포인터 좌표 아래의 날짜 셀 키를 찾는다(고스트는 pointer-events:none 이라 무시됨).
+function dayKeyAtPoint(x: number, y: number): DateKey | null {
+  const els = document.elementsFromPoint(x, y)
+  for (const el of els) {
+    const k = (el as HTMLElement).getAttribute?.('data-daykey')
+    if (k) return k
+  }
+  return null
+}
+
+// ── 할 일 카드(데스크톱·모바일 공통) ─────────────────
+const TaskCard = memo(function TaskCard({
+  it,
+  onPointerDown,
+}: {
+  it: CalItem
+  onPointerDown: (e: React.PointerEvent, it: CalItem) => void
+}) {
   return (
-    <Link
-      href={it.href}
-      onClick={(e) => e.stopPropagation()}
-      className="block select-none rounded-md border border-line bg-surface px-2 py-1.5 transition hover:border-primary"
+    <div
+      data-cardid={it.id}
+      onPointerDown={(e) => onPointerDown(e, it)}
+      className="cal-card block cursor-pointer touch-none select-none rounded-md border border-line bg-surface px-2 py-1.5 transition hover:border-primary"
+      style={{ WebkitTouchCallout: 'none' }}
     >
       <div className="flex items-baseline justify-between gap-1">
         <span className={`truncate text-[11px] font-semibold ${it.done ? 'text-faint line-through' : 'text-ink'}`}>
@@ -140,7 +163,7 @@ const TaskCard = memo(function TaskCard({ it }: { it: CalItem }) {
           </span>
         )}
       </div>
-    </Link>
+    </div>
   )
 })
 
@@ -159,25 +182,21 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
 
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [filterOpen, setFilterOpen] = useState(false)
-
-  const [isDesktop, setIsDesktop] = useState(false)
   const [expandedDays, setExpandedDays] = useState<Set<DateKey>>(new Set())
 
   const weekRefs = useRef<(HTMLDivElement | null)[]>([])
   const dragRef = useRef<DragState | null>(null)
+  const longPressTimer = useRef<number | null>(null)
 
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)')
-    const apply = () => setIsDesktop(mq.matches)
-    apply()
-    mq.addEventListener('change', apply)
-    return () => mq.removeEventListener('change', apply)
-  }, [])
-
-  // initialItems 가 바뀌면(라우터 refresh 후) 동기화
   useEffect(() => {
     setAllItems(initialItems)
   }, [initialItems])
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current != null) clearTimeout(longPressTimer.current)
+    }
+  }, [])
 
   const usedCategories = useMemo(() => {
     const set = new Set(allItems.map((it) => it.category).filter(Boolean) as string[])
@@ -205,27 +224,22 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
     return m
   }, [items])
 
-  // 막대: 데스크톱은 프로젝트만, 모바일은 전부.
+  // 막대 = 프로젝트만(항상). 할일은 셀 카드.
   const bars: BarItem[] = useMemo(() => {
-    const src = isDesktop ? items.filter((it) => it.type === 'project') : items
-    const sorted = [...src].sort((a, b) =>
-      a.start < b.start ? -1 : a.start > b.start ? 1 : (a.time ?? '').localeCompare(b.time ?? ''),
-    )
+    const src = items.filter((it) => it.type === 'project')
+    const sorted = [...src].sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0))
     return sorted.map((it) => ({ id: it.id, start: it.start, end: it.end }))
-  }, [items, isDesktop])
+  }, [items])
 
   const tasksByDay = useMemo(() => {
     const m: Record<DateKey, CalItem[]> = {}
-    if (!isDesktop) return m
     for (const it of items) {
       if (it.type !== 'task') continue
       ;(m[it.start] ||= []).push(it)
     }
-    for (const k of Object.keys(m)) {
-      m[k].sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''))
-    }
+    for (const k of Object.keys(m)) m[k].sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''))
     return m
-  }, [items, isDesktop])
+  }, [items])
 
   const weeks: Cell[][] = mode === 'month' ? chunkWeeks(monthGrid(cur.y, cur.m)) : [weekGrid(weekKey)]
 
@@ -268,96 +282,249 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
     })
   }
 
-  // ── 막대 드래그 (데스크톱 마우스 전용, transform 직접 조작 → 리렌더 0) ──
-  function onBarPointerDown(e: React.PointerEvent, it: CalItem, dmode: DragMode, weekIdx: number) {
-    if (e.pointerType !== 'mouse') return // 모바일은 드래그 없음(탭=상세)
+  // ── 공통 고스트 생성 ───────────────────────────
+  function makeGhost(src: HTMLElement, x: number, y: number): HTMLDivElement {
+    const r = src.getBoundingClientRect()
+    const g = document.createElement('div')
+    g.innerHTML = src.outerHTML
+    const inner = g.firstElementChild as HTMLElement
+    if (inner) {
+      inner.style.margin = '0'
+      inner.style.position = 'static'
+      inner.style.transform = 'none'
+      inner.style.left = ''
+      inner.style.top = ''
+      inner.style.width = `${r.width}px`
+    }
+    g.style.position = 'fixed'
+    g.style.left = `${r.left}px`
+    g.style.top = `${r.top}px`
+    g.style.width = `${r.width}px`
+    g.style.pointerEvents = 'none'
+    g.style.zIndex = '60'
+    g.style.opacity = '0.85'
+    g.style.transform = 'translate(0,0) scale(1.02)'
+    g.style.transition = 'none'
+    g.style.filter = 'drop-shadow(0 6px 12px rgba(0,0,0,0.18))'
+    ;(g as HTMLDivElement).dataset.gx = `${r.left}`
+    ;(g as HTMLDivElement).dataset.gy = `${r.top}`
+    ;(g as HTMLDivElement).dataset.px = `${x}`
+    ;(g as HTMLDivElement).dataset.py = `${y}`
+    document.body.appendChild(g)
+    return g as HTMLDivElement
+  }
+  function moveGhost(g: HTMLDivElement, x: number, y: number) {
+    const px = Number(g.dataset.px)
+    const py = Number(g.dataset.py)
+    g.style.transform = `translate(${x - px}px, ${y - py}px) scale(1.02)`
+  }
+  function killGhost(g?: HTMLDivElement) {
+    if (g && g.parentNode) g.parentNode.removeChild(g)
+  }
+
+  // ── 프로젝트 막대: move(고스트) / resize(인라인) ──
+  function onBarPointerDown(e: React.PointerEvent, it: CalItem, kind: DragState['kind'], weekIdx: number) {
+    if (it.type !== 'project') return
+    if (e.pointerType !== 'mouse') return // 모바일 프로젝트 DnD 포기
     if (saving) return
     if (e.button !== undefined && e.button !== 0) return
     const wrap = weekRefs.current[weekIdx]
     if (!wrap) return
-    // 드래그 대상은 막대 본체(.cal-bar). 핸들에서 시작하면 closest 로 본체를 찾는다.
+    const cellW = wrap.getBoundingClientRect().width / 7
     const barEl = (e.currentTarget as HTMLElement).closest('.cal-bar') as HTMLElement | null
     const el = barEl ?? (e.currentTarget as HTMLElement)
-    const cellW = wrap.getBoundingClientRect().width / 7
     e.preventDefault()
     e.stopPropagation()
     ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
     dragRef.current = {
       id: it.id,
-      type: it.type,
-      mode: dmode,
+      itemType: 'project',
+      kind,
+      pointerType: e.pointerType,
       originStart: it.start,
       originEnd: it.end,
       startX: e.clientX,
+      startY: e.clientY,
       cellW: cellW > 0 ? cellW : 1,
       el,
-      baseLeftPx: el.offsetLeft,
       baseWidthPx: el.offsetWidth,
-      deltaDays: 0,
       moved: false,
     }
-    el.style.willChange = 'transform'
-    el.style.zIndex = '20'
-  }
-
-  function onBarPointerMove(e: React.PointerEvent) {
-    const d = dragRef.current
-    if (!d || e.pointerType !== 'mouse') return
-    const dx = e.clientX - d.startX
-    if (!d.moved && Math.abs(dx) < DRAG_THRESHOLD) return
-    d.moved = true
-    // 칸 스냅된 델타(저장용)
-    d.deltaDays = Math.round(dx / d.cellW)
-    // 화면은 픽셀로 부드럽게(transform/width 직접) — setState 없음.
-    const el = d.el
-    if (d.mode === 'move') {
-      el.style.transform = `translateX(${dx}px)`
-    } else if (d.mode === 'resize-end') {
-      const w = Math.max(d.cellW * 0.5, d.baseWidthPx + dx)
-      el.style.width = `${w}px`
-    } else {
-      // resize-start: left 이동 + width 보정
-      const w = Math.max(d.cellW * 0.5, d.baseWidthPx - dx)
-      el.style.transform = `translateX(${dx}px)`
-      el.style.width = `${w}px`
+    if (kind !== 'move') {
+      el.style.willChange = 'width, transform'
+      el.style.zIndex = '20'
     }
   }
 
-  async function onBarPointerUp(e: React.PointerEvent, it: CalItem) {
-    if (e.pointerType !== 'mouse') return
+  // ── 할 일 카드: move(고스트). 마우스 즉시 / 터치 롱프레스 ──
+  function onCardPointerDown(e: React.PointerEvent, it: CalItem) {
+    if (saving) return
+    if (e.pointerType === 'mouse' && e.button !== undefined && e.button !== 0) return
+    const cardEl = (e.currentTarget as HTMLElement).closest('.cal-card') as HTMLElement
+    const wrap = cardEl.closest('[data-weekwrap]') as HTMLElement | null
+    const cellW = wrap ? wrap.getBoundingClientRect().width / 7 : 1
+    const startX = e.clientX
+    const startY = e.clientY
+    const pointerId = e.pointerId
+    ;(e.target as HTMLElement).setPointerCapture?.(pointerId)
+
+    const begin = () => {
+      const g = makeGhost(cardEl, startX, startY)
+      cardEl.style.opacity = '0.4'
+      dragRef.current = {
+        id: it.id,
+        itemType: 'task',
+        kind: 'move',
+        pointerType: e.pointerType,
+        originStart: it.start,
+        originEnd: it.end,
+        startX,
+        startY,
+        cellW: cellW > 0 ? cellW : 1,
+        ghost: g,
+        dropKey: it.start,
+        moved: true,
+      }
+    }
+
+    if (e.pointerType === 'mouse') {
+      // 마우스: 임계 넘으면 시작(클릭과 구분). 우선 후보만 저장.
+      dragRef.current = {
+        id: it.id,
+        itemType: 'task',
+        kind: 'move',
+        pointerType: 'mouse',
+        originStart: it.start,
+        originEnd: it.end,
+        startX,
+        startY,
+        cellW: cellW > 0 ? cellW : 1,
+        dropKey: it.start,
+        moved: false,
+      }
+    } else {
+      // 터치/펜: 롱프레스 후 시작(스크롤과 구분)
+      longPressTimer.current = window.setTimeout(() => {
+        begin()
+        if (navigator.vibrate) navigator.vibrate(10)
+      }, LONGPRESS_MS)
+    }
+  }
+
+  function onPointerMoveGlobal(e: React.PointerEvent) {
     const d = dragRef.current
-    dragRef.current = null
-    if (!d || d.id !== it.id) return
+    if (!d) {
+      // 롱프레스 대기 중 손가락이 많이 움직이면 취소(스크롤로 간주)
+      return
+    }
+    const dx = e.clientX - d.startX
+    const dy = e.clientY - d.startY
 
-    // DOM 인라인 스타일 원복(렌더는 곧 state 로 다시 그림)
-    const el = d.el
-    el.style.transform = ''
-    el.style.width = ''
-    el.style.willChange = ''
-    el.style.zIndex = ''
-
-    // 클릭(임계 미만) = 선택만
-    if (!d.moved || d.deltaDays === 0) {
-      setSelBar(it.id)
-      setSelected(it.start)
+    // 카드(터치) 롱프레스 전 이동이 크면 드래그 취소
+    if (d.itemType === 'task' && d.pointerType !== 'mouse' && !d.ghost) {
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+        if (longPressTimer.current != null) {
+          clearTimeout(longPressTimer.current)
+          longPressTimer.current = null
+        }
+        dragRef.current = null
+      }
       return
     }
 
-    // 새 날짜 계산
+    // 카드(마우스): 임계 넘으면 고스트 시작
+    if (d.itemType === 'task' && d.pointerType === 'mouse' && !d.ghost) {
+      if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return
+      const cardEl = document.querySelector(`.cal-card[data-cardid="${d.id}"]`) as HTMLElement | null
+      if (cardEl) {
+        d.ghost = makeGhost(cardEl, d.startX, d.startY)
+        cardEl.style.opacity = '0.4'
+        d.moved = true
+      }
+    }
+
+    if (d.kind === 'move') {
+      if (!d.ghost) return
+      moveGhost(d.ghost, e.clientX, e.clientY)
+      d.dropKey = dayKeyAtPoint(e.clientX, e.clientY)
+      return
+    }
+
+    // resize(프로젝트 막대) — 인라인 width 조작
+    if (!d.el) return
+    d.moved = d.moved || Math.abs(dx) >= DRAG_THRESHOLD
+    const snapped = Math.round(dx / d.cellW)
+    d.dropKey = null
+    ;(d as DragState & { snapDelta?: number }).snapDelta = snapped
+    if (d.kind === 'resize-end') {
+      d.el.style.width = `${Math.max(d.cellW * 0.5, (d.baseWidthPx ?? d.cellW) + dx)}px`
+    } else {
+      d.el.style.transform = `translateX(${dx}px)`
+      d.el.style.width = `${Math.max(d.cellW * 0.5, (d.baseWidthPx ?? d.cellW) - dx)}px`
+    }
+  }
+
+  async function onPointerUpGlobal(e: React.PointerEvent, it: CalItem) {
+    if (longPressTimer.current != null) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+    const d = dragRef.current
+    dragRef.current = null
+    if (!d || d.id !== it.id) {
+      // 카드 후보만 잡혔다가 안 움직임 → 클릭(상세)
+      return
+    }
+
+    // 고스트/인라인 정리
+    if (d.ghost) killGhost(d.ghost)
+    const liveCard = document.querySelector(`.cal-card[data-cardid="${d.id}"]`) as HTMLElement | null
+    if (liveCard) liveCard.style.opacity = ''
+    if (d.el) {
+      d.el.style.transform = ''
+      d.el.style.width = ''
+      d.el.style.willChange = ''
+      d.el.style.zIndex = ''
+    }
+
+    // 움직이지 않음 → 클릭 처리
+    if (!d.moved) {
+      if (d.itemType === 'project') {
+        setSelBar(it.id)
+        setSelected(it.start)
+      } else {
+        router.push(it.href) // 카드 단순 클릭 = 상세
+      }
+      return
+    }
+
     let ns = it.start
     let ne = it.end
-    if (d.mode === 'move') {
-      ns = shiftKey(d.originStart, d.deltaDays)
-      ne = shiftKey(d.originEnd, d.deltaDays)
-    } else if (d.mode === 'resize-start') {
-      ns = shiftKey(d.originStart, d.deltaDays)
-      if (ns > d.originEnd) ns = d.originEnd
-      ne = d.originEnd
+
+    if (d.kind === 'move') {
+      const dropKey = d.dropKey
+      if (!dropKey) return // 달력 밖 드롭 = 취소
+      if (d.itemType === 'project') {
+        const len = diffDays(d.originStart, d.originEnd) // 기간 유지
+        ns = dropKey
+        ne = shiftKey(dropKey, len)
+      } else {
+        ns = dropKey
+        ne = dropKey
+      }
     } else {
-      ne = shiftKey(d.originEnd, d.deltaDays)
-      if (ne < d.originStart) ne = d.originStart
-      ns = d.originStart
+      const snapped = (d as DragState & { snapDelta?: number }).snapDelta ?? 0
+      if (d.kind === 'resize-start') {
+        ns = shiftKey(d.originStart, snapped)
+        if (ns > d.originEnd) ns = d.originEnd
+        ne = d.originEnd
+      } else {
+        ne = shiftKey(d.originEnd, snapped)
+        if (ne < d.originStart) ne = d.originStart
+        ns = d.originStart
+      }
     }
+
     if (ns === it.start && ne === it.end) return
 
     const prevItems = allItems
@@ -369,7 +536,7 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
         const { error } = await supabase.from('projects').update({ start_date: ns, due_date: ne }).eq('id', it.id)
         if (error) throw error
       } else {
-        const { error } = await supabase.from('tasks').update({ due_date: ne }).eq('id', it.id)
+        const { error } = await supabase.from('tasks').update({ due_date: ns }).eq('id', it.id)
         if (error) throw error
       }
       router.refresh()
@@ -567,7 +734,7 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
           const barsH = NUM_H + (maxLane + 1) * BAR_H + (maxLane >= 0 ? 6 : 0)
           const minH = `max(${baseMinH}, ${barsH + 6}px)`
           return (
-            <div key={wi} className="relative" style={{ minHeight: minH }}>
+            <div key={wi} className="relative" style={{ minHeight: minH }} data-weekwrap>
               <div className="grid h-full grid-cols-7 gap-px overflow-hidden rounded-lg bg-line">
                 {week.map((c) => {
                   const isToday = c.key === today
@@ -576,13 +743,14 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                   const numCls = isToday || dow === 0 ? 'text-accent' : 'text-muted'
                   const dayTasks = tasksByDay[c.key] ?? []
                   const expanded = expandedDays.has(c.key)
-                  const shown = expanded ? dayTasks : dayTasks.slice(0, DESKTOP_MAX_CARDS)
+                  const shown = expanded ? dayTasks : dayTasks.slice(0, MAX_CARDS)
                   const hidden = dayTasks.length - shown.length
                   return (
                     <div
                       role="button"
                       tabIndex={0}
                       key={c.key}
+                      data-daykey={c.key}
                       onClick={() => {
                         setSelected(c.key)
                         setSelBar(null)
@@ -592,44 +760,48 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                         isSel ? 'bg-primary-soft' : 'bg-surface'
                       } ${c.inMonth ? '' : 'opacity-45'} ${isToday ? 'ring-1 ring-inset ring-accent' : ''}`}
                     >
-                      <span className={`absolute left-1 top-0.5 text-[11px] font-semibold md:text-xs ${numCls}`}>
+                      <span className={`pointer-events-none absolute left-1 top-0.5 text-[11px] font-semibold md:text-xs ${numCls}`}>
                         {c.day}
                       </span>
-                      {isDesktop && (
-                        <div
-                          className="space-y-1 px-1 pb-1"
-                          style={{ paddingTop: `${barsH}px` }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {shown.map((it) => (
-                            <TaskCard key={it.id} it={it} />
-                          ))}
-                          {hidden > 0 && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                toggleExpand(c.key)
-                              }}
-                              className="w-full rounded-md px-2 py-0.5 text-left text-[10px] font-semibold text-muted hover:text-primary"
-                            >
-                              + {hidden} 더보기
-                            </button>
-                          )}
-                          {expanded && dayTasks.length > DESKTOP_MAX_CARDS && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                toggleExpand(c.key)
-                              }}
-                              className="w-full rounded-md px-2 py-0.5 text-left text-[10px] font-semibold text-faint hover:text-primary"
-                            >
-                              접기
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      <div className="space-y-1 px-1 pb-1" style={{ paddingTop: `${barsH}px` }} onClick={(e) => e.stopPropagation()}>
+                        {shown.map((it) => (
+                          <div
+                            key={it.id}
+                            onPointerMove={onPointerMoveGlobal}
+                            onPointerUp={(e) => onPointerUpGlobal(e, it)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (window.matchMedia('(pointer: coarse)').matches) router.push(it.href)
+                            }}
+                          >
+                            <TaskCard it={it} onPointerDown={onCardPointerDown} />
+                          </div>
+                        ))}
+                        {hidden > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleExpand(c.key)
+                            }}
+                            className="w-full rounded-md px-2 py-0.5 text-left text-[10px] font-semibold text-muted hover:text-primary"
+                          >
+                            + {hidden} 더보기
+                          </button>
+                        )}
+                        {expanded && dayTasks.length > MAX_CARDS && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleExpand(c.key)
+                            }}
+                            className="w-full rounded-md px-2 py-0.5 text-left text-[10px] font-semibold text-faint hover:text-primary"
+                          >
+                            접기
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -649,40 +821,35 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
                   const top = `${NUM_H + sg.lane * BAR_H}px`
                   const round =
                     sg.isStart && sg.isEnd ? 'rounded' : sg.isStart ? 'rounded-l' : sg.isEnd ? 'rounded-r' : ''
-                  const isTaskBar = it.type === 'task'
-                  const showTime = isTaskBar && it.time
                   const isSelBar = selBar === it.id
-                  const canResize = it.type === 'project'
-                  const shapeRound = isTaskBar ? 'rounded-full' : round
                   return (
                     <div
                       key={`${sg.id}-${sg.startCol}`}
                       onPointerDown={(e) => onBarPointerDown(e, it, 'move', wi)}
-                      onPointerMove={onBarPointerMove}
-                      onPointerUp={(e) => onBarPointerUp(e, it)}
+                      onPointerMove={onPointerMoveGlobal}
+                      onPointerUp={(e) => onPointerUpGlobal(e, it)}
                       onClick={(e) => onBarClick(e, it)}
                       style={{ left, width, top, height: `${BAR_H - 4}px`, WebkitTouchCallout: 'none' }}
-                      className={`cal-bar pointer-events-auto absolute mx-0.5 flex cursor-pointer touch-none select-none items-center gap-1 overflow-hidden border-l-[3px] px-1.5 md:cursor-grab md:active:cursor-grabbing ${shapeRound} ${statusBarCls(
+                      className={`cal-bar pointer-events-auto absolute mx-0.5 flex cursor-pointer touch-none select-none items-center gap-1 overflow-hidden border-l-[3px] px-1.5 md:cursor-grab md:active:cursor-grabbing ${round} ${statusBarCls(
                         it.status,
                       )} ${it.done ? 'opacity-50' : ''} ${isSelBar ? 'opacity-90 ring-2 ring-inset ring-primary' : ''}`}
                     >
-                      {canResize && sg.isStart && isSelBar && (
+                      {it.type === 'project' && sg.isStart && isSelBar && (
                         <span
                           onPointerDown={(e) => onBarPointerDown(e, it, 'resize-start', wi)}
-                          onPointerMove={onBarPointerMove}
-                          onPointerUp={(e) => onBarPointerUp(e, it)}
+                          onPointerMove={onPointerMoveGlobal}
+                          onPointerUp={(e) => onPointerUpGlobal(e, it)}
                           className="absolute left-0 top-0 hidden h-full w-2 cursor-ew-resize bg-primary opacity-40 md:block"
                         />
                       )}
-                      {showTime && <span className="shrink-0 text-[10px] font-bold">{fmtTimeShort(it.time)}</span>}
                       <span className={`pointer-events-none truncate text-[11px] font-semibold ${it.done ? 'line-through' : ''}`}>
                         {it.title}
                       </span>
-                      {canResize && sg.isEnd && isSelBar && (
+                      {it.type === 'project' && sg.isEnd && isSelBar && (
                         <span
                           onPointerDown={(e) => onBarPointerDown(e, it, 'resize-end', wi)}
-                          onPointerMove={onBarPointerMove}
-                          onPointerUp={(e) => onBarPointerUp(e, it)}
+                          onPointerMove={onPointerMoveGlobal}
+                          onPointerUp={(e) => onPointerUpGlobal(e, it)}
                           className="absolute right-0 top-0 hidden h-full w-2 cursor-ew-resize bg-primary opacity-40 md:block"
                         />
                       )}
@@ -695,8 +862,9 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
         })}
       </div>
 
-      <p className="mt-2 hidden text-center text-[10px] text-faint md:block">
-        프로젝트 막대: 클릭=선택 · 끌어서 이동 · 더블클릭=상세 · 선택 후 양 끝으로 기간 조절 / 할 일 카드: 클릭=상세
+      <p className="mt-2 text-center text-[10px] text-faint">
+        <span className="hidden md:inline">프로젝트 막대: 클릭=선택 · 끌어 이동 · 더블클릭=상세 · 선택 후 양 끝으로 기간 조절 · </span>
+        할 일 카드: <span className="md:hidden">길게 눌러</span> 끌어 날짜 이동 · 탭=상세
       </p>
 
       <div className="mt-5">
