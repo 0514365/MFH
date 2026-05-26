@@ -335,7 +335,7 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
     const el = barEl ?? (e.currentTarget as HTMLElement)
     e.preventDefault()
     e.stopPropagation()
-    ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+    el.setPointerCapture?.(e.pointerId)
     dragRef.current = {
       id: it.id,
       itemType: 'project',
@@ -348,6 +348,7 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
       cellW: cellW > 0 ? cellW : 1,
       el,
       baseWidthPx: el.offsetWidth,
+      dropKey: it.start,
       moved: false,
     }
     if (kind !== 'move') {
@@ -366,7 +367,7 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
     const startX = e.clientX
     const startY = e.clientY
     const pointerId = e.pointerId
-    ;(e.target as HTMLElement).setPointerCapture?.(pointerId)
+    cardEl.setPointerCapture?.(pointerId)
 
     const begin = () => {
       const g = makeGhost(cardEl, startX, startY)
@@ -443,6 +444,16 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
       }
     }
 
+    // 프로젝트 막대 move(마우스): 임계 넘으면 고스트 시작
+    if (d.itemType === 'project' && d.kind === 'move' && !d.ghost) {
+      if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return
+      if (d.el) {
+        d.ghost = makeGhost(d.el, d.startX, d.startY)
+        d.el.style.opacity = '0.4'
+        d.moved = true
+      }
+    }
+
     if (d.kind === 'move') {
       if (!d.ghost) return
       moveGhost(d.ghost, e.clientX, e.clientY)
@@ -485,6 +496,7 @@ export default function CalendarView({ items: initialItems }: { items: CalItem[]
       d.el.style.width = ''
       d.el.style.willChange = ''
       d.el.style.zIndex = ''
+      d.el.style.opacity = ''
     }
 
     // 움직이지 않음 → 클릭 처리
