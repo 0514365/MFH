@@ -39,11 +39,13 @@ export default async function Home() {
     <SplashGate>
       <main className="mx-auto max-w-md px-5 py-8">
         <header className="mb-6">
-          <p className="font-display text-[11px] font-semibold tracking-[0.25em] text-accent">
-            MISSION FOR HONDURAS
-          </p>
-          <h1 className="font-display text-4xl font-extrabold text-primary">MFH</h1>
-          <p className="mt-1 text-xs text-faint">{user.email}</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-primary.svg"
+            alt="MFH — Mission for Honduras"
+            className="h-14 w-auto"
+          />
+          <p className="mt-2 text-xs text-faint">{user.email}</p>
         </header>
 
         <section className="mb-7 rounded-2xl bg-primary p-5 text-white">
