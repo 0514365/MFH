@@ -71,7 +71,7 @@ export default async function CalendarPage() {
   ]
 
   return (
-    <main className="mx-auto max-w-md px-5 py-8 md:max-w-4xl">
+    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-5">
       <div className="mb-5">
         <Link href="/" className="text-xs text-muted underline">
           ← 홈
