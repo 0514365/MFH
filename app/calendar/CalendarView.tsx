@@ -6,6 +6,7 @@
 // MFH-CAL-DRAG-V2
 // MFH-CAL-DRAG-V3
 // MFH-CAL-SELECT-FIX
+// MFH-CAL-MOBILE-CARD
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -140,16 +141,16 @@ const TaskCard = memo(function TaskCard({
     <div
       data-cardid={it.id}
       onPointerDown={(e) => onPointerDown(e, it)}
-      className="cal-card block cursor-pointer touch-none select-none rounded-md border border-line bg-surface px-2 py-1.5 transition hover:border-primary"
+      className="cal-card block cursor-pointer touch-none select-none rounded-md border border-line bg-surface px-2 py-1 transition hover:border-primary md:py-1.5"
       style={{ WebkitTouchCallout: 'none' }}
     >
       <div className="flex items-baseline justify-between gap-1">
         <span className={`truncate text-[11px] font-semibold ${it.done ? 'text-faint line-through' : 'text-ink'}`}>
           {it.title}
         </span>
-        {it.time && <span className="shrink-0 text-[10px] text-faint">{fmtTime(it.time)}</span>}
+        {it.time && <span className="hidden shrink-0 text-[10px] text-faint md:inline">{fmtTime(it.time)}</span>}
       </div>
-      <div className="mt-1 flex items-center gap-1">
+      <div className="mt-1 hidden items-center gap-1 md:flex">
         <span
           className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${statusBadgeCls(
             it.status,
