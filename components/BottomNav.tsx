@@ -20,8 +20,7 @@ const TABS: Tab[] = [
   { href: '/journal', label: 'Log', icon: 'log', active: true, match: (p) => p.startsWith('/journal') },
   { href: '/projects', label: 'Projects', icon: 'projects', active: true, match: (p) => p.startsWith('/projects') },
   { href: '/tasks', label: 'To-Do', icon: 'todo', active: true, match: (p) => p.startsWith('/tasks') },
-  { href: '/calendar', label: 'Calendar', icon: 'calendar', active: true, match: (p) => p.startsWith('/calendar') },
-  { href: '/insights', label: 'Insights', icon: 'insights', active: false, match: (p) => p.startsWith('/insights') },
+  { href: '/portfolio', label: 'Portfolio', icon: 'portfolio', active: false, match: (p) => p.startsWith('/portfolio') },
 ]
 
 // 탭바를 숨길 경로(로그인 등). 스플래시는 홈 내부 SplashGate 가 처리.
@@ -35,10 +34,17 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* fixed 탭바가 가리지 않도록 같은 높이 스페이서 */}
-      <div className="h-[68px]" aria-hidden="true" />
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
-        <ul className="mx-auto flex max-w-md items-stretch justify-around px-2">
+      {/* fixed 탭바가 가리지 않도록 같은 높이 스페이서(safe-area 포함) */}
+      <div
+        className="h-[76px]"
+        style={{ height: 'calc(76px + env(safe-area-inset-bottom))' }}
+        aria-hidden="true"
+      />
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)' }}
+      >
+        <ul className="mx-auto flex max-w-md items-stretch justify-around px-2 pt-1.5">
           {TABS.map((tab) => {
             const isActive = tab.active && tab.match(pathname)
 

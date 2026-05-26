@@ -3,7 +3,7 @@
 // 24×24 viewBox, line(outline), round. 날짜 점만 fill=currentColor.
 import type { ReactElement, SVGProps } from 'react'
 
-export type ModuleIconName = 'log' | 'projects' | 'todo' | 'calendar' | 'insights'
+export type ModuleIconName = 'log' | 'projects' | 'todo' | 'calendar' | 'insights' | 'portfolio'
 
 type Props = SVGProps<SVGSVGElement> & {
   name: ModuleIconName
@@ -57,6 +57,15 @@ const PATHS: Record<ModuleIconName, ReactElement> = {
       <path d="M12 2.5 a7 7 0 0 1 3.7 12.9 c-1.2 0.8 -1.7 1.6 -1.7 2.9 H10 c0 -1.3 -0.5 -2.1 -1.7 -2.9 A7 7 0 0 1 12 2.5 Z" />
       <path d="M9.5 21 H14.5" />
       <path d="M10.3 23 H13.7" />
+    </>
+  ),
+  portfolio: (
+    <>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="M8.6 10.6 L15.4 6.4" />
+      <path d="M8.6 13.4 L15.4 17.6" />
     </>
   ),
 }
