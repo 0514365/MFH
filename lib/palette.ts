@@ -28,6 +28,13 @@ export type PaletteTokens = {
   // On-color
   onPrimary: string;
   onAccent: string;
+  // Status (2026 개편: upcoming/in_progress/done — 브랜드색과 별개의 기능색, NOTION 식 soft)
+  statusUpcoming: string;
+  onStatusUpcoming: string;
+  statusProgress: string;
+  onStatusProgress: string;
+  statusDone: string;
+  onStatusDone: string;
 };
 
 export const light: PaletteTokens = {
@@ -49,6 +56,12 @@ export const light: PaletteTokens = {
   textFaint: "#A8A6A4",
   onPrimary: "#FFFFFF",
   onAccent: "#FFFFFF",
+  statusUpcoming: "#F1EFE8",
+  onStatusUpcoming: "#444441",
+  statusProgress: "#E6F1FB",
+  onStatusProgress: "#0C447C",
+  statusDone: "#E1F5EE",
+  onStatusDone: "#0F6E56",
 };
 
 export const dark: PaletteTokens = {
@@ -70,6 +83,12 @@ export const dark: PaletteTokens = {
   textFaint: "#726D6B",
   onPrimary: "#FFFFFF",
   onAccent: "#FFFFFF",
+  statusUpcoming: "#2C2C2A",
+  onStatusUpcoming: "#D3D1C7",
+  statusProgress: "#0C447C",
+  onStatusProgress: "#B5D4F4",
+  statusDone: "#085041",
+  onStatusDone: "#9FE1CB",
 };
 
 export const themes: Record<ThemeName, PaletteTokens> = { light, dark };

@@ -22,6 +22,12 @@ const config: Config = {
         'on-primary': 'var(--on-primary)',
         'on-accent': 'var(--on-accent)',
         'on-primary-soft': 'var(--on-primary-soft)',
+        'status-upcoming': 'var(--status-upcoming)',
+        'on-status-upcoming': 'var(--on-status-upcoming)',
+        'status-progress': 'var(--status-progress)',
+        'on-status-progress': 'var(--on-status-progress)',
+        'status-done': 'var(--status-done)',
+        'on-status-done': 'var(--on-status-done)',
       },
       fontFamily: {
         sans: ['Pretendard', 'var(--font-montserrat)', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
