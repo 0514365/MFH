@@ -512,7 +512,7 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
 
           // 넓은 화면: 좌 목록 / 우 요약(읽기전용, 첫 항목 자동선택).
           return (
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.1fr]">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_1.1fr]">
               <div className="min-w-0">{renderList()}</div>
               <div className="min-w-0">
                 <div
