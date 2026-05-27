@@ -2,10 +2,17 @@
 
 // MFH-PROJECTS-LIST-V2
 import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import type { Project } from '@/lib/types'
-import { STATUSES, normalizeStatus, type StatusValue } from '@/lib/constants'
+import { STATUSES, type StatusValue } from '@/lib/constants'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
+import {
+  applyProjectFilter,
+  buildProjectQuery,
+  parseProjectFilter,
+  type ProjectFilter,
+} from '@/lib/projectFilter'
 import { StatusBadge, CategoryBadge, ImportanceStars, fmtDate } from './badges'
 import { ProgressRing } from './Progress'
 import { useWideScreen } from '@/lib/useWideScreen'
@@ -85,15 +92,37 @@ export default function ProjectsList({
   projects: Project[]
   counts: Counts
 }) {
-  const [fStatus, setFStatus] = useState<StatusValue[]>([])
-  const [fImportance, setFImportance] = useState<number[]>([])
-  const [fCategory, setFCategory] = useState<string[]>([])
-  const [sortKey, setSortKey] = useState<SortKey>('due')
-  const [asc, setAsc] = useState(true)
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  // URL 쿼리에서 초기 필터/정렬을 읽는다(새로고침·뒤로가기·상세 왕복에도 유지).
+  const initial = useMemo(
+    () => parseProjectFilter(searchParams),
+    // 마운트 시 1회만. 이후 동기화는 아래 effect 가 담당.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+
+  const [fStatus, setFStatus] = useState<StatusValue[]>(initial.fStatus)
+  const [fImportance, setFImportance] = useState<number[]>(initial.fImportance)
+  const [fCategory, setFCategory] = useState<string[]>(initial.fCategory)
+  const [sortKey, setSortKey] = useState<SortKey>(initial.sortKey)
+  const [asc, setAsc] = useState(initial.asc)
   const [filterOpen, setFilterOpen] = useState(false)
   const [sortOpen, setSortOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const wide = useWideScreen()
+
+  // 필터/정렬이 바뀌면 URL 쿼리를 갱신(replace=히스토리 오염 방지).
+  // 기본값이면 쿼리를 제거해 URL 을 깔끔히 유지 → '모두 초기화' 도 자연히 반영.
+  useEffect(() => {
+    const f: ProjectFilter = { fStatus, fImportance, fCategory, sortKey, asc }
+    const qs = buildProjectQuery(f)
+    const current = searchParams.toString()
+    if (qs === current) return
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }, [fStatus, fImportance, fCategory, sortKey, asc, pathname, router, searchParams])
 
   // 데이터에 실제로 존재하는 값만 칩으로 노출
   const importanceOpts = useMemo(
@@ -111,29 +140,10 @@ export default function ProjectsList({
     [projects],
   )
 
-  const filtered = useMemo(() => {
-    let list = projects.filter((p) => {
-      if (fStatus.length && !fStatus.includes(normalizeStatus(p.status))) return false
-      if (fImportance.length && !fImportance.includes(p.importance)) return false
-      if (fCategory.length && !(p.category && fCategory.includes(p.category))) return false
-      return true
-    })
-    const dir = asc ? 1 : -1
-    list = [...list].sort((a, b) => {
-      if (sortKey === 'due') {
-        // 마감 없는 항목은 항상 뒤로
-        const av = a.due_date ?? ''
-        const bv = b.due_date ?? ''
-        if (!av && !bv) return 0
-        if (!av) return 1
-        if (!bv) return -1
-        return av < bv ? -1 * dir : av > bv ? 1 * dir : 0
-      }
-      // importance
-      return ((a.importance ?? 0) - (b.importance ?? 0)) * dir
-    })
-    return list
-  }, [projects, fStatus, fImportance, fCategory, sortKey, asc])
+  const filtered = useMemo(
+    () => applyProjectFilter(projects, { fStatus, fImportance, fCategory, sortKey, asc }),
+    [projects, fStatus, fImportance, fCategory, sortKey, asc],
+  )
 
   // 넓은 화면: 첫 항목 자동선택(선택 유지/복구). 좁은 화면: 해제.
   useEffect(() => {
