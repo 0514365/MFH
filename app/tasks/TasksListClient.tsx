@@ -1,9 +1,16 @@
 'use client'
 
-// MFH-TASKS-LIST-V1
+// MFH-TASKS-LIST-V2
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { STATUSES, normalizeStatus, type StatusValue } from '@/lib/constants'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { STATUSES, type StatusValue } from '@/lib/constants'
+import {
+  parseTaskFilter,
+  buildTaskQuery,
+  applyTaskFilter,
+  type TaskFilter,
+} from '@/lib/taskFilter'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import { fmtTime } from '@/lib/calendar'
 import { StatusBadge, CategoryBadge, ImportanceStars } from '../projects/badges'
@@ -111,17 +118,42 @@ function TaskSummary({ t }: { t: TaskListRow }) {
 }
 
 export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
-  const [hideDone, setHideDone] = useState(true)
-  const [fStatus, setFStatus] = useState<StatusValue[]>([])
-  const [fImportance, setFImportance] = useState<number[]>([])
-  const [fCategory, setFCategory] = useState<string[]>([])
-  const [fProject, setFProject] = useState<string[]>([])
-  const [sortKey, setSortKey] = useState<SortKey>('due')
-  const [asc, setAsc] = useState(true)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  // URL 쿼리 → 초기 필터(새로고침·뒤로가기·상세왕복까지 영속). 로그아웃 시 /login 이동으로 자동 소멸.
+  const init = parseTaskFilter(searchParams)
+
+  const [hideDone, setHideDone] = useState(init.hideDone)
+  const [fStatus, setFStatus] = useState<StatusValue[]>(init.fStatus)
+  const [fImportance, setFImportance] = useState<number[]>(init.fImportance)
+  const [fCategory, setFCategory] = useState<string[]>(init.fCategory)
+  const [fProject, setFProject] = useState<string[]>(init.fProject)
+  const [sortKey, setSortKey] = useState<SortKey>(init.sortKey)
+  const [asc, setAsc] = useState(init.asc)
   const [filterOpen, setFilterOpen] = useState(false)
   const [sortOpen, setSortOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const wide = useWideScreen()
+
+  // 필터 변경 → URL 쿼리 동기화(기본값이면 쿼리 제거). 목록 상태가 URL 에 영속.
+  const currentFilter: TaskFilter = {
+    hideDone,
+    fStatus,
+    fImportance,
+    fCategory,
+    fProject,
+    sortKey,
+    asc,
+  }
+  const detailSuffix = (() => {
+    const q = buildTaskQuery(currentFilter)
+    return q ? `?${q}` : ''
+  })()
+  useEffect(() => {
+    const q = buildTaskQuery(currentFilter)
+    router.replace(q ? `/tasks?${q}` : '/tasks', { scroll: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hideDone, fStatus, fImportance, fCategory, fProject, sortKey, asc])
 
   // 데이터에 실제로 존재하는 값만 칩으로 노출
   const importanceOpts = useMemo(
@@ -145,38 +177,11 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
     )
   }, [tasks])
 
-  const filtered = useMemo(() => {
-    let list = tasks.filter((t) => {
-      if (hideDone && t.done) return false
-      if (fStatus.length && !fStatus.includes(normalizeStatus(t.status))) return false
-      if (fImportance.length && !fImportance.includes(t.importance)) return false
-      if (fCategory.length && !(t.category && fCategory.includes(t.category))) return false
-      if (fProject.length && !(t.project_id && fProject.includes(t.project_id))) return false
-      return true
-    })
-    const dir = asc ? 1 : -1
-    list = [...list].sort((a, b) => {
-      if (sortKey === 'due') {
-        // 마감 없는 항목은 항상 뒤로
-        const av = a.due_date ?? ''
-        const bv = b.due_date ?? ''
-        if (!av && !bv) return 0
-        if (!av) return 1
-        if (!bv) return -1
-        if (av !== bv) return av < bv ? -1 * dir : 1 * dir
-        // 같은 날짜면 시간으로 보조 정렬(시간 없는 건 뒤로)
-        const at = a.due_time ?? ''
-        const bt = b.due_time ?? ''
-        if (!at && !bt) return 0
-        if (!at) return 1
-        if (!bt) return -1
-        return at < bt ? -1 * dir : at > bt ? 1 * dir : 0
-      }
-      // importance
-      return ((a.importance ?? 0) - (b.importance ?? 0)) * dir
-    })
-    return list
-  }, [tasks, hideDone, fStatus, fImportance, fCategory, fProject, sortKey, asc])
+  // 필터/정렬을 lib 순수함수에 위임 → 상세(tasks/[id]) ◀▶ 와 동일 정렬 공유.
+  const filtered = useMemo(
+    () => applyTaskFilter(tasks, currentFilter),
+    [tasks, hideDone, fStatus, fImportance, fCategory, fProject, sortKey, asc],
+  )
 
   // 넓은 화면: 선택이 비었거나 목록에서 사라지면 첫 항목 자동선택. 좁은 화면: 선택 해제.
   useEffect(() => {
@@ -470,7 +475,7 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
                     <TaskBody t={t} />
                   </button>
                 ) : (
-                  <Link href={`/tasks/${t.id}/edit`} className="min-w-0 flex-1">
+                  <Link href={`/tasks/${t.id}${detailSuffix}`} className="min-w-0 flex-1">
                     <TaskBody t={t} />
                   </Link>
                 )}
