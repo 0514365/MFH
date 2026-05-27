@@ -1,10 +1,10 @@
 'use client'
 
-// MFH-JOURNAL-LIST-V1
+// MFH-JOURNAL-LIST-V2
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import type { JournalEntry } from '@/lib/types'
+import type { JournalEntry, Project, Task } from '@/lib/types'
 import { chip, chipOn, toggle } from '@/lib/statusChip'
 import {
   applyJournalFilter,
@@ -13,8 +13,18 @@ import {
   type JournalFilter,
 } from '@/lib/journalFilter'
 import { useWideScreen } from '@/lib/useWideScreen'
+import { useSelectionMode } from '@/lib/useSelectionMode'
+import SelectionCheckbox from '@/components/SelectionCheckbox'
+import SelectionBar from '@/components/SelectionBar'
+import JournalBulkPanel from './JournalBulkPanel'
+import PrayerCandidateToggle from './PrayerCandidateToggle'
+import {
+  bulkUpdateJournals,
+  bulkDeleteJournals,
+  type JournalBulkPatch,
+} from '@/lib/bulkUpdate'
 
-// 일지 카드 본문(날짜·배지·머리말·오늘). wide=선택버튼 / narrow=Link 로 감쌈.
+// 일지 카드 본문(날짜·배지·머리말·오늘).
 function EntryBody({ e }: { e: JournalEntry }) {
   return (
     <>
@@ -28,11 +38,6 @@ function EntryBody({ e }: { e: JournalEntry }) {
         {e.category && (
           <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
             {e.category}
-          </span>
-        )}
-        {e.prayer_candidate && (
-          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] text-primary">
-            기도후보
           </span>
         )}
       </div>
@@ -101,12 +106,20 @@ function EntrySummary({ e, detailSuffix }: { e: JournalEntry; detailSuffix: stri
   )
 }
 
-export default function JournalList({ entries }: { entries: JournalEntry[] }) {
+export default function JournalList({
+  entries,
+  projects,
+  tasks,
+}: {
+  entries: JournalEntry[]
+  // 일괄변경의 '연계 프로젝트/할일' chip 옵션. page.tsx 가 함께 select 해서 주입.
+  projects?: Pick<Project, 'id' | 'title'>[]
+  tasks?: Pick<Task, 'id' | 'title' | 'done'>[]
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  // URL 쿼리에서 초기 필터/검색을 읽는다(새로고침·뒤로가기·상세 왕복에도 유지).
   const initial = useMemo(
     () => parseJournalFilter(searchParams),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,7 +134,10 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const wide = useWideScreen()
 
-  // 필터/검색이 바뀌면 URL 쿼리 갱신(replace). 기본값이면 쿼리 제거 → '모두 초기화' 반영.
+  // 다중선택 모드 (모듈 무관 hook). selectMode 진입시 카드 탭=토글.
+  const sel = useSelectionMode()
+  const [busy, setBusy] = useState(false)
+
   useEffect(() => {
     const f: JournalFilter = { q, fCategory, prayerOnly, asc }
     const qs = buildJournalQuery(f)
@@ -130,7 +146,6 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }, [q, fCategory, prayerOnly, asc, pathname, router, searchParams])
 
-  // 데이터에 실제로 존재하는 분류만 칩으로 노출
   const categoryOpts = useMemo(
     () =>
       Array.from(
@@ -139,12 +154,28 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
     [entries],
   )
 
+  // 일괄변경용: 연계 프로젝트 (모두) / 연계 할일 (미완료만, 노이즈 축소). 알파벳 정렬.
+  const projectOpts = useMemo(
+    () =>
+      (projects ?? [])
+        .map((p) => ({ id: p.id, title: p.title }))
+        .sort((a, b) => a.title.localeCompare(b.title)),
+    [projects],
+  )
+  const taskOpts = useMemo(
+    () =>
+      (tasks ?? [])
+        .filter((t) => !t.done)
+        .map((t) => ({ id: t.id, title: t.title }))
+        .sort((a, b) => a.title.localeCompare(b.title)),
+    [tasks],
+  )
+
   const filtered = useMemo(
     () => applyJournalFilter(entries, { q, fCategory, prayerOnly, asc }),
     [entries, q, fCategory, prayerOnly, asc],
   )
 
-  // 상세 링크에 붙일 현재 필터 쿼리(검색된 목록 기준 이전/다음 유지용).
   const detailQuery = useMemo(
     () => buildJournalQuery({ q, fCategory, prayerOnly, asc }),
     [q, fCategory, prayerOnly, asc],
@@ -178,6 +209,54 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
     setAsc(false)
   }
 
+  // ───── 일괄변경 액션 ─────
+  const filteredIds = useMemo(() => filtered.map((e) => e.id), [filtered])
+  const allSelected =
+    sel.count > 0 && filteredIds.length > 0 && filteredIds.every((id) => sel.selected.has(id))
+
+  async function runBulk(patch: JournalBulkPatch) {
+    if (busy || sel.count === 0) return
+    setBusy(true)
+    try {
+      const ids = Array.from(sel.selected)
+      const res = await bulkUpdateJournals(ids, patch)
+      if (!res.ok) {
+        alert(`변경 실패: ${res.error ?? '알 수 없는 오류'}`)
+        setBusy(false)
+        return
+      }
+      sel.exit()
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function runDelete() {
+    if (busy || sel.count === 0) return
+    if (!confirm(`${sel.count}개 일지를 정말 삭제할까요? 이 작업은 되돌릴 수 없습니다.`))
+      return
+    setBusy(true)
+    try {
+      const ids = Array.from(sel.selected)
+      const res = await bulkDeleteJournals(ids)
+      if (!res.ok) {
+        alert(`삭제 실패: ${res.error ?? '알 수 없는 오류'}`)
+        setBusy(false)
+        return
+      }
+      sel.exit()
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function toggleAll() {
+    if (allSelected) sel.clear()
+    else sel.selectAll(filteredIds)
+  }
+
   if (entries.length === 0) {
     return (
       <p className="mt-16 text-center text-sm leading-relaxed text-faint">
@@ -188,32 +267,65 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
   }
 
   function renderItem(e: JournalEntry) {
-    const isSel = wide && e.id === selectedId
+    const isSel = wide && e.id === selectedId && !sel.selectMode
+    const checked = sel.isSelected(e.id)
+    const inSelectMode = sel.selectMode
+
     return (
-      <li key={e.id}>
-        {wide ? (
+      <li
+        key={e.id}
+        className={`relative flex items-start gap-3 rounded-2xl border bg-surface px-4 py-3 ${
+          inSelectMode && checked
+            ? 'border-primary border-2'
+            : isSel
+              ? 'border-primary border-2'
+              : 'border-line'
+        }`}
+      >
+        {/* 좌측: selectMode 일 때만 선택 체크박스(평소엔 자리 없음). */}
+        {inSelectMode && (
+          <div className="pt-0.5">
+            <SelectionCheckbox checked={checked} />
+          </div>
+        )}
+
+        {/* 본문 영역: selectMode 면 button(토글), 넓은화면 button(요약선택), 좁은화면 Link(상세).
+            우측 기도후보 영역 자리 확보를 위해 pr-20. */}
+        {inSelectMode ? (
+          <button
+            type="button"
+            onClick={() => sel.toggleId(e.id)}
+            className="min-w-0 flex-1 pr-20 text-left"
+          >
+            <EntryBody e={e} />
+          </button>
+        ) : wide ? (
           <button
             type="button"
             onClick={() => setSelectedId(e.id)}
-            className={`block w-full rounded-2xl border bg-surface p-4 text-left ${
-              isSel ? 'border-primary border-2' : 'border-line'
-            }`}
+            className="min-w-0 flex-1 pr-20 text-left"
           >
             <EntryBody e={e} />
           </button>
         ) : (
           <Link
             href={`/journal/${e.id}${detailSuffix}`}
-            className="block rounded-2xl border border-line bg-surface p-4 transition hover:border-primary"
+            className="min-w-0 flex-1 pr-20"
           >
             <EntryBody e={e} />
           </Link>
         )}
+
+        {/* 우측 상단: "기도후보" 라벨 + 토글 (단건 즉시 update, button 중첩 회피 위해 li 직속 absolute) */}
+        <div className="absolute right-4 top-3 flex shrink-0 items-center gap-1.5">
+          <span className="text-[11px] font-semibold text-faint">기도후보</span>
+          <PrayerCandidateToggle id={e.id} candidate={e.prayer_candidate} />
+        </div>
       </li>
     )
   }
 
-  // 컨트롤 바: 검색창 + 필터 토글 + 정렬(날짜) 토글 + 모두 초기화 (sticky)
+  // 컨트롤 바: 검색창 + 필터 토글 + 정렬(날짜) 토글 + 선택 토글 (+ 전체선택/초기화) (sticky)
   const controls = (
     <div
       className="sticky top-[64px] z-20 -mx-5 mb-3 space-y-2 px-5 py-2"
@@ -231,7 +343,7 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
           <input
             type="search"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(ev) => setQ(ev.target.value)}
             placeholder="일지 검색 (머리말·본문·기도제목·장소)"
             className="w-full rounded-xl border border-line bg-surface py-1.5 pl-9 pr-3 text-sm text-ink placeholder:text-faint focus:border-primary focus:outline-none"
           />
@@ -257,7 +369,32 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
         >
           날짜 {asc ? '↑' : '↓'}
         </button>
-        {canReset && (
+        <button
+          type="button"
+          onClick={sel.toggleMode}
+          className={`flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
+            sel.selectMode
+              ? 'border-primary bg-primary text-white'
+              : 'border-line text-muted hover:border-primary'
+          }`}
+          aria-pressed={sel.selectMode}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 11 12 14 22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+          {sel.selectMode ? '선택 종료' : '선택'}
+        </button>
+        {sel.selectMode && (
+          <button
+            type="button"
+            onClick={toggleAll}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-primary"
+          >
+            {allSelected ? '전체 해제' : '전체 선택'}
+          </button>
+        )}
+        {canReset && !sel.selectMode && (
           <button
             type="button"
             onClick={resetAll}
@@ -317,27 +454,77 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
 
   const list = <ul className="space-y-3">{filtered.map(renderItem)}</ul>
 
-  // 좁은 화면: 컨트롤 + 목록만(탭=상세 직행).
+  // sticky bar 가림 방지용 하단 여백(selectMode 일 때만)
+  const bottomPad = sel.selectMode && sel.count > 0 ? 'pb-32' : ''
+
+  // 좁은 화면: 컨트롤 + 목록.
   if (!wide)
     return (
       <>
         {controls}
-        {list}
+        <div className={bottomPad}>{list}</div>
+        {sel.selectMode && sel.count > 0 && (
+          <SelectionBar
+            count={sel.count}
+            onCancel={sel.exit}
+            onSelectAll={toggleAll}
+            allSelected={allSelected}
+          >
+            <JournalBulkActionsRow
+              busy={busy}
+              categoryOpts={categoryOpts}
+              projectOpts={projectOpts}
+              taskOpts={taskOpts}
+              onCategory={(c) => runBulk({ category: c })}
+              onPrayerCandidate={(v) => runBulk({ prayer_candidate: v })}
+              onProject={(id) => runBulk({ project_id: id })}
+              onTask={(id) => runBulk({ task_id: id })}
+              onDelete={runDelete}
+            />
+          </SelectionBar>
+        )}
       </>
     )
 
-  // 넓은 화면: 컨트롤 + 좌 목록 / 우 요약(첫 항목 자동선택).
+  // 넓은 화면: 컨트롤 + 좌 목록 / 우(평소=요약 / selectMode=일괄변경 패널).
   return (
     <>
       {controls}
-      <div className="grid grid-cols-1 gap-5 min-[740px]:grid-cols-[1fr_1.1fr]">
+      <div className={`grid grid-cols-1 gap-5 min-[740px]:grid-cols-[1fr_1.1fr] ${bottomPad}`}>
         <div className="min-w-0">{list}</div>
         <div className="min-w-0">
           <div
             className="sticky top-[120px] rounded-2xl border border-line bg-surface p-5"
             style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}
           >
-            {selectedEntry ? (
+            {sel.selectMode ? (
+              sel.count > 0 ? (
+                <JournalBulkPanel
+                  count={sel.count}
+                  busy={busy}
+                  categoryOpts={categoryOpts}
+                  projectOpts={projectOpts}
+                  taskOpts={taskOpts}
+                  onCategory={(c) => runBulk({ category: c })}
+                  onPrayerCandidate={(v) => runBulk({ prayer_candidate: v })}
+                  onProject={(id) => runBulk({ project_id: id })}
+                  onTask={(id) => runBulk({ task_id: id })}
+                  onDelete={runDelete}
+                />
+              ) : (
+                <p className="py-10 text-center text-sm text-faint">
+                  왼쪽에서 일지를 선택하세요.
+                  <br />
+                  <button
+                    type="button"
+                    onClick={toggleAll}
+                    className="mt-3 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-primary"
+                  >
+                    보이는 항목 전체 선택
+                  </button>
+                </p>
+              )
+            ) : selectedEntry ? (
               <EntrySummary e={selectedEntry} detailSuffix={detailSuffix} />
             ) : (
               <p className="py-10 text-center text-sm text-faint">왼쪽에서 일지를 선택하세요.</p>
@@ -346,5 +533,147 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
         </div>
       </div>
     </>
+  )
+}
+
+// 좁은화면 SelectionBar 내부 액션 chip row. JournalBulkPanel 과 동일 액션을 컴팩트하게.
+function JournalBulkActionsRow({
+  busy,
+  categoryOpts,
+  projectOpts,
+  taskOpts,
+  onCategory,
+  onPrayerCandidate,
+  onProject,
+  onTask,
+  onDelete,
+}: {
+  busy: boolean
+  categoryOpts: string[]
+  projectOpts: { id: string; title: string }[]
+  taskOpts: { id: string; title: string }[]
+  onCategory: (c: string | null) => void
+  onPrayerCandidate: (v: boolean) => void
+  onProject: (id: string | null) => void
+  onTask: (id: string | null) => void
+  onDelete: () => void
+}) {
+  const [open, setOpen] = useState<null | 'cat' | 'prayer' | 'proj' | 'task'>(null)
+  const Btn = ({
+    children,
+    on,
+    onClick,
+  }: {
+    children: React.ReactNode
+    on?: boolean
+    onClick: () => void
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition disabled:opacity-50 ${
+        on
+          ? 'border-primary bg-primary text-white'
+          : 'border-line text-muted hover:border-primary'
+      }`}
+    >
+      {children}
+    </button>
+  )
+
+  function tap(kind: 'cat' | 'prayer' | 'proj' | 'task') {
+    setOpen((cur) => (cur === kind ? null : kind))
+  }
+
+  function applyAndClose<T>(fn: (v: T) => void, v: T) {
+    setOpen(null)
+    fn(v)
+  }
+
+  return (
+    <div className="relative flex flex-wrap items-center gap-1.5">
+      <Btn on={open === 'prayer'} onClick={() => tap('prayer')}>
+        기도후보
+      </Btn>
+      {categoryOpts.length > 0 && (
+        <Btn on={open === 'cat'} onClick={() => tap('cat')}>
+          분류
+        </Btn>
+      )}
+      {projectOpts.length > 0 && (
+        <Btn on={open === 'proj'} onClick={() => tap('proj')}>
+          프로젝트
+        </Btn>
+      )}
+      {taskOpts.length > 0 && (
+        <Btn on={open === 'task'} onClick={() => tap('task')}>
+          할일
+        </Btn>
+      )}
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={busy}
+        className="rounded-lg border border-accent px-2.5 py-1.5 text-[11px] font-semibold text-accent transition hover:bg-accent-soft disabled:opacity-50"
+      >
+        삭제
+      </button>
+
+      {/* 펼침 패널: 액션 row 위에 떠 있는 작은 시트 (이 div 기준 absolute) */}
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 mb-2">
+          <div
+            className="max-h-72 overflow-y-auto rounded-xl border border-line p-3 shadow-lg"
+            style={{ background: 'var(--paper)' }}
+          >
+            {open === 'prayer' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11px] font-semibold text-faint">기도후보 변경</span>
+                <Btn onClick={() => applyAndClose(onPrayerCandidate, true)}>ON</Btn>
+                <Btn onClick={() => applyAndClose(onPrayerCandidate, false)}>OFF</Btn>
+              </div>
+            )}
+            {open === 'cat' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11px] font-semibold text-faint">사역분류 변경</span>
+                {categoryOpts.map((c) => (
+                  <Btn key={c} onClick={() => applyAndClose(onCategory, c)}>
+                    {c}
+                  </Btn>
+                ))}
+                <Btn onClick={() => applyAndClose(onCategory, null)}>분류 제거</Btn>
+              </div>
+            )}
+            {open === 'proj' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11px] font-semibold text-faint">
+                  연계 프로젝트 (기존 덮어씀)
+                </span>
+                {projectOpts.map((p) => (
+                  <Btn key={p.id} onClick={() => applyAndClose(onProject, p.id)}>
+                    {p.title}
+                  </Btn>
+                ))}
+                <Btn onClick={() => applyAndClose(onProject, null)}>연결 없음</Btn>
+              </div>
+            )}
+            {open === 'task' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11px] font-semibold text-faint">
+                  연계 할일 (기존 덮어씀 · 미완료만)
+                </span>
+                {taskOpts.map((t) => (
+                  <Btn key={t.id} onClick={() => applyAndClose(onTask, t.id)}>
+                    {t.title}
+                  </Btn>
+                ))}
+                <Btn onClick={() => applyAndClose(onTask, null)}>연결 없음</Btn>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
