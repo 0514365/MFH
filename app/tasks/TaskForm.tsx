@@ -1,7 +1,7 @@
 'use client'
 
 // MFH-TASK-FORM-V2
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import {
@@ -42,6 +42,18 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
 
   // 우선순위는 UI에서 제거됨(데이터 보존용 상수)
   const priority = initial?.priority ?? 'med'
+
+  // 설명 textarea 자동 높이(입력 길이에 맞춰 늘어남, 최소 2줄)
+  const descRef = useRef<HTMLTextAreaElement>(null)
+  function syncDescHeight() {
+    const el = descRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }
+  useEffect(() => {
+    syncDescHeight()
+  }, [description])
 
   useEffect(() => {
     const supabase = createClient()
@@ -136,6 +148,8 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
   const input =
     'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
   const small = 'mb-1 mt-4 block text-xs text-muted'
+  // 2열 셀 내부 라벨(위 여백은 grid 컨테이너가 담당하므로 mt 없음)
+  const cellLabel = 'mb-1 block text-xs text-muted'
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
@@ -149,10 +163,14 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
 
       <label className={small}>설명 (선택)</label>
       <textarea
+        ref={descRef}
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={(e) => {
+          setDescription(e.target.value)
+          syncDescHeight()
+        }}
         rows={2}
-        className={input}
+        className={`${input} resize-none overflow-hidden`}
         placeholder="간단한 메모"
       />
 
@@ -166,59 +184,77 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
         ))}
       </select>
 
-      <label className={small}>사역분류 (선택)</label>
-      <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="분류 없음" />
-
-      <label className={small}>장소 (선택)</label>
-      <input
-        value={placeName}
-        onChange={(e) => setPlaceName(e.target.value)}
-        className={input}
-        placeholder="예: 자포탈 더좋은교회"
-      />
-
-      <label className={small}>상태</label>
-      <select
-        value={status}
-        onChange={(e) => onChangeStatus(e.target.value as StatusValue)}
-        className={input}
-      >
-        {STATUSES.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
-          </option>
-        ))}
-      </select>
-
-      <label className={small}>중요도</label>
-      <div className="flex gap-1.5">
-        {Array.from({ length: IMPORTANCE_MAX }).map((_, i) => {
-          const n = i + 1
-          return (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setImportance(importance === n ? n - 1 : n)}
-              className={`text-2xl leading-none ${n <= importance ? 'text-yellow-400' : 'text-faint'}`}
-              aria-label={`중요도 ${n}`}
-            >
-              ★
-            </button>
-          )
-        })}
+      {/* 사역분류 · 장소 — 모바일 세로 2열(폼이 넓어지는 큰 화면에선 1열) */}
+      <div className="mt-4 grid grid-cols-2 gap-3 min-[740px]:grid-cols-1">
+        <div className="min-w-0">
+          <label className={cellLabel}>사역분류 (선택)</label>
+          <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="분류 없음" />
+        </div>
+        <div className="min-w-0">
+          <label className={cellLabel}>장소 (선택)</label>
+          <input
+            value={placeName}
+            onChange={(e) => setPlaceName(e.target.value)}
+            className={input}
+            placeholder="예: 자포탈 더좋은교회"
+          />
+        </div>
       </div>
 
-      <label className={small}>마감일</label>
-      <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
+      {/* 상태 · 중요도 — 모바일 세로 2열 */}
+      <div className="mt-4 grid grid-cols-2 gap-3 min-[740px]:grid-cols-1">
+        <div className="min-w-0">
+          <label className={cellLabel}>상태</label>
+          <select
+            value={status}
+            onChange={(e) => onChangeStatus(e.target.value as StatusValue)}
+            className={input}
+          >
+            {STATUSES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="min-w-0">
+          <label className={cellLabel}>중요도</label>
+          <div className="flex h-[46px] items-center gap-1.5">
+            {Array.from({ length: IMPORTANCE_MAX }).map((_, i) => {
+              const n = i + 1
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setImportance(importance === n ? n - 1 : n)}
+                  className={`text-2xl leading-none ${n <= importance ? 'text-yellow-400' : 'text-faint'}`}
+                  aria-label={`중요도 ${n}`}
+                >
+                  ★
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
 
-      <label className={small}>마감 시간 (선택)</label>
-      <input
-        type="time"
-        value={dueTime}
-        onChange={(e) => setDueTime(e.target.value)}
-        disabled={!dueDate}
-        className={`${input} disabled:opacity-50`}
-      />
+      {/* 마감일 · 마감 시간 — 모바일 세로 2열 */}
+      <div className="mt-4 grid grid-cols-2 gap-3 min-[740px]:grid-cols-1">
+        <div className="min-w-0">
+          <label className={cellLabel}>마감일</label>
+          <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
+        </div>
+        <div className="min-w-0">
+          <label className={cellLabel}>마감 시간 (선택)</label>
+          <input
+            type="time"
+            value={dueTime}
+            onChange={(e) => setDueTime(e.target.value)}
+            disabled={!dueDate}
+            className={`${input} disabled:opacity-50`}
+          />
+        </div>
+      </div>
       {!dueDate && <p className="mt-1 text-[11px] text-faint">마감일을 먼저 정하면 시간을 추가할 수 있어요.</p>}
 
       <label className="mt-4 flex items-center gap-2 text-sm text-muted">

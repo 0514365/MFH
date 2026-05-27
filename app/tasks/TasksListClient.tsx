@@ -414,9 +414,9 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
                   {t.title}
                 </div>
 
-                {/* 설명: 동적 높이(최대 3줄) */}
+                {/* 설명: 좁은 화면은 3줄 제한, 넓은 화면(데스크탑/가로)은 전문 표시 */}
                 {t.description && (
-                  <div className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-muted">
+                  <div className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-muted min-[740px]:line-clamp-none">
                     {t.description}
                   </div>
                 )}
