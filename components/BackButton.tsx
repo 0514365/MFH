@@ -1,11 +1,28 @@
-// MFH-BACK-BUTTON-V1
+// MFH-BACK-BUTTON-V2
+'use client'
+
 // 세부/편집 화면 → 목록 뒤로가기. 동그라미 배경 아이콘(헤더 캘린더·인사이트 아이콘과 통일).
-import Link from 'next/link'
+// router.back() 으로 직전 URL(필터 쿼리 포함)로 정확히 복귀한다.
+// 히스토리가 없을 때(상세 URL 직접 진입·북마크·새 탭)는 fallback href 로 이동.
+import { useRouter } from 'next/navigation'
 
 export default function BackButton({ href, label = '뒤로' }: { href: string; label?: string }) {
+  const router = useRouter()
+
+  function goBack() {
+    // 앱 내 내비게이션으로 진입했으면 직전 URL(필터 쿼리 포함)로 복귀.
+    // 히스토리가 없으면(상세 URL 직접 진입·북마크·새 탭) 목록으로 push.
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+      return
+    }
+    router.push(href)
+  }
+
   return (
-    <Link
-      href={href}
+    <button
+      type="button"
+      onClick={goBack}
       aria-label={label}
       className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-line text-muted transition hover:border-primary"
     >
@@ -13,6 +30,6 @@ export default function BackButton({ href, label = '뒤로' }: { href: string; l
         <line x1="19" y1="12" x2="5" y2="12" />
         <polyline points="12 19 5 12 12 5" />
       </svg>
-    </Link>
+    </button>
   )
 }
