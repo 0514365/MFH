@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react'
 
-const QUERY = '(min-width: 768px)'
+const QUERY = '(min-width: 740px)'
 
 export function useWideScreen(): boolean {
   const [wide, setWide] = useState(false)
