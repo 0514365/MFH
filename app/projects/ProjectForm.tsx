@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -8,6 +7,7 @@ import { STATUSES, normalizeStatus, IMPORTANCE_MAX } from '@/lib/constants'
 import type { Project } from '@/lib/types'
 import DateField from '../journal/DateField'
 import CategorySelect from '@/components/CategorySelect'
+import BackButton from '@/components/BackButton'
 
 type Props = {
   mode: 'new' | 'edit'
@@ -81,14 +81,12 @@ export default function ProjectForm({ mode, initial }: Props) {
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
-      <Link
+      <BackButton
         href={mode === 'edit' && initial ? `/projects/${initial.id}` : '/projects'}
-        className="text-xs text-muted underline"
-      >
-        ← 프로젝트
-      </Link>
+        label="Project"
+      />
       <h1 className="mb-4 mt-2 font-display text-2xl font-extrabold text-primary">
-        {mode === 'edit' ? '프로젝트 수정' : '새 프로젝트'}
+        {mode === 'edit' ? 'Edit Project' : 'New Project'}
       </h1>
 
       <label className="mb-1 block text-xs text-muted">제목</label>

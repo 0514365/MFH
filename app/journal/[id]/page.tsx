@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { JournalEntry } from '@/lib/types'
+import BackButton from '@/components/BackButton'
 import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
@@ -45,9 +46,7 @@ export default async function JournalDetail({ params }: { params: { id: string }
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
-      <Link href="/journal" className="text-xs text-muted underline">
-        ← 일지
-      </Link>
+      <BackButton href="/journal" label="Log" />
       <div className="mb-4 mt-2 flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold text-muted">{entry.entry_date}</span>
         {entry.place_name && (

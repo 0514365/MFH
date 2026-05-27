@@ -1,7 +1,6 @@
 'use client'
 
 // MFH-TASK-FORM-V2
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -15,6 +14,7 @@ import {
 import type { Task } from '@/lib/types'
 import DateField from '../journal/DateField'
 import CategorySelect from '@/components/CategorySelect'
+import BackButton from '@/components/BackButton'
 
 type Props = {
   mode: 'new' | 'edit'
@@ -139,11 +139,9 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
-      <Link href="/tasks" className="text-xs text-muted underline">
-        ← 할 일
-      </Link>
+      <BackButton href="/tasks" label="To-Do" />
       <h1 className="mb-4 mt-2 font-display text-2xl font-extrabold text-primary">
-        {mode === 'edit' ? '할 일 수정' : '새 할 일'}
+        {mode === 'edit' ? 'Edit To-Do' : 'New To-Do'}
       </h1>
 
       <label className="mb-1 block text-xs text-muted">제목</label>

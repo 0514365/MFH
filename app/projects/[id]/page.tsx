@@ -5,6 +5,7 @@ import type { Project } from '@/lib/types'
 import { StatusBadge, PriorityBadge, CategoryBadge, ImportanceStars, fmtDate } from '../badges'
 import { ProgressRing } from '../Progress'
 import TaskCheck from '../../tasks/TaskCheck'
+import BackButton from '@/components/BackButton'
 import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
@@ -41,9 +42,7 @@ export default async function ProjectDetail({ params }: { params: { id: string }
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
-      <Link href="/projects" className="text-xs text-muted underline">
-        ← 프로젝트
-      </Link>
+      <BackButton href="/projects" label="Projects" />
 
       <div className="mb-3 mt-2 flex flex-wrap items-center gap-2">
         <StatusBadge value={project.status} />

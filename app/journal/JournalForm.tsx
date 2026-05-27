@@ -1,12 +1,12 @@
 // MFH-JOURNAL-REDESIGN-V3
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { readPhotoMeta, uploadJournalPhoto } from '@/lib/photo'
 import CategorySelect from '@/components/CategorySelect'
+import BackButton from '@/components/BackButton'
 import { haversineMeters } from '@/lib/geo'
 import type { JournalEntry, Project, Task } from '@/lib/types'
 import DateField from './DateField'
@@ -336,14 +336,12 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
 
   return (
     <main className="mx-auto max-w-md px-4 py-8 sm:max-w-3xl lg:max-w-6xl">
-      <Link
+      <BackButton
         href={mode === 'edit' && initial ? `/journal/${initial.id}` : '/journal'}
-        className="text-xs text-muted underline"
-      >
-        ← 일지
-      </Link>
+        label="Log"
+      />
       <h1 className="mb-4 mt-2 font-display text-2xl font-extrabold text-primary">
-        {mode === 'edit' ? '일지 수정' : '새 일지'}
+        {mode === 'edit' ? 'Edit Log' : 'New Log'}
       </h1>
 
       {/* 헤더 줄: 날짜+오늘 / 사역분류 — 카드로 묶음 */}
