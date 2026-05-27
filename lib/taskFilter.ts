@@ -1,4 +1,4 @@
-// MFH-TASK-FILTER-V1
+// MFH-TASK-FILTER-V2
 // 할 일 목록 필터/정렬 순수함수. 목록(TasksListClient)과 상세(tasks/[id]) 가 공유한다.
 // URL 쿼리 <-> 필터 상태 직렬화 + 결정적 정렬 + (기본정렬일 때) 기한그룹 평탄화를 한곳에 둔다.
 import { normalizeStatus, type StatusValue } from '@/lib/constants'
@@ -159,6 +159,7 @@ export function orderTaskIds<T extends FilterableTask>(tasks: T[], f: TaskFilter
     overdue: [],
     this_week: [],
     next_week: [],
+    this_month: [],
     later: [],
     unset: [],
   }
