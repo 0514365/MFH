@@ -4,9 +4,10 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import { JOURNAL_CATEGORIES, STATUSES, normalizeStatus, IMPORTANCE_MAX } from '@/lib/constants'
+import { STATUSES, normalizeStatus, IMPORTANCE_MAX } from '@/lib/constants'
 import type { Project } from '@/lib/types'
 import DateField from '../journal/DateField'
+import CategorySelect from '@/components/CategorySelect'
 
 type Props = {
   mode: 'new' | 'edit'
@@ -97,14 +98,7 @@ export default function ProjectForm({ mode, initial }: Props) {
       <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={input} />
 
       <label className={small}>사역 분류</label>
-      <select value={category} onChange={(e) => setCategory(e.target.value)} className={input}>
-        <option value="">선택 안 함</option>
-        {JOURNAL_CATEGORIES.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
+      <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="선택 안 함" />
 
       <label className={small}>상태</label>
       <select value={status} onChange={(e) => setStatus(normalizeStatus(e.target.value))} className={input}>

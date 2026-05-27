@@ -7,6 +7,12 @@ import { STATUSES, normalizeStatus, type StatusValue } from '@/lib/constants'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import { fmtTime } from '@/lib/calendar'
 import { StatusBadge, CategoryBadge, ImportanceStars, fmtDate } from '../projects/badges'
+import {
+  taskGroupOf,
+  TASK_GROUP_LABEL,
+  TASK_GROUP_ORDER,
+  type TaskGroupKey,
+} from '@/lib/taskGroups'
 import TaskCheck from './TaskCheck'
 
 export type TaskListRow = {
@@ -20,6 +26,7 @@ export type TaskListRow = {
   category: string | null
   due_date: string | null
   due_time: string | null
+  place_name: string | null
   project_id: string | null
   projects: { title: string } | null
 }
@@ -279,44 +286,80 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
           조건에 맞는 할 일이 없습니다.
         </p>
       ) : (
-        <ul className="space-y-2">
-          {filtered.map((t) => (
-            <li
-              key={t.id}
-              className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3"
-            >
-              <TaskCheck id={t.id} done={t.done} />
-              <Link href={`/tasks/${t.id}/edit`} className="min-w-0 flex-1">
-                <div
-                  className={`truncate text-sm font-semibold ${
-                    t.done ? 'text-faint line-through' : 'text-ink'
-                  }`}
-                >
-                  {t.title}
-                </div>
-                {t.description && (
-                  <div className="mt-0.5 line-clamp-1 text-xs text-muted">{t.description}</div>
-                )}
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <StatusBadge value={t.status ?? 'upcoming'} />
-                  {t.projects?.title && (
-                    <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
-                      {t.projects.title}
-                    </span>
+        (() => {
+          // 기본정렬(마감·오름차순)일 때만 기한 그룹 헤더 표시. 그 외엔 평면 리스트.
+          const grouped = sortKey === 'due' && asc
+          function renderTask(t: TaskListRow) {
+            return (
+              <li
+                key={t.id}
+                className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3"
+              >
+                <TaskCheck id={t.id} done={t.done} />
+                <Link href={`/tasks/${t.id}/edit`} className="min-w-0 flex-1">
+                  <div
+                    className={`truncate text-sm font-semibold ${
+                      t.done ? 'text-faint line-through' : 'text-ink'
+                    }`}
+                  >
+                    {t.title}
+                  </div>
+                  {t.description && (
+                    <div className="mt-0.5 line-clamp-1 text-xs text-muted">{t.description}</div>
                   )}
-                  <CategoryBadge value={t.category} />
-                  <ImportanceStars value={t.importance} />
-                  {t.due_date && (
-                    <span className="text-[11px] text-muted">
-                      ~ {fmtDate(t.due_date)}
-                      {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <StatusBadge value={t.status ?? 'upcoming'} />
+                    {t.projects?.title && (
+                      <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
+                        {t.projects.title}
+                      </span>
+                    )}
+                    <CategoryBadge value={t.category} />
+                    <ImportanceStars value={t.importance} />
+                    {t.place_name && (
+                      <span className="text-[11px] text-muted">📍 {t.place_name}</span>
+                    )}
+                    {t.due_date && (
+                      <span className="text-[11px] text-muted">
+                        ~ {fmtDate(t.due_date)}
+                        {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              </li>
+            )
+          }
+
+          if (!grouped) {
+            return <ul className="space-y-2">{filtered.map(renderTask)}</ul>
+          }
+
+          const buckets: Record<TaskGroupKey, TaskListRow[]> = {
+            overdue: [],
+            this_week: [],
+            next_week: [],
+            later: [],
+            unset: [],
+          }
+          for (const t of filtered) buckets[taskGroupOf(t.due_date)].push(t)
+
+          return (
+            <div className="space-y-5">
+              {TASK_GROUP_ORDER.filter((k) => buckets[k].length > 0).map((k) => (
+                <section key={k}>
+                  <h2 className="mb-2 flex items-center gap-2 text-xs font-bold text-muted">
+                    {TASK_GROUP_LABEL[k]}
+                    <span className="rounded-full bg-surface-subtle px-1.5 text-[10px] font-semibold text-faint">
+                      {buckets[k].length}
                     </span>
-                  )}
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+                  </h2>
+                  <ul className="space-y-2">{buckets[k].map(renderTask)}</ul>
+                </section>
+              ))}
+            </div>
+          )
+        })()
       )}
     </>
   )

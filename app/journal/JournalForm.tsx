@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { useEffect, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import { JOURNAL_CATEGORIES } from '@/lib/constants'
 import { readPhotoMeta, uploadJournalPhoto } from '@/lib/photo'
+import CategorySelect from '@/components/CategorySelect'
 import { haversineMeters } from '@/lib/geo'
 import type { JournalEntry, Project, Task } from '@/lib/types'
 import DateField from './DateField'
@@ -366,14 +366,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
           </div>
           <div>
             <label className="mb-1 block text-xs text-muted">사역 분류</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className={input}>
-              <option value="">선택 안 함</option>
-              {JOURNAL_CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="선택 안 함" />
           </div>
         </div>
       </div>

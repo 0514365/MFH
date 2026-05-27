@@ -57,6 +57,7 @@ export type Task = {
   due_time: string | null
   completed_at: string | null
   category: string | null
+  place_name: string | null
   status: string
   created_at: string
 }

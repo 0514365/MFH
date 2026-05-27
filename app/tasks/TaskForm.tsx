@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import {
   IMPORTANCE_MAX,
-  JOURNAL_CATEGORIES,
   STATUSES,
   normalizeStatus,
   TASK_DEFAULT_STATUS,
@@ -15,6 +14,7 @@ import {
 } from '@/lib/constants'
 import type { Task } from '@/lib/types'
 import DateField from '../journal/DateField'
+import CategorySelect from '@/components/CategorySelect'
 
 type Props = {
   mode: 'new' | 'edit'
@@ -28,6 +28,7 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
   const [description, setDescription] = useState(initial?.description ?? '')
   const [projectId, setProjectId] = useState(initial?.project_id ?? presetProjectId ?? '')
   const [category, setCategory] = useState(initial?.category ?? '')
+  const [placeName, setPlaceName] = useState(initial?.place_name ?? '')
   const [importance, setImportance] = useState<number>(initial?.importance ?? 0)
   const [dueDate, setDueDate] = useState(initial?.due_date ?? '')
   const [dueTime, setDueTime] = useState((initial?.due_time ?? '').slice(0, 5))
@@ -86,6 +87,7 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
       description: description.trim() || null,
       project_id: projectId || null,
       category: category || null,
+      place_name: placeName.trim() || null,
       priority,
       importance,
       status,
@@ -167,14 +169,15 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
       </select>
 
       <label className={small}>사역분류 (선택)</label>
-      <select value={category} onChange={(e) => setCategory(e.target.value)} className={input}>
-        <option value="">분류 없음</option>
-        {JOURNAL_CATEGORIES.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
+      <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="분류 없음" />
+
+      <label className={small}>장소 (선택)</label>
+      <input
+        value={placeName}
+        onChange={(e) => setPlaceName(e.target.value)}
+        className={input}
+        placeholder="예: 자포탈 더좋은교회"
+      />
 
       <label className={small}>상태</label>
       <select

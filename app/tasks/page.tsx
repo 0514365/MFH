@@ -18,7 +18,7 @@ export default async function TasksPage() {
   const { data } = await supabase
     .from('tasks')
     .select(
-      'id, title, description, done, priority, importance, status, category, due_date, due_time, project_id, projects(title)',
+      'id, title, description, done, priority, importance, status, category, place_name, due_date, due_time, project_id, projects(title)',
     )
     .order('done', { ascending: true })
     .order('due_date', { ascending: true, nullsFirst: false })
