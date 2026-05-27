@@ -16,6 +16,7 @@ type Props = {
 
 export default function PageHeader({ title, current, action, showLogout = false }: Props) {
   const isCalendar = current === 'calendar'
+  const isInsights = current === 'insights'
 
   return (
     <div className="mb-5 flex items-center justify-between gap-3">
@@ -44,18 +45,20 @@ export default function PageHeader({ title, current, action, showLogout = false 
           </Link>
         )}
 
-        {/* Insights — 미개발: 흐리게, 비활성 */}
-        <span
-          aria-label="인사이트(준비 중)"
-          aria-disabled="true"
-          className="rounded-xl border border-line p-2 text-faint opacity-50"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2.5 a7 7 0 0 1 3.7 12.9 c-1.2 0.8 -1.7 1.6 -1.7 2.9 H10 c0 -1.3 -0.5 -2.1 -1.7 -2.9 A7 7 0 0 1 12 2.5 Z" />
-            <path d="M9.5 21 H14.5" />
-            <path d="M10.3 23 H13.7" />
-          </svg>
-        </span>
+        {/* Insights — 현재 페이지가 인사이트가 아닐 때만 */}
+        {!isInsights && (
+          <Link
+            href="/insights"
+            aria-label="인사이트"
+            className="rounded-xl border border-line p-2 text-muted transition hover:border-primary"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2.5 a7 7 0 0 1 3.7 12.9 c-1.2 0.8 -1.7 1.6 -1.7 2.9 H10 c0 -1.3 -0.5 -2.1 -1.7 -2.9 A7 7 0 0 1 12 2.5 Z" />
+              <path d="M9.5 21 H14.5" />
+              <path d="M10.3 23 H13.7" />
+            </svg>
+          </Link>
+        )}
 
         {action}
 

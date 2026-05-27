@@ -127,13 +127,19 @@ export default async function Home() {
             </div>
             <ModuleIcon name="calendar" size={32} className="shrink-0 text-primary" />
           </Link>
-          <div className="flex items-center gap-4 rounded-2xl border border-line bg-surface-subtle p-5 opacity-70">
+          <Link
+            href="/insights"
+            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+          >
             <div className="min-w-0 flex-1">
-              <div className="text-lg font-bold text-faint">Insights</div>
-              <div className="mt-0.5 text-xs text-faint">Coming soon</div>
+              <div className="text-lg font-bold text-primary">Insights</div>
+              <div className="mt-0.5 text-xs text-muted">Light on the path</div>
+              <div className="mt-1 text-[11px] leading-snug text-faint">
+                <span className="truncate">&ldquo;주의 말씀은 내 발의 등&rdquo;</span> 시 119:105
+              </div>
             </div>
-            <ModuleIcon name="insights" size={30} className="shrink-0 text-faint" />
-          </div>
+            <ModuleIcon name="insights" size={32} className="shrink-0 text-primary" />
+          </Link>
         </section>
 
         <form action="/auth/signout" method="post" className="mt-10">
