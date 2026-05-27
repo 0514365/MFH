@@ -213,6 +213,10 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
 
   return (
     <>
+      {/* [DEBUG] 진단 배지 — wide 판정값/화면폭 확인용. 확인 후 제거 예정. */}
+      <div className="mb-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-white">
+        DEBUG · wide={String(wide)} · w={typeof window !== 'undefined' ? window.innerWidth : '?'} · selected={selectedId ?? 'null'}
+      </div>
       {/* 컨트롤 바: 필터 토글 / 정렬 토글 / 모두 초기화 (sticky) */}
       <div
         className="sticky top-[64px] z-20 -mx-5 mb-3 flex flex-wrap items-center gap-2 px-5 py-2"
