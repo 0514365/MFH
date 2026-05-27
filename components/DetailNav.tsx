@@ -1,4 +1,4 @@
-// MFH-DETAIL-NAV-V1
+// MFH-DETAIL-NAV-V2
 // 상세페이지 상단 이전/다음 내비게이션. ◀ (3/12) ▶ 형태.
 // 서버 컴포넌트에서 직접 렌더(정적 Link). 양끝에서는 비활성(흐리게, 클릭 불가).
 import Link from 'next/link'
@@ -38,6 +38,7 @@ export default function DetailNav({ basePath, prevId, nextId, index, total, quer
       {prevId ? (
         <Link
           href={withQuery(`${basePath}/${prevId}`, query)}
+          replace
           aria-label="이전"
           className={`${btnBase} ${btnActive}`}
         >
@@ -56,6 +57,7 @@ export default function DetailNav({ basePath, prevId, nextId, index, total, quer
       {nextId ? (
         <Link
           href={withQuery(`${basePath}/${nextId}`, query)}
+          replace
           aria-label="다음"
           className={`${btnBase} ${btnActive}`}
         >
