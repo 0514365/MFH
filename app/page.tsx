@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import ModuleIcon from '@/components/ModuleIcon'
 import SplashGate from './SplashGate'
 import type { YearTheme } from '@/lib/types'
 
@@ -73,54 +74,65 @@ export default async function Home() {
           )}
         </section>
 
-        <section className="grid grid-cols-2 gap-3">
+        <section className="space-y-3">
           <Link
             href="/journal"
-            className="rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
           >
-            <div className="text-lg font-bold text-primary">Log</div>
-            <div className="mt-1 text-xs text-muted">Today&apos;s grace</div>
-            <div className="mt-1 text-[11px] leading-snug text-faint">
-              <span className="block truncate">&ldquo;이 날은 여호와의 정하신 것&rdquo;</span>
-              시 118:24
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-bold text-primary">Log</div>
+              <div className="mt-0.5 text-xs text-muted">Today&apos;s grace</div>
+              <div className="mt-1 text-[11px] leading-snug text-faint">
+                <span className="truncate">&ldquo;이 날은 여호와의 정하신 것&rdquo;</span> 시 118:24
+              </div>
             </div>
+            <ModuleIcon name="log" size={32} className="shrink-0 text-primary" />
           </Link>
           <Link
             href="/projects"
-            className="rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
           >
-            <div className="text-lg font-bold text-primary">Projects</div>
-            <div className="mt-1 text-xs text-muted">The calling&apos;s path</div>
-            <div className="mt-1 text-[11px] leading-snug text-faint">
-              <span className="block truncate">&ldquo;여호와께서 집을 세우지 아니하시면&rdquo;</span>
-              시 127:1
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-bold text-primary">Projects</div>
+              <div className="mt-0.5 text-xs text-muted">The calling&apos;s path</div>
+              <div className="mt-1 text-[11px] leading-snug text-faint">
+                <span className="truncate">&ldquo;여호와께서 집을 세우지 아니하시면&rdquo;</span> 시 127:1
+              </div>
             </div>
+            <ModuleIcon name="projects" size={32} className="shrink-0 text-primary" />
           </Link>
           <Link
             href="/tasks"
-            className="rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
           >
-            <div className="text-lg font-bold text-primary">To-Do</div>
-            <div className="mt-1 text-xs text-muted">Entrusted work</div>
-            <div className="mt-1 text-[11px] leading-snug text-faint">
-              <span className="block truncate">&ldquo;작은 것에 충성된 자&rdquo;</span>
-              눅 16:10
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-bold text-primary">To-Do</div>
+              <div className="mt-0.5 text-xs text-muted">Entrusted work</div>
+              <div className="mt-1 text-[11px] leading-snug text-faint">
+                <span className="truncate">&ldquo;작은 것에 충성된 자&rdquo;</span> 눅 16:10
+              </div>
             </div>
+            <ModuleIcon name="todo" size={32} className="shrink-0 text-primary" />
           </Link>
           <Link
             href="/calendar"
-            className="rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
           >
-            <div className="text-lg font-bold text-primary">Calendar</div>
-            <div className="mt-1 text-xs text-muted">Times &amp; seasons</div>
-            <div className="mt-1 text-[11px] leading-snug text-faint">
-              <span className="block truncate">&ldquo;내 시간이 주의 손에 있사오니&rdquo;</span>
-              시 31:15
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-bold text-primary">Calendar</div>
+              <div className="mt-0.5 text-xs text-muted">Times &amp; seasons</div>
+              <div className="mt-1 text-[11px] leading-snug text-faint">
+                <span className="truncate">&ldquo;내 시간이 주의 손에 있사오니&rdquo;</span> 시 31:15
+              </div>
             </div>
+            <ModuleIcon name="calendar" size={32} className="shrink-0 text-primary" />
           </Link>
-          <div className="col-span-2 rounded-2xl border border-line bg-surface-subtle p-5">
-            <div className="text-lg font-bold text-faint">Insights</div>
-            <div className="mt-1 text-xs text-faint">Coming soon</div>
+          <div className="flex items-center gap-4 rounded-2xl border border-line bg-surface-subtle p-5 opacity-70">
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-bold text-faint">Insights</div>
+              <div className="mt-0.5 text-xs text-faint">Coming soon</div>
+            </div>
+            <ModuleIcon name="insights" size={30} className="shrink-0 text-faint" />
           </div>
         </section>
 

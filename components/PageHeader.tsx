@@ -19,12 +19,12 @@ export default function PageHeader({ title, current, action, showLogout = false 
 
   return (
     <div className="mb-5 flex items-center justify-between gap-3">
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 items-end gap-2">
         <Link href="/" aria-label="홈" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-mark.svg" alt="홈" className="h-8 w-8" />
+          <img src="/logo-mark.svg" alt="홈" className="h-10 w-10" />
         </Link>
-        <h1 className="truncate font-display text-2xl font-extrabold text-primary">{title}</h1>
+        <h1 className="truncate font-display text-2xl font-extrabold leading-none text-primary">{title}</h1>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
