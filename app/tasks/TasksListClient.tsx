@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-TASKS-LIST-V2
+// MFH-TASKS-LIST-V3
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -22,6 +22,12 @@ import {
   type TaskGroupKey,
 } from '@/lib/taskGroups'
 import TaskCheck from './TaskCheck'
+import { useSelectionMode } from '@/lib/useSelectionMode'
+import SelectionCheckbox from '@/components/SelectionCheckbox'
+import SelectionBar from '@/components/SelectionBar'
+import TaskBulkPanel from './TaskBulkPanel'
+import { bulkUpdateTasks, bulkDeleteTasks, type TaskBulkPatch } from '@/lib/bulkUpdate'
+import { createClient } from '@/lib/supabase-browser'
 
 export type TaskListRow = {
   id: string
@@ -135,6 +141,10 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const wide = useWideScreen()
 
+  // 다중선택 모드 (모듈 무관 hook). selectMode 진입시 카드 탭=토글, 평소엔 상세 직행/요약 선택.
+  const sel = useSelectionMode()
+  const [busy, setBusy] = useState(false)
+
   // 필터 변경 → URL 쿼리 동기화(기본값이면 쿼리 제거). 목록 상태가 URL 에 영속.
   const currentFilter: TaskFilter = {
     hideDone,
@@ -216,9 +226,58 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
     setAsc(true)
   }
 
+  // ───── 일괄변경 액션 ─────
+  const filteredIds = useMemo(() => filtered.map((t) => t.id), [filtered])
+  const allSelected =
+    sel.count > 0 && filteredIds.length > 0 && filteredIds.every((id) => sel.selected.has(id))
+
+  async function runBulk(patch: TaskBulkPatch) {
+    if (busy || sel.count === 0) return
+    setBusy(true)
+    try {
+      const supabase = createClient()
+      const ids = Array.from(sel.selected)
+      const res = await bulkUpdateTasks(supabase, ids, patch)
+      if (!res.ok) {
+        alert(`변경 실패: ${res.error ?? '알 수 없는 오류'}`)
+        setBusy(false)
+        return
+      }
+      sel.exit()
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function runDelete() {
+    if (busy || sel.count === 0) return
+    if (!confirm(`${sel.count}개 할 일을 정말 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) return
+    setBusy(true)
+    try {
+      const supabase = createClient()
+      const ids = Array.from(sel.selected)
+      const res = await bulkDeleteTasks(supabase, ids)
+      if (!res.ok) {
+        alert(`삭제 실패: ${res.error ?? '알 수 없는 오류'}`)
+        setBusy(false)
+        return
+      }
+      sel.exit()
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function toggleAll() {
+    if (allSelected) sel.clear()
+    else sel.selectAll(filteredIds)
+  }
+
   return (
     <>
-      {/* 컨트롤 바: 필터 토글 / 정렬 토글 / 모두 초기화 (sticky) */}
+      {/* 컨트롤 바: 필터 토글 / 정렬 토글 / 선택 토글 / 모두 초기화 (sticky) */}
       <div
         className="sticky top-[64px] z-20 -mx-5 mb-3 flex flex-wrap items-center gap-2 px-5 py-2"
         style={{ background: 'var(--paper)' }}
@@ -260,7 +319,24 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
           {sortKey === 'due' ? '마감기한' : '중요도'} {asc ? '↑' : '↓'}
         </button>
 
-        {canReset && (
+        <button
+          type="button"
+          onClick={sel.toggleMode}
+          className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
+            sel.selectMode
+              ? 'border-primary bg-primary text-white'
+              : 'border-line text-muted hover:border-primary'
+          }`}
+          aria-pressed={sel.selectMode}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 11 12 14 22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+          {sel.selectMode ? '선택 종료' : '선택'}
+        </button>
+
+        {canReset && !sel.selectMode && (
           <button
             type="button"
             onClick={resetAll}
@@ -455,18 +531,40 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
           }
 
           function renderTask(t: TaskListRow) {
-            const isSel = wide && t.id === selectedId
+            const isSel = wide && t.id === selectedId && !sel.selectMode
+            const checked = sel.isSelected(t.id)
+            const inSelectMode = sel.selectMode
+
             return (
               <li
                 key={t.id}
                 className={`flex items-start gap-3 rounded-2xl border bg-surface px-4 py-3 ${
-                  isSel ? 'border-primary border-2' : 'border-line'
+                  inSelectMode && checked
+                    ? 'border-primary border-2'
+                    : isSel
+                      ? 'border-primary border-2'
+                      : 'border-line'
                 }`}
               >
+                {/* 좌측: selectMode 면 체크박스, 평소엔 TaskCheck */}
                 <div className="pt-0.5">
-                  <TaskCheck id={t.id} done={t.done} />
+                  {inSelectMode ? (
+                    <SelectionCheckbox checked={checked} />
+                  ) : (
+                    <TaskCheck id={t.id} done={t.done} />
+                  )}
                 </div>
-                {wide ? (
+
+                {/* 본문 영역: selectMode 면 button(토글), 넓은화면 button(요약선택), 좁은화면 Link(상세) */}
+                {inSelectMode ? (
+                  <button
+                    type="button"
+                    onClick={() => sel.toggleId(t.id)}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <TaskBody t={t} />
+                  </button>
+                ) : wide ? (
                   <button
                     type="button"
                     onClick={() => setSelectedId(t.id)}
@@ -512,19 +610,73 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
             )
           }
 
-          // 좁은 화면: 기존처럼 목록만(탭=세부 직행).
-          if (!wide) return renderList()
+          // sticky bar 가림 방지용 하단 여백(selectMode 일 때만)
+          const bottomPad = sel.selectMode && sel.count > 0 ? 'pb-32' : ''
 
-          // 넓은 화면: 좌 목록 / 우 요약(읽기전용, 첫 항목 자동선택).
+          // 좁은 화면: 기존처럼 목록만(탭=세부 직행 또는 selectMode 면 토글).
+          if (!wide) {
+            return (
+              <div className={bottomPad}>
+                {renderList()}
+                {sel.selectMode && sel.count > 0 && (
+                  <SelectionBar
+                    count={sel.count}
+                    onCancel={sel.exit}
+                    onSelectAll={toggleAll}
+                    allSelected={allSelected}
+                  >
+                    <BulkActionsRow
+                      busy={busy}
+                      categoryOpts={categoryOpts}
+                      importanceOpts={importanceOpts}
+                      onStatus={(s) => runBulk({ status: s })}
+                      onImportance={(n) => runBulk({ importance: n })}
+                      onCategory={(c) => runBulk({ category: c })}
+                      onDoneToggle={(d) => runBulk({ done: d })}
+                      onDelete={runDelete}
+                    />
+                  </SelectionBar>
+                )}
+              </div>
+            )
+          }
+
+          // 넓은 화면: 좌 목록 / 우(평소=요약 / selectMode=일괄변경 패널).
           return (
-            <div className="grid grid-cols-1 gap-5 min-[740px]:grid-cols-[1fr_1.1fr]">
+            <div className={`grid grid-cols-1 gap-5 min-[740px]:grid-cols-[1fr_1.1fr] ${bottomPad}`}>
               <div className="min-w-0">{renderList()}</div>
               <div className="min-w-0">
                 <div
                   className="sticky top-[120px] rounded-2xl border border-line bg-surface p-5"
                   style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}
                 >
-                  {selectedTask ? (
+                  {sel.selectMode ? (
+                    sel.count > 0 ? (
+                      <TaskBulkPanel
+                        count={sel.count}
+                        busy={busy}
+                        categoryOpts={categoryOpts}
+                        importanceOpts={importanceOpts}
+                        onStatus={(s) => runBulk({ status: s })}
+                        onImportance={(n) => runBulk({ importance: n })}
+                        onCategory={(c) => runBulk({ category: c })}
+                        onDoneToggle={(d) => runBulk({ done: d })}
+                        onDelete={runDelete}
+                      />
+                    ) : (
+                      <p className="py-10 text-center text-sm text-faint">
+                        왼쪽에서 할 일을 선택하세요.
+                        <br />
+                        <button
+                          type="button"
+                          onClick={toggleAll}
+                          className="mt-3 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-primary"
+                        >
+                          보이는 항목 전체 선택
+                        </button>
+                      </p>
+                    )
+                  ) : selectedTask ? (
                     <TaskSummary t={selectedTask} />
                   ) : (
                     <p className="py-10 text-center text-sm text-faint">
@@ -538,5 +690,126 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
         })()
       )}
     </>
+  )
+}
+
+// 좁은화면 SelectionBar 내부 액션 chip row. TaskBulkPanel 과 동일 액션을 컴팩트하게.
+function BulkActionsRow({
+  busy,
+  categoryOpts,
+  importanceOpts,
+  onStatus,
+  onImportance,
+  onCategory,
+  onDoneToggle,
+  onDelete,
+}: {
+  busy: boolean
+  categoryOpts: string[]
+  importanceOpts: number[]
+  onStatus: (s: StatusValue) => void
+  onImportance: (n: number) => void
+  onCategory: (c: string | null) => void
+  onDoneToggle: (done: boolean) => void
+  onDelete: () => void
+}) {
+  const [open, setOpen] = useState<null | 'status' | 'imp' | 'cat' | 'done'>(null)
+  const Btn = ({ children, on, onClick }: { children: React.ReactNode; on?: boolean; onClick: () => void }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition disabled:opacity-50 ${
+        on
+          ? 'border-primary bg-primary text-white'
+          : 'border-line text-muted hover:border-primary'
+      }`}
+    >
+      {children}
+    </button>
+  )
+
+  function tap(kind: 'status' | 'imp' | 'cat' | 'done') {
+    setOpen((cur) => (cur === kind ? null : kind))
+  }
+
+  function applyAndClose<T>(fn: (v: T) => void, v: T) {
+    setOpen(null)
+    fn(v)
+  }
+
+  return (
+    <div className="relative flex flex-wrap items-center gap-1.5">
+      <Btn on={open === 'status'} onClick={() => tap('status')}>
+        상태
+      </Btn>
+      <Btn on={open === 'done'} onClick={() => tap('done')}>
+        완료
+      </Btn>
+      {importanceOpts.length > 0 && (
+        <Btn on={open === 'imp'} onClick={() => tap('imp')}>
+          중요도
+        </Btn>
+      )}
+      {categoryOpts.length > 0 && (
+        <Btn on={open === 'cat'} onClick={() => tap('cat')}>
+          분류
+        </Btn>
+      )}
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={busy}
+        className="rounded-lg border border-accent px-2.5 py-1.5 text-[11px] font-semibold text-accent transition hover:bg-accent-soft disabled:opacity-50"
+      >
+        삭제
+      </button>
+
+      {/* 펼침 패널: 액션 row 위에 떠 있는 작은 시트 (이 div 기준 absolute) */}
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 mb-2">
+          <div className="rounded-xl border border-line p-3 shadow-lg" style={{ background: 'var(--paper)' }}>
+            {open === 'status' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11px] font-semibold text-faint">상태로 변경</span>
+                {STATUSES.map((s) => (
+                  <Btn key={s.value} onClick={() => applyAndClose(onStatus, s.value)}>
+                    {s.label}
+                  </Btn>
+                ))}
+              </div>
+            )}
+            {open === 'done' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11px] font-semibold text-faint">완료 변경</span>
+                <Btn onClick={() => applyAndClose(onDoneToggle, true)}>완료</Btn>
+                <Btn onClick={() => applyAndClose(onDoneToggle, false)}>미완료</Btn>
+              </div>
+            )}
+            {open === 'imp' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11px] font-semibold text-faint">중요도 변경</span>
+                {importanceOpts.map((n) => (
+                  <Btn key={n} onClick={() => applyAndClose(onImportance, n)}>
+                    {'★'.repeat(n)}
+                  </Btn>
+                ))}
+              </div>
+            )}
+            {open === 'cat' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11px] font-semibold text-faint">분류 변경</span>
+                {categoryOpts.map((c) => (
+                  <Btn key={c} onClick={() => applyAndClose(onCategory, c)}>
+                    {c}
+                  </Btn>
+                ))}
+                <Btn onClick={() => applyAndClose(onCategory, null)}>분류 제거</Btn>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
