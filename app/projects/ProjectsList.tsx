@@ -2,15 +2,81 @@
 
 // MFH-PROJECTS-LIST-V2
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Project } from '@/lib/types'
 import { STATUSES, normalizeStatus, type StatusValue } from '@/lib/constants'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import { StatusBadge, CategoryBadge, ImportanceStars, fmtDate } from './badges'
 import { ProgressRing } from './Progress'
+import { useWideScreen } from '@/lib/useWideScreen'
 
 type Counts = Record<string, { total: number; done: number }>
 type SortKey = 'due' | 'importance'
+
+// 요약 패널(읽기전용). 넓은 화면 우측. '편집' → /projects/[id]/edit, '상세' → /projects/[id].
+function ProjectSummary({ p, counts }: { p: Project; counts: { total: number; done: number } }) {
+  const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="flex gap-3 py-2">
+      <span className="w-16 shrink-0 text-xs font-semibold text-faint">{label}</span>
+      <div className="min-w-0 flex-1 text-sm text-ink">{children}</div>
+    </div>
+  )
+  const period =
+    p.start_date || p.due_date
+      ? `${p.start_date ? fmtDate(p.start_date) : '—'} ~ ${p.due_date ? fmtDate(p.due_date) : '—'}`
+      : null
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-lg font-bold text-ink">{p.title}</h2>
+        <div className="flex shrink-0 gap-1.5">
+          <Link
+            href={`/projects/${p.id}`}
+            className="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-muted transition hover:border-primary"
+          >
+            상세
+          </Link>
+          <Link
+            href={`/projects/${p.id}/edit`}
+            className="rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+          >
+            편집
+          </Link>
+        </div>
+      </div>
+
+      {p.description && (
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted">
+          {p.description}
+        </p>
+      )}
+
+      <div className="mt-4 flex items-center gap-3">
+        <ProgressRing done={counts.done} total={counts.total} />
+        <span className="text-xs text-muted">
+          할 일 {counts.done}/{counts.total} 완료
+        </span>
+      </div>
+
+      <div className="mt-4 divide-y divide-line border-t border-line">
+        <Row label="상태">
+          <StatusBadge value={p.status} />
+        </Row>
+        {p.importance > 0 && (
+          <Row label="중요도">
+            <ImportanceStars value={p.importance} />
+          </Row>
+        )}
+        {period && <Row label="기간">{period}</Row>}
+        {p.category && (
+          <Row label="분류">
+            <CategoryBadge value={p.category} />
+          </Row>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function ProjectsList({
   projects,
@@ -26,6 +92,8 @@ export default function ProjectsList({
   const [asc, setAsc] = useState(true)
   const [filterOpen, setFilterOpen] = useState(false)
   const [sortOpen, setSortOpen] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const wide = useWideScreen()
 
   // 데이터에 실제로 존재하는 값만 칩으로 노출
   const importanceOpts = useMemo(
@@ -66,6 +134,23 @@ export default function ProjectsList({
     })
     return list
   }, [projects, fStatus, fImportance, fCategory, sortKey, asc])
+
+  // 넓은 화면: 첫 항목 자동선택(선택 유지/복구). 좁은 화면: 해제.
+  useEffect(() => {
+    if (!wide) {
+      setSelectedId(null)
+      return
+    }
+    setSelectedId((cur) => {
+      if (cur && filtered.some((p) => p.id === cur)) return cur
+      return filtered[0]?.id ?? null
+    })
+  }, [wide, filtered])
+
+  const selectedProject = useMemo(
+    () => filtered.find((p) => p.id === selectedId) ?? null,
+    [filtered, selectedId],
+  )
 
   const activeCount = fStatus.length + fImportance.length + fCategory.length
   const hasFilter = activeCount > 0
@@ -225,35 +310,88 @@ export default function ProjectsList({
           조건에 맞는 프로젝트가 없습니다.
         </p>
       ) : (
-        <ul className="space-y-3">
-          {filtered.map((p) => {
+        (() => {
+          function ProjectBody({ p }: { p: Project }) {
+            return (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge value={p.status} />
+                  <CategoryBadge value={p.category} />
+                  <ImportanceStars value={p.importance} />
+                  {p.due_date && (
+                    <span className="text-[11px] text-muted">~ {fmtDate(p.due_date)}</span>
+                  )}
+                </div>
+                <div className="mt-1.5 font-bold text-ink">{p.title}</div>
+                {p.description && (
+                  <div className="mt-1 line-clamp-2 text-sm text-muted">{p.description}</div>
+                )}
+              </>
+            )
+          }
+
+          function renderItem(p: Project) {
             const c = counts[p.id] ?? { total: 0, done: 0 }
+            const isSel = wide && p.id === selectedId
             return (
               <li key={p.id}>
-                <Link
-                  href={`/projects/${p.id}`}
-                  className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition hover:border-primary"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusBadge value={p.status} />
-                      <CategoryBadge value={p.category} />
-                      <ImportanceStars value={p.importance} />
-                      {p.due_date && (
-                        <span className="text-[11px] text-muted">~ {fmtDate(p.due_date)}</span>
-                      )}
+                {wide ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(p.id)}
+                    className={`flex w-full items-center gap-3 rounded-2xl border bg-surface p-4 text-left ${
+                      isSel ? 'border-primary border-2' : 'border-line'
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <ProjectBody p={p} />
                     </div>
-                    <div className="mt-1.5 font-bold text-ink">{p.title}</div>
-                    {p.description && (
-                      <div className="mt-1 line-clamp-2 text-sm text-muted">{p.description}</div>
-                    )}
-                  </div>
-                  <ProgressRing done={c.done} total={c.total} />
-                </Link>
+                    <ProgressRing done={c.done} total={c.total} />
+                  </button>
+                ) : (
+                  <Link
+                    href={`/projects/${p.id}`}
+                    className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition hover:border-primary"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <ProjectBody p={p} />
+                    </div>
+                    <ProgressRing done={c.done} total={c.total} />
+                  </Link>
+                )}
               </li>
             )
-          })}
-        </ul>
+          }
+
+          const list = <ul className="space-y-3">{filtered.map(renderItem)}</ul>
+
+          // 좁은 화면: 목록만(탭=상세 직행).
+          if (!wide) return list
+
+          // 넓은 화면: 좌 목록 / 우 요약(읽기전용, 첫 항목 자동선택).
+          const selCounts = selectedProject
+            ? counts[selectedProject.id] ?? { total: 0, done: 0 }
+            : { total: 0, done: 0 }
+          return (
+            <div className="grid grid-cols-1 gap-5 min-[740px]:grid-cols-[1fr_1.1fr]">
+              <div className="min-w-0">{list}</div>
+              <div className="min-w-0">
+                <div
+                  className="sticky top-[120px] rounded-2xl border border-line bg-surface p-5"
+                  style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}
+                >
+                  {selectedProject ? (
+                    <ProjectSummary p={selectedProject} counts={selCounts} />
+                  ) : (
+                    <p className="py-10 text-center text-sm text-faint">
+                      왼쪽에서 프로젝트를 선택하세요.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })()
       )}
     </>
   )
