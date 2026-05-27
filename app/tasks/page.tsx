@@ -27,7 +27,7 @@ export default async function TasksPage() {
   const tasks = (data ?? []) as unknown as TaskListRow[]
 
   return (
-    <main className="mx-auto max-w-md px-5 py-8">
+    <main className="mx-auto max-w-md px-5 py-8 landscape:max-w-5xl lg:max-w-5xl">
       <PageHeader
         title="To-Do"
         current="tasks"
