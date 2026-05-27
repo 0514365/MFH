@@ -82,8 +82,11 @@ export default function ProjectsList({
 
   return (
     <>
-      {/* 컨트롤 바: 필터 토글 / 정렬 토글 / 모두 초기화 */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      {/* 컨트롤 바: 필터 토글 / 정렬 토글 / 모두 초기화 (sticky) */}
+      <div
+        className="sticky top-[64px] z-20 -mx-5 mb-3 flex flex-wrap items-center gap-2 px-5 py-2"
+        style={{ background: 'var(--paper)' }}
+      >
         <button
           type="button"
           onClick={() => setFilterOpen((v) => !v)}
