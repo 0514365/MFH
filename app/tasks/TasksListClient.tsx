@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react'
 import { STATUSES, normalizeStatus, type StatusValue } from '@/lib/constants'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import { fmtTime } from '@/lib/calendar'
-import { StatusBadge, CategoryBadge, ImportanceStars, fmtDate } from '../projects/badges'
+import { StatusBadge, CategoryBadge, ImportanceStars } from '../projects/badges'
 import {
   taskGroupOf,
   TASK_GROUP_LABEL,
@@ -32,6 +32,20 @@ export type TaskListRow = {
 }
 
 type SortKey = 'due' | 'importance'
+
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토']
+// 마감일(YYYY-MM-DD) → "5/30(금)". 잘못된 값이면 원문 반환.
+function fmtDueShort(d: string): string {
+  const dt = new Date(d + 'T00:00:00')
+  if (Number.isNaN(dt.getTime())) return d
+  return `${dt.getMonth() + 1}/${dt.getDate()}(${WEEKDAY_KO[dt.getDay()]})`
+}
+// 마감일이 오늘 이전이면 연체.
+function isOverdue(d: string): boolean {
+  const now = new Date()
+  const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+  return d < today
+}
 
 export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
   const [hideDone, setHideDone] = useState(true)
@@ -290,42 +304,69 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
           // 기본정렬(마감·오름차순)일 때만 기한 그룹 헤더 표시. 그 외엔 평면 리스트.
           const grouped = sortKey === 'due' && asc
           function renderTask(t: TaskListRow) {
+            const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
             return (
               <li
                 key={t.id}
-                className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3"
+                className="flex items-start gap-3 rounded-2xl border border-line bg-surface px-4 py-3"
               >
-                <TaskCheck id={t.id} done={t.done} />
+                <div className="pt-0.5">
+                  <TaskCheck id={t.id} done={t.done} />
+                </div>
                 <Link href={`/tasks/${t.id}/edit`} className="min-w-0 flex-1">
+                  {/* 1행: 날짜(작게) — 연체면 빨강 */}
+                  {t.due_date && (
+                    <div
+                      className={`text-[11px] font-medium ${
+                        overdue ? 'text-danger' : 'text-faint'
+                      }`}
+                    >
+                      {fmtDueShort(t.due_date)}
+                      {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
+                      {overdue ? ' · 연체' : ''}
+                    </div>
+                  )}
+
+                  {/* 2행: 제목(굵게) */}
                   <div
-                    className={`truncate text-sm font-semibold ${
+                    className={`mt-0.5 text-sm font-semibold ${
                       t.done ? 'text-faint line-through' : 'text-ink'
                     }`}
                   >
                     {t.title}
                   </div>
+
+                  {/* 설명: 동적 높이(최대 3줄) */}
                   {t.description && (
-                    <div className="mt-0.5 line-clamp-1 text-xs text-muted">{t.description}</div>
+                    <div className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-muted">
+                      {t.description}
+                    </div>
                   )}
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
+
+                  {/* 3행: Status | 중요도 — 모바일 세로모드 2열 */}
+                  <div className="mt-2 grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
                     <StatusBadge value={t.status ?? 'upcoming'} />
-                    {t.projects?.title && (
-                      <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
-                        {t.projects.title}
-                      </span>
-                    )}
-                    <CategoryBadge value={t.category} />
-                    <ImportanceStars value={t.importance} />
-                    {t.place_name && (
-                      <span className="text-[11px] text-muted">📍 {t.place_name}</span>
-                    )}
-                    {t.due_date && (
-                      <span className="text-[11px] text-muted">
-                        ~ {fmtDate(t.due_date)}
-                        {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
-                      </span>
+                    {t.importance > 0 && (
+                      <div className="justify-self-end sm:justify-self-auto">
+                        <ImportanceStars value={t.importance} />
+                      </div>
                     )}
                   </div>
+
+                  {/* 4행: 분류 · 장소 · 프로젝트 */}
+                  {(t.category || t.place_name || t.projects?.title) && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <CategoryBadge value={t.category} />
+                      {t.place_name && (
+                        <span className="text-[11px] text-muted">📍 {t.place_name}</span>
+                      )}
+                      {t.projects?.title && (
+                        <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
+                          {t.projects.title}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </Link>
               </li>
             )
