@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-TASKS-LIST-V4
+// MFH-TASKS-LIST-V5
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -333,6 +333,16 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
           {sel.selectMode ? '선택 종료' : '선택'}
         </button>
 
+        {sel.selectMode && (
+          <button
+            type="button"
+            onClick={toggleAll}
+            className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-primary"
+          >
+            {allSelected ? '전체 해제' : '전체 선택'}
+          </button>
+        )}
+
         {canReset && !sel.selectMode && (
           <button
             type="button"
@@ -467,12 +477,12 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
           // 기본정렬(마감·오름차순)일 때만 기한 그룹 헤더 표시. 그 외엔 평면 리스트.
           const grouped = sortKey === 'due' && asc
 
-          // 카드 내용(날짜·제목·설명·배지). wide=선택버튼 / narrow=Link 로 감쌈.
+          // 카드 내용(날짜·제목·설명·배지). TaskCheck 는 renderTask 의 li 직속 자식으로 분리(button 중첩 회피).
           function TaskBody({ t }: { t: TaskListRow }) {
             const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
             return (
               <>
-                {/* 1행: 날짜(작게) — 연체면 빨강 */}
+                {/* 1행: 날짜(작게) — 연체면 빨강. 우측 상단 완료영역 자리는 li 측에서 별도 배치(pr-* 로 겹침 방지). */}
                 {t.due_date && (
                   <div
                     className={`text-[11px] font-medium ${overdue ? 'text-danger' : 'text-faint'}`}
@@ -535,7 +545,7 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
             return (
               <li
                 key={t.id}
-                className={`flex items-start gap-3 rounded-2xl border bg-surface px-4 py-3 ${
+                className={`relative flex items-start gap-3 rounded-2xl border bg-surface px-4 py-3 ${
                   inSelectMode && checked
                     ? 'border-primary border-2'
                     : isSel
@@ -543,21 +553,20 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
                       : 'border-line'
                 }`}
               >
-                {/* 좌측: selectMode 면 체크박스, 평소엔 TaskCheck */}
-                <div className="pt-0.5">
-                  {inSelectMode ? (
+                {/* 좌측: selectMode 일 때만 선택 체크박스(평소엔 자리 없음). */}
+                {inSelectMode && (
+                  <div className="pt-0.5">
                     <SelectionCheckbox checked={checked} />
-                  ) : (
-                    <TaskCheck id={t.id} done={t.done} />
-                  )}
-                </div>
+                  </div>
+                )}
 
-                {/* 본문 영역: selectMode 면 button(토글), 넓은화면 button(요약선택), 좁은화면 Link(상세) */}
+                {/* 본문 영역: selectMode 면 button(토글), 넓은화면 button(요약선택), 좁은화면 Link(상세).
+                    우측 완료 영역 자리 확보를 위해 pr-16 (≈4rem). */}
                 {inSelectMode ? (
                   <button
                     type="button"
                     onClick={() => sel.toggleId(t.id)}
-                    className="min-w-0 flex-1 text-left"
+                    className="min-w-0 flex-1 pr-16 text-left"
                   >
                     <TaskBody t={t} />
                   </button>
@@ -565,15 +574,24 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
                   <button
                     type="button"
                     onClick={() => setSelectedId(t.id)}
-                    className="min-w-0 flex-1 text-left"
+                    className="min-w-0 flex-1 pr-16 text-left"
                   >
                     <TaskBody t={t} />
                   </button>
                 ) : (
-                  <Link href={`/tasks/${t.id}${detailSuffix}`} className="min-w-0 flex-1">
+                  <Link
+                    href={`/tasks/${t.id}${detailSuffix}`}
+                    className="min-w-0 flex-1 pr-16"
+                  >
                     <TaskBody t={t} />
                   </Link>
                 )}
+
+                {/* 우측 상단: "완료" 라벨 + TaskCheck (단건 완료 토글, button 중첩 회피 위해 li 직속) */}
+                <div className="absolute right-4 top-3 flex shrink-0 items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-faint">완료</span>
+                  <TaskCheck id={t.id} done={t.done} />
+                </div>
               </li>
             )
           }
