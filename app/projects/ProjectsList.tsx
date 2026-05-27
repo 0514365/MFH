@@ -21,7 +21,15 @@ type Counts = Record<string, { total: number; done: number }>
 type SortKey = 'due' | 'importance'
 
 // 요약 패널(읽기전용). 넓은 화면 우측. '편집' → /projects/[id]/edit, '상세' → /projects/[id].
-function ProjectSummary({ p, counts }: { p: Project; counts: { total: number; done: number } }) {
+function ProjectSummary({
+  p,
+  counts,
+  detailSuffix,
+}: {
+  p: Project
+  counts: { total: number; done: number }
+  detailSuffix: string
+}) {
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="flex gap-3 py-2">
       <span className="w-16 shrink-0 text-xs font-semibold text-faint">{label}</span>
@@ -38,7 +46,7 @@ function ProjectSummary({ p, counts }: { p: Project; counts: { total: number; do
         <h2 className="text-lg font-bold text-ink">{p.title}</h2>
         <div className="flex shrink-0 gap-1.5">
           <Link
-            href={`/projects/${p.id}`}
+            href={`/projects/${p.id}${detailSuffix}`}
             className="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-muted transition hover:border-primary"
           >
             상세
@@ -144,6 +152,13 @@ export default function ProjectsList({
     () => applyProjectFilter(projects, { fStatus, fImportance, fCategory, sortKey, asc }),
     [projects, fStatus, fImportance, fCategory, sortKey, asc],
   )
+
+  // 상세 링크에 붙일 현재 필터 쿼리(검색된 목록 기준 이전/다음 유지용).
+  const detailQuery = useMemo(
+    () => buildProjectQuery({ fStatus, fImportance, fCategory, sortKey, asc }),
+    [fStatus, fImportance, fCategory, sortKey, asc],
+  )
+  const detailSuffix = detailQuery ? `?${detailQuery}` : ''
 
   // 넓은 화면: 첫 항목 자동선택(선택 유지/복구). 좁은 화면: 해제.
   useEffect(() => {
@@ -360,7 +375,7 @@ export default function ProjectsList({
                   </button>
                 ) : (
                   <Link
-                    href={`/projects/${p.id}`}
+                    href={`/projects/${p.id}${detailSuffix}`}
                     className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition hover:border-primary"
                   >
                     <div className="min-w-0 flex-1">
@@ -391,7 +406,7 @@ export default function ProjectsList({
                   style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}
                 >
                   {selectedProject ? (
-                    <ProjectSummary p={selectedProject} counts={selCounts} />
+                    <ProjectSummary p={selectedProject} counts={selCounts} detailSuffix={detailSuffix} />
                   ) : (
                     <p className="py-10 text-center text-sm text-faint">
                       왼쪽에서 프로젝트를 선택하세요.

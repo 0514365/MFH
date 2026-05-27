@@ -2,17 +2,26 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { Project } from '@/lib/types'
+import { applyProjectFilter, parseProjectFilter } from '@/lib/projectFilter'
+import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import { StatusBadge, PriorityBadge, CategoryBadge, ImportanceStars, fmtDate } from '../badges'
 import { ProgressRing } from '../Progress'
 import TaskCheck from '../../tasks/TaskCheck'
 import BackButton from '@/components/BackButton'
+import DetailNav from '@/components/DetailNav'
 import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
 
 type ProjTask = { id: string; title: string; done: boolean; due_date: string | null }
 
-export default async function ProjectDetail({ params }: { params: { id: string } }) {
+export default async function ProjectDetail({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams: Record<string, string | string[] | undefined>
+}) {
   const supabase = createClient()
   const {
     data: { user },
@@ -22,6 +31,18 @@ export default async function ProjectDetail({ params }: { params: { id: string }
   const { data } = await supabase.from('projects').select('*').eq('id', params.id).maybeSingle()
   const project = data as Project | null
   if (!project) notFound()
+
+  // 목록과 동일한 필터+정렬로 전체를 재계산 → 현재 항목의 이전/다음.
+  const filter = parseProjectFilter({ get: (k) => {
+    const v = searchParams[k]
+    return Array.isArray(v) ? (v[v.length - 1] ?? null) : (v ?? null)
+  } })
+  const { data: navRows } = await supabase
+    .from('projects')
+    .select('id, status, importance, category, due_date, created_at')
+  const orderedIds = applyProjectFilter((navRows ?? []) as any[], filter).map((p) => p.id as string)
+  const nav = computeListNav(orderedIds, params.id)
+  const navQuery = searchParamsToQuery(searchParams)
 
   const { data: taskRows } = await supabase
     .from('tasks')
@@ -42,7 +63,17 @@ export default async function ProjectDetail({ params }: { params: { id: string }
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
-      <BackButton href="/projects" label="Projects" />
+      <div className="flex items-center justify-between gap-2">
+        <BackButton href="/projects" label="Projects" />
+        <DetailNav
+          basePath="/projects"
+          prevId={nav.prevId}
+          nextId={nav.nextId}
+          index={nav.index}
+          total={nav.total}
+          query={navQuery}
+        />
+      </div>
 
       <div className="mb-3 mt-2 flex flex-wrap items-center gap-2">
         <StatusBadge value={project.status} />

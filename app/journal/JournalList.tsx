@@ -43,7 +43,7 @@ function EntryBody({ e }: { e: JournalEntry }) {
 }
 
 // 요약 패널(읽기전용). 넓은 화면 우측. '상세' → /journal/[id], '편집' → /journal/[id]/edit.
-function EntrySummary({ e }: { e: JournalEntry }) {
+function EntrySummary({ e, detailSuffix }: { e: JournalEntry; detailSuffix: string }) {
   const Section = ({ label, text }: { label: string; text: string | null }) =>
     text ? (
       <div className="py-2">
@@ -77,7 +77,7 @@ function EntrySummary({ e }: { e: JournalEntry }) {
         </div>
         <div className="flex shrink-0 gap-1.5">
           <Link
-            href={`/journal/${e.id}`}
+            href={`/journal/${e.id}${detailSuffix}`}
             className="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-muted transition hover:border-primary"
           >
             상세
@@ -144,6 +144,13 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
     [entries, q, fCategory, prayerOnly, asc],
   )
 
+  // 상세 링크에 붙일 현재 필터 쿼리(검색된 목록 기준 이전/다음 유지용).
+  const detailQuery = useMemo(
+    () => buildJournalQuery({ q, fCategory, prayerOnly, asc }),
+    [q, fCategory, prayerOnly, asc],
+  )
+  const detailSuffix = detailQuery ? `?${detailQuery}` : ''
+
   useEffect(() => {
     if (!wide) {
       setSelectedId(null)
@@ -196,7 +203,7 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
           </button>
         ) : (
           <Link
-            href={`/journal/${e.id}`}
+            href={`/journal/${e.id}${detailSuffix}`}
             className="block rounded-2xl border border-line bg-surface p-4 transition hover:border-primary"
           >
             <EntryBody e={e} />
@@ -331,7 +338,7 @@ export default function JournalList({ entries }: { entries: JournalEntry[] }) {
             style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}
           >
             {selectedEntry ? (
-              <EntrySummary e={selectedEntry} />
+              <EntrySummary e={selectedEntry} detailSuffix={detailSuffix} />
             ) : (
               <p className="py-10 text-center text-sm text-faint">왼쪽에서 일지를 선택하세요.</p>
             )}

@@ -2,7 +2,10 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { JournalEntry } from '@/lib/types'
+import { applyJournalFilter, parseJournalFilter } from '@/lib/journalFilter'
+import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import BackButton from '@/components/BackButton'
+import DetailNav from '@/components/DetailNav'
 import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
@@ -17,7 +20,13 @@ function Section({ label, text }: { label: string; text: string | null }) {
   )
 }
 
-export default async function JournalDetail({ params }: { params: { id: string } }) {
+export default async function JournalDetail({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams: Record<string, string | string[] | undefined>
+}) {
   const supabase = createClient()
   const {
     data: { user },
@@ -31,6 +40,20 @@ export default async function JournalDetail({ params }: { params: { id: string }
     .maybeSingle()
   const entry = data as JournalEntry | null
   if (!entry) notFound()
+
+  // 목록과 동일한 필터+검색+정렬로 전체를 재계산 → 현재 항목의 이전/다음.
+  const filter = parseJournalFilter({ get: (k) => {
+    const v = searchParams[k]
+    return Array.isArray(v) ? (v[v.length - 1] ?? null) : (v ?? null)
+  } })
+  const { data: navRows } = await supabase
+    .from('journal_entries')
+    .select('id, entry_date, category, prayer_candidate, headline, today, thanks, meditation, prayer, place_name, created_at')
+  const orderedIds = applyJournalFilter((navRows ?? []) as any[], filter).map(
+    (e) => e.id as string,
+  )
+  const nav = computeListNav(orderedIds, params.id)
+  const navQuery = searchParamsToQuery(searchParams)
 
   let photoUrl: string | null = null
   if (entry.photo_path) {
@@ -46,7 +69,17 @@ export default async function JournalDetail({ params }: { params: { id: string }
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
-      <BackButton href="/journal" label="Log" />
+      <div className="flex items-center justify-between gap-2">
+        <BackButton href="/journal" label="Log" />
+        <DetailNav
+          basePath="/journal"
+          prevId={nav.prevId}
+          nextId={nav.nextId}
+          index={nav.index}
+          total={nav.total}
+          query={navQuery}
+        />
+      </div>
       <div className="mb-4 mt-2 flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold text-muted">{entry.entry_date}</span>
         {entry.place_name && (
