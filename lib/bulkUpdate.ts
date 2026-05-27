@@ -1,19 +1,9 @@
-// MFH-BULK-UPDATE-V1
+// MFH-BULK-UPDATE-V2
 // 다중선택 일괄변경의 supabase 헬퍼. 모듈별 함수 export.
-// 호출자가 supabase client 를 주입(client/server 양쪽 지원).
+// V2: 내부에서 createClient 호출 → 호출자가 client 주입 안 해도 됨. 타입 충돌 회피.
 // patch58b·c 에서 bulkUpdateJournals / bulkUpdateProjects 추가 예정.
+import { createClient } from '@/lib/supabase-browser'
 import type { StatusValue } from '@/lib/constants'
-
-type SupabaseLike = {
-  from: (table: string) => {
-    update: (patch: Record<string, unknown>) => {
-      in: (col: string, vals: string[]) => Promise<{ error: { message: string } | null }>
-    }
-    delete: () => {
-      in: (col: string, vals: string[]) => Promise<{ error: { message: string } | null }>
-    }
-  }
-}
 
 // 할일 일괄변경. patch 객체는 변경할 컬럼만 포함.
 // - status: Status 변경. 'done' 으로 바뀔 때 done=true·completed_at=now 도 함께 처리.
@@ -28,7 +18,6 @@ export type TaskBulkPatch = {
 }
 
 export async function bulkUpdateTasks(
-  supabase: SupabaseLike,
   ids: string[],
   patch: TaskBulkPatch,
 ): Promise<{ ok: boolean; error?: string }> {
@@ -50,16 +39,17 @@ export async function bulkUpdateTasks(
   }
   if (Object.keys(update).length === 0) return { ok: true }
 
+  const supabase = createClient()
   const { error } = await supabase.from('tasks').update(update).in('id', ids)
   if (error) return { ok: false, error: error.message }
   return { ok: true }
 }
 
 export async function bulkDeleteTasks(
-  supabase: SupabaseLike,
   ids: string[],
 ): Promise<{ ok: boolean; error?: string }> {
   if (ids.length === 0) return { ok: true }
+  const supabase = createClient()
   const { error } = await supabase.from('tasks').delete().in('id', ids)
   if (error) return { ok: false, error: error.message }
   return { ok: true }

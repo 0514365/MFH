@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-TASKS-LIST-V3
+// MFH-TASKS-LIST-V4
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -27,7 +27,6 @@ import SelectionCheckbox from '@/components/SelectionCheckbox'
 import SelectionBar from '@/components/SelectionBar'
 import TaskBulkPanel from './TaskBulkPanel'
 import { bulkUpdateTasks, bulkDeleteTasks, type TaskBulkPatch } from '@/lib/bulkUpdate'
-import { createClient } from '@/lib/supabase-browser'
 
 export type TaskListRow = {
   id: string
@@ -235,9 +234,8 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
     if (busy || sel.count === 0) return
     setBusy(true)
     try {
-      const supabase = createClient()
       const ids = Array.from(sel.selected)
-      const res = await bulkUpdateTasks(supabase, ids, patch)
+      const res = await bulkUpdateTasks(ids, patch)
       if (!res.ok) {
         alert(`변경 실패: ${res.error ?? '알 수 없는 오류'}`)
         setBusy(false)
@@ -255,9 +253,8 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
     if (!confirm(`${sel.count}개 할 일을 정말 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) return
     setBusy(true)
     try {
-      const supabase = createClient()
       const ids = Array.from(sel.selected)
-      const res = await bulkDeleteTasks(supabase, ids)
+      const res = await bulkDeleteTasks(ids)
       if (!res.ok) {
         alert(`삭제 실패: ${res.error ?? '알 수 없는 오류'}`)
         setBusy(false)
