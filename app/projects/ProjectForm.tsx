@@ -1,5 +1,10 @@
 'use client'
 
+// MFH-PROJECT-FORM-V2
+// 프로젝트 입력 폼. 모바일에서 [상태 · 중요도] 한 행 + [시작일 · 마감일] 한 행 (grid-cols-2).
+// sm+ 이상에서도 같은 2열 유지(폼 자체가 max-w-md 안이므로 자연스러움).
+// 라벨은 셀 내부 첫 줄에서 mt 없이 시작하도록 small 의 mt-0 변형(smallTop)을 셀 첫 항목에만 사용.
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -78,6 +83,8 @@ export default function ProjectForm({ mode, initial }: Props) {
   const input =
     'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
   const small = 'mb-1 mt-4 block text-xs text-muted'
+  // 셀 안에서 첫 라벨용 — 위쪽 mt 제거(셀 자체가 row gap 으로 분리).
+  const smallCell = 'mb-1 block text-xs text-muted'
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
@@ -90,46 +97,74 @@ export default function ProjectForm({ mode, initial }: Props) {
       </h1>
 
       <label className="mb-1 block text-xs text-muted">제목</label>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} className={input} placeholder="예: 자포탈 더좋은교회 건축" />
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className={input}
+        placeholder="예: 자포탈 더좋은교회 건축"
+      />
 
       <label className={small}>설명</label>
-      <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={input} />
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        rows={3}
+        className={input}
+      />
 
       <label className={small}>사역 분류</label>
       <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="선택 안 함" />
 
-      <label className={small}>상태</label>
-      <select value={status} onChange={(e) => setStatus(normalizeStatus(e.target.value))} className={input}>
-        {STATUSES.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
-          </option>
-        ))}
-      </select>
-
-      <label className={small}>중요도</label>
-      <div className="flex gap-1.5">
-        {Array.from({ length: IMPORTANCE_MAX }).map((_, i) => {
-          const n = i + 1
-          return (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setImportance(importance === n ? n - 1 : n)}
-              className={`text-2xl leading-none ${n <= importance ? 'text-yellow-400' : 'text-faint'}`}
-              aria-label={`중요도 ${n}`}
-            >
-              ★
-            </button>
-          )
-        })}
+      {/* 상태 · 중요도 — 한 행 (모바일/데스크탑 모두 2열) */}
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="min-w-0">
+          <label className={smallCell}>상태</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(normalizeStatus(e.target.value))}
+            className={input}
+          >
+            {STATUSES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="min-w-0">
+          <label className={smallCell}>중요도</label>
+          <div className="flex h-[46px] items-center gap-1">
+            {Array.from({ length: IMPORTANCE_MAX }).map((_, i) => {
+              const n = i + 1
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setImportance(importance === n ? n - 1 : n)}
+                  className={`text-2xl leading-none ${
+                    n <= importance ? 'text-yellow-400' : 'text-faint'
+                  }`}
+                  aria-label={`중요도 ${n}`}
+                >
+                  ★
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
-      <label className={small}>시작일</label>
-      <DateField value={startDate} onChange={setStartDate} placeholder="시작일 (선택)" />
-
-      <label className={small}>마감일</label>
-      <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
+      {/* 시작일 · 마감일 — 한 행 (모바일/데스크탑 모두 2열) */}
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="min-w-0">
+          <label className={smallCell}>시작일</label>
+          <DateField value={startDate} onChange={setStartDate} placeholder="시작일 (선택)" />
+        </div>
+        <div className="min-w-0">
+          <label className={smallCell}>마감일</label>
+          <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
+        </div>
+      </div>
 
       {msg && <p className="mt-4 text-sm text-danger">{msg}</p>}
 

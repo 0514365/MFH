@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-JOURNAL-LIST-V2
+// MFH-JOURNAL-LIST-V3
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -129,6 +129,8 @@ export default function JournalList({
   const [q, setQ] = useState(initial.q)
   const [fCategory, setFCategory] = useState<string[]>(initial.fCategory)
   const [prayerOnly, setPrayerOnly] = useState(initial.prayerOnly)
+  const [dateFrom, setDateFrom] = useState(initial.dateFrom)
+  const [dateTo, setDateTo] = useState(initial.dateTo)
   const [asc, setAsc] = useState(initial.asc)
   const [filterOpen, setFilterOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -139,12 +141,12 @@ export default function JournalList({
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    const f: JournalFilter = { q, fCategory, prayerOnly, asc }
+    const f: JournalFilter = { q, fCategory, prayerOnly, dateFrom, dateTo, asc }
     const qs = buildJournalQuery(f)
     const current = searchParams.toString()
     if (qs === current) return
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [q, fCategory, prayerOnly, asc, pathname, router, searchParams])
+  }, [q, fCategory, prayerOnly, dateFrom, dateTo, asc, pathname, router, searchParams])
 
   const categoryOpts = useMemo(
     () =>
@@ -172,13 +174,13 @@ export default function JournalList({
   )
 
   const filtered = useMemo(
-    () => applyJournalFilter(entries, { q, fCategory, prayerOnly, asc }),
-    [entries, q, fCategory, prayerOnly, asc],
+    () => applyJournalFilter(entries, { q, fCategory, prayerOnly, dateFrom, dateTo, asc }),
+    [entries, q, fCategory, prayerOnly, dateFrom, dateTo, asc],
   )
 
   const detailQuery = useMemo(
-    () => buildJournalQuery({ q, fCategory, prayerOnly, asc }),
-    [q, fCategory, prayerOnly, asc],
+    () => buildJournalQuery({ q, fCategory, prayerOnly, dateFrom, dateTo, asc }),
+    [q, fCategory, prayerOnly, dateFrom, dateTo, asc],
   )
   const detailSuffix = detailQuery ? `?${detailQuery}` : ''
 
@@ -198,7 +200,12 @@ export default function JournalList({
     [filtered, selectedId],
   )
 
-  const activeCount = (q ? 1 : 0) + fCategory.length + (prayerOnly ? 1 : 0)
+  const activeCount =
+    (q ? 1 : 0) +
+    fCategory.length +
+    (prayerOnly ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0)
   const hasFilter = activeCount > 0
   const canReset = hasFilter || asc
 
@@ -206,6 +213,8 @@ export default function JournalList({
     setQ('')
     setFCategory([])
     setPrayerOnly(false)
+    setDateFrom('')
+    setDateTo('')
     setAsc(false)
   }
 
@@ -352,7 +361,7 @@ export default function JournalList({
           type="button"
           onClick={() => setFilterOpen((v) => !v)}
           className={`flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
-            filterOpen || fCategory.length > 0 || prayerOnly
+            filterOpen || fCategory.length > 0 || prayerOnly || dateFrom || dateTo
               ? 'border-primary text-primary'
               : 'border-line text-muted hover:border-primary'
           }`}
@@ -411,6 +420,37 @@ export default function JournalList({
 
       {filterOpen && (
         <div className="space-y-2 rounded-xl border border-line bg-surface-subtle p-3">
+          {/* MFH-JOURNAL-DATE-FILTER */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-[11px] font-semibold text-faint">날짜</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(ev) => setDateFrom(ev.target.value)}
+              className="rounded-lg border border-line bg-surface px-2 py-1 text-xs text-ink focus:border-primary focus:outline-none"
+              aria-label="시작 날짜"
+            />
+            <span className="text-[11px] text-faint">~</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(ev) => setDateTo(ev.target.value)}
+              className="rounded-lg border border-line bg-surface px-2 py-1 text-xs text-ink focus:border-primary focus:outline-none"
+              aria-label="종료 날짜"
+            />
+            {(dateFrom || dateTo) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDateFrom('')
+                  setDateTo('')
+                }}
+                className="rounded-lg border border-line px-2 py-1 text-[11px] font-semibold text-muted transition hover:border-primary"
+              >
+                지우기
+              </button>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="mr-1 text-[11px] font-semibold text-faint">기도</span>
             <button

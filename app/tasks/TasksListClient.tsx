@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-TASKS-LIST-V5
+// MFH-TASKS-LIST-V6
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -604,6 +604,7 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
               overdue: [],
               this_week: [],
               next_week: [],
+              this_month: [],
               later: [],
               unset: [],
             }
