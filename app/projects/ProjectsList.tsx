@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-PROJECTS-LIST-V2
+// MFH-PROJECTS-LIST-V3
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -16,6 +16,16 @@ import {
 import { StatusBadge, CategoryBadge, ImportanceStars, fmtDate } from './badges'
 import { ProgressRing } from './Progress'
 import { useWideScreen } from '@/lib/useWideScreen'
+import { useSelectionMode } from '@/lib/useSelectionMode'
+import SelectionCheckbox from '@/components/SelectionCheckbox'
+import SelectionBar from '@/components/SelectionBar'
+import ProjectBulkPanel from './ProjectBulkPanel'
+import ProjectStatusToggle from './ProjectStatusToggle'
+import {
+  bulkUpdateProjects,
+  bulkDeleteProjects,
+  type ProjectBulkPatch,
+} from '@/lib/bulkUpdate'
 
 type Counts = Record<string, { total: number; done: number }>
 type SortKey = 'due' | 'importance'
@@ -107,7 +117,6 @@ export default function ProjectsList({
   // URL 쿼리에서 초기 필터/정렬을 읽는다(새로고침·뒤로가기·상세 왕복에도 유지).
   const initial = useMemo(
     () => parseProjectFilter(searchParams),
-    // 마운트 시 1회만. 이후 동기화는 아래 effect 가 담당.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
@@ -122,8 +131,11 @@ export default function ProjectsList({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const wide = useWideScreen()
 
-  // 필터/정렬이 바뀌면 URL 쿼리를 갱신(replace=히스토리 오염 방지).
-  // 기본값이면 쿼리를 제거해 URL 을 깔끔히 유지 → '모두 초기화' 도 자연히 반영.
+  // 다중선택 모드 (모듈 무관 hook).
+  const sel = useSelectionMode()
+  const [busy, setBusy] = useState(false)
+
+  // 필터/정렬 → URL 쿼리 동기화
   useEffect(() => {
     const f: ProjectFilter = { fStatus, fImportance, fCategory, sortKey, asc }
     const qs = buildProjectQuery(f)
@@ -132,7 +144,6 @@ export default function ProjectsList({
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }, [fStatus, fImportance, fCategory, sortKey, asc, pathname, router, searchParams])
 
-  // 데이터에 실제로 존재하는 값만 칩으로 노출
   const importanceOpts = useMemo(
     () =>
       Array.from(new Set(projects.map((p) => p.importance).filter((n): n is number => !!n))).sort(
@@ -153,14 +164,12 @@ export default function ProjectsList({
     [projects, fStatus, fImportance, fCategory, sortKey, asc],
   )
 
-  // 상세 링크에 붙일 현재 필터 쿼리(검색된 목록 기준 이전/다음 유지용).
   const detailQuery = useMemo(
     () => buildProjectQuery({ fStatus, fImportance, fCategory, sortKey, asc }),
     [fStatus, fImportance, fCategory, sortKey, asc],
   )
   const detailSuffix = detailQuery ? `?${detailQuery}` : ''
 
-  // 넓은 화면: 첫 항목 자동선택(선택 유지/복구). 좁은 화면: 해제.
   useEffect(() => {
     if (!wide) {
       setSelectedId(null)
@@ -190,9 +199,59 @@ export default function ProjectsList({
     setAsc(true)
   }
 
+  // ───── 일괄변경 액션 ─────
+  const filteredIds = useMemo(() => filtered.map((p) => p.id), [filtered])
+  const allSelected =
+    sel.count > 0 && filteredIds.length > 0 && filteredIds.every((id) => sel.selected.has(id))
+
+  async function runBulk(patch: ProjectBulkPatch) {
+    if (busy || sel.count === 0) return
+    setBusy(true)
+    try {
+      const ids = Array.from(sel.selected)
+      const res = await bulkUpdateProjects(ids, patch)
+      if (!res.ok) {
+        alert(`변경 실패: ${res.error ?? '알 수 없는 오류'}`)
+        setBusy(false)
+        return
+      }
+      sel.exit()
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function runDelete() {
+    if (busy || sel.count === 0) return
+    if (
+      !confirm(`${sel.count}개 프로젝트를 정말 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)
+    )
+      return
+    setBusy(true)
+    try {
+      const ids = Array.from(sel.selected)
+      const res = await bulkDeleteProjects(ids)
+      if (!res.ok) {
+        alert(`삭제 실패: ${res.error ?? '알 수 없는 오류'}`)
+        setBusy(false)
+        return
+      }
+      sel.exit()
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function toggleAll() {
+    if (allSelected) sel.clear()
+    else sel.selectAll(filteredIds)
+  }
+
   return (
     <>
-      {/* 컨트롤 바: 필터 토글 / 정렬 토글 / 모두 초기화 (sticky) */}
+      {/* 컨트롤 바: 필터 / 정렬 / 선택 / 전체선택 / 모두 초기화 (sticky) */}
       <div
         className="sticky top-[64px] z-20 -mx-5 mb-3 flex flex-wrap items-center gap-2 px-5 py-2"
         style={{ background: 'var(--paper)' }}
@@ -234,7 +293,34 @@ export default function ProjectsList({
           {sortKey === 'due' ? '마감기한' : '중요도'} {asc ? '↑' : '↓'}
         </button>
 
-        {canReset && (
+        <button
+          type="button"
+          onClick={sel.toggleMode}
+          className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
+            sel.selectMode
+              ? 'border-primary bg-primary text-white'
+              : 'border-line text-muted hover:border-primary'
+          }`}
+          aria-pressed={sel.selectMode}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 11 12 14 22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+          {sel.selectMode ? '선택 종료' : '선택'}
+        </button>
+
+        {sel.selectMode && (
+          <button
+            type="button"
+            onClick={toggleAll}
+            className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-primary"
+          >
+            {allSelected ? '전체 해제' : '전체 선택'}
+          </button>
+        )}
+
+        {canReset && !sel.selectMode && (
           <button
             type="button"
             onClick={resetAll}
@@ -357,56 +443,140 @@ export default function ProjectsList({
 
           function renderItem(p: Project) {
             const c = counts[p.id] ?? { total: 0, done: 0 }
-            const isSel = wide && p.id === selectedId
+            const isSel = wide && p.id === selectedId && !sel.selectMode
+            const checked = sel.isSelected(p.id)
+            const inSelectMode = sel.selectMode
+
             return (
               <li key={p.id}>
-                {wide ? (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(p.id)}
-                    className={`flex w-full items-center gap-3 rounded-2xl border bg-surface p-4 text-left ${
-                      isSel ? 'border-primary border-2' : 'border-line'
-                    }`}
-                  >
-                    <div className="min-w-0 flex-1">
+                <div
+                  className={`relative flex items-center gap-3 rounded-2xl border bg-surface p-4 ${
+                    inSelectMode && checked
+                      ? 'border-primary border-2'
+                      : isSel
+                        ? 'border-primary border-2'
+                        : 'border-line'
+                  }`}
+                >
+                  {/* 좌측: selectMode 일 때만 선택 체크박스 */}
+                  {inSelectMode && <SelectionCheckbox checked={checked} />}
+
+                  {/* 본문 wrapper: selectMode 면 button(토글), 넓은화면 button(요약선택), 좁은화면 Link(상세).
+                      우측 상단 완료영역 자리 확보를 위해 pr-16. */}
+                  {inSelectMode ? (
+                    <button
+                      type="button"
+                      onClick={() => sel.toggleId(p.id)}
+                      className="min-w-0 flex-1 pr-16 text-left"
+                    >
                       <ProjectBody p={p} />
-                    </div>
-                    <ProgressRing done={c.done} total={c.total} />
-                  </button>
-                ) : (
-                  <Link
-                    href={`/projects/${p.id}${detailSuffix}`}
-                    className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition hover:border-primary"
-                  >
-                    <div className="min-w-0 flex-1">
+                    </button>
+                  ) : wide ? (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(p.id)}
+                      className="min-w-0 flex-1 pr-16 text-left"
+                    >
                       <ProjectBody p={p} />
-                    </div>
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/projects/${p.id}${detailSuffix}`}
+                      className="min-w-0 flex-1 pr-16"
+                    >
+                      <ProjectBody p={p} />
+                    </Link>
+                  )}
+
+                  {/* ProgressRing — 본문 우측 column (기존 위치 유지, 하단 정렬) */}
+                  <div className="shrink-0 self-end">
                     <ProgressRing done={c.done} total={c.total} />
-                  </Link>
-                )}
+                  </div>
+
+                  {/* 우측 상단: "완료" 라벨 + ProjectStatusToggle (단건, button 중첩 회피 위해 직속 absolute) */}
+                  <div className="absolute right-4 top-3 flex shrink-0 items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-faint">완료</span>
+                    <ProjectStatusToggle id={p.id} status={p.status} />
+                  </div>
+                </div>
               </li>
             )
           }
 
           const list = <ul className="space-y-3">{filtered.map(renderItem)}</ul>
 
-          // 좁은 화면: 목록만(탭=상세 직행).
-          if (!wide) return list
+          // sticky bar 가림 방지용 하단 여백(selectMode 일 때만)
+          const bottomPad = sel.selectMode && sel.count > 0 ? 'pb-32' : ''
 
-          // 넓은 화면: 좌 목록 / 우 요약(읽기전용, 첫 항목 자동선택).
+          // 좁은 화면: 목록 + (선택모드면 하단 SelectionBar)
+          if (!wide)
+            return (
+              <>
+                <div className={bottomPad}>{list}</div>
+                {sel.selectMode && sel.count > 0 && (
+                  <SelectionBar
+                    count={sel.count}
+                    onCancel={sel.exit}
+                    onSelectAll={toggleAll}
+                    allSelected={allSelected}
+                  >
+                    <ProjectBulkActionsRow
+                      busy={busy}
+                      categoryOpts={categoryOpts}
+                      importanceOpts={importanceOpts}
+                      onStatus={(s) => runBulk({ status: s })}
+                      onImportance={(n) => runBulk({ importance: n })}
+                      onCategory={(c) => runBulk({ category: c })}
+                      onDelete={runDelete}
+                    />
+                  </SelectionBar>
+                )}
+              </>
+            )
+
+          // 넓은 화면: 좌 목록 / 우(평소=요약 / selectMode=일괄변경 패널).
           const selCounts = selectedProject
             ? counts[selectedProject.id] ?? { total: 0, done: 0 }
             : { total: 0, done: 0 }
           return (
-            <div className="grid grid-cols-1 gap-5 min-[740px]:grid-cols-[1fr_1.1fr]">
+            <div className={`grid grid-cols-1 gap-5 min-[740px]:grid-cols-[1fr_1.1fr] ${bottomPad}`}>
               <div className="min-w-0">{list}</div>
               <div className="min-w-0">
                 <div
                   className="sticky top-[120px] rounded-2xl border border-line bg-surface p-5"
                   style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}
                 >
-                  {selectedProject ? (
-                    <ProjectSummary p={selectedProject} counts={selCounts} detailSuffix={detailSuffix} />
+                  {sel.selectMode ? (
+                    sel.count > 0 ? (
+                      <ProjectBulkPanel
+                        count={sel.count}
+                        busy={busy}
+                        categoryOpts={categoryOpts}
+                        importanceOpts={importanceOpts}
+                        onStatus={(s) => runBulk({ status: s })}
+                        onImportance={(n) => runBulk({ importance: n })}
+                        onCategory={(c) => runBulk({ category: c })}
+                        onDelete={runDelete}
+                      />
+                    ) : (
+                      <p className="py-10 text-center text-sm text-faint">
+                        왼쪽에서 프로젝트를 선택하세요.
+                        <br />
+                        <button
+                          type="button"
+                          onClick={toggleAll}
+                          className="mt-3 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-primary"
+                        >
+                          보이는 항목 전체 선택
+                        </button>
+                      </p>
+                    )
+                  ) : selectedProject ? (
+                    <ProjectSummary
+                      p={selectedProject}
+                      counts={selCounts}
+                      detailSuffix={detailSuffix}
+                    />
                   ) : (
                     <p className="py-10 text-center text-sm text-faint">
                       왼쪽에서 프로젝트를 선택하세요.
@@ -419,5 +589,124 @@ export default function ProjectsList({
         })()
       )}
     </>
+  )
+}
+
+// 좁은화면 SelectionBar 내부 액션 chip row.
+function ProjectBulkActionsRow({
+  busy,
+  categoryOpts,
+  importanceOpts,
+  onStatus,
+  onImportance,
+  onCategory,
+  onDelete,
+}: {
+  busy: boolean
+  categoryOpts: string[]
+  importanceOpts: number[]
+  onStatus: (s: StatusValue) => void
+  onImportance: (n: number) => void
+  onCategory: (c: string | null) => void
+  onDelete: () => void
+}) {
+  const [open, setOpen] = useState<null | 'status' | 'imp' | 'cat'>(null)
+  const Btn = ({
+    children,
+    on,
+    onClick,
+  }: {
+    children: React.ReactNode
+    on?: boolean
+    onClick: () => void
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition disabled:opacity-50 ${
+        on
+          ? 'border-primary bg-primary text-white'
+          : 'border-line text-muted hover:border-primary'
+      }`}
+    >
+      {children}
+    </button>
+  )
+
+  function tap(kind: 'status' | 'imp' | 'cat') {
+    setOpen((cur) => (cur === kind ? null : kind))
+  }
+
+  function applyAndClose<T>(fn: (v: T) => void, v: T) {
+    setOpen(null)
+    fn(v)
+  }
+
+  return (
+    <div className="relative flex flex-wrap items-center gap-1.5">
+      <Btn on={open === 'status'} onClick={() => tap('status')}>
+        상태
+      </Btn>
+      {importanceOpts.length > 0 && (
+        <Btn on={open === 'imp'} onClick={() => tap('imp')}>
+          중요도
+        </Btn>
+      )}
+      {categoryOpts.length > 0 && (
+        <Btn on={open === 'cat'} onClick={() => tap('cat')}>
+          분류
+        </Btn>
+      )}
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={busy}
+        className="rounded-lg border border-accent px-2.5 py-1.5 text-[11px] font-semibold text-accent transition hover:bg-accent-soft disabled:opacity-50"
+      >
+        삭제
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 mb-2">
+          <div
+            className="rounded-xl border border-line p-3 shadow-lg"
+            style={{ background: 'var(--paper)' }}
+          >
+            {open === 'status' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11px] font-semibold text-faint">상태로 변경</span>
+                {STATUSES.map((s) => (
+                  <Btn key={s.value} onClick={() => applyAndClose(onStatus, s.value)}>
+                    {s.label}
+                  </Btn>
+                ))}
+              </div>
+            )}
+            {open === 'imp' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11px] font-semibold text-faint">중요도 변경</span>
+                {importanceOpts.map((n) => (
+                  <Btn key={n} onClick={() => applyAndClose(onImportance, n)}>
+                    {'★'.repeat(n)}
+                  </Btn>
+                ))}
+              </div>
+            )}
+            {open === 'cat' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11px] font-semibold text-faint">분류 변경</span>
+                {categoryOpts.map((c) => (
+                  <Btn key={c} onClick={() => applyAndClose(onCategory, c)}>
+                    {c}
+                  </Btn>
+                ))}
+                <Btn onClick={() => applyAndClose(onCategory, null)}>분류 제거</Btn>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
