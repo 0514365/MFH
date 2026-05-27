@@ -2,11 +2,12 @@
 
 // MFH-TASKS-LIST-V1
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { STATUSES, normalizeStatus, type StatusValue } from '@/lib/constants'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import { fmtTime } from '@/lib/calendar'
 import { StatusBadge, CategoryBadge, ImportanceStars } from '../projects/badges'
+import { useWideScreen } from '@/lib/useWideScreen'
 import {
   taskGroupOf,
   TASK_GROUP_LABEL,
@@ -47,6 +48,68 @@ function isOverdue(d: string): boolean {
   return d < today
 }
 
+// 요약 패널(읽기전용). 넓은 화면 우측. '편집' 버튼 → /tasks/[id]/edit.
+function TaskSummary({ t }: { t: TaskListRow }) {
+  const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
+  const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="flex gap-3 py-2">
+      <span className="w-16 shrink-0 text-xs font-semibold text-faint">{label}</span>
+      <div className="min-w-0 flex-1 text-sm text-ink">{children}</div>
+    </div>
+  )
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <h2
+          className={`text-lg font-bold ${t.done ? 'text-faint line-through' : 'text-ink'}`}
+        >
+          {t.title}
+        </h2>
+        <Link
+          href={`/tasks/${t.id}/edit`}
+          className="shrink-0 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+        >
+          편집
+        </Link>
+      </div>
+
+      {t.description && (
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted">
+          {t.description}
+        </p>
+      )}
+
+      <div className="mt-4 divide-y divide-line border-t border-line">
+        <Row label="상태">
+          <StatusBadge value={t.status ?? 'upcoming'} />
+        </Row>
+        {t.importance > 0 && (
+          <Row label="중요도">
+            <ImportanceStars value={t.importance} />
+          </Row>
+        )}
+        {t.due_date && (
+          <Row label="마감">
+            <span className={overdue ? 'text-danger' : ''}>
+              {fmtDueShort(t.due_date)}
+              {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
+              {overdue ? ' · 연체' : ''}
+            </span>
+          </Row>
+        )}
+        {t.place_name && <Row label="장소">📍 {t.place_name}</Row>}
+        {t.category && (
+          <Row label="분류">
+            <CategoryBadge value={t.category} />
+          </Row>
+        )}
+        {t.projects?.title && <Row label="프로젝트">{t.projects.title}</Row>}
+        <Row label="완료">{t.done ? '완료됨' : '미완료'}</Row>
+      </div>
+    </div>
+  )
+}
+
 export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
   const [hideDone, setHideDone] = useState(true)
   const [fStatus, setFStatus] = useState<StatusValue[]>([])
@@ -57,6 +120,8 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
   const [asc, setAsc] = useState(true)
   const [filterOpen, setFilterOpen] = useState(false)
   const [sortOpen, setSortOpen] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const wide = useWideScreen()
 
   // 데이터에 실제로 존재하는 값만 칩으로 노출
   const importanceOpts = useMemo(
@@ -112,6 +177,23 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
     })
     return list
   }, [tasks, hideDone, fStatus, fImportance, fCategory, fProject, sortKey, asc])
+
+  // 넓은 화면: 선택이 비었거나 목록에서 사라지면 첫 항목 자동선택. 좁은 화면: 선택 해제.
+  useEffect(() => {
+    if (!wide) {
+      setSelectedId(null)
+      return
+    }
+    setSelectedId((cur) => {
+      if (cur && filtered.some((t) => t.id === cur)) return cur
+      return filtered[0]?.id ?? null
+    })
+  }, [wide, filtered])
+
+  const selectedTask = useMemo(
+    () => filtered.find((t) => t.id === selectedId) ?? null,
+    [filtered, selectedId],
+  )
 
   const activeCount =
     (hideDone ? 0 : 1) + fStatus.length + fImportance.length + fCategory.length + fProject.length
@@ -306,101 +388,146 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
         (() => {
           // 기본정렬(마감·오름차순)일 때만 기한 그룹 헤더 표시. 그 외엔 평면 리스트.
           const grouped = sortKey === 'due' && asc
-          function renderTask(t: TaskListRow) {
+
+          // 카드 내용(날짜·제목·설명·배지). wide=선택버튼 / narrow=Link 로 감쌈.
+          function TaskBody({ t }: { t: TaskListRow }) {
             const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
+            return (
+              <>
+                {/* 1행: 날짜(작게) — 연체면 빨강 */}
+                {t.due_date && (
+                  <div
+                    className={`text-[11px] font-medium ${overdue ? 'text-danger' : 'text-faint'}`}
+                  >
+                    {fmtDueShort(t.due_date)}
+                    {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
+                    {overdue ? ' · 연체' : ''}
+                  </div>
+                )}
+
+                {/* 2행: 제목(굵게) */}
+                <div
+                  className={`mt-0.5 text-sm font-semibold ${
+                    t.done ? 'text-faint line-through' : 'text-ink'
+                  }`}
+                >
+                  {t.title}
+                </div>
+
+                {/* 설명: 동적 높이(최대 3줄) */}
+                {t.description && (
+                  <div className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-muted">
+                    {t.description}
+                  </div>
+                )}
+
+                {/* 3행: Status | 중요도 — 모바일 세로모드 2열 */}
+                <div className="mt-2 grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+                  <StatusBadge value={t.status ?? 'upcoming'} />
+                  {t.importance > 0 && (
+                    <div className="justify-self-end sm:justify-self-auto">
+                      <ImportanceStars value={t.importance} />
+                    </div>
+                  )}
+                </div>
+
+                {/* 4행: 분류 · 장소 · 프로젝트 */}
+                {(t.category || t.place_name || t.projects?.title) && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <CategoryBadge value={t.category} />
+                    {t.place_name && (
+                      <span className="text-[11px] text-muted">📍 {t.place_name}</span>
+                    )}
+                    {t.projects?.title && (
+                      <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
+                        {t.projects.title}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
+            )
+          }
+
+          function renderTask(t: TaskListRow) {
+            const isSel = wide && t.id === selectedId
             return (
               <li
                 key={t.id}
-                className="flex items-start gap-3 rounded-2xl border border-line bg-surface px-4 py-3"
+                className={`flex items-start gap-3 rounded-2xl border bg-surface px-4 py-3 ${
+                  isSel ? 'border-primary border-2' : 'border-line'
+                }`}
               >
                 <div className="pt-0.5">
                   <TaskCheck id={t.id} done={t.done} />
                 </div>
-                <Link href={`/tasks/${t.id}/edit`} className="min-w-0 flex-1">
-                  {/* 1행: 날짜(작게) — 연체면 빨강 */}
-                  {t.due_date && (
-                    <div
-                      className={`text-[11px] font-medium ${
-                        overdue ? 'text-danger' : 'text-faint'
-                      }`}
-                    >
-                      {fmtDueShort(t.due_date)}
-                      {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
-                      {overdue ? ' · 연체' : ''}
-                    </div>
-                  )}
-
-                  {/* 2행: 제목(굵게) */}
-                  <div
-                    className={`mt-0.5 text-sm font-semibold ${
-                      t.done ? 'text-faint line-through' : 'text-ink'
-                    }`}
+                {wide ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(t.id)}
+                    className="min-w-0 flex-1 text-left"
                   >
-                    {t.title}
-                  </div>
-
-                  {/* 설명: 동적 높이(최대 3줄) */}
-                  {t.description && (
-                    <div className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-muted">
-                      {t.description}
-                    </div>
-                  )}
-
-                  {/* 3행: Status | 중요도 — 모바일 세로모드 2열 */}
-                  <div className="mt-2 grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
-                    <StatusBadge value={t.status ?? 'upcoming'} />
-                    {t.importance > 0 && (
-                      <div className="justify-self-end sm:justify-self-auto">
-                        <ImportanceStars value={t.importance} />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 4행: 분류 · 장소 · 프로젝트 */}
-                  {(t.category || t.place_name || t.projects?.title) && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                      <CategoryBadge value={t.category} />
-                      {t.place_name && (
-                        <span className="text-[11px] text-muted">📍 {t.place_name}</span>
-                      )}
-                      {t.projects?.title && (
-                        <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
-                          {t.projects.title}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </Link>
+                    <TaskBody t={t} />
+                  </button>
+                ) : (
+                  <Link href={`/tasks/${t.id}/edit`} className="min-w-0 flex-1">
+                    <TaskBody t={t} />
+                  </Link>
+                )}
               </li>
             )
           }
 
-          if (!grouped) {
-            return <ul className="space-y-2">{filtered.map(renderTask)}</ul>
+          function renderList() {
+            if (!grouped) {
+              return <ul className="space-y-2">{filtered.map(renderTask)}</ul>
+            }
+            const buckets: Record<TaskGroupKey, TaskListRow[]> = {
+              overdue: [],
+              this_week: [],
+              next_week: [],
+              later: [],
+              unset: [],
+            }
+            for (const t of filtered) buckets[taskGroupOf(t.due_date)].push(t)
+            return (
+              <div className="space-y-5">
+                {TASK_GROUP_ORDER.filter((k) => buckets[k].length > 0).map((k) => (
+                  <section key={k}>
+                    <h2 className="mb-2 flex items-center gap-2 text-xs font-bold text-muted">
+                      {TASK_GROUP_LABEL[k]}
+                      <span className="rounded-full bg-surface-subtle px-1.5 text-[10px] font-semibold text-faint">
+                        {buckets[k].length}
+                      </span>
+                    </h2>
+                    <ul className="space-y-2">{buckets[k].map(renderTask)}</ul>
+                  </section>
+                ))}
+              </div>
+            )
           }
 
-          const buckets: Record<TaskGroupKey, TaskListRow[]> = {
-            overdue: [],
-            this_week: [],
-            next_week: [],
-            later: [],
-            unset: [],
-          }
-          for (const t of filtered) buckets[taskGroupOf(t.due_date)].push(t)
+          // 좁은 화면: 기존처럼 목록만(탭=세부 직행).
+          if (!wide) return renderList()
 
+          // 넓은 화면: 좌 목록 / 우 요약(읽기전용, 첫 항목 자동선택).
           return (
-            <div className="space-y-5">
-              {TASK_GROUP_ORDER.filter((k) => buckets[k].length > 0).map((k) => (
-                <section key={k}>
-                  <h2 className="mb-2 flex items-center gap-2 text-xs font-bold text-muted">
-                    {TASK_GROUP_LABEL[k]}
-                    <span className="rounded-full bg-surface-subtle px-1.5 text-[10px] font-semibold text-faint">
-                      {buckets[k].length}
-                    </span>
-                  </h2>
-                  <ul className="space-y-2">{buckets[k].map(renderTask)}</ul>
-                </section>
-              ))}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.1fr]">
+              <div className="min-w-0">{renderList()}</div>
+              <div className="min-w-0">
+                <div
+                  className="sticky top-[120px] rounded-2xl border border-line bg-surface p-5"
+                  style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}
+                >
+                  {selectedTask ? (
+                    <TaskSummary t={selectedTask} />
+                  ) : (
+                    <p className="py-10 text-center text-sm text-faint">
+                      왼쪽에서 할 일을 선택하세요.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )
         })()
