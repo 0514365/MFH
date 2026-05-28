@@ -1,6 +1,7 @@
-// MFH-PORTFOLIO-TYPES-V2
+// MFH-PORTFOLIO-TYPES-V3
 // 포트폴리오 도메인 타입 + 헬퍼
 // V2: couple_photo_url / couple_intro (부부사진 + 부부 소개 개요, patch63) 추가.
+// V3: youtubeVideoId 에 live/ 패턴 추가(라이브 영상 썸네일 지원).
 
 export type Portfolio = {
   id: string;
@@ -137,6 +138,7 @@ export function youtubeVideoId(url: string | null | undefined): string | null {
     /[?&]v=([A-Za-z0-9_-]{6,})/,
     /youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/,
     /youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/live\/([A-Za-z0-9_-]{6,})/,
   ];
   for (const re of patterns) {
     const m = url.match(re);

@@ -1,7 +1,9 @@
-// MFH-PORTFOLIO-VIDEO-SECTION-V1
+// MFH-PORTFOLIO-VIDEO-SECTION-V2
 // 공개 readonly 사역 영상 섹션. 카테고리별 H3 그룹 + 반응형 그리드(1/2/3열).
 // 썸네일은 YouTube hqdefault 자동. 클릭 시 새 탭 watch.
 // 영상 없는 카테고리는 렌더 안 함.
+// V2: 영상 전용 페이지(/p/[slug]/videos)에서 전체 표시. 폰트 전반 상향(가독성).
+//     showHeader=false 면 섹션 헤더 생략(전용 페이지에서 자체 타이틀 사용).
 
 import type { PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
 import { youtubeThumbnailUrl, youtubeWatchUrl } from '@/lib/portfolio';
@@ -9,9 +11,10 @@ import { youtubeThumbnailUrl, youtubeWatchUrl } from '@/lib/portfolio';
 type Props = {
   categories: PortfolioVideoCategory[];
   videos: PortfolioVideo[];
+  showHeader?: boolean;
 };
 
-export default function VideoSection({ categories, videos }: Props) {
+export default function VideoSection({ categories, videos, showHeader = true }: Props) {
   if (videos.length === 0) return null;
 
   // 카테고리별 그룹 (sort_order 순). category_id null 인 영상은 '기타' 그룹으로.
@@ -39,24 +42,26 @@ export default function VideoSection({ categories, videos }: Props) {
 
   return (
     <section className="mt-4 min-[740px]:mt-5">
-      <h2 className="border-l-[3px] border-accent pl-2 text-sm font-medium text-primary">
-        사역 영상
-      </h2>
-      <div className="mt-3 space-y-5">
+      {showHeader && (
+        <h2 className="border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary min-[740px]:text-lg">
+          사역 영상
+        </h2>
+      )}
+      <div className={`${showHeader ? 'mt-4' : ''} space-y-7`}>
         {groups.map((g) => (
           <div key={g.key}>
-            <h3 className="mb-2 text-xs font-medium text-ink min-[740px]:text-sm">{g.name}</h3>
-            <ul className="grid grid-cols-1 gap-3 min-[740px]:grid-cols-2 min-[1100px]:grid-cols-3">
+            <h3 className="mb-3 text-sm font-semibold text-ink min-[740px]:text-base">{g.name}</h3>
+            <ul className="grid grid-cols-1 gap-4 min-[560px]:grid-cols-2 min-[1100px]:grid-cols-3">
               {g.items.map((v) => (
                 <li key={v.id}>
                   <a
                     href={youtubeWatchUrl(v.youtube_url) ?? '#'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block overflow-hidden rounded-md border border-line bg-surface transition hover:border-primary"
+                    className="block overflow-hidden rounded-lg border border-line bg-surface transition hover:border-primary"
                   >
                     <VideoThumb url={v.youtube_url} year={v.year} title={v.title} />
-                    <p className="px-2.5 py-2 text-[11px] leading-snug text-ink min-[740px]:text-xs">
+                    <p className="px-3 py-2.5 text-sm leading-snug text-ink">
                       {v.title}
                     </p>
                   </a>

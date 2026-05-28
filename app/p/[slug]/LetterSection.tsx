@@ -1,9 +1,10 @@
 'use client';
 
-// MFH-PORTFOLIO-LETTER-SECTION-V1
+// MFH-PORTFOLIO-LETTER-SECTION-V2
 // 공개 페이지 선교편지 섹션. 영상 아래 전체 폭. 년도별 accordion(최신 펼침).
 // 카드 = 표지(3:4) 또는 PDF placeholder. 클릭 = 새 탭 PDF.
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v4 §5-5
+// V2: 폰트 전반 상향(가독성).
 
 import { useState } from 'react';
 import type { PortfolioLetter } from '@/lib/portfolio';
@@ -26,10 +27,10 @@ export default function LetterSection({ letters }: Props) {
 
   return (
     <section className="mt-8 min-[740px]:mt-10">
-      <h2 className="border-l-[3px] border-accent pl-2 text-sm font-medium text-primary">
+      <h2 className="border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary min-[740px]:text-lg">
         선교편지
       </h2>
-      <p className="mt-1 pl-2 text-[11px] text-faint">Monthly prayer letters</p>
+      <p className="mt-1 pl-2.5 text-sm text-faint">Monthly prayer letters</p>
 
       <div className="mt-3 space-y-2.5">
         {groups.map((g) => {
@@ -44,9 +45,9 @@ export default function LetterSection({ letters }: Props) {
                 onClick={() => setOpenYear(open ? null : g.year)}
                 className="flex w-full items-center justify-between px-4 py-3 text-left"
               >
-                <span className="text-sm font-medium text-ink">
+                <span className="text-base font-semibold text-ink">
                   {g.year}
-                  <span className="ml-2 text-xs font-normal text-faint">
+                  <span className="ml-2 text-sm font-normal text-faint">
                     · {g.letters.length}편
                   </span>
                 </span>
@@ -108,7 +109,7 @@ function LetterCard({ letter: l }: { letter: LetterWithUrls }) {
           </span>
         )}
       </div>
-      <p className="mt-1.5 text-[11px] leading-snug text-ink min-[740px]:text-xs">
+      <p className="mt-1.5 text-sm leading-snug text-ink">
         {label}
       </p>
     </>
