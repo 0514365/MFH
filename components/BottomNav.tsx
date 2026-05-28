@@ -20,7 +20,7 @@ const TABS: Tab[] = [
   { href: '/journal', label: 'Log', icon: 'log', active: true, match: (p) => p.startsWith('/journal') },
   { href: '/projects', label: 'Projects', icon: 'projects', active: true, match: (p) => p.startsWith('/projects') },
   { href: '/tasks', label: 'To-Do', icon: 'todo', active: true, match: (p) => p.startsWith('/tasks') },
-  { href: '/portfolio', label: 'Portfolio', icon: 'portfolio', active: false, match: (p) => p.startsWith('/portfolio') },
+  { href: '/portfolio', label: 'Portfolio', icon: 'portfolio', active: true, match: (p) => p.startsWith('/portfolio') },
 ]
 
 // 탭바를 숨길 경로(로그인 등). 스플래시는 홈 내부 SplashGate 가 처리.

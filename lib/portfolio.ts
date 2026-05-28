@@ -97,3 +97,53 @@ export function youtubeEmbedUrl(url: string | null | undefined): string | null {
   if (long) return `https://www.youtube.com/embed/${long[1]}`;
   return null;
 }
+
+
+// ========== patch61: 사역 영상 ==========
+
+export type PortfolioVideoCategory = {
+  id: string;
+  user_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type PortfolioVideo = {
+  id: string;
+  user_id: string;
+  category_id: string | null;
+  title: string;
+  youtube_url: string;
+  year: number | null;
+  sort_order: number;
+  created_at: string;
+};
+
+// YouTube URL → video id 추출 (watch / youtu.be / shorts / embed 모두 지원)
+export function youtubeVideoId(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const patterns = [
+    /youtu\.be\/([A-Za-z0-9_-]{6,})/,
+    /[?&]v=([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/,
+  ];
+  for (const re of patterns) {
+    const m = url.match(re);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+// YouTube 썸네일 URL (hqdefault: 480x360, 항상 존재)
+export function youtubeThumbnailUrl(url: string | null | undefined): string | null {
+  const id = youtubeVideoId(url);
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
+}
+
+// 정규화된 시청 URL (shorts 등도 표준 watch 로)
+export function youtubeWatchUrl(url: string | null | undefined): string | null {
+  const id = youtubeVideoId(url);
+  return id ? `https://www.youtube.com/watch?v=${id}` : (url ?? null);
+}

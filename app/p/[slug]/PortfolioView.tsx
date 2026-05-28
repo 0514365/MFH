@@ -2,14 +2,17 @@
 // 공개 readonly 뷰. 모바일(<740) / 태블릿(740~1099) / 데스크탑(>=1100) 3단계 반응형.
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v2
 
-import type { Portfolio, PortfolioHistory } from '@/lib/portfolio';
+import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
+import VideoSection from './VideoSection';
 
 type Props = {
   portfolio: Portfolio;
   history: PortfolioHistory[];
+  videoCategories?: PortfolioVideoCategory[];
+  videos?: PortfolioVideo[];
 };
 
-export default function PortfolioView({ portfolio: p, history }: Props) {
+export default function PortfolioView({ portfolio: p, history, videoCategories = [], videos = [] }: Props) {
   const heroBg = p.hero_image_url
     ? { backgroundImage: `url(${p.hero_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: 'linear-gradient(135deg, #F1E4E4 0%, #FAE3E4 100%)' };
@@ -179,6 +182,9 @@ export default function PortfolioView({ portfolio: p, history }: Props) {
             </div>
           </section>
         </div>
+
+        {/* 사역 영상 (연혁 아래, 전체 폭) */}
+        <VideoSection categories={videoCategories} videos={videos} />
 
         {/* footer */}
         <footer className="mt-8 border-t border-line pt-4 text-center text-[11px] text-faint min-[740px]:mt-10">

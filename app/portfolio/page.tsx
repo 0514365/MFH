@@ -4,9 +4,10 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase-server';
-import type { Portfolio, PortfolioHistory } from '@/lib/portfolio';
+import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
 import PortfolioForm from './PortfolioForm';
 import HistoryEditor from './HistoryEditor';
+import VideoEditor from './VideoEditor';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,22 @@ export default async function PortfolioEditPage() {
 
   const history = (historyRows ?? []) as PortfolioHistory[];
 
+  const { data: videoCatRows } = await supabase
+    .from('portfolio_video_categories')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('sort_order', { ascending: true });
+
+  const videoCategories = (videoCatRows ?? []) as PortfolioVideoCategory[];
+
+  const { data: videoRows } = await supabase
+    .from('portfolio_videos')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('sort_order', { ascending: true });
+
+  const videos = (videoRows ?? []) as PortfolioVideo[];
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
       <header className="mb-5 flex items-center justify-between">
@@ -56,6 +73,14 @@ export default async function PortfolioEditPage() {
 
       <div className="mt-8">
         <HistoryEditor initial={history} userId={user.id} />
+      </div>
+
+      <div className="mt-8">
+        <VideoEditor
+          initialCategories={videoCategories}
+          initialVideos={videos}
+          userId={user.id}
+        />
       </div>
     </div>
   );

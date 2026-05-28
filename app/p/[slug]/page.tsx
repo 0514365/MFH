@@ -5,7 +5,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase-server';
-import type { Portfolio, PortfolioHistory } from '@/lib/portfolio';
+import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
 import PortfolioView from './PortfolioView';
 
 type Props = { params: { slug: string } };
@@ -52,5 +52,28 @@ export default async function PublicPortfolioPage({ params }: Props) {
 
   const history = (historyRows ?? []) as PortfolioHistory[];
 
-  return <PortfolioView portfolio={p} history={history} />;
+  const { data: videoCatRows } = await supabase
+    .from('portfolio_video_categories')
+    .select('*')
+    .eq('user_id', p.user_id)
+    .order('sort_order', { ascending: true });
+
+  const videoCategories = (videoCatRows ?? []) as PortfolioVideoCategory[];
+
+  const { data: videoRows } = await supabase
+    .from('portfolio_videos')
+    .select('*')
+    .eq('user_id', p.user_id)
+    .order('sort_order', { ascending: true });
+
+  const videos = (videoRows ?? []) as PortfolioVideo[];
+
+  return (
+    <PortfolioView
+      portfolio={p}
+      history={history}
+      videoCategories={videoCategories}
+      videos={videos}
+    />
+  );
 }

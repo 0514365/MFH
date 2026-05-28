@@ -140,6 +140,19 @@ export default async function Home() {
             </div>
             <ModuleIcon name="insights" size={32} className="shrink-0 text-primary" />
           </Link>
+          <Link
+            href="/portfolio"
+            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-bold text-primary">Portfolio</div>
+              <div className="mt-0.5 text-xs text-muted">Sharing our journey</div>
+              <div className="mt-1 text-[11px] leading-snug text-faint">
+                <span className="truncate">&ldquo;땅끝까지 이르러 내 증인이 되리라&rdquo;</span> 행 1:8
+              </div>
+            </div>
+            <ModuleIcon name="portfolio" size={32} className="shrink-0 text-primary" />
+          </Link>
         </section>
 
         <form action="/auth/signout" method="post" className="mt-10">
