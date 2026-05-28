@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-TASKS-LIST-V6
+// MFH-TASKS-LIST-V7
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -9,6 +9,10 @@ import {
   parseTaskFilter,
   buildTaskQuery,
   applyTaskFilter,
+  isDefaultTaskFilter,
+  readTaskFilter,
+  saveTaskFilter,
+  clearTaskFilter,
   type TaskFilter,
 } from '@/lib/taskFilter'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
@@ -143,6 +147,8 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
   // 다중선택 모드 (모듈 무관 hook). selectMode 진입시 카드 탭=토글, 평소엔 상세 직행/요약 선택.
   const sel = useSelectionMode()
   const [busy, setBusy] = useState(false)
+  // 세션 복원 완료 플래그(복원 전엔 sessionStorage 저장 보류 → 기본값 덮어쓰기 방지)
+  const [restored, setRestored] = useState(false)
 
   // 필터 변경 → URL 쿼리 동기화(기본값이면 쿼리 제거). 목록 상태가 URL 에 영속.
   const currentFilter: TaskFilter = {
@@ -163,6 +169,32 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
     router.replace(q ? `/tasks?${q}` : '/tasks', { scroll: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hideDone, fStatus, fImportance, fCategory, fProject, sortKey, asc])
+
+  // 마운트 시 1회: URL 에 필터가 없으면(기본값) 세션에 저장된 필터를 복원.
+  // (URL 쿼리가 있으면 공유 링크 우선 → 복원 건너뜀.) 편집 왕복 등으로 쿼리가 사라져도 유지.
+  useEffect(() => {
+    if (isDefaultTaskFilter(init)) {
+      const saved = readTaskFilter()
+      if (saved && !isDefaultTaskFilter(saved)) {
+        setHideDone(saved.hideDone)
+        setFStatus(saved.fStatus)
+        setFImportance(saved.fImportance)
+        setFCategory(saved.fCategory)
+        setFProject(saved.fProject)
+        setSortKey(saved.sortKey)
+        setAsc(saved.asc)
+      }
+    }
+    setRestored(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 필터 변경을 세션에 저장(복원 완료 후부터). 탭 종료 전까지 유지, '모두 초기화' 시 제거.
+  useEffect(() => {
+    if (!restored) return
+    saveTaskFilter(currentFilter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restored, hideDone, fStatus, fImportance, fCategory, fProject, sortKey, asc])
 
   // 데이터에 실제로 존재하는 값만 칩으로 노출
   const importanceOpts = useMemo(
@@ -185,6 +217,11 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
       a.title.localeCompare(b.title),
     )
   }, [tasks])
+  // 장소 일괄변경용: 데이터에 존재하는 distinct 장소(빠른선택 칩)
+  const placeOpts = useMemo(
+    () => Array.from(new Set(tasks.map((t) => t.place_name).filter((p): p is string => !!p))).sort(),
+    [tasks],
+  )
 
   // 필터/정렬을 lib 순수함수에 위임 → 상세(tasks/[id]) ◀▶ 와 동일 정렬 공유.
   const filtered = useMemo(
@@ -223,6 +260,7 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
     setFProject([])
     setSortKey('due')
     setAsc(true)
+    clearTaskFilter()
   }
 
   // ───── 일괄변경 액션 ─────
@@ -482,14 +520,23 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
             const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
             return (
               <>
-                {/* 1행: 날짜(작게) — 연체면 빨강. 우측 상단 완료영역 자리는 li 측에서 별도 배치(pr-* 로 겹침 방지). */}
-                {t.due_date && (
-                  <div
-                    className={`text-[11px] font-medium ${overdue ? 'text-danger' : 'text-faint'}`}
-                  >
-                    {fmtDueShort(t.due_date)}
-                    {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
-                    {overdue ? ' · 연체' : ''}
+                {/* 1행: 날짜(작게) + 프로젝트 칩 — 연체면 빨강. 우측 상단 완료영역 자리는 li 측에서 별도 배치(pr-* 로 겹침 방지). */}
+                {(t.due_date || t.projects?.title) && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {t.due_date && (
+                      <span
+                        className={`text-[11px] font-medium ${overdue ? 'text-danger' : 'text-faint'}`}
+                      >
+                        {fmtDueShort(t.due_date)}
+                        {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
+                        {overdue ? ' · 연체' : ''}
+                      </span>
+                    )}
+                    {t.projects?.title && (
+                      <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
+                        {t.projects.title}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -519,17 +566,12 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
                   )}
                 </div>
 
-                {/* 4행: 분류 · 장소 · 프로젝트 */}
-                {(t.category || t.place_name || t.projects?.title) && (
+                {/* 4행: 분류 · 장소 (프로젝트는 1행 날짜 옆으로 이동) */}
+                {(t.category || t.place_name) && (
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <CategoryBadge value={t.category} />
                     {t.place_name && (
                       <span className="text-[11px] text-muted">📍 {t.place_name}</span>
-                    )}
-                    {t.projects?.title && (
-                      <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
-                        {t.projects.title}
-                      </span>
                     )}
                   </div>
                 )}
@@ -645,9 +687,11 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
                       busy={busy}
                       categoryOpts={categoryOpts}
                       importanceOpts={importanceOpts}
+                      placeOpts={placeOpts}
                       onStatus={(s) => runBulk({ status: s })}
                       onImportance={(n) => runBulk({ importance: n })}
                       onCategory={(c) => runBulk({ category: c })}
+                      onPlace={(p) => runBulk({ place_name: p })}
                       onDoneToggle={(d) => runBulk({ done: d })}
                       onDelete={runDelete}
                     />
@@ -673,9 +717,11 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
                         busy={busy}
                         categoryOpts={categoryOpts}
                         importanceOpts={importanceOpts}
+                        placeOpts={placeOpts}
                         onStatus={(s) => runBulk({ status: s })}
                         onImportance={(n) => runBulk({ importance: n })}
                         onCategory={(c) => runBulk({ category: c })}
+                        onPlace={(p) => runBulk({ place_name: p })}
                         onDoneToggle={(d) => runBulk({ done: d })}
                         onDelete={runDelete}
                       />
@@ -714,22 +760,27 @@ function BulkActionsRow({
   busy,
   categoryOpts,
   importanceOpts,
+  placeOpts,
   onStatus,
   onImportance,
   onCategory,
+  onPlace,
   onDoneToggle,
   onDelete,
 }: {
   busy: boolean
   categoryOpts: string[]
   importanceOpts: number[]
+  placeOpts: string[]
   onStatus: (s: StatusValue) => void
   onImportance: (n: number) => void
   onCategory: (c: string | null) => void
+  onPlace: (p: string | null) => void
   onDoneToggle: (done: boolean) => void
   onDelete: () => void
 }) {
-  const [open, setOpen] = useState<null | 'status' | 'imp' | 'cat' | 'done'>(null)
+  const [open, setOpen] = useState<null | 'status' | 'imp' | 'cat' | 'done' | 'place'>(null)
+  const [placeInput, setPlaceInput] = useState('')
   const Btn = ({ children, on, onClick }: { children: React.ReactNode; on?: boolean; onClick: () => void }) => (
     <button
       type="button"
@@ -772,6 +823,9 @@ function BulkActionsRow({
           분류
         </Btn>
       )}
+      <Btn on={open === 'place'} onClick={() => tap('place')}>
+        장소
+      </Btn>
       <button
         type="button"
         onClick={onDelete}
@@ -821,6 +875,39 @@ function BulkActionsRow({
                   </Btn>
                 ))}
                 <Btn onClick={() => applyAndClose(onCategory, null)}>분류 제거</Btn>
+              </div>
+            )}
+            {open === 'place' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-faint">장소 변경</span>
+                  <input
+                    value={placeInput}
+                    onChange={(e) => setPlaceInput(e.target.value)}
+                    placeholder="장소 입력"
+                    className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[11px] outline-none focus:border-primary"
+                  />
+                  <Btn
+                    onClick={() => {
+                      const v = placeInput.trim()
+                      if (!v) return
+                      setPlaceInput('')
+                      applyAndClose(onPlace, v)
+                    }}
+                  >
+                    설정
+                  </Btn>
+                </div>
+                {placeOpts.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {placeOpts.map((p) => (
+                      <Btn key={p} onClick={() => applyAndClose(onPlace, p)}>
+                        {p}
+                      </Btn>
+                    ))}
+                  </div>
+                )}
+                <Btn onClick={() => applyAndClose(onPlace, null)}>장소 제거</Btn>
               </div>
             )}
           </div>

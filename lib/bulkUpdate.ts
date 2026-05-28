@@ -1,8 +1,9 @@
-// MFH-BULK-UPDATE-V4
+// MFH-BULK-UPDATE-V5
 // 다중선택 일괄변경의 supabase 헬퍼. 모듈별 함수 export.
 // V2: 내부에서 createClient 호출 → 호출자가 client 주입 안 해도 됨. 타입 충돌 회피.
 // V3: bulkUpdateJournals / bulkDeleteJournals 추가 (patch58b).
 // V4: bulkUpdateProjects / bulkDeleteProjects 추가 (patch58c).
+// V5: bulkUpdateTasks place_name 추가 (장소 일괄변경).
 import { createClient } from '@/lib/supabase-browser'
 import type { StatusValue } from '@/lib/constants'
 
@@ -12,6 +13,7 @@ export type TaskBulkPatch = {
   importance?: number
   category?: string | null
   done?: boolean
+  place_name?: string | null
 }
 
 export async function bulkUpdateTasks(
@@ -29,6 +31,7 @@ export async function bulkUpdateTasks(
   }
   if (patch.importance !== undefined) update.importance = patch.importance
   if (patch.category !== undefined) update.category = patch.category
+  if (patch.place_name !== undefined) update.place_name = patch.place_name
   if (patch.done !== undefined) {
     update.done = patch.done
     update.completed_at = patch.done ? new Date().toISOString() : null

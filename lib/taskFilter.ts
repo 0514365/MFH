@@ -1,4 +1,4 @@
-// MFH-TASK-FILTER-V2
+// MFH-TASK-FILTER-V3
 // 할 일 목록 필터/정렬 순수함수. 목록(TasksListClient)과 상세(tasks/[id]) 가 공유한다.
 // URL 쿼리 <-> 필터 상태 직렬화 + 결정적 정렬 + (기본정렬일 때) 기한그룹 평탄화를 한곳에 둔다.
 import { normalizeStatus, type StatusValue } from '@/lib/constants'
@@ -169,4 +169,38 @@ export function orderTaskIds<T extends FilterableTask>(tasks: T[], f: TaskFilter
     for (const t of buckets[k]) ordered.push(t.id)
   }
   return ordered
+}
+
+// ───────── 세션 영속(탭 단위) ─────────
+// 편집 왕복 등으로 URL 쿼리가 사라져도 필터를 유지. 직렬화는 buildTaskQuery/parseTaskFilter 재사용.
+// sessionStorage = 탭 종료 시 자동 소멸 → "로그아웃 전까지 유지" 를 가볍게 충족.
+const TASK_FILTER_STORAGE_KEY = 'mfh.taskFilter'
+
+export function saveTaskFilter(f: TaskFilter): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.setItem(TASK_FILTER_STORAGE_KEY, buildTaskQuery(f))
+  } catch {
+    /* sessionStorage 불가(시크릿 등) 무시 */
+  }
+}
+
+export function readTaskFilter(): TaskFilter | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const s = window.sessionStorage.getItem(TASK_FILTER_STORAGE_KEY)
+    if (s === null) return null
+    return parseTaskFilter(new URLSearchParams(s))
+  } catch {
+    return null
+  }
+}
+
+export function clearTaskFilter(): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.removeItem(TASK_FILTER_STORAGE_KEY)
+  } catch {
+    /* 무시 */
+  }
 }

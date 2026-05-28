@@ -1,7 +1,10 @@
-// MFH-TASK-BULK-PANEL-V1
+'use client'
+
+// MFH-TASK-BULK-PANEL-V2
 // 넓은 화면(min-width:740px) 마스터-디테일 우측 패널.
-// selectMode 진입 시 TaskSummary 대신 표시. 같은 액션(분류/Status/중요도/완료/삭제)을
+// selectMode 진입 시 TaskSummary 대신 표시. 같은 액션(분류/장소/Status/중요도/완료/삭제)을
 // 좁은화면 SelectionBar 와 동일하게 노출.
+import { useState } from 'react'
 import { STATUSES, type StatusValue } from '@/lib/constants'
 
 type Props = {
@@ -9,9 +12,11 @@ type Props = {
   busy: boolean
   categoryOpts: string[]
   importanceOpts: number[]
+  placeOpts: string[]
   onStatus: (s: StatusValue) => void
   onImportance: (n: number) => void
   onCategory: (c: string | null) => void
+  onPlace: (p: string | null) => void
   onDoneToggle: (done: boolean) => void
   onDelete: () => void
 }
@@ -53,12 +58,15 @@ export default function TaskBulkPanel({
   busy,
   categoryOpts,
   importanceOpts,
+  placeOpts,
   onStatus,
   onImportance,
   onCategory,
+  onPlace,
   onDoneToggle,
   onDelete,
 }: Props) {
+  const [placeInput, setPlaceInput] = useState('')
   return (
     <div>
       <div className="mb-3 flex items-baseline justify-between gap-3">
@@ -114,6 +122,42 @@ export default function TaskBulkPanel({
             </div>
           </Field>
         )}
+
+        <Field label="장소">
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <input
+                value={placeInput}
+                onChange={(e) => setPlaceInput(e.target.value)}
+                placeholder="장소 입력"
+                className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs outline-none focus:border-primary"
+              />
+              <Btn
+                onClick={() => {
+                  const v = placeInput.trim()
+                  if (!v) return
+                  setPlaceInput('')
+                  onPlace(v)
+                }}
+                disabled={busy || !placeInput.trim()}
+              >
+                설정
+              </Btn>
+            </div>
+            {placeOpts.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {placeOpts.map((p) => (
+                  <Btn key={p} onClick={() => onPlace(p)} disabled={busy}>
+                    {p}
+                  </Btn>
+                ))}
+              </div>
+            )}
+            <Btn onClick={() => onPlace(null)} disabled={busy}>
+              장소 제거
+            </Btn>
+          </div>
+        </Field>
 
         <Field label="삭제">
           <Btn onClick={onDelete} disabled={busy} tone="danger">
