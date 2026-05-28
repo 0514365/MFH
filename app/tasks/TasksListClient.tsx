@@ -796,7 +796,7 @@ function BulkActionsRow({
     </button>
   )
 
-  function tap(kind: 'status' | 'imp' | 'cat' | 'done') {
+  function tap(kind: 'status' | 'imp' | 'cat' | 'done' | 'place') {
     setOpen((cur) => (cur === kind ? null : kind))
   }
 
