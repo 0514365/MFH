@@ -5,7 +5,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase-server';
-import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
+import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, PortfolioLetter } from '@/lib/portfolio';
 import PortfolioView from './PortfolioView';
 
 type Props = { params: { slug: string } };
@@ -68,12 +68,29 @@ export default async function PublicPortfolioPage({ params }: Props) {
 
   const videos = (videoRows ?? []) as PortfolioVideo[];
 
+  const { data: letterRows } = await supabase
+    .from('letters')
+    .select('*')
+    .eq('user_id', p.user_id)
+    .eq('public_view', true)
+    .order('year_month', { ascending: false })
+    .order('sort_order', { ascending: true });
+
+  const letters = ((letterRows ?? []) as PortfolioLetter[]).map((l) => ({
+    ...l,
+    pdf_url: supabase.storage.from('portfolio-letters').getPublicUrl(l.pdf_path).data.publicUrl,
+    cover_url: l.cover_path
+      ? supabase.storage.from('portfolio-letters').getPublicUrl(l.cover_path).data.publicUrl
+      : null,
+  }));
+
   return (
     <PortfolioView
       portfolio={p}
       history={history}
       videoCategories={videoCategories}
       videos={videos}
+      letters={letters}
     />
   );
 }

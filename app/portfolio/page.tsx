@@ -4,10 +4,11 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase-server';
-import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
+import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, PortfolioLetter } from '@/lib/portfolio';
 import PortfolioForm from './PortfolioForm';
 import HistoryEditor from './HistoryEditor';
 import VideoEditor from './VideoEditor';
+import LetterEditor from './LetterEditor';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,15 @@ export default async function PortfolioEditPage() {
 
   const videos = (videoRows ?? []) as PortfolioVideo[];
 
+  const { data: letterRows } = await supabase
+    .from('letters')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('year_month', { ascending: false })
+    .order('sort_order', { ascending: true });
+
+  const letters = (letterRows ?? []) as PortfolioLetter[];
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
       <header className="mb-5 flex items-center justify-between">
@@ -81,6 +91,10 @@ export default async function PortfolioEditPage() {
           initialVideos={videos}
           userId={user.id}
         />
+      </div>
+
+      <div className="mt-8">
+        <LetterEditor initial={letters} userId={user.id} />
       </div>
     </div>
   );

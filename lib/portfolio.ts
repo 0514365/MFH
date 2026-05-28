@@ -147,3 +147,55 @@ export function youtubeWatchUrl(url: string | null | undefined): string | null {
   const id = youtubeVideoId(url);
   return id ? `https://www.youtube.com/watch?v=${id}` : (url ?? null);
 }
+
+
+// ========== patch62: 선교편지 (PDF 방식) — MFH-PORTFOLIO-LETTER-TYPES-V1 ==========
+
+export type PortfolioLetter = {
+  id: string;
+  user_id: string;
+  year_month: string;        // "2026-05"
+  number: string | null;     // "42" (호수)
+  title: string;
+  pdf_path: string;          // storage: portfolio-letters
+  cover_path: string | null; // 표지 이미지 (선택)
+  public_view: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
+// year_month("2026-05") → 년도 문자열 "2026" (파싱 실패 시 "기타")
+export function letterYear(yearMonth: string | null | undefined): string {
+  if (!yearMonth) return '기타';
+  const m = yearMonth.match(/^(\d{4})/);
+  return m ? m[1] : '기타';
+}
+
+// year_month("2026-05") → 월 라벨 "5월" (없으면 빈 문자열)
+export function letterMonthLabel(yearMonth: string | null | undefined): string {
+  if (!yearMonth) return '';
+  const m = yearMonth.match(/^\d{4}-(\d{1,2})/);
+  if (!m) return '';
+  const mon = parseInt(m[1], 10);
+  return mon >= 1 && mon <= 12 ? `${mon}월` : '';
+}
+
+// 편지 배열 → 년도별 그룹 (최신 년도 우선). 각 그룹 내부는 입력 정렬 유지.
+// 제네릭: PortfolioLetter 또는 URL 확장 타입 모두 허용.
+export function groupLettersByYear<T extends Pick<PortfolioLetter, 'year_month'>>(
+  letters: T[]
+): { year: string; letters: T[] }[] {
+  const map = new Map<string, T[]>();
+  for (const l of letters) {
+    const y = letterYear(l.year_month);
+    const arr = map.get(y);
+    if (arr) arr.push(l);
+    else map.set(y, [l]);
+  }
+  const years = Array.from(map.keys()).sort((a, b) => {
+    if (a === '기타') return 1;
+    if (b === '기타') return -1;
+    return b.localeCompare(a); // 최신 년도 먼저
+  });
+  return years.map((year) => ({ year, letters: map.get(year) ?? [] }));
+}
