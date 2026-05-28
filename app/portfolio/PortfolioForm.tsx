@@ -1,7 +1,8 @@
 'use client';
-// MFH-PORTFOLIO-FORM-V1
+// MFH-PORTFOLIO-FORM-V2
 // 포트폴리오 본문 편집 폼. upsert(insert/update 자동 분기).
 // 사진 업로드는 PortfolioPhotoUpload 컴포넌트 활용.
+// V2: 부부사진(couple_photo_url) + 부부 소개 개요(couple_intro) 섹션 추가 (patch63).
 
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -66,6 +67,8 @@ export default function PortfolioForm({ initial, userId }: Props) {
       facebook_url: form.facebook_url || null,
       youtube_url: form.youtube_url || null,
       intro_video_url: form.intro_video_url || null,
+      couple_photo_url: form.couple_photo_url || null,
+      couple_intro: form.couple_intro || null,
       missionary_a_name: form.missionary_a_name || null,
       missionary_a_photo_url: form.missionary_a_photo_url || null,
       missionary_a_bio: form.missionary_a_bio || null,
@@ -168,6 +171,33 @@ export default function PortfolioForm({ initial, userId }: Props) {
             value={form.facebook_url}
             onChange={bindText('facebook_url')}
             placeholder="https://www.facebook.com/groups/..."
+            className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+          />
+        </Field>
+      </section>
+
+      <section className="rounded-lg border border-line bg-surface p-4">
+        <h2 className="mb-1 text-sm font-medium text-primary">부부 소개 (접힘 상태 표시)</h2>
+        <p className="mb-3 text-[11px] text-faint">
+          공개 페이지의 선교사 소개는 기본적으로 접혀 있고, 아래 부부사진과 개요가 먼저 보입니다.
+          “약력 보기”를 누르면 선교사 ①·② 약력이 펼쳐집니다.
+        </p>
+
+        <Field label="부부 사진">
+          <PortfolioPhotoUpload
+            userId={userId}
+            kind="couple"
+            value={form.couple_photo_url}
+            onChange={(url) => update('couple_photo_url', url)}
+          />
+        </Field>
+
+        <Field label="부부 소개 개요 (짧게)">
+          <textarea
+            value={form.couple_intro}
+            onChange={bindText('couple_intro')}
+            rows={3}
+            placeholder="2016년부터 온두라스에서 함께 섬기는 김우진·서진아 선교사 부부입니다."
             className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
           />
         </Field>

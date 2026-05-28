@@ -1,10 +1,13 @@
-// MFH-PORTFOLIO-VIEW-V1
+// MFH-PORTFOLIO-VIEW-V2
 // 공개 readonly 뷰. 모바일(<740) / 태블릿(740~1099) / 데스크탑(>=1100) 3단계 반응형.
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v2
+// V2: 선교사 소개 = MissionaryAccordion(접힘 개요→약력), 연혁 = HistoryAccordion(섹션 전체 접이식).
 
 import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, PortfolioLetter } from '@/lib/portfolio';
 import VideoSection from './VideoSection';
 import LetterSection from './LetterSection';
+import MissionaryAccordion from './MissionaryAccordion';
+import HistoryAccordion from './HistoryAccordion';
 
 type LetterWithUrls = PortfolioLetter & { pdf_url: string | null; cover_url: string | null };
 
@@ -106,85 +109,31 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
         {/* MAIN: 태블릿+ 2열 (선교사 좌측 / 연혁 우측) */}
         <div className="mt-4 grid grid-cols-1 gap-4 min-[740px]:mt-5 min-[740px]:grid-cols-[1fr_1.2fr] min-[740px]:gap-5 min-[1100px]:grid-cols-[260px_1fr]">
 
-          {/* 선교사 */}
+          {/* 선교사 (접이식: 부부 개요 → 약력) */}
           <section>
             <h2 className="border-l-[3px] border-accent pl-2 text-sm font-medium text-primary">
               선교사 소개
             </h2>
-            <div className="mt-3 space-y-2">
-              {/* 김우진 (A — 위) */}
-              {p.missionary_a_name && (
-                <MissionaryCard
-                  name={p.missionary_a_name}
-                  photoUrl={p.missionary_a_photo_url}
-                  bio={p.missionary_a_bio}
-                />
-              )}
-              {/* 서진아 (B — 아래) */}
-              {p.missionary_b_name && (
-                <MissionaryCard
-                  name={p.missionary_b_name}
-                  photoUrl={p.missionary_b_photo_url}
-                  bio={p.missionary_b_bio}
-                />
-              )}
+            <div className="mt-3">
+              <MissionaryAccordion
+                couplePhotoUrl={p.couple_photo_url}
+                coupleIntro={p.couple_intro}
+                a={{
+                  name: p.missionary_a_name,
+                  photoUrl: p.missionary_a_photo_url,
+                  bio: p.missionary_a_bio,
+                }}
+                b={{
+                  name: p.missionary_b_name,
+                  photoUrl: p.missionary_b_photo_url,
+                  bio: p.missionary_b_bio,
+                }}
+              />
             </div>
           </section>
 
-          {/* 연혁 */}
-          <section>
-            <h2 className="border-l-[3px] border-accent pl-2 text-sm font-medium text-primary">
-              선교 연혁
-            </h2>
-            <div className="mt-3">
-              {history.length === 0 ? (
-                <p className="text-xs text-faint">아직 연혁이 등록되지 않았습니다.</p>
-              ) : (
-                <>
-                  {/* 모바일: 세로 라인 + 점 */}
-                  <ol className="relative space-y-3 border-l-[1.5px] border-primary-soft pl-4 min-[740px]:hidden">
-                    {history.map((h) => (
-                      <li key={h.id} className="relative">
-                        <span
-                          className="absolute -left-[22px] top-1 inline-block h-2 w-2 rounded-full border-2 border-surface"
-                          style={{ background: h.is_ongoing ? 'var(--accent)' : 'var(--text-muted)' }}
-                          aria-hidden
-                        />
-                        <p
-                          className="text-[11px] font-medium"
-                          style={{ color: h.is_ongoing ? 'var(--accent)' : 'var(--text-muted)' }}
-                        >
-                          {h.period_text}
-                        </p>
-                        <p className="text-xs text-ink">{h.title}</p>
-                      </li>
-                    ))}
-                  </ol>
-                  {/* 태블릿+: 2/3열 그리드 (white 카드) */}
-                  <ol className="hidden rounded-md border border-line bg-surface p-3 min-[740px]:grid min-[740px]:grid-cols-2 min-[740px]:gap-x-4 min-[740px]:gap-y-2 min-[1100px]:grid-cols-3">
-                    {history.map((h) => (
-                      <li key={h.id} className="flex gap-2">
-                        <span
-                          className="mt-[6px] inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                          style={{ background: h.is_ongoing ? 'var(--accent)' : 'var(--text-muted)' }}
-                          aria-hidden
-                        />
-                        <div>
-                          <p
-                            className="text-[10px] font-medium"
-                            style={{ color: h.is_ongoing ? 'var(--accent)' : 'var(--text-muted)' }}
-                          >
-                            {h.period_text}
-                          </p>
-                          <p className="text-xs text-ink">{h.title}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              )}
-            </div>
-          </section>
+          {/* 연혁 (섹션 전체 접이식) */}
+          <HistoryAccordion history={history} />
         </div>
 
         {/* 사역 영상 (연혁 아래, 전체 폭) */}
@@ -197,46 +146,6 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
         <footer className="mt-8 border-t border-line pt-4 text-center text-[11px] text-faint min-[740px]:mt-10">
           <p>Mission for Honduras · {p.email_public}</p>
         </footer>
-      </div>
-    </div>
-  );
-}
-
-function MissionaryCard({
-  name,
-  photoUrl,
-  bio,
-}: {
-  name: string;
-  photoUrl: string | null;
-  bio: string | null;
-}) {
-  return (
-    <div className="rounded-md border border-line bg-surface p-3">
-      <div className="flex gap-3 min-[1100px]:flex-col min-[1100px]:items-center min-[1100px]:text-center">
-        {photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={photoUrl}
-            alt={name}
-            className="h-[72px] w-[60px] flex-shrink-0 rounded-md object-cover min-[1100px]:h-[80px] min-[1100px]:w-[70px]"
-          />
-        ) : (
-          <div
-            className="flex h-[72px] w-[60px] flex-shrink-0 items-center justify-center rounded-md text-[10px] text-muted min-[1100px]:h-[80px] min-[1100px]:w-[70px]"
-            style={{ background: 'var(--primary-soft)' }}
-          >
-            사진
-          </div>
-        )}
-        <div className="min-w-0 flex-1 min-[1100px]:flex-none">
-          <p className="text-sm font-medium text-primary">{name}</p>
-          {bio && (
-            <p className="mt-1 whitespace-pre-line text-[11px] leading-relaxed text-muted">
-              {bio}
-            </p>
-          )}
-        </div>
       </div>
     </div>
   );

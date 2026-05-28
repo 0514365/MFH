@@ -1,5 +1,6 @@
-// MFH-PORTFOLIO-TYPES-V1
+// MFH-PORTFOLIO-TYPES-V2
 // 포트폴리오 도메인 타입 + 헬퍼
+// V2: couple_photo_url / couple_intro (부부사진 + 부부 소개 개요, patch63) 추가.
 
 export type Portfolio = {
   id: string;
@@ -11,6 +12,8 @@ export type Portfolio = {
   facebook_url: string | null;
   youtube_url: string | null;
   intro_video_url: string | null;
+  couple_photo_url: string | null;
+  couple_intro: string | null;
   missionary_a_name: string | null;
   missionary_a_photo_url: string | null;
   missionary_a_bio: string | null;
@@ -39,6 +42,8 @@ export type PortfolioFormState = {
   facebook_url: string;
   youtube_url: string;
   intro_video_url: string;
+  couple_photo_url: string;
+  couple_intro: string;
   missionary_a_name: string;
   missionary_a_photo_url: string;
   missionary_a_bio: string;
@@ -57,6 +62,8 @@ export function emptyPortfolioForm(): PortfolioFormState {
     facebook_url: '',
     youtube_url: '',
     intro_video_url: '',
+    couple_photo_url: '',
+    couple_intro: '',
     missionary_a_name: '',
     missionary_a_photo_url: '',
     missionary_a_bio: '',
@@ -76,6 +83,8 @@ export function portfolioToForm(p: Portfolio): PortfolioFormState {
     facebook_url: p.facebook_url ?? '',
     youtube_url: p.youtube_url ?? '',
     intro_video_url: p.intro_video_url ?? '',
+    couple_photo_url: p.couple_photo_url ?? '',
+    couple_intro: p.couple_intro ?? '',
     missionary_a_name: p.missionary_a_name ?? '',
     missionary_a_photo_url: p.missionary_a_photo_url ?? '',
     missionary_a_bio: p.missionary_a_bio ?? '',
