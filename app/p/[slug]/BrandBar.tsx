@@ -15,13 +15,13 @@ export default function BrandBar({ homeHref, emailPublic }: Props) {
     <img
       src="/logo-primary.svg"
       alt="Mission for Honduras"
-      className="h-[68px] w-auto min-[740px]:h-[90px]"
+      className="h-[21px] w-auto min-[740px]:h-[28px]"
     />
   );
 
   return (
     <header className="border-b border-line bg-surface">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 min-[740px]:px-6 min-[1100px]:px-8">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-[5px] min-[740px]:px-6 min-[1100px]:px-8">
         {homeHref ? (
           <a href={homeHref} aria-label="포트폴리오 홈" className="inline-flex flex-shrink-0">
             {logo}
