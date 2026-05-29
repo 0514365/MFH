@@ -1,10 +1,11 @@
 'use client';
-// MFH-PORTFOLIO-MISSIONARY-ACCORDION-V2
+// MFH-PORTFOLIO-MISSIONARY-ACCORDION-V3
 // 선교사 소개 접이식. 서버부모(PortfolioView)가 데이터를 props 로 주입하는 클라이언트 자식.
 // 접힘(기본): 부부사진 1장 + 짧은 개요(coupleIntro) + "약력 보기 ▾"
 // 펼침: 선교사 ①·② 각 이름 + 약력(bio). (사진 없음 — 약력 텍스트만)
 // fallback: 부부사진 없으면 placeholder, coupleIntro 없으면 이름 라인으로 대체.
 // V2: 펼침 약력에서 개인 사진 제거, 폰트 전반 상향(가독성).
+// V3: 모바일/태블릿 부부사진 30% 확대(96→125px). 데스크탑 override 도 비례(112→146px, 접이식은 ≥1100 숨김).
 
 import { useState } from 'react';
 
@@ -36,11 +37,11 @@ export default function MissionaryAccordion({ couplePhotoUrl, coupleIntro, a, b 
           <img
             src={couplePhotoUrl}
             alt={names || '선교사 부부'}
-            className="h-[96px] w-[96px] flex-shrink-0 rounded-lg object-cover min-[1100px]:h-[112px] min-[1100px]:w-[112px]"
+            className="h-[125px] w-[125px] flex-shrink-0 rounded-lg object-cover min-[1100px]:h-[146px] min-[1100px]:w-[146px]"
           />
         ) : (
           <div
-            className="flex h-[96px] w-[96px] flex-shrink-0 items-center justify-center rounded-lg text-xs text-muted min-[1100px]:h-[112px] min-[1100px]:w-[112px]"
+            className="flex h-[125px] w-[125px] flex-shrink-0 items-center justify-center rounded-lg text-xs text-muted min-[1100px]:h-[146px] min-[1100px]:w-[146px]"
             style={{ background: 'var(--primary-soft)' }}
           >
             사진
