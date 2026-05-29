@@ -1,12 +1,14 @@
 'use client';
 
-// MFH-PORTFOLIO-LETTER-SECTION-V5
+// MFH-PORTFOLIO-LETTER-SECTION-V6
 // 공개 페이지 선교편지 섹션. 사역 영상 위에 전체 폭.
-// 구성: ① 최신 선교편지(표지 좌 + 요약 기도문 우 칼럼) ② 년도별 목록(앰버 배너 + 접이식).
+// 구성: ① 최신 선교편지(표지 + 요약 기도문) ② 년도별 목록(앰버 배너 + 접이식).
 // V3: 최신 선교편지 블록 신설 / 년도 배너 컬러(LETTER_BANNER_RAMP, 앰버·세피아) / 개수 표기 제거.
 // V5: 년도 그룹 박스 = 2열 그리드(모바일·데스크탑 공통), 박스 내부 편지는 항상 1열.
 //     단 최신 년도(index 0)는 모바일/태블릿(<1100)에서 전체폭(col-span-2), 데스크탑은 2열 유지.
 //     groupLettersByYear 가 최신 년도를 항상 index 0 으로 정렬 → 해가 바뀌면 자동 적용.
+// V6: 요약 "🙏 요약 기도문" 타이틀 제거. 모바일(<740)은 요약을 썸네일 행 아래 별도 구역으로 분리
+//     (≥740 는 표지 좌 + 우측 칼럼 유지).
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v4 §5-5
 
 import { useState } from 'react';
@@ -96,7 +98,7 @@ export default function LetterSection({ letters }: Props) {
   );
 }
 
-// 최신 선교편지: 표지(좌) + 요약 기도문(우 칼럼)
+// 최신 선교편지: 데스크탑·태블릿(≥740) = 표지 좌 + 우측 칼럼 / 모바일(<740) = 표지+제목 한 행 + 요약 별도 아래
 function LatestLetter({ letter: l }: { letter: LetterWithUrls }) {
   const month = letterMonthLabel(l.year_month);
   const year = l.year_month?.match(/^(\d{4})/)?.[1] ?? '';
@@ -104,38 +106,54 @@ function LatestLetter({ letter: l }: { letter: LetterWithUrls }) {
     .filter(Boolean)
     .join(' · ');
 
+  const titleRow = (
+    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-white">
+        최신 선교편지
+      </span>
+      <span className="text-base font-bold text-ink min-[740px]:text-lg">{l.title}</span>
+      {meta && <span className="text-xs text-muted">{meta}</span>}
+    </div>
+  );
+
+  const prayer =
+    l.summary && l.summary.trim() ? (
+      <div className="rounded-lg border border-line bg-surface-subtle p-3">
+        <p className="whitespace-pre-line text-sm leading-relaxed text-ink">{l.summary}</p>
+      </div>
+    ) : null;
+
+  const pdfLink = l.pdf_url ? (
+    <a
+      href={l.pdf_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-block rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-primary transition hover:border-primary"
+    >
+      편지 전문 보기 (PDF) →
+    </a>
+  ) : null;
+
   return (
-    <div className="mt-4 flex gap-4 rounded-xl border border-line bg-surface p-4 min-[740px]:gap-5">
-      <LetterCover
-        letter={l}
-        className="w-[108px] flex-shrink-0 min-[740px]:w-[150px]"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-white">
-            최신 선교편지
-          </span>
-          <span className="text-base font-bold text-ink min-[740px]:text-lg">{l.title}</span>
-          {meta && <span className="text-xs text-muted">{meta}</span>}
+    <div className="mt-4 rounded-xl border border-line bg-surface p-4">
+      {/* 데스크탑·태블릿(≥740): 표지 좌 + 우측 칼럼(제목·요약·PDF) */}
+      <div className="hidden gap-5 min-[740px]:flex">
+        <LetterCover letter={l} className="w-[150px] flex-shrink-0" />
+        <div className="min-w-0 flex-1">
+          {titleRow}
+          {prayer && <div className="mt-2.5">{prayer}</div>}
+          {pdfLink && <div className="mt-2.5">{pdfLink}</div>}
         </div>
+      </div>
 
-        {l.summary && l.summary.trim() ? (
-          <div className="mt-2.5 rounded-lg border border-line bg-surface-subtle p-3">
-            <p className="mb-1.5 text-[11px] font-bold text-primary">🙏 요약 기도문</p>
-            <p className="whitespace-pre-line text-sm leading-relaxed text-ink">{l.summary}</p>
-          </div>
-        ) : null}
-
-        {l.pdf_url && (
-          <a
-            href={l.pdf_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2.5 inline-block rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-primary transition hover:border-primary"
-          >
-            편지 전문 보기 (PDF) →
-          </a>
-        )}
+      {/* 모바일(<740): 표지+제목 한 행 → 요약·PDF 는 아래 별도 구역 */}
+      <div className="min-[740px]:hidden">
+        <div className="flex gap-4">
+          <LetterCover letter={l} className="w-[108px] flex-shrink-0" />
+          <div className="min-w-0 flex-1">{titleRow}</div>
+        </div>
+        {prayer && <div className="mt-3">{prayer}</div>}
+        {pdfLink && <div className="mt-3">{pdfLink}</div>}
       </div>
     </div>
   );
