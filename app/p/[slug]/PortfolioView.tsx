@@ -1,7 +1,9 @@
-// MFH-PORTFOLIO-VIEW-V7
+// MFH-PORTFOLIO-VIEW-V8
 // 공개 readonly 뷰. 모바일(<740) / 태블릿(740~1099) / 데스크탑(>=1100) 3단계 반응형.
 // V6: 섹션 순서 변경 — 선교편지(LetterSection)를 사역 영상(VideoSummary) 위로 이동.
 // V7: 헤더 이메일 제거(BrandBar) + 푸터 후원방법/SNS 추가. 후원방법=제목+계좌 한 행(계좌 볼드).
+// V8: 선교사 소개 — 메인 그리드 전 폭 1열화(연혁은 아래로). 태블릿(iPad) 전용 MissionaryTablet 추가
+//     (사진+요약 상단 / 약력 2열 하단). 데스크탑(≥1100)은 MissionaryDesktop 유지.
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v2
 // V2: 선교사 소개 = MissionaryAccordion(접힘 개요→약력), 연혁 = HistoryAccordion(섹션 전체 접이식).
 // V3: 상단 BrandBar(로고+SNS) + 가로 긴 배너 hero + 폰트 전반 상향 + 영상은 요약(VideoSummary)
@@ -18,6 +20,7 @@ import BrandBar from './BrandBar';
 import VideoSummary from './VideoSummary';
 import LetterSection from './LetterSection';
 import MissionaryAccordion from './MissionaryAccordion';
+import MissionaryTablet from './MissionaryTablet';
 import MissionaryDesktop from './MissionaryDesktop';
 import HistoryAccordion from './HistoryAccordion';
 
@@ -106,10 +109,10 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
           </div>
         </section>
 
-        {/* MAIN: 태블릿(740~1099) 2열 (선교사 좌 / 연혁 우) → 데스크탑(≥1100) 1열로 reflow */}
-        <div className="mt-6 grid grid-cols-1 gap-6 min-[740px]:mt-8 min-[740px]:grid-cols-[1fr_1.25fr] min-[740px]:gap-7 min-[1100px]:grid-cols-1">
+        {/* MAIN: 모든 폭 1열 — 선교사 소개 전체폭 + 그 아래 연혁 전체폭 */}
+        <div className="mt-6 grid grid-cols-1 gap-6 min-[740px]:mt-8 min-[740px]:gap-7">
 
-          {/* 선교사 (모바일·태블릿: 접이식 / 데스크탑: 사진+요약+약력 2열) */}
+          {/* 선교사 (모바일: 접이식 / 태블릿: MissionaryTablet / 데스크탑: MissionaryDesktop) */}
           <section>
             <div className="flex items-center justify-between gap-3">
               <h2 className="border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary min-[740px]:text-lg">
@@ -136,8 +139,8 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
               )}
             </div>
 
-            {/* 모바일·태블릿(<1100): 접이식 */}
-            <div className="mt-3 min-[1100px]:hidden">
+            {/* 모바일(<740): 접이식 */}
+            <div className="mt-3 min-[740px]:hidden">
               <MissionaryAccordion
                 couplePhotoUrl={p.couple_photo_url}
                 coupleIntro={p.couple_intro}
@@ -146,7 +149,17 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
               />
             </div>
 
-            {/* 데스크탑(≥1100): 사진 크게 + 요약 글상자 + 약력 2열 */}
+            {/* 태블릿(740~1099, iPad): 사진 + 요약 상단 / 약력 2열 하단 */}
+            <div className="mt-3 hidden min-[740px]:block min-[1100px]:hidden">
+              <MissionaryTablet
+                couplePhotoUrl={p.couple_photo_url}
+                coupleIntro={p.couple_intro}
+                a={{ name: p.missionary_a_name, bio: p.missionary_a_bio }}
+                b={{ name: p.missionary_b_name, bio: p.missionary_b_bio }}
+              />
+            </div>
+
+            {/* 데스크탑(≥1100): 사진 크게(좌 stretch) + 요약 글상자 + 약력 2열 */}
             <div className="mt-3 hidden min-[1100px]:block">
               <MissionaryDesktop
                 couplePhotoUrl={p.couple_photo_url}
@@ -157,7 +170,7 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
             </div>
           </section>
 
-          {/* 연혁 (섹션 전체 접이식) — 데스크탑에선 grid 1열 reflow 로 전체폭 아래 배치 */}
+          {/* 연혁 (섹션 전체 접이식) — 전체폭, 선교사 소개 아래 배치 */}
           <HistoryAccordion history={history} />
         </div>
 
