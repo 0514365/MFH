@@ -1,7 +1,8 @@
-// MFH-PORTFOLIO-PUBLIC-PAGE-V2
+// MFH-PORTFOLIO-PUBLIC-PAGE-V3
 // /p/[slug] — 공개 readonly. 로그인 불필요.
 // RLS 의 public_read 정책 (is_public=true) 로 접근.
 // V2: 비로그인 방문자에게 오프닝(SplashGate) 표시. 로그인 상태면 건너뜀(skip).
+// V3: 공유 링크 미리보기(Open Graph/Twitter) 메타 추가 — og:image=브랜드 로고 카드(/og-image.png)로 고정.
 
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -12,6 +13,9 @@ import SplashGate from '@/app/SplashGate';
 
 type Props = { params: { slug: string } };
 
+// 공유 링크 미리보기(Open Graph)에 쓸 공개 도메인.
+const SITE_URL = 'https://mfh-snowy.vercel.app';
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = createClient();
   const { data } = await supabase
@@ -20,13 +24,34 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .eq('slug', params.slug)
     .eq('is_public', true)
     .maybeSingle();
-  if (!data) {
-    return { title: 'MFH — Mission for Honduras' };
-  }
-  const names = [data.missionary_a_name, data.missionary_b_name].filter(Boolean).join(' · ');
+
+  const names = data
+    ? [data.missionary_a_name, data.missionary_b_name].filter(Boolean).join(' · ')
+    : '';
+  const title = `MFH — ${names || 'Mission for Honduras'}`;
+  const description = data?.intro_text ?? '온두라스 선교사역 — 기록·인사이트·포트폴리오';
+  const url = `${SITE_URL}/p/${params.slug}`;
+
+  // og:image 를 브랜드 로고 카드로 고정 → 카카오톡·WhatsApp·iMessage 등에서 일관되게 로고 표시.
   return {
-    title: `MFH — ${names || 'Mission for Honduras'}`,
-    description: data.intro_text ?? '온두라스 선교사역',
+    metadataBase: new URL(SITE_URL),
+    title,
+    description,
+    openGraph: {
+      type: 'website',
+      url,
+      siteName: 'Mission for Honduras',
+      title,
+      description,
+      locale: 'ko_KR',
+      images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Mission for Honduras' }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ['/og-image.png'],
+    },
   };
 }
 
