@@ -1,13 +1,12 @@
 'use client';
 
-// MFH-PORTFOLIO-LETTER-SECTION-V4
+// MFH-PORTFOLIO-LETTER-SECTION-V5
 // 공개 페이지 선교편지 섹션. 사역 영상 위에 전체 폭.
 // 구성: ① 최신 선교편지(표지 좌 + 요약 기도문 우 칼럼) ② 년도별 목록(앰버 배너 + 접이식).
-// V3: 최신 선교편지 블록 신설 / 년도 배너 컬러(LETTER_BANNER_RAMP, 앰버·세피아) / 개수 표기 제거 /
-//     데스크탑 = 년도 박스 2열·박스 내부 편지 1열 (patch67).
-// V4: 모바일/태블릿(<1100) 박스 내부 편지 = 최신 년도(index 0) 1열, 이전 년도 2열.
+// V3: 최신 선교편지 블록 신설 / 년도 배너 컬러(LETTER_BANNER_RAMP, 앰버·세피아) / 개수 표기 제거.
+// V5: 년도 그룹 박스 = 2열 그리드(모바일·데스크탑 공통), 박스 내부 편지는 항상 1열.
+//     단 최신 년도(index 0)는 모바일/태블릿(<1100)에서 전체폭(col-span-2), 데스크탑은 2열 유지.
 //     groupLettersByYear 가 최신 년도를 항상 index 0 으로 정렬 → 해가 바뀌면 자동 적용.
-//     데스크탑(≥1100)은 박스가 2열이라 내부는 전부 1열 유지.
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v4 §5-5
 
 import { useState } from 'react';
@@ -55,14 +54,14 @@ export default function LetterSection({ letters }: Props) {
       <h3 className="mt-7 border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary">
         선교편지 목록
       </h3>
-      <div className="mt-3 grid grid-cols-1 items-start gap-3.5 min-[1100px]:grid-cols-2">
+      <div className="mt-3 grid grid-cols-2 items-start gap-3.5">
         {groups.map((g, i) => {
           const c = letterBannerStyle(i);
           const open = openYears.has(g.year);
-          // 최신 년도(index 0) = 항상 1열. 이전 년도 = 모바일/태블릿 2열, 데스크탑(박스 2열)에선 1열.
-          const listCols = i === 0 ? 'grid-cols-1' : 'grid-cols-2 min-[1100px]:grid-cols-1';
+          // 최신 년도(index 0) = 모바일/태블릿 전체폭, 데스크탑(≥1100)은 2열. 이전 년도 = 항상 2열.
+          const boxSpan = i === 0 ? 'col-span-2 min-[1100px]:col-span-1' : 'col-span-1';
           return (
-            <div key={g.year} className="overflow-hidden rounded-lg shadow-sm">
+            <div key={g.year} className={`overflow-hidden rounded-lg shadow-sm ${boxSpan}`}>
               <button
                 type="button"
                 onClick={() => toggleYear(g.year)}
@@ -80,7 +79,7 @@ export default function LetterSection({ letters }: Props) {
 
               {open && (
                 <div className="border border-t-0 border-line bg-surface p-3">
-                  <ul className={`grid gap-2.5 ${listCols}`}>
+                  <ul className="flex flex-col gap-2.5">
                     {g.letters.map((l) => (
                       <li key={l.id}>
                         <LetterRow letter={l} />
