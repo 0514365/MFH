@@ -1,6 +1,7 @@
-// MFH-PORTFOLIO-VIEW-V6
+// MFH-PORTFOLIO-VIEW-V7
 // 공개 readonly 뷰. 모바일(<740) / 태블릿(740~1099) / 데스크탑(>=1100) 3단계 반응형.
 // V6: 섹션 순서 변경 — 선교편지(LetterSection)를 사역 영상(VideoSummary) 위로 이동.
+// V7: 헤더 이메일 제거(BrandBar) + 푸터 후원방법/SNS 추가. 후원방법=제목+계좌 한 행(계좌 볼드).
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v2
 // V2: 선교사 소개 = MissionaryAccordion(접힘 개요→약력), 연혁 = HistoryAccordion(섹션 전체 접이식).
 // V3: 상단 BrandBar(로고+SNS) + 가로 긴 배너 hero + 폰트 전반 상향 + 영상은 요약(VideoSummary)
@@ -168,13 +169,13 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
 
         {/* footer: 후원방법 + SNS 링크 + 카피 */}
         <footer className="mt-10 border-t border-line pt-7 min-[740px]:mt-12">
-          {/* 후원방법 (donation_info 있을 때만) */}
+          {/* 후원방법 (donation_info 있을 때만) — 제목 + 계좌 한 행, 계좌는 볼드 */}
           {p.donation_info && p.donation_info.trim() && (
-            <div className="mx-auto max-w-md rounded-xl border border-line bg-surface p-5 text-center">
-              <h2 className="border-l-[3px] border-accent pl-2.5 text-left text-base font-semibold text-primary">
+            <div className="mx-auto flex max-w-xl flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-xl border border-line bg-surface px-5 py-4">
+              <h2 className="flex-shrink-0 border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary">
                 후원방법
               </h2>
-              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink">
+              <p className="whitespace-pre-line text-sm font-bold leading-relaxed text-ink">
                 {p.donation_info}
               </p>
             </div>
