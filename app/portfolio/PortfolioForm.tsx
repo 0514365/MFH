@@ -108,8 +108,8 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
     <div>
       {/* 고정 헤더 */}
       <div className="sticky top-0 z-30 -mx-4 mb-4 flex items-center gap-2 border-b border-line bg-paper px-4 py-2.5 shadow-sm">
-        <h1 className="text-sm font-semibold text-primary">포트폴리오 편집</h1>
-        <div className="ml-auto flex items-center gap-2">
+        <h1 className="min-w-0 truncate text-sm font-semibold text-primary">포트폴리오 편집</h1>
+        <div className="ml-auto flex flex-shrink-0 items-center gap-2">
           <span className="text-[11px]">
             {error ? (
               <span className="text-danger">{error}</span>
@@ -134,9 +134,11 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
               href={publicHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-soft min-[480px]:inline-block"
+              aria-label="공개 페이지 보기"
+              className="flex-shrink-0 rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-soft"
             >
-              공개 페이지 ↗
+              <span className="min-[480px]:hidden">페이지 ↗</span>
+              <span className="hidden min-[480px]:inline">공개 페이지 ↗</span>
             </a>
           )}
           <button
