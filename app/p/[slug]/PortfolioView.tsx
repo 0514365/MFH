@@ -1,5 +1,6 @@
-// MFH-PORTFOLIO-VIEW-V5
+// MFH-PORTFOLIO-VIEW-V6
 // 공개 readonly 뷰. 모바일(<740) / 태블릿(740~1099) / 데스크탑(>=1100) 3단계 반응형.
+// V6: 섹션 순서 변경 — 선교편지(LetterSection)를 사역 영상(VideoSummary) 위로 이동.
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v2
 // V2: 선교사 소개 = MissionaryAccordion(접힘 개요→약력), 연혁 = HistoryAccordion(섹션 전체 접이식).
 // V3: 상단 BrandBar(로고+SNS) + 가로 긴 배너 hero + 폰트 전반 상향 + 영상은 요약(VideoSummary)
@@ -159,11 +160,11 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
           <HistoryAccordion history={history} />
         </div>
 
+        {/* 선교편지 (전체 폭) — 사역 영상 위 */}
+        <LetterSection letters={letters} />
+
         {/* 사역 영상 요약 (전체는 /p/[slug]/videos) */}
         <VideoSummary slug={p.slug} categories={videoCategories} videos={videos} />
-
-        {/* 선교편지 (전체 폭) */}
-        <LetterSection letters={letters} />
 
         {/* footer */}
         <footer className="mt-10 border-t border-line pt-5 text-center text-sm text-faint min-[740px]:mt-12">

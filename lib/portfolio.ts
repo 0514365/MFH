@@ -1,8 +1,9 @@
-// MFH-PORTFOLIO-TYPES-V4
+// MFH-PORTFOLIO-TYPES-V5
 // 포트폴리오 도메인 타입 + 헬퍼
 // V2: couple_photo_url / couple_intro (부부사진 + 부부 소개 개요, patch63) 추가.
 // V3: youtubeVideoId 에 live/ 패턴 추가(라이브 영상 썸네일 지원).
 // V4: portfolio_videos.thumbnail_url(커스텀 썸네일, patch66) + VIDEO_BANNER_RAMP(브랜드 배너 그라데이션) 추가.
+// V5: letters.summary(최신 선교편지 요약 기도문, patch67) + LETTER_BANNER_RAMP(앰버·세피아 년도 배너) 추가.
 
 export type Portfolio = {
   id: string;
@@ -195,6 +196,7 @@ export type PortfolioLetter = {
   title: string;
   pdf_path: string;          // storage: portfolio-letters
   cover_path: string | null; // 표지 이미지 (선택)
+  summary: string | null;    // 요약 기도문(최신호만, patch67) — 공개 "최신 선교편지" 블록 우측 칼럼
   public_view: boolean;
   sort_order: number;
   created_at: string;
@@ -234,4 +236,20 @@ export function groupLettersByYear<T extends Pick<PortfolioLetter, 'year_month'>
     return b.localeCompare(a); // 최신 년도 먼저
   });
   return years.map((year) => ({ year, letters: map.get(year) ?? [] }));
+}
+
+// 선교편지 년도 배너 램프 (앰버·세피아, 편지지·봉투 톤). 옅음(최신 년도)→진함(과거).
+// 그룹 순서(최신 년도=0)대로 배정. text=년도 글자색(밝은 배너=세피아 / 진한 배너=흰색).
+export const LETTER_BANNER_RAMP = [
+  { from: '#F3E7D0', to: '#E7D3AE', text: '#5A4424' },
+  { from: '#E7D3AE', to: '#D8BC88', text: '#5A4424' },
+  { from: '#D8BC88', to: '#C19E5F', text: '#5A4424' },
+  { from: '#C19E5F', to: '#A07B40', text: '#FFFFFF' },
+  { from: '#A07B40', to: '#7E5C2E', text: '#FFFFFF' },
+  { from: '#7E5C2E', to: '#5E421F', text: '#FFFFFF' },
+] as const;
+
+// 그룹 인덱스 → 램프 항목 (년도가 6개 초과면 순환)
+export function letterBannerStyle(index: number) {
+  return LETTER_BANNER_RAMP[index % LETTER_BANNER_RAMP.length];
 }
