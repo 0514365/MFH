@@ -59,10 +59,10 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="YouTube"
-                        className="flex h-5 w-5 items-center justify-center rounded-full text-white shadow-md transition hover:opacity-90 min-[740px]:h-7 min-[740px]:w-7"
+                        className="flex h-5 w-5 items-center justify-center rounded-full text-white shadow-md transition hover:opacity-90 min-[740px]:h-[42px] min-[740px]:w-[42px]"
                         style={{ background: '#FF0000' }}
                       >
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-3 w-3 min-[740px]:h-4 min-[740px]:w-4">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-3 w-3 min-[740px]:h-6 min-[740px]:w-6">
                           <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.5 15.5v-7l6.3 3.5-6.3 3.5z" />
                         </svg>
                       </a>
@@ -73,10 +73,10 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="Facebook"
-                        className="flex h-5 w-5 items-center justify-center rounded-full text-white shadow-md transition hover:opacity-90 min-[740px]:h-7 min-[740px]:w-7"
+                        className="flex h-5 w-5 items-center justify-center rounded-full text-white shadow-md transition hover:opacity-90 min-[740px]:h-[42px] min-[740px]:w-[42px]"
                         style={{ background: '#1877F2' }}
                       >
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-3 w-3 min-[740px]:h-4 min-[740px]:w-4">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-3 w-3 min-[740px]:h-6 min-[740px]:w-6">
                           <path d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7v-3.5h3.1V9.4c0-3 1.8-4.7 4.6-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9v2.2h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12z" />
                         </svg>
                       </a>
@@ -87,24 +87,17 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
                 <img
                   src="/logo-white.svg"
                   alt="Mission for Honduras"
-                  className="h-7 w-auto drop-shadow-md min-[740px]:h-10"
+                  className="h-7 w-auto drop-shadow-md min-[740px]:h-[60px]"
                 />
               </div>
               {taglineNames && (
-                <span className="text-base font-semibold text-white drop-shadow-md min-[740px]:text-xl">
+                <span className="text-base font-semibold text-white drop-shadow-md min-[740px]:text-3xl">
                   {taglineNames}
                 </span>
               )}
             </div>
           </div>
         </section>
-
-        {/* 인트로 텍스트 */}
-        {p.intro_text && (
-          <p className="mx-auto mt-5 max-w-2xl text-center text-sm leading-relaxed text-ink min-[740px]:text-base">
-            {p.intro_text}
-          </p>
-        )}
 
         {/* MAIN: 태블릿+ 2열 (선교사 좌측 / 연혁 우측) */}
         <div className="mt-6 grid grid-cols-1 gap-6 min-[740px]:mt-8 min-[740px]:grid-cols-[1fr_1.25fr] min-[740px]:gap-7 min-[1100px]:grid-cols-[320px_1fr]">

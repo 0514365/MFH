@@ -15,7 +15,7 @@ export default function BrandBar({ homeHref, emailPublic }: Props) {
     <img
       src="/logo-primary.svg"
       alt="Mission for Honduras"
-      className="h-[23px] w-auto min-[740px]:h-[30px]"
+      className="h-[34px] w-auto min-[740px]:h-[45px]"
     />
   );
 
