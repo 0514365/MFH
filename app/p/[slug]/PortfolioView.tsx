@@ -1,9 +1,11 @@
-// MFH-PORTFOLIO-VIEW-V3
+// MFH-PORTFOLIO-VIEW-V4
 // 공개 readonly 뷰. 모바일(<740) / 태블릿(740~1099) / 데스크탑(>=1100) 3단계 반응형.
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v2
 // V2: 선교사 소개 = MissionaryAccordion(접힘 개요→약력), 연혁 = HistoryAccordion(섹션 전체 접이식).
 // V3: 상단 BrandBar(로고+SNS) + 가로 긴 배너 hero + 폰트 전반 상향 + 영상은 요약(VideoSummary)
 //     으로 표시하고 전체는 /p/[slug]/videos 전용 페이지로 분리.
+// V4: 헤더=로고+이메일(얇은 1행). 히어로 사진 우하단=흰색 로고+선교사명. 사진 하단=유튜브/페이스북
+//     링크. 인트로 텍스트는 사진 아래로. 사역소개 영상 링크는 추후 선교사 소개 영역에 배치 예정.
 
 import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, PortfolioLetter } from '@/lib/portfolio';
 import BrandBar from './BrandBar';
@@ -31,47 +33,78 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
 
   return (
     <div style={{ background: 'var(--paper)', minHeight: '100vh' }}>
-      {/* 최상단 브랜드 바: 로고 + SNS */}
-      <BrandBar
-        introVideoUrl={p.intro_video_url}
-        youtubeUrl={p.youtube_url}
-        facebookUrl={p.facebook_url}
-      />
+      {/* 최상단 브랜드 바: 로고 + 이메일 (얇은 1행) */}
+      <BrandBar emailPublic={p.email_public} />
 
       <div className="mx-auto max-w-6xl px-4 py-6 min-[740px]:px-6 min-[740px]:py-8 min-[1100px]:px-8">
 
-        {/* HERO: 가로 긴 배너 + 하단 그라데이션 위 텍스트 */}
+        {/* HERO: 가로 긴 배너 + 우하단 흰색 로고 / 선교사명 */}
         <section className="relative overflow-hidden rounded-xl border border-line">
           <div
-            className="h-[200px] w-full min-[740px]:h-[300px] min-[1100px]:h-[360px]"
+            className="h-[220px] w-full min-[740px]:h-[340px] min-[1100px]:h-[420px]"
             style={heroBg}
             aria-label="포트폴리오 대표 이미지"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-5 min-[740px]:p-7 min-[1100px]:p-8">
-            {taglineNames && (
-              <span
-                className="inline-block rounded-full px-3 py-1 text-sm font-medium"
-                style={{ background: 'var(--accent)', color: '#fff' }}
-              >
-                {taglineNames}
-              </span>
-            )}
-            <h1 className="mt-2.5 text-2xl font-bold text-white min-[740px]:text-3xl min-[1100px]:text-4xl">
-              Mission for Honduras
-            </h1>
-            {p.intro_text && (
-              <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-white/90 min-[740px]:text-base">
-                {p.intro_text}
-              </p>
-            )}
-            {p.email_public && (
-              <p className="mt-2.5 text-sm text-white/85">
-                <span aria-hidden>📧</span> {p.email_public}
-              </p>
-            )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+          <h1 className="sr-only">Mission for Honduras</h1>
+          <div className="absolute inset-x-0 bottom-0 flex justify-end p-4 min-[740px]:p-6">
+            <div className="flex flex-col items-end gap-2 text-right">
+              {/* 1행: 유튜브·페이스북(작게) + MFH 흰색 로고(크게), 하단 베이스라인 정렬 */}
+              <div className="flex items-end gap-3">
+                {(p.youtube_url || p.facebook_url) && (
+                  <div className="flex items-center gap-2">
+                    {p.youtube_url && (
+                      <a
+                        href={p.youtube_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="YouTube"
+                        className="flex h-5 w-5 items-center justify-center rounded-full text-white shadow-md transition hover:opacity-90 min-[740px]:h-7 min-[740px]:w-7"
+                        style={{ background: '#FF0000' }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-3 w-3 min-[740px]:h-4 min-[740px]:w-4">
+                          <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.5 15.5v-7l6.3 3.5-6.3 3.5z" />
+                        </svg>
+                      </a>
+                    )}
+                    {p.facebook_url && (
+                      <a
+                        href={p.facebook_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Facebook"
+                        className="flex h-5 w-5 items-center justify-center rounded-full text-white shadow-md transition hover:opacity-90 min-[740px]:h-7 min-[740px]:w-7"
+                        style={{ background: '#1877F2' }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-3 w-3 min-[740px]:h-4 min-[740px]:w-4">
+                          <path d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7v-3.5h3.1V9.4c0-3 1.8-4.7 4.6-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9v2.2h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12z" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
+                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo-white.svg"
+                  alt="Mission for Honduras"
+                  className="h-7 w-auto drop-shadow-md min-[740px]:h-10"
+                />
+              </div>
+              {taglineNames && (
+                <span className="text-base font-semibold text-white drop-shadow-md min-[740px]:text-xl">
+                  {taglineNames}
+                </span>
+              )}
+            </div>
           </div>
         </section>
+
+        {/* 인트로 텍스트 */}
+        {p.intro_text && (
+          <p className="mx-auto mt-5 max-w-2xl text-center text-sm leading-relaxed text-ink min-[740px]:text-base">
+            {p.intro_text}
+          </p>
+        )}
 
         {/* MAIN: 태블릿+ 2열 (선교사 좌측 / 연혁 우측) */}
         <div className="mt-6 grid grid-cols-1 gap-6 min-[740px]:mt-8 min-[740px]:grid-cols-[1fr_1.25fr] min-[740px]:gap-7 min-[1100px]:grid-cols-[320px_1fr]">

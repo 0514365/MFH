@@ -50,12 +50,7 @@ export default async function PortfolioVideosPage({ params }: Props) {
 
   return (
     <div style={{ background: 'var(--paper)', minHeight: '100vh' }}>
-      <BrandBar
-        homeHref={`/p/${p.slug}`}
-        introVideoUrl={p.intro_video_url}
-        youtubeUrl={p.youtube_url}
-        facebookUrl={p.facebook_url}
-      />
+      <BrandBar homeHref={`/p/${p.slug}`} emailPublic={p.email_public} />
 
       <div className="mx-auto max-w-6xl px-4 py-6 min-[740px]:px-6 min-[740px]:py-8 min-[1100px]:px-8">
         <div className="flex items-center justify-between gap-3">
