@@ -1,13 +1,15 @@
 'use client';
-// MFH-PORTFOLIO-VIDEO-EDITOR-V1
-// 사역 영상 CRUD. 추가 폼(카테고리/년도/제목/YouTube URL) + 리스트(미니썸네일 + ↑↓ + 삭제).
+// MFH-PORTFOLIO-VIDEO-EDITOR-V2
+// 사역 영상 CRUD. 추가 폼(카테고리/년도/제목/영상 URL) + 리스트(미니썸네일 + ↑↓ + 삭제).
 // 카테고리 + 영상을 한 섹션으로 묶음(VideoCategoryEditor 포함).
+// V2: URL 검증 완화 — YouTube 뿐 아니라 재생목록·Facebook 등 http(s) URL 모두 허용
+//     (YouTube 가 아니면 썸네일은 placeholder, 클릭은 원본으로 정상 이동).
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import type { PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
-import { youtubeThumbnailUrl, youtubeVideoId } from '@/lib/portfolio';
+import { youtubeThumbnailUrl } from '@/lib/portfolio';
 import VideoCategoryEditor from './VideoCategoryEditor';
 
 type Props = {
@@ -49,11 +51,11 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
       return;
     }
     if (!url) {
-      setError('YouTube URL 을 입력하세요.');
+      setError('영상 URL 을 입력하세요.');
       return;
     }
-    if (!youtubeVideoId(url)) {
-      setError('유효한 YouTube URL 이 아닙니다. (watch / youtu.be / shorts)');
+    if (!/^https?:\/\/.+/i.test(url)) {
+      setError('유효한 URL 을 입력하세요. (http:// 또는 https:// 로 시작)');
       return;
     }
     setBusy(true);
@@ -179,7 +181,7 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
           type="url"
           value={fUrl}
           onChange={(e) => setFUrl(e.target.value)}
-          placeholder="YouTube URL (watch / youtu.be / shorts 모두 지원)"
+          placeholder="영상 URL (YouTube · 재생목록 · Facebook 모두 가능)"
           className="mb-2 w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
         />
         <button

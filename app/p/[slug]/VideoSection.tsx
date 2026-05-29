@@ -1,9 +1,10 @@
-// MFH-PORTFOLIO-VIDEO-SECTION-V2
+// MFH-PORTFOLIO-VIDEO-SECTION-V3
 // 공개 readonly 사역 영상 섹션. 카테고리별 H3 그룹 + 반응형 그리드(1/2/3열).
 // 썸네일은 YouTube hqdefault 자동. 클릭 시 새 탭 watch.
 // 영상 없는 카테고리는 렌더 안 함.
 // V2: 영상 전용 페이지(/p/[slug]/videos)에서 전체 표시. 폰트 전반 상향(가독성).
 //     showHeader=false 면 섹션 헤더 생략(전용 페이지에서 자체 타이틀 사용).
+// V3: 각 그룹에 앵커 id="cat-<카테고리id>" 부여 → 메인페이지 배너에서 점프(scroll-mt 여백).
 
 import type { PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
 import { youtubeThumbnailUrl, youtubeWatchUrl } from '@/lib/portfolio';
@@ -49,7 +50,7 @@ export default function VideoSection({ categories, videos, showHeader = true }: 
       )}
       <div className={`${showHeader ? 'mt-4' : ''} space-y-7`}>
         {groups.map((g) => (
-          <div key={g.key}>
+          <div key={g.key} id={`cat-${g.key}`} className="scroll-mt-6 min-[740px]:scroll-mt-8">
             <h3 className="mb-3 text-sm font-semibold text-ink min-[740px]:text-base">{g.name}</h3>
             <ul className="grid grid-cols-1 gap-4 min-[560px]:grid-cols-2 min-[1100px]:grid-cols-3">
               {g.items.map((v) => (
