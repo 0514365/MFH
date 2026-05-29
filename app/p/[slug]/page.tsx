@@ -1,12 +1,14 @@
-// MFH-PORTFOLIO-PUBLIC-PAGE-V1
+// MFH-PORTFOLIO-PUBLIC-PAGE-V2
 // /p/[slug] — 공개 readonly. 로그인 불필요.
 // RLS 의 public_read 정책 (is_public=true) 로 접근.
+// V2: 비로그인 방문자에게 오프닝(SplashGate) 표시. 로그인 상태면 건너뜀(skip).
 
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase-server';
 import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, PortfolioLetter } from '@/lib/portfolio';
 import PortfolioView from './PortfolioView';
+import SplashGate from '@/app/SplashGate';
 
 type Props = { params: { slug: string } };
 
@@ -30,6 +32,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PublicPortfolioPage({ params }: Props) {
   const supabase = createClient();
+
+  // 로그인 상태면 오프닝 건너뜀(소유자가 자기 공개페이지를 볼 때)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: portfolio } = await supabase
     .from('portfolio')
@@ -85,12 +92,14 @@ export default async function PublicPortfolioPage({ params }: Props) {
   }));
 
   return (
-    <PortfolioView
-      portfolio={p}
-      history={history}
-      videoCategories={videoCategories}
-      videos={videos}
-      letters={letters}
-    />
+    <SplashGate skip={!!user}>
+      <PortfolioView
+        portfolio={p}
+        history={history}
+        videoCategories={videoCategories}
+        videos={videos}
+        letters={letters}
+      />
+    </SplashGate>
   );
 }

@@ -11,13 +11,21 @@ type Theme = {
   goals: string[]
 }
 
-export default function SplashGate({ children }: { children: ReactNode }) {
+export default function SplashGate({
+  children,
+  skip = false,
+}: {
+  children: ReactNode
+  skip?: boolean
+}) {
   const [show, setShow] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [theme, setTheme] = useState<Theme | null>(null)
   const year = new Date().getFullYear()
 
   useEffect(() => {
+    if (skip) return
+
     let seen = false
     try {
       seen = sessionStorage.getItem('mfh_splash') === '1'
@@ -60,9 +68,9 @@ export default function SplashGate({ children }: { children: ReactNode }) {
     // 3초 이내 정착: 로고 페이드(~0.6s) 후 1.4s 에 패널 reveal → 패널 페이드 0.8s → ~2.2s 정착
     const t = setTimeout(() => setRevealed(true), 1400)
     return () => clearTimeout(t)
-  }, [year])
+  }, [year, skip])
 
-  if (!show) return <>{children}</>
+  if (skip || !show) return <>{children}</>
 
   const hasTheme = !!(theme && (theme.theme || theme.theme_en))
 
@@ -99,9 +107,11 @@ export default function SplashGate({ children }: { children: ReactNode }) {
                 )}
               </>
             )}
-            <button type="button" className="mfh-start" onClick={() => setShow(false)}>
-              시작하기
-            </button>
+            <div>
+              <button type="button" className="mfh-start" onClick={() => setShow(false)}>
+                시작하기
+              </button>
+            </div>
           </div>
         </div>
       </div>
