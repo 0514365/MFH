@@ -1,15 +1,18 @@
 'use client';
-// MFH-PORTFOLIO-VIDEO-EDITOR-V2
-// 사역 영상 CRUD. 추가 폼(카테고리/년도/제목/영상 URL) + 리스트(미니썸네일 + ↑↓ + 삭제).
+// MFH-PORTFOLIO-VIDEO-EDITOR-V3
+// 사역 영상 CRUD. 추가 폼(카테고리/년도/제목/영상 URL) + 리스트(미니썸네일 + 썸네일설정 + ↑↓ + 삭제).
 // 카테고리 + 영상을 한 섹션으로 묶음(VideoCategoryEditor 포함).
 // V2: URL 검증 완화 — YouTube 뿐 아니라 재생목록·Facebook 등 http(s) URL 모두 허용
 //     (YouTube 가 아니면 썸네일은 placeholder, 클릭은 원본으로 정상 이동).
+// V3: 영상별 커스텀 썸네일 설정(재생목록·FB 등 YouTube 썸네일 없는 영상용, patch66).
+//     표시 우선순위 = 커스텀 → YouTube → placeholder.
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import type { PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
-import { youtubeThumbnailUrl } from '@/lib/portfolio';
+import { videoThumbnail } from '@/lib/portfolio';
+import PortfolioPhotoUpload from '@/components/PortfolioPhotoUpload';
 import VideoCategoryEditor from './VideoCategoryEditor';
 
 type Props = {
@@ -37,6 +40,7 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [thumbEditId, setThumbEditId] = useState<string | null>(null);
 
   function catName(id: string | null): string {
     if (!id) return '기타';
@@ -103,6 +107,22 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
       return;
     }
     setVideos((prev) => prev.filter((x) => x.id !== v.id));
+    router.refresh();
+  }
+
+  // 커스텀 썸네일 저장(업로드 URL) / 제거(빈 문자열 → null)
+  async function setThumb(v: PortfolioVideo, url: string) {
+    const next = url.trim() ? url.trim() : null;
+    setError(null);
+    const { error: upError } = await supabase
+      .from('portfolio_videos')
+      .update({ thumbnail_url: next })
+      .eq('id', v.id);
+    if (upError) {
+      setError(upError.message);
+      return;
+    }
+    setVideos((prev) => prev.map((x) => (x.id === v.id ? { ...x, thumbnail_url: next } : x)));
     router.refresh();
   }
 
@@ -201,51 +221,80 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
       ) : (
         <ul className="space-y-2">
           {videos.map((v, i) => {
-            const thumb = youtubeThumbnailUrl(v.youtube_url);
+            const thumb = videoThumbnail(v);
+            const custom = !!(v.thumbnail_url && v.thumbnail_url.trim());
+            const open = thumbEditId === v.id;
             return (
               <li
                 key={v.id}
-                className="flex items-center gap-2.5 rounded-md border border-line bg-surface-subtle p-2"
+                className="rounded-md border border-line bg-surface-subtle p-2"
               >
-                <div className="relative aspect-video w-[64px] flex-shrink-0 overflow-hidden rounded bg-[#221C1C]">
-                  {thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={thumb} alt="" className="h-full w-full object-cover" />
-                  ) : null}
+                <div className="flex items-center gap-2.5">
+                  <div className="relative aspect-video w-[64px] flex-shrink-0 overflow-hidden rounded bg-[#221C1C]">
+                    {thumb ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={thumb} alt="" className="h-full w-full object-cover" />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs text-ink">{v.title}</p>
+                    <p className="text-[10px] text-faint">
+                      {catName(v.category_id)}
+                      {v.year ? ` · ${v.year}` : ''}
+                      {custom ? ' · 커스텀 썸네일' : ''}
+                    </p>
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setThumbEditId(open ? null : v.id)}
+                      disabled={busy}
+                      className={`rounded border px-2 py-1 text-xs disabled:opacity-30 ${
+                        open ? 'border-primary text-primary' : 'border-line bg-surface text-muted'
+                      }`}
+                    >
+                      썸네일
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => move(i, -1)}
+                      disabled={i === 0 || busy}
+                      className="rounded border border-line bg-surface px-2 py-1 text-xs disabled:opacity-30"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => move(i, 1)}
+                      disabled={i === videos.length - 1 || busy}
+                      className="rounded border border-line bg-surface px-2 py-1 text-xs disabled:opacity-30"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteVideo(v)}
+                      disabled={busy}
+                      className="rounded border border-line bg-surface px-2 py-1 text-xs text-danger"
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs text-ink">{v.title}</p>
-                  <p className="text-[10px] text-faint">
-                    {catName(v.category_id)}
-                    {v.year ? ` · ${v.year}` : ''}
-                  </p>
-                </div>
-                <div className="flex flex-shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => move(i, -1)}
-                    disabled={i === 0 || busy}
-                    className="rounded border border-line bg-surface px-2 py-1 text-xs disabled:opacity-30"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => move(i, 1)}
-                    disabled={i === videos.length - 1 || busy}
-                    className="rounded border border-line bg-surface px-2 py-1 text-xs disabled:opacity-30"
-                  >
-                    ↓
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteVideo(v)}
-                    disabled={busy}
-                    className="rounded border border-line bg-surface px-2 py-1 text-xs text-danger"
-                  >
-                    삭제
-                  </button>
-                </div>
+
+                {open && (
+                  <div className="mt-2 border-t border-line pt-2">
+                    <p className="mb-1.5 text-[10px] text-faint">
+                      커스텀 썸네일 (재생목록·Facebook 등 YouTube 썸네일이 없을 때 사용. 없으면 자동/▶ placeholder)
+                    </p>
+                    <PortfolioPhotoUpload
+                      userId={userId}
+                      kind="video-thumb"
+                      value={v.thumbnail_url ?? ''}
+                      onChange={(url) => setThumb(v, url)}
+                    />
+                  </div>
+                )}
               </li>
             );
           })}

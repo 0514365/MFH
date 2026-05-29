@@ -1,16 +1,17 @@
 'use client';
-// MFH-PORTFOLIO-PHOTO-UPLOAD-V2
+// MFH-PORTFOLIO-PHOTO-UPLOAD-V3
 // 포트폴리오 사진 업로드 (portfolio-photos 공개 버킷).
 // 파일경로: {userId}/{kind}-{timestamp}.{ext}
-// kind: 'hero' | 'missionary-a' | 'missionary-b' | 'couple'
+// kind: 'hero' | 'missionary-a' | 'missionary-b' | 'couple' | 'video-thumb'
 // V2: 'couple'(부부사진) kind 추가 (patch63).
+// V3: 'video-thumb'(사역 영상 커스텀 썸네일) kind 추가 (patch66).
 
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 
 type Props = {
   userId: string;
-  kind: 'hero' | 'missionary-a' | 'missionary-b' | 'couple';
+  kind: 'hero' | 'missionary-a' | 'missionary-b' | 'couple' | 'video-thumb';
   value: string;
   onChange: (url: string) => void;
 };

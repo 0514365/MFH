@@ -1,7 +1,8 @@
-// MFH-PORTFOLIO-TYPES-V3
+// MFH-PORTFOLIO-TYPES-V4
 // 포트폴리오 도메인 타입 + 헬퍼
 // V2: couple_photo_url / couple_intro (부부사진 + 부부 소개 개요, patch63) 추가.
 // V3: youtubeVideoId 에 live/ 패턴 추가(라이브 영상 썸네일 지원).
+// V4: portfolio_videos.thumbnail_url(커스텀 썸네일, patch66) + VIDEO_BANNER_RAMP(브랜드 배너 그라데이션) 추가.
 
 export type Portfolio = {
   id: string;
@@ -125,6 +126,7 @@ export type PortfolioVideo = {
   category_id: string | null;
   title: string;
   youtube_url: string;
+  thumbnail_url: string | null; // 커스텀 썸네일(재생목록·FB 등 YouTube 썸네일 없는 영상용, patch66)
   year: number | null;
   sort_order: number;
   created_at: string;
@@ -157,6 +159,29 @@ export function youtubeThumbnailUrl(url: string | null | undefined): string | nu
 export function youtubeWatchUrl(url: string | null | undefined): string | null {
   const id = youtubeVideoId(url);
   return id ? `https://www.youtube.com/watch?v=${id}` : (url ?? null);
+}
+
+// 영상 표시 썸네일: 커스텀 썸네일 → YouTube 썸네일 → null(placeholder)
+export function videoThumbnail(
+  v: Pick<PortfolioVideo, 'thumbnail_url' | 'youtube_url'>,
+): string | null {
+  return (v.thumbnail_url && v.thumbnail_url.trim()) || youtubeThumbnailUrl(v.youtube_url);
+}
+
+// 사역 영상 배너 브랜드 그라데이션 램프 (마룬 옅음→진함, 각 배너 가로 그라데이션).
+// 그룹 순서(sort_order)대로 배정. text=사역명 글자색(밝은 배너=마룬 / 진한 배너=흰색).
+export const VIDEO_BANNER_RAMP = [
+  { from: '#F4E1DF', to: '#D9BFBE', text: '#5E1B1C' },
+  { from: '#D9BFBE', to: '#BE9E9D', text: '#5E1B1C' },
+  { from: '#BE9E9D', to: '#A47C7C', text: '#FFFFFF' },
+  { from: '#A47C7C', to: '#895A5B', text: '#FFFFFF' },
+  { from: '#895A5B', to: '#6E393A', text: '#FFFFFF' },
+  { from: '#6E393A', to: '#531719', text: '#FFFFFF' },
+] as const;
+
+// 그룹 인덱스 → 램프 항목 (그룹이 6개 초과면 순환)
+export function videoBannerStyle(index: number) {
+  return VIDEO_BANNER_RAMP[index % VIDEO_BANNER_RAMP.length];
 }
 
 
