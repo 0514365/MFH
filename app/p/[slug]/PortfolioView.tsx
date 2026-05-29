@@ -1,17 +1,22 @@
-// MFH-PORTFOLIO-VIEW-V4
+// MFH-PORTFOLIO-VIEW-V5
 // 공개 readonly 뷰. 모바일(<740) / 태블릿(740~1099) / 데스크탑(>=1100) 3단계 반응형.
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v2
 // V2: 선교사 소개 = MissionaryAccordion(접힘 개요→약력), 연혁 = HistoryAccordion(섹션 전체 접이식).
 // V3: 상단 BrandBar(로고+SNS) + 가로 긴 배너 hero + 폰트 전반 상향 + 영상은 요약(VideoSummary)
 //     으로 표시하고 전체는 /p/[slug]/videos 전용 페이지로 분리.
 // V4: 헤더=로고+이메일(얇은 1행). 히어로 사진 우하단=흰색 로고+선교사명. 사진 하단=유튜브/페이스북
-//     링크. 인트로 텍스트는 사진 아래로. 사역소개 영상 링크는 추후 선교사 소개 영역에 배치 예정.
+//     링크. 인트로 텍스트는 사진 아래로.
+// V5: 데스크탑(≥1100) 선교사 소개 재디자인 = MissionaryDesktop(사진 크게 + 요약 글상자 + 약력 2열),
+//     연혁은 그 아래 전체폭 접이식(grid 1열로 reflow). 모바일·태블릿(<1100)은 현행 유지.
+//     「선교사 소개」 타이틀 옆에 사역소개영상(intro_video_url) 링크 추가(전 폭 공통).
 
 import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, PortfolioLetter } from '@/lib/portfolio';
+import { youtubeWatchUrl } from '@/lib/portfolio';
 import BrandBar from './BrandBar';
 import VideoSummary from './VideoSummary';
 import LetterSection from './LetterSection';
 import MissionaryAccordion from './MissionaryAccordion';
+import MissionaryDesktop from './MissionaryDesktop';
 import HistoryAccordion from './HistoryAccordion';
 
 type LetterWithUrls = PortfolioLetter & { pdf_url: string | null; cover_url: string | null };
@@ -99,16 +104,49 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
           </div>
         </section>
 
-        {/* MAIN: 태블릿+ 2열 (선교사 좌측 / 연혁 우측) */}
-        <div className="mt-6 grid grid-cols-1 gap-6 min-[740px]:mt-8 min-[740px]:grid-cols-[1fr_1.25fr] min-[740px]:gap-7 min-[1100px]:grid-cols-[320px_1fr]">
+        {/* MAIN: 태블릿(740~1099) 2열 (선교사 좌 / 연혁 우) → 데스크탑(≥1100) 1열로 reflow */}
+        <div className="mt-6 grid grid-cols-1 gap-6 min-[740px]:mt-8 min-[740px]:grid-cols-[1fr_1.25fr] min-[740px]:gap-7 min-[1100px]:grid-cols-1">
 
-          {/* 선교사 (접이식: 부부 개요 → 약력) */}
+          {/* 선교사 (모바일·태블릿: 접이식 / 데스크탑: 사진+요약+약력 2열) */}
           <section>
-            <h2 className="border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary min-[740px]:text-lg">
-              선교사 소개
-            </h2>
-            <div className="mt-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary min-[740px]:text-lg">
+                선교사 소개
+              </h2>
+              {p.intro_video_url && (
+                <a
+                  href={youtubeWatchUrl(p.intro_video_url) ?? '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-primary transition hover:border-primary"
+                >
+                  <span
+                    className="flex h-[18px] w-[18px] items-center justify-center rounded-full"
+                    style={{ background: '#FF0000' }}
+                    aria-hidden
+                  >
+                    <svg viewBox="0 0 24 24" fill="#fff" className="h-2.5 w-2.5">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </span>
+                  사역소개영상
+                </a>
+              )}
+            </div>
+
+            {/* 모바일·태블릿(<1100): 접이식 */}
+            <div className="mt-3 min-[1100px]:hidden">
               <MissionaryAccordion
+                couplePhotoUrl={p.couple_photo_url}
+                coupleIntro={p.couple_intro}
+                a={{ name: p.missionary_a_name, bio: p.missionary_a_bio }}
+                b={{ name: p.missionary_b_name, bio: p.missionary_b_bio }}
+              />
+            </div>
+
+            {/* 데스크탑(≥1100): 사진 크게 + 요약 글상자 + 약력 2열 */}
+            <div className="mt-3 hidden min-[1100px]:block">
+              <MissionaryDesktop
                 couplePhotoUrl={p.couple_photo_url}
                 coupleIntro={p.couple_intro}
                 a={{ name: p.missionary_a_name, bio: p.missionary_a_bio }}
@@ -117,7 +155,7 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
             </div>
           </section>
 
-          {/* 연혁 (섹션 전체 접이식) */}
+          {/* 연혁 (섹션 전체 접이식) — 데스크탑에선 grid 1열 reflow 로 전체폭 아래 배치 */}
           <HistoryAccordion history={history} />
         </div>
 
