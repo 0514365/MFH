@@ -39,8 +39,8 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
 
   return (
     <div style={{ background: 'var(--paper)', minHeight: '100vh' }}>
-      {/* 최상단 브랜드 바: 로고 + 이메일 (얇은 1행) */}
-      <BrandBar emailPublic={p.email_public} />
+      {/* 최상단 브랜드 바: 로고 + 주소공유 (얇은 1행) */}
+      <BrandBar />
 
       <div className="mx-auto max-w-6xl px-4 py-6 min-[740px]:px-6 min-[740px]:py-8 min-[1100px]:px-8">
 
@@ -166,9 +166,58 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
         {/* 사역 영상 요약 (전체는 /p/[slug]/videos) */}
         <VideoSummary slug={p.slug} categories={videoCategories} videos={videos} />
 
-        {/* footer */}
-        <footer className="mt-10 border-t border-line pt-5 text-center text-sm text-faint min-[740px]:mt-12">
-          <p>Mission for Honduras · {p.email_public}</p>
+        {/* footer: 후원방법 + SNS 링크 + 카피 */}
+        <footer className="mt-10 border-t border-line pt-7 min-[740px]:mt-12">
+          {/* 후원방법 (donation_info 있을 때만) */}
+          {p.donation_info && p.donation_info.trim() && (
+            <div className="mx-auto max-w-md rounded-xl border border-line bg-surface p-5 text-center">
+              <h2 className="border-l-[3px] border-accent pl-2.5 text-left text-base font-semibold text-primary">
+                후원방법
+              </h2>
+              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink">
+                {p.donation_info}
+              </p>
+            </div>
+          )}
+
+          {/* SNS 링크 */}
+          {(p.youtube_url || p.facebook_url) && (
+            <div className="mt-6 flex items-center justify-center gap-3">
+              {p.youtube_url && (
+                <a
+                  href={p.youtube_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="YouTube"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-white shadow-sm transition hover:opacity-90"
+                  style={{ background: '#FF0000' }}
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-6 w-6">
+                    <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.5 15.5v-7l6.3 3.5-6.3 3.5z" />
+                  </svg>
+                </a>
+              )}
+              {p.facebook_url && (
+                <a
+                  href={p.facebook_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Facebook"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-white shadow-sm transition hover:opacity-90"
+                  style={{ background: '#1877F2' }}
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-6 w-6">
+                    <path d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7v-3.5h3.1V9.4c0-3 1.8-4.7 4.6-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9v2.2h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12z" />
+                  </svg>
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* 카피 */}
+          <p className="mt-7 text-center text-sm text-faint">
+            Mission for Honduras{p.email_public ? ` · ${p.email_public}` : ''}
+          </p>
         </footer>
       </div>
     </div>

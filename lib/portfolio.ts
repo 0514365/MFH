@@ -1,9 +1,10 @@
-// MFH-PORTFOLIO-TYPES-V5
+// MFH-PORTFOLIO-TYPES-V6
 // 포트폴리오 도메인 타입 + 헬퍼
 // V2: couple_photo_url / couple_intro (부부사진 + 부부 소개 개요, patch63) 추가.
 // V3: youtubeVideoId 에 live/ 패턴 추가(라이브 영상 썸네일 지원).
 // V4: portfolio_videos.thumbnail_url(커스텀 썸네일, patch66) + VIDEO_BANNER_RAMP(브랜드 배너 그라데이션) 추가.
 // V5: letters.summary(최신 선교편지 요약 기도문, patch67) + LETTER_BANNER_RAMP(앰버·세피아 년도 배너) 추가.
+// V6: donation_info(후원 안내 — 푸터 후원방법 블록, patch68) 추가.
 
 export type Portfolio = {
   id: string;
@@ -23,6 +24,7 @@ export type Portfolio = {
   missionary_b_name: string | null;
   missionary_b_photo_url: string | null;
   missionary_b_bio: string | null;
+  donation_info: string | null;
   is_public: boolean;
   updated_at: string;
 };
@@ -53,6 +55,7 @@ export type PortfolioFormState = {
   missionary_b_name: string;
   missionary_b_photo_url: string;
   missionary_b_bio: string;
+  donation_info: string;
   is_public: boolean;
 };
 
@@ -73,6 +76,7 @@ export function emptyPortfolioForm(): PortfolioFormState {
     missionary_b_name: '',
     missionary_b_photo_url: '',
     missionary_b_bio: '',
+    donation_info: '',
     is_public: true,
   };
 }
@@ -94,6 +98,7 @@ export function portfolioToForm(p: Portfolio): PortfolioFormState {
     missionary_b_name: p.missionary_b_name ?? '',
     missionary_b_photo_url: p.missionary_b_photo_url ?? '',
     missionary_b_bio: p.missionary_b_bio ?? '',
+    donation_info: p.donation_info ?? '',
     is_public: p.is_public,
   };
 }

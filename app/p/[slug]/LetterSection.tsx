@@ -1,6 +1,6 @@
 'use client';
 
-// MFH-PORTFOLIO-LETTER-SECTION-V6
+// MFH-PORTFOLIO-LETTER-SECTION-V7
 // 공개 페이지 선교편지 섹션. 사역 영상 위에 전체 폭.
 // 구성: ① 최신 선교편지(표지 + 요약 기도문) ② 년도별 목록(앰버 배너 + 접이식).
 // V3: 최신 선교편지 블록 신설 / 년도 배너 컬러(LETTER_BANNER_RAMP, 앰버·세피아) / 개수 표기 제거.
@@ -9,6 +9,8 @@
 //     groupLettersByYear 가 최신 년도를 항상 index 0 으로 정렬 → 해가 바뀌면 자동 적용.
 // V6: 요약 "🙏 요약 기도문" 타이틀 제거. 모바일(<740)은 요약을 썸네일 행 아래 별도 구역으로 분리
 //     (≥740 는 표지 좌 + 우측 칼럼 유지).
+// V7: 최신 선교편지 표지(썸네일) 자체를 PDF 링크로 변경. 하단 "편지 전문 보기" 버튼 제거.
+//     표지 아래 짧은 "PDF 보기 →" 캡션으로 클릭 가능 표시.
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v4 §5-5
 
 import { useState } from 'react';
@@ -123,37 +125,43 @@ function LatestLetter({ letter: l }: { letter: LetterWithUrls }) {
       </div>
     ) : null;
 
-  const pdfLink = l.pdf_url ? (
-    <a
-      href={l.pdf_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-block rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-primary transition hover:border-primary"
-    >
-      편지 전문 보기 (PDF) →
-    </a>
-  ) : null;
+  // 표지(썸네일) = PDF 링크. pdf 없으면 비링크 표지. 표지 아래 짧은 캡션으로 클릭 안내.
+  const cover = (widthClass: string) =>
+    l.pdf_url ? (
+      <a
+        href={l.pdf_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`${l.title} — 편지 전문 보기 (PDF)`}
+        className={`group block flex-shrink-0 ${widthClass}`}
+      >
+        <LetterCover letter={l} className="w-full transition group-hover:opacity-90" />
+        <span className="mt-1.5 block text-center text-[11px] font-semibold text-primary">
+          PDF 보기 →
+        </span>
+      </a>
+    ) : (
+      <LetterCover letter={l} className={`flex-shrink-0 ${widthClass}`} />
+    );
 
   return (
     <div className="mt-4 rounded-xl border border-line bg-surface p-4">
-      {/* 데스크탑·태블릿(≥740): 표지 좌 + 우측 칼럼(제목·요약·PDF) */}
+      {/* 데스크탑·태블릿(≥740): 표지(클릭=PDF) 좌 + 우측 칼럼(제목·요약) */}
       <div className="hidden gap-5 min-[740px]:flex">
-        <LetterCover letter={l} className="w-[150px] flex-shrink-0" />
+        {cover('w-[150px]')}
         <div className="min-w-0 flex-1">
           {titleRow}
           {prayer && <div className="mt-2.5">{prayer}</div>}
-          {pdfLink && <div className="mt-2.5">{pdfLink}</div>}
         </div>
       </div>
 
-      {/* 모바일(<740): 표지+제목 한 행 → 요약·PDF 는 아래 별도 구역 */}
+      {/* 모바일(<740): 표지(클릭=PDF)+제목 한 행 → 요약 아래 별도 구역 */}
       <div className="min-[740px]:hidden">
         <div className="flex gap-4">
-          <LetterCover letter={l} className="w-[108px] flex-shrink-0" />
+          {cover('w-[108px]')}
           <div className="min-w-0 flex-1">{titleRow}</div>
         </div>
         {prayer && <div className="mt-3">{prayer}</div>}
-        {pdfLink && <div className="mt-3">{pdfLink}</div>}
       </div>
     </div>
   );

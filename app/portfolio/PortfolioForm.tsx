@@ -1,8 +1,9 @@
 'use client';
-// MFH-PORTFOLIO-FORM-V2
+// MFH-PORTFOLIO-FORM-V3
 // 포트폴리오 본문 편집 폼. upsert(insert/update 자동 분기).
 // 사진 업로드는 PortfolioPhotoUpload 컴포넌트 활용.
 // V2: 부부사진(couple_photo_url) + 부부 소개 개요(couple_intro) 섹션 추가 (patch63).
+// V3: 후원 안내(donation_info) 입력 추가 — 공개 푸터 "후원방법" 블록 (patch68).
 
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -75,6 +76,7 @@ export default function PortfolioForm({ initial, userId }: Props) {
       missionary_b_name: form.missionary_b_name || null,
       missionary_b_photo_url: form.missionary_b_photo_url || null,
       missionary_b_bio: form.missionary_b_bio || null,
+      donation_info: form.donation_info || null,
       is_public: form.is_public,
       updated_at: new Date().toISOString(),
     };
@@ -263,6 +265,24 @@ export default function PortfolioForm({ initial, userId }: Props) {
             value={form.missionary_b_bio}
             onChange={bindText('missionary_b_bio')}
             rows={6}
+            className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+          />
+        </Field>
+      </section>
+
+      <section className="rounded-lg border border-line bg-surface p-4">
+        <h2 className="mb-1 text-sm font-medium text-primary">후원 안내</h2>
+        <p className="mb-3 text-[11px] text-faint">
+          공개 페이지 맨 아래 “후원방법”에 표시됩니다. 은행·계좌번호·예금주를 줄바꿈으로 입력하세요.
+          비워 두면 후원방법 블록이 표시되지 않습니다.
+        </p>
+
+        <Field label="후원 계좌 / 안내 (줄바꿈으로 구분)">
+          <textarea
+            value={form.donation_info}
+            onChange={bindText('donation_info')}
+            rows={3}
+            placeholder="우리은행 1002-349-524757&#10;예금주: 김우진"
             className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
           />
         </Field>
