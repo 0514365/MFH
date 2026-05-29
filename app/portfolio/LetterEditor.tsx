@@ -1,7 +1,9 @@
 'use client';
 
-// MFH-PORTFOLIO-LETTER-EDITOR-V2
-// 선교편지 관리 (편집 페이지, 영상 관리 아래).
+// MFH-PORTFOLIO-LETTER-EDITOR-V3
+// 선교편지 관리 (편집 페이지).
+// V3: 외곽 제목 제거 — AccordionSection("선교편지 관리") 안에 들어감.
+// (이전 주석) 선교편지 관리 (편집 페이지, 영상 관리 아래).
 // 추가 폼(년월·호수·제목 + PDF필수 + 표지선택 + 요약기도문 + 공개토글) + 리스트(공개표시·공유URL복사·순서·삭제).
 // V2: 요약 기도문(summary, patch67) 입력 — 신규 폼 + 기존 편지 인라인 편집(최신호용).
 //     공개 "최신 선교편지" 블록 우측 칼럼에 출력. 최신호에만 작성.
@@ -182,9 +184,8 @@ export default function LetterEditor({ initial, userId }: Props) {
   }
 
   return (
-    <section>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-medium text-primary">선교편지 관리</h2>
+    <div>
+      <div className="mb-3 flex items-center justify-end">
         {!adding && (
           <button
             type="button"
@@ -412,6 +413,6 @@ export default function LetterEditor({ initial, userId }: Props) {
           })}
         </ul>
       )}
-    </section>
+    </div>
   );
 }

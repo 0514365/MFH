@@ -1,6 +1,7 @@
 'use client';
-// MFH-PORTFOLIO-HISTORY-EDITOR-V1
+// MFH-PORTFOLIO-HISTORY-EDITOR-V2
 // 선교 연혁 CRUD. is_ongoing 토글 (빨강/회색 점). sort_order 위/아래 화살표로 변경.
+// V2: 외곽 카드/제목 제거 — 편집 페이지 AccordionSection("선교 연혁 관리") 안에 들어감.
 
 import { useMemo, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -163,9 +164,8 @@ export default function HistoryEditor({ initial, userId }: Props) {
   }
 
   return (
-    <section className="rounded-lg border border-line bg-surface p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-medium text-primary">선교 연혁</h2>
+    <div>
+      <div className="mb-3 flex items-center justify-end">
         <button
           type="button"
           onClick={addRow}
@@ -255,6 +255,6 @@ export default function HistoryEditor({ initial, userId }: Props) {
           {busy ? '저장 중…' : '연혁 저장'}
         </button>
       </div>
-    </section>
+    </div>
   );
 }

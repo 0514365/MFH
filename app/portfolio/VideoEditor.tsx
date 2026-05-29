@@ -1,19 +1,37 @@
 'use client';
-// MFH-PORTFOLIO-VIDEO-EDITOR-V3
+// MFH-PORTFOLIO-VIDEO-EDITOR-V4
 // 사역 영상 CRUD. 추가 폼(카테고리/년도/제목/영상 URL) + 리스트(미니썸네일 + 썸네일설정 + ↑↓ + 삭제).
 // 카테고리 + 영상을 한 섹션으로 묶음(VideoCategoryEditor 포함).
 // V2: URL 검증 완화 — YouTube 뿐 아니라 재생목록·Facebook 등 http(s) URL 모두 허용
 //     (YouTube 가 아니면 썸네일은 placeholder, 클릭은 원본으로 정상 이동).
 // V3: 영상별 커스텀 썸네일 설정(재생목록·FB 등 YouTube 썸네일 없는 영상용, patch66).
 //     표시 우선순위 = 커스텀 → YouTube → placeholder.
+// V4: 외곽 카드/제목 제거(AccordionSection 안에 들어감) + CSV 내보내기/가져오기.
+//     CSV 가져오기 = id 기준 upsert(있으면 수정·없으면 추가), 카테고리는 이름 매칭, 빠진 행은 삭제 안 함.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import type { PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
 import { videoThumbnail } from '@/lib/portfolio';
+import { toCSV, parseCSV } from '@/lib/csv';
 import PortfolioPhotoUpload from '@/components/PortfolioPhotoUpload';
 import VideoCategoryEditor from './VideoCategoryEditor';
+
+const CSV_HEADER = ['id', 'category', 'year', 'title', 'youtube_url', 'thumbnail_url', 'sort_order'];
+
+type VideoInsert = {
+  user_id: string;
+  category_id: string | null;
+  title: string;
+  youtube_url: string;
+  year: number | null;
+  thumbnail_url: string | null;
+  sort_order: number;
+};
+type VideoPatch = Partial<
+  Pick<PortfolioVideo, 'title' | 'youtube_url' | 'category_id' | 'year' | 'thumbnail_url' | 'sort_order'>
+>;
 
 type Props = {
   initialCategories: PortfolioVideoCategory[];
@@ -41,10 +59,146 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [thumbEditId, setThumbEditId] = useState<string | null>(null);
+  const importRef = useRef<HTMLInputElement>(null);
 
   function catName(id: string | null): string {
     if (!id) return '기타';
     return cats.find((c) => c.id === id)?.name ?? '기타';
+  }
+
+  // ===== CSV 내보내기 =====
+  function exportCSV() {
+    const rows = videos.map((v) => [
+      v.id,
+      catName(v.category_id),
+      v.year != null ? String(v.year) : '',
+      v.title,
+      v.youtube_url,
+      v.thumbnail_url ?? '',
+      String(v.sort_order),
+    ]);
+    const csv = toCSV([CSV_HEADER, ...rows]);
+    // BOM 추가(엑셀 한글 깨짐 방지)
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mfh-videos.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ===== CSV 가져오기 (id 기준 upsert) =====
+  async function onImportFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 같은 파일 재선택 허용
+    if (!file) return;
+
+    const text = await file.text();
+    const table = parseCSV(text).filter((r) => r.some((c) => c.trim() !== ''));
+    if (table.length < 2) {
+      setError('CSV 에 데이터 행이 없습니다.');
+      return;
+    }
+
+    const header = table[0].map((h) => h.trim().toLowerCase());
+    const col = (name: string) => header.indexOf(name);
+    const iId = col('id');
+    const iCat = col('category');
+    const iYear = col('year');
+    const iTitle = col('title');
+    const iUrl = col('youtube_url');
+    const iThumb = col('thumbnail_url');
+    const iSort = col('sort_order');
+    if (iTitle < 0 || iUrl < 0) {
+      setError('CSV 헤더에 title, youtube_url 컬럼이 필요합니다.');
+      return;
+    }
+
+    const catByName = new Map(cats.map((c) => [c.name.trim().toLowerCase(), c.id]));
+    const existingIds = new Set(videos.map((v) => v.id));
+    const inserts: VideoInsert[] = [];
+    const updates: { id: string; patch: VideoPatch }[] = [];
+    let skipped = 0;
+    let maxOrder = videos.reduce((m, v) => Math.max(m, v.sort_order), 0);
+
+    const cell = (row: string[], i: number) => (i >= 0 ? (row[i] ?? '').trim() : '');
+
+    for (let r = 1; r < table.length; r++) {
+      const row = table[r];
+      const title = cell(row, iTitle);
+      const url = cell(row, iUrl);
+      if (!title || !/^https?:\/\/.+/i.test(url)) {
+        skipped++;
+        continue;
+      }
+      const catRaw = cell(row, iCat);
+      const category_id = catRaw ? catByName.get(catRaw.toLowerCase()) ?? null : null;
+      const yearRaw = cell(row, iYear);
+      const yearNum = yearRaw ? parseInt(yearRaw, 10) : NaN;
+      const year = Number.isFinite(yearNum) ? yearNum : null;
+      const thumbRaw = cell(row, iThumb);
+      const thumbnail_url = thumbRaw ? thumbRaw : null;
+      const sortRaw = cell(row, iSort);
+      const sortNum = sortRaw ? parseInt(sortRaw, 10) : NaN;
+
+      const id = cell(row, iId);
+      if (id && existingIds.has(id)) {
+        const patch: VideoPatch = { title, youtube_url: url, category_id, year, thumbnail_url };
+        if (Number.isFinite(sortNum)) patch.sort_order = sortNum;
+        updates.push({ id, patch });
+      } else {
+        maxOrder += 10;
+        inserts.push({
+          user_id: userId,
+          category_id,
+          title,
+          youtube_url: url,
+          year,
+          thumbnail_url,
+          sort_order: Number.isFinite(sortNum) ? sortNum : maxOrder,
+        });
+      }
+    }
+
+    if (inserts.length === 0 && updates.length === 0) {
+      setError(`가져올 행이 없습니다. (건너뜀 ${skipped}건 — 제목/URL 누락)`);
+      return;
+    }
+
+    const ok = confirm(
+      `CSV 가져오기\n수정 ${updates.length}건 · 추가 ${inserts.length}건 · 건너뜀 ${skipped}건\n진행할까요?`,
+    );
+    if (!ok) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      let next = [...videos];
+      if (inserts.length) {
+        const { data, error: insError } = await supabase
+          .from('portfolio_videos')
+          .insert(inserts)
+          .select();
+        if (insError) throw insError;
+        if (data) next = [...next, ...(data as PortfolioVideo[])];
+      }
+      for (const u of updates) {
+        const { error: upError } = await supabase
+          .from('portfolio_videos')
+          .update(u.patch)
+          .eq('id', u.id);
+        if (upError) throw upError;
+        next = next.map((v) => (v.id === u.id ? { ...v, ...u.patch } : v));
+      }
+      next.sort((a, b) => a.sort_order - b.sort_order);
+      setVideos(next);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '가져오기 중 오류가 발생했습니다.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function addVideo() {
@@ -159,8 +313,37 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
   }
 
   return (
-    <section className="rounded-lg border border-line bg-surface p-4">
-      <h2 className="mb-3 text-sm font-medium text-primary">사역 영상 관리</h2>
+    <div>
+      {/* CSV 내보내기 / 가져오기 */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-line bg-surface-subtle p-3">
+        <span className="mr-1 text-xs font-medium text-muted">CSV</span>
+        <button
+          type="button"
+          onClick={exportCSV}
+          disabled={busy || videos.length === 0}
+          className="rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-soft disabled:opacity-40"
+        >
+          내보내기
+        </button>
+        <button
+          type="button"
+          onClick={() => importRef.current?.click()}
+          disabled={busy}
+          className="rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-soft disabled:opacity-40"
+        >
+          가져오기
+        </button>
+        <input
+          ref={importRef}
+          type="file"
+          accept=".csv,text/csv"
+          onChange={onImportFile}
+          className="hidden"
+        />
+        <span className="basis-full text-[11px] text-faint">
+          가져오기는 <b>id</b> 기준 — 있으면 수정, 없으면 추가(빠진 행은 삭제되지 않음). 카테고리는 이름으로 매칭.
+        </span>
+      </div>
 
       {/* 카테고리 관리 */}
       <div className="mb-4">
@@ -302,6 +485,6 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
       )}
 
       {error && <p className="mt-2 text-[11px] text-danger">{error}</p>}
-    </section>
+    </div>
   );
 }

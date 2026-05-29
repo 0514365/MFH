@@ -1,11 +1,13 @@
-// MFH-PORTFOLIO-EDIT-PAGE-V1
+// MFH-PORTFOLIO-EDIT-PAGE-V2
 // /portfolio — 우진 본인이 포트폴리오 편집. 로그인 필요.
+// V2: 셸 개편 — 고정 헤더(저장·공개토글)는 PortfolioForm 내부. 그룹 접이식(AccordionSection),
+//     순서 ① 기본정보(외부링크 통합) ② 부부·선교사·후원(PortfolioForm) → 연혁 → 편지 → 영상(children).
 
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase-server';
 import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, PortfolioLetter } from '@/lib/portfolio';
 import PortfolioForm from './PortfolioForm';
+import AccordionSection from './AccordionSection';
 import HistoryEditor from './HistoryEditor';
 import VideoEditor from './VideoEditor';
 import LetterEditor from './LetterEditor';
@@ -64,38 +66,24 @@ export default async function PortfolioEditPage() {
   const letters = (letterRows ?? []) as PortfolioLetter[];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <header className="mb-5 flex items-center justify-between">
-        <h1 className="text-lg font-medium text-primary">포트폴리오 편집</h1>
-        {portfolio?.slug && portfolio.is_public && (
-          <Link
-            href={`/p/${portfolio.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-soft"
-          >
-            공개 페이지 보기 ↗
-          </Link>
-        )}
-      </header>
+    <div className="mx-auto max-w-3xl px-4 pb-10">
+      <PortfolioForm initial={portfolio} userId={user.id}>
+        <AccordionSection title="선교 연혁 관리">
+          <HistoryEditor initial={history} userId={user.id} />
+        </AccordionSection>
 
-      <PortfolioForm initial={portfolio} userId={user.id} />
+        <AccordionSection title="선교편지 관리">
+          <LetterEditor initial={letters} userId={user.id} />
+        </AccordionSection>
 
-      <div className="mt-8">
-        <HistoryEditor initial={history} userId={user.id} />
-      </div>
-
-      <div className="mt-8">
-        <VideoEditor
-          initialCategories={videoCategories}
-          initialVideos={videos}
-          userId={user.id}
-        />
-      </div>
-
-      <div className="mt-8">
-        <LetterEditor initial={letters} userId={user.id} />
-      </div>
+        <AccordionSection title="사역 영상 관리">
+          <VideoEditor
+            initialCategories={videoCategories}
+            initialVideos={videos}
+            userId={user.id}
+          />
+        </AccordionSection>
+      </PortfolioForm>
     </div>
   );
 }
