@@ -3,7 +3,13 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 
-type Theme = { theme: string; goals: string[] }
+type Theme = {
+  verse_ref: string
+  theme_en: string
+  theme: string
+  quote: string
+  goals: string[]
+}
 
 export default function SplashGate({ children }: { children: ReactNode }) {
   const [show, setShow] = useState(false)
@@ -30,23 +36,35 @@ export default function SplashGate({ children }: { children: ReactNode }) {
     const supabase = createClient()
     void supabase
       .from('year_themes')
-      .select('theme, goals')
+      .select('theme, goals, verse_ref, theme_en, quote')
       .eq('year', year)
       .maybeSingle()
       .then(({ data }) => {
         if (!data) return
-        const row = data as { theme: string | null; goals: unknown }
+        const row = data as {
+          theme: string | null
+          goals: unknown
+          verse_ref: string | null
+          theme_en: string | null
+          quote: string | null
+        }
         setTheme({
+          verse_ref: row.verse_ref ?? '',
+          theme_en: row.theme_en ?? '',
           theme: row.theme ?? '',
+          quote: row.quote ?? '',
           goals: Array.isArray(row.goals) ? (row.goals as string[]) : [],
         })
       })
 
-    const t = setTimeout(() => setRevealed(true), 6200)
+    // 3초 이내 정착: 로고 페이드(~0.6s) 후 1.4s 에 패널 reveal → 패널 페이드 0.8s → ~2.2s 정착
+    const t = setTimeout(() => setRevealed(true), 1400)
     return () => clearTimeout(t)
   }, [year])
 
   if (!show) return <>{children}</>
+
+  const hasTheme = !!(theme && (theme.theme || theme.theme_en))
 
   return (
     <>
@@ -58,18 +76,22 @@ export default function SplashGate({ children }: { children: ReactNode }) {
         <div className="mfh-stage">
           <div className="mfh-logo">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/intro-white-anim.svg" alt="MFH — Mission for Honduras" />
+            <img src="/logo-white.svg" alt="MFH — Mission for Honduras" />
           </div>
           <div className="mfh-panel">
-            {theme?.theme && (
+            {hasTheme && (
               <>
-                <div className="mfh-kicker">{year} · 온두라스</div>
-                <div className="mfh-theme">{theme.theme}</div>
-                {theme.goals.length > 0 && (
+                <div className="mfh-kicker">{theme!.verse_ref || `${year} · 온두라스`}</div>
+                <div className="mfh-theme">
+                  {theme!.theme_en && <span className="mfh-theme-en">{theme!.theme_en}</span>}
+                  {theme!.theme && <span className="mfh-theme-ko">{theme!.theme}</span>}
+                </div>
+                {theme!.quote && <div className="mfh-quote">&ldquo;{theme!.quote}&rdquo;</div>}
+                {theme!.goals.length > 0 && (
                   <>
                     <div className="mfh-rule" />
                     <ul className="mfh-goals">
-                      {theme.goals.map((g, i) => (
+                      {theme!.goals.map((g, i) => (
                         <li key={i}>{g}</li>
                       ))}
                     </ul>
@@ -110,8 +132,10 @@ export default function SplashGate({ children }: { children: ReactNode }) {
           padding: 32px;
         }
         .mfh-logo {
-          width: min(80%, 360px);
-          transition: transform 1s cubic-bezier(0.22, 0.61, 0.36, 1);
+          width: min(78%, 340px);
+          opacity: 0;
+          animation: mfhFade 0.55s ease 0.1s forwards;
+          transition: transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
         }
         .mfh-logo :global(img) {
           width: 100%;
@@ -119,13 +143,18 @@ export default function SplashGate({ children }: { children: ReactNode }) {
           display: block;
         }
         .mfh-splash.revealed .mfh-logo {
-          transform: translateY(-26vh) scale(0.62);
+          transform: translateY(-23vh) scale(0.62);
+        }
+        @keyframes mfhFade {
+          to {
+            opacity: 1;
+          }
         }
         .mfh-panel {
           position: absolute;
           left: 32px;
           right: 32px;
-          top: 46%;
+          top: 44%;
           opacity: 0;
           transform: translateY(22px);
           transition: opacity 0.8s ease, transform 0.8s ease;
@@ -144,17 +173,35 @@ export default function SplashGate({ children }: { children: ReactNode }) {
           color: rgba(255, 255, 255, 0.72);
         }
         .mfh-theme {
+          margin: 12px 0 8px;
+          line-height: 1.25;
+        }
+        .mfh-theme-en {
+          display: block;
           font-family: var(--font-montserrat), sans-serif;
           font-weight: 800;
-          font-size: 26px;
-          line-height: 1.25;
-          margin: 12px 0 4px;
+          font-size: 27px;
+        }
+        .mfh-theme-ko {
+          display: block;
+          font-family: 'Pretendard', var(--font-montserrat), sans-serif;
+          font-weight: 700;
+          font-size: 19px;
+          margin-top: 4px;
+        }
+        .mfh-quote {
+          font-style: italic;
+          font-size: 13.5px;
+          line-height: 1.55;
+          color: rgba(255, 255, 255, 0.78);
+          max-width: 300px;
+          margin: 0 auto;
         }
         .mfh-rule {
           width: 46px;
           height: 2px;
           background: rgba(255, 255, 255, 0.4);
-          margin: 18px auto 16px;
+          margin: 16px auto 14px;
           border-radius: 2px;
         }
         .mfh-goals {
@@ -178,7 +225,7 @@ export default function SplashGate({ children }: { children: ReactNode }) {
           color: rgba(255, 255, 255, 0.6);
         }
         .mfh-start {
-          margin-top: 26px;
+          margin-top: 28px;
           font-family: var(--font-montserrat), sans-serif;
           font-weight: 700;
           font-size: 14px;
@@ -186,7 +233,7 @@ export default function SplashGate({ children }: { children: ReactNode }) {
           background: #fff;
           border: 0;
           border-radius: 12px;
-          padding: 12px 28px;
+          padding: 12px 30px;
           cursor: pointer;
         }
         .mfh-skip {
@@ -211,13 +258,20 @@ export default function SplashGate({ children }: { children: ReactNode }) {
             max-height: none;
           }
           .mfh-logo {
-            width: min(56%, 600px);
+            width: min(54%, 560px);
           }
           .mfh-kicker {
             font-size: 14px;
           }
-          .mfh-theme {
+          .mfh-theme-en {
             font-size: 34px;
+          }
+          .mfh-theme-ko {
+            font-size: 22px;
+          }
+          .mfh-quote {
+            font-size: 15px;
+            max-width: 360px;
           }
           .mfh-goals li {
             font-size: 16px;

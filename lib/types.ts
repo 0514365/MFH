@@ -4,6 +4,9 @@ export type YearTheme = {
   year: number
   theme: string | null
   goals: string[] | null
+  verse_ref?: string | null
+  theme_en?: string | null
+  quote?: string | null
   created_at: string
 }
 

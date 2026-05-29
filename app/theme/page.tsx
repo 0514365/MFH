@@ -8,7 +8,10 @@ import { createClient } from '@/lib/supabase-browser'
 export default function ThemePage() {
   const router = useRouter()
   const year = new Date().getFullYear()
+  const [verseRef, setVerseRef] = useState('')
+  const [themeEn, setThemeEn] = useState('')
   const [theme, setTheme] = useState('')
+  const [quote, setQuote] = useState('')
   const [goalsText, setGoalsText] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -18,14 +21,23 @@ export default function ThemePage() {
     const supabase = createClient()
     void supabase
       .from('year_themes')
-      .select('theme, goals')
+      .select('theme, goals, verse_ref, theme_en, quote')
       .eq('year', year)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
-          setTheme((data.theme as string | null) ?? '')
-          const g = (data as { goals: unknown }).goals
-          if (Array.isArray(g)) setGoalsText((g as string[]).join('\n'))
+          const row = data as {
+            theme: string | null
+            goals: unknown
+            verse_ref: string | null
+            theme_en: string | null
+            quote: string | null
+          }
+          setVerseRef(row.verse_ref ?? '')
+          setThemeEn(row.theme_en ?? '')
+          setTheme(row.theme ?? '')
+          setQuote(row.quote ?? '')
+          if (Array.isArray(row.goals)) setGoalsText((row.goals as string[]).join('\n'))
         }
         setLoading(false)
       })
@@ -46,9 +58,18 @@ export default function ThemePage() {
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean)
-    const { error } = await supabase
-      .from('year_themes')
-      .upsert({ user_id: user.id, year, theme: theme.trim() || null, goals }, { onConflict: 'user_id,year' })
+    const { error } = await supabase.from('year_themes').upsert(
+      {
+        user_id: user.id,
+        year,
+        verse_ref: verseRef.trim() || null,
+        theme_en: themeEn.trim() || null,
+        theme: theme.trim() || null,
+        quote: quote.trim() || null,
+        goals,
+      },
+      { onConflict: 'user_id,year' },
+    )
     setSaving(false)
     if (error) {
       setMsg('저장 실패: ' + error.message)
@@ -71,14 +92,38 @@ export default function ThemePage() {
         ← 홈
       </Link>
       <h1 className="mt-2 font-display text-2xl font-extrabold text-primary">{year} 주제·목표</h1>
-      <p className="mb-6 mt-1 text-xs text-faint">오프닝과 홈 배너에 표시됩니다.</p>
+      <p className="mb-6 mt-1 text-xs text-faint">오프닝(스플래시)과 홈 배너에 표시됩니다.</p>
 
-      <label className="mb-1 block text-xs text-muted">올해의 주제</label>
+      <label className="mb-1 block text-xs text-muted">구절 참조 (오프닝 상단)</label>
+      <input
+        value={verseRef}
+        onChange={(e) => setVerseRef(e.target.value)}
+        className={input + ' mb-4'}
+        placeholder="예: 이사야 43:19"
+      />
+
+      <label className="mb-1 block text-xs text-muted">영문 주제 (오프닝)</label>
+      <input
+        value={themeEn}
+        onChange={(e) => setThemeEn(e.target.value)}
+        className={input + ' mb-4'}
+        placeholder="예: God Will Make a Way"
+      />
+
+      <label className="mb-1 block text-xs text-muted">국문 주제</label>
       <input
         value={theme}
         onChange={(e) => setTheme(e.target.value)}
         className={input + ' mb-4'}
-        placeholder="예: 광야에 길을 내시는 한 해"
+        placeholder="예: 주님이 길을 내십니다"
+      />
+
+      <label className="mb-1 block text-xs text-muted">말씀 인용 (오프닝)</label>
+      <input
+        value={quote}
+        onChange={(e) => setQuote(e.target.value)}
+        className={input + ' mb-4'}
+        placeholder='예: 내가 광야에 길을, 사막에 강을 내리니'
       />
 
       <label className="mb-1 block text-xs text-muted">목표 (한 줄에 하나)</label>
