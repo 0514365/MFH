@@ -155,9 +155,18 @@ export default async function Home() {
           </Link>
         </section>
 
-        <form action="/auth/signout" method="post" className="mt-10">
-          <button className="text-xs text-muted underline">로그아웃</button>
-        </form>
+        {/* 마일스톤 (자매앱 WorshipFlow·Brew Journal 형식).
+            v1.1 = 현재 버전. 2026.5.29 13:49 = "the First Chapter" — 우진이 이 앱을
+            가족에게 처음으로 공개 배포한 날·시각(최초 공개 배포 마일스톤). */}
+        <footer className="mt-10 text-center">
+          <p className="font-mono text-[11px] tracking-[0.2em] text-faint">v 1.1 · 2026. 5. 29</p>
+          <p className="mt-1 text-[11px] italic tracking-wide text-faint">
+            the First Chapter · 2026. 5. 29. 13:49
+          </p>
+          <form action="/auth/signout" method="post" className="mt-5">
+            <button className="text-xs text-muted underline">로그아웃</button>
+          </form>
+        </footer>
       </main>
     </SplashGate>
   )
