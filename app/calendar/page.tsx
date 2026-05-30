@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase-server'
 import { normalizeStatus } from '@/lib/constants'
 import PageHeader from '@/components/PageHeader'
 import CalendarView, { type CalItem } from './CalendarView'
+import CalendarSubscribe from './CalendarSubscribe'
 
 export const dynamic = 'force-dynamic'
 // MFH-CAL-FILTER-V1
@@ -113,6 +114,8 @@ export default async function CalendarPage() {
           <span className="h-3 w-3 rounded-full bg-surface-subtle" /> 할 일(하루)
         </span>
       </div>
+
+      <CalendarSubscribe />
     </main>
   )
 }
