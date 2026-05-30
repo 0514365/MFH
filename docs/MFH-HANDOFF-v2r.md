@@ -7,7 +7,7 @@
 
 ## 0. 한 줄 요약
 
-공개 포트폴리오(`/p/mfh`) + 편집 페이지(`/portfolio`) + 오프닝 스플래시를 대대적으로 다듬은 세션. 공유/후원/썸네일·편집 셸 개편(접이식·CSV)·iPad 반응형·오프닝 개편(빠름+공유페이지 적용)까지 전부 배포 완료. 다음 후보 = **공개페이지 방문자 수 카운팅** / 영상 5건 YouTube 등록 / 다크모드 / 방명록.
+공개 포트폴리오(`/p/mfh`) + 편집 페이지(`/portfolio`) + 오프닝 스플래시를 대대적으로 다듬은 세션. 공유/후원/썸네일·편집 셸 개편(접이식·CSV)·iPad 반응형·오프닝 개편(빠름+공유페이지 적용)·**홈 마일스톤 푸터**·**공유 링크 미리보기(OG 로고 카드)** 까지 전부 배포 완료. **즉시 다음 = 영상 5건 등록**(유튜브 URL·카테고리만 받으면 CSV로 일괄). 그 외 후보 = 공개페이지 방문자 수 카운팅 / 다크모드 / 방명록.
 
 ---
 
@@ -31,6 +31,11 @@
 ### 로컬 환경 — ⚠️ v2q 정정
 - **이 Mac 에 Node/npm 설치됨.** 이번 세션 내내 `npx tsc --noEmit` + `npm run build` 로컬 검증 정상(EXIT=0). v2q 의 "Node 없음, Vercel 빌드가 유일 검증" 은 **더 이상 사실 아님** → CLAUDE.md §4("로컬 빌드 통과 기본 습관") 대로 push 전 로컬 tsc+build 검증함.
 - Node v24.x / npx 사용 가능.
+
+### 공유 링크 미리보기(Open Graph) — repo 밖 캐시 주의
+- 공유페이지 `og:image` = **`public/og-image.png`**(1200×630, 마룬+흰 로고+선교사명, headless Chrome 로 생성·repo 커밋). `/p/[slug]` `generateMetadata` 에 og/twitter 메타.
+- `SITE_URL` = `https://mfh-snowy.vercel.app` **하드코딩**(`app/p/[slug]/page.tsx`). 커스텀 도메인 붙이면 이 상수 교체 필요.
+- **메신저 미리보기는 캐시됨**: 배포 후 카톡은 옛 부부사진이 남을 수 있음 → 카카오 OG 캐시 초기화(`https://developers.kakao.com/tool/clear/og`, 카카오 로그인)에서 URL 초기화. iMessage/WhatsApp 은 잠시 후 재첨부.
 
 ### 환경변수 / 키
 - v2q 의 **service_role 키 회수** 항목 여전히 열림(아래 §4). 이번 세션엔 안 건드림.
@@ -58,6 +63,10 @@
 - **공유페이지에도 오프닝**: `/p/[slug]` 에 `SplashGate` 적용, 시작하기 → 공유페이지 노출. **로그인 상태면 skip**(서버 `getUser()` → `skip` prop).
 - 버그픽스: 시작하기 버튼이 목표 목록 옆에 겹치던 문제 → 버튼 `<div>` 래핑.
 
+**홈 · 공유 미리보기**
+- 홈(`app/page.tsx`) 하단에 **마일스톤 푸터**(자매앱 형식): `v 1.1 · 2026. 5. 29` / `the First Chapter · 2026. 5. 29. 13:49`. 주석에 "2026.5.29 13:49 = 우진이 가족에게 처음 공개 배포한 날·시각" 기재.
+- **공유 링크 미리보기(OG)**: `og:image` 를 브랜드 로고 카드(`/og-image.png`)로 고정 → 카톡·WhatsApp·iMessage 일관 표시(이전엔 메신저마다 부부사진/아이콘/텍스트 제각각). §1 "공유 링크 미리보기" 참조.
+
 ### 교훈
 - **데이터 기반 신규 노출엔 RLS 동반**: 새 컬럼/공개 노출 추가 시 비로그인 경로(공유페이지)는 RLS 공개정책(`부모.is_public EXISTS`)이 없으면 빈 값 → "구버전처럼 보임". (patch70 사례)
 - **서버부모/클라자식 + `<button form="id">`**: 폼 밖(고정 헤더)의 저장 버튼을 `form` 속성으로 폼에 연결 → 셸 구조에서도 단일 저장.
@@ -69,8 +78,8 @@
 
 | # | 후보 | 비고 |
 |---|---|---|
-| 1 | **공개페이지 방문자 수 카운팅** | 이번 세션에 논의(미착수). 추천안 = Supabase 카운터 테이블 + SECURITY DEFINER RPC 증가 + 클라이언트 비콘(봇/프리페치 영향 최소) + localStorage 하루 1회 dedupe + 일별 집계, **관리(/portfolio)에서만 표시**. (대안: Vercel Web Analytics) |
-| 2 | 영상 5건 YouTube 등록 | v2q §1 의 mov/mp4 5건 업로드 후 `portfolio_videos` 등록. 이제 CSV 가져오기로도 일괄 추가 가능 |
+| **1 (즉시)** | **영상 5건 등록** | v2q §1 의 mov/mp4 5건. **제목·연도는 파일명에서 채움**(① 파송예배와 선교지 도착 2016 ② 발로 전하는 복음 2017 ③ 온두라스 긴급구호 2017 ④ Rio Blanco 주일학교 2018 ⑤ 태풍 ETA 2020). **필요: 유튜브 URL 5개 + 카테고리(이름 매칭, 없으면 기타).** 받으면 `~/Downloads/*.csv` 생성 → `/portfolio` → 사역 영상 관리 → **CSV 가져오기**(id 빈 칸=신규). UI 직접 추가도 가능 |
+| 2 | 공개페이지 방문자 수 카운팅 | 추천안 = Supabase 카운터 테이블 + SECURITY DEFINER RPC 증가 + 클라이언트 비콘(봇/프리페치 영향 최소) + localStorage 하루 1회 dedupe + 일별 집계, **관리(/portfolio)에서만 표시**. (대안: Vercel Web Analytics) |
 | 3 | 다크모드 | palette dark + 포트폴리오/오프닝 다크 토큰. Tailwind dark variant 전략 결정 |
 | 4 | 포트폴리오 Step C(방명록) | guestbook + 승인 UI + 배지. 승인제 + rate limit |
 | ▷ | 인사이트 별점 누적 | 실사용 데이터 축적 후 품질↑ |
@@ -80,6 +89,7 @@
 ## 4. 열린 결정사항
 
 - [ ] **service_role 키 회수** (v2q 부터 이월 — import 끝났으니 Reset 권장).
+- [ ] **카카오 OG 캐시 초기화** (OG 배포 후 1회 — `https://developers.kakao.com/tool/clear/og` 에 `/p/mfh` URL). 안 하면 카톡에 옛 부부사진 미리보기 잔존.
 - [ ] **방문자 카운팅 방식 확정**(§3-1): A(Supabase 카운터) vs B(Vercel Analytics), 표시 위치(관리만/공개 푸터/둘 다), 순방문 집계 범위.
 - [ ] 호수 2512 중복 라벨(2025-12-05 / 12-24 성탄) — 거슬리면 LetterEditor 에서 `2512-2` 로.
 - [ ] 편지 표지 비율 `aspect-[3/4] object-cover` 잘림 — 필요시 표지 교체 또는 `object-contain`.
@@ -91,4 +101,4 @@
 
 ## 5. 다음 세션 시작 문구(예시)
 
-> "안녕 Claude. MFH 이어서. `docs/MFH-HANDOFF-v2r.md` 기준. 이번엔 **공개페이지 방문자 수 카운팅**(또는 영상 5건 등록 / 다크모드 / 방명록)."
+> "안녕 Claude. MFH 이어서. `docs/MFH-HANDOFF-v2r.md` 기준. 먼저 **영상 5건 등록**(유튜브 URL·카테고리 줄게 → CSV 가져오기). 그다음 방문자 수 카운팅 / 다크모드 / 방명록 중에서."
