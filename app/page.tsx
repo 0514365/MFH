@@ -36,6 +36,12 @@ export default async function Home() {
   const theme = themeRow as YearTheme | null
   const goals: string[] = theme && Array.isArray(theme.goals) ? (theme.goals as string[]) : []
 
+  // 안 읽은 중보기도 수(멤버만 RLS 통과). 홈 카드 배지.
+  const { count: unreadPrayers } = await supabase
+    .from('intercessions')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_read', false)
+
   return (
     <SplashGate>
       <main className="mx-auto max-w-md px-5 py-8">
@@ -152,6 +158,31 @@ export default async function Home() {
               </div>
             </div>
             <ModuleIcon name="portfolio" size={32} className="shrink-0 text-primary" />
+          </Link>
+          <Link
+            href="/intercessions"
+            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <div className="text-lg font-bold text-primary">중보기도</div>
+                {!!unreadPrayers && unreadPrayers > 0 && (
+                  <span className="rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
+                    {unreadPrayers}
+                  </span>
+                )}
+              </div>
+              <div className="mt-0.5 text-xs text-muted">Prayers &amp; blessings</div>
+              <div className="mt-1 text-[11px] leading-snug text-faint">
+                <span className="truncate">&ldquo;서로를 위하여 기도하라&rdquo;</span> 약 5:16
+              </div>
+            </div>
+            <svg
+              width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className="shrink-0 text-primary"
+            >
+              <path d="M12 21s-7-4.35-9.5-8.5C.5 9 2 5.5 5.5 5.5c2 0 3.5 1.5 4.5 3 1-1.5 2.5-3 4.5-3C18 5.5 19.5 9 21.5 12.5 19 16.65 12 21 12 21z" />
+            </svg>
           </Link>
         </section>
 

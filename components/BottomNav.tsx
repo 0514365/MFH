@@ -23,8 +23,9 @@ const TABS: Tab[] = [
   { href: '/portfolio', label: 'Portfolio', icon: 'portfolio', active: true, match: (p) => p.startsWith('/portfolio') },
 ]
 
-// 탭바를 숨길 경로(로그인 등). 스플래시는 홈 내부 SplashGate 가 처리.
-const HIDDEN_PREFIXES = ['/login']
+// 탭바를 숨길 경로(로그인·공개페이지). 스플래시는 홈 내부 SplashGate 가 처리.
+// '/p' 는 '/p/' 하위(공개 포트폴리오)만 매칭 — '/portfolio'·'/projects' 는 영향 없음.
+const HIDDEN_PREFIXES = ['/login', '/p']
 
 export default function BottomNav() {
   const pathname = usePathname() ?? '/'

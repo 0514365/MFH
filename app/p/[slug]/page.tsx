@@ -9,6 +9,7 @@ import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase-server';
 import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, PortfolioLetter } from '@/lib/portfolio';
 import PortfolioView from './PortfolioView';
+import PrayerCta from './PrayerCta';
 import SplashGate from '@/app/SplashGate';
 
 type Props = { params: { slug: string } };
@@ -125,6 +126,7 @@ export default async function PublicPortfolioPage({ params }: Props) {
         videos={videos}
         letters={letters}
       />
+      <PrayerCta slug={params.slug} />
     </SplashGate>
   );
 }
