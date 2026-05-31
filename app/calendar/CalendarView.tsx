@@ -71,6 +71,13 @@ function statusBadgeCls(status: string): string {
 function priRank(priority: string): number {
   return priority === 'high' ? 0 : priority === 'low' ? 2 : 1
 }
+// 막대용 짧은 기간 'M.D – M.D' (하루면 'M.D')
+function fmtRange(start: DateKey, end: DateKey): string {
+  const s = parseKey(start)
+  const e = parseKey(end)
+  if (start === end) return `${s.m}.${s.d}`
+  return `${s.m}.${s.d} – ${e.m}.${e.d}`
+}
 const STATUS_ORDER: StatusValue[] = ['in_progress', 'upcoming', 'done']
 
 type Filters = {
@@ -141,15 +148,14 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
   const selWeekSegs = useMemo(() => layoutWeekBars(selWeek, bars), [selWeek, bars])
   const selWeekMaxLane = selWeekSegs.reduce((mx, s) => Math.max(mx, s.lane), -1)
 
-  // 선택 날짜에 걸친 항목(프로젝트+할 일) 목록
+  // 선택 날짜 목록 = 할 일만(프로젝트는 위 주간 막대에 표기)
   const selItems = useMemo(() => {
     return items
-      .filter((it) => it.start <= selected && selected <= it.end)
+      .filter((it) => it.type === 'task' && it.start === selected)
       .sort((a, b) => {
         const ta = a.time ?? ''
         const tb = b.time ?? ''
         if (ta !== tb) return ta.localeCompare(tb)
-        if (a.type !== b.type) return a.type === 'project' ? -1 : 1
         return priRank(a.priority) - priRank(b.priority)
       })
   }, [items, selected])
@@ -393,7 +399,7 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
                     )} ${it.done ? 'opacity-50' : ''}`}
                   >
                     <span className={`truncate text-[11px] font-semibold ${it.done ? 'line-through' : ''}`}>
-                      {it.title}
+                      {it.title} <span className="font-normal opacity-70">({fmtRange(it.start, it.end)})</span>
                     </span>
                   </Link>
                 )
@@ -408,54 +414,38 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
         <div className="mb-2 text-xs font-semibold text-muted">{fmtKey(selected)}</div>
         {selItems.length === 0 ? (
           <p className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-xs text-faint">
-            이 날짜에 항목이 없습니다.
+            이 날짜에 일정이 없습니다.
           </p>
         ) : (
           <ul className="space-y-2">
-            {selItems.map((it) => {
-              const span = it.start !== it.end
-              return (
-                <li key={it.id}>
-                  <Link
-                    href={it.href}
-                    className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2.5 transition hover:border-primary"
+            {selItems.map((it) => (
+              <li key={it.id}>
+                <Link
+                  href={it.href}
+                  className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2.5 transition hover:border-primary"
+                >
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotCls(it.status)} ${it.done ? 'opacity-30' : ''}`} />
+                  <span className="min-w-0 flex-1">
+                    <span className={`block truncate text-sm font-semibold ${it.done ? 'text-faint line-through' : 'text-ink'}`}>
+                      {it.title}
+                    </span>
+                    {it.time && <span className="mt-0.5 block text-[11px] text-muted">{fmtTime(it.time)}</span>}
+                  </span>
+                  <span
+                    className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold sm:inline ${statusBadgeCls(
+                      it.status,
+                    )}`}
                   >
-                    <span
-                      className={`h-2.5 w-2.5 shrink-0 ${it.type === 'project' ? 'rounded-sm' : 'rounded-full'} ${dotCls(
-                        it.status,
-                      )} ${it.done ? 'opacity-30' : ''}`}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className={`block truncate text-sm font-semibold ${it.done ? 'text-faint line-through' : 'text-ink'}`}>
-                        {it.title}
-                      </span>
-                      {span ? (
-                        <span className="mt-0.5 block text-[11px] text-muted">
-                          {fmtKey(it.start)} – {fmtKey(it.end)}
-                        </span>
-                      ) : it.time ? (
-                        <span className="mt-0.5 block text-[11px] text-muted">{fmtTime(it.time)}</span>
-                      ) : null}
+                    {STATUS_META[normalizeStatus(it.status)].label}
+                  </span>
+                  {it.category && (
+                    <span className="hidden shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary sm:inline">
+                      {it.category}
                     </span>
-                    <span
-                      className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold sm:inline ${statusBadgeCls(
-                        it.status,
-                      )}`}
-                    >
-                      {STATUS_META[normalizeStatus(it.status)].label}
-                    </span>
-                    {it.category && (
-                      <span className="hidden shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary sm:inline">
-                        {it.category}
-                      </span>
-                    )}
-                    <span className="shrink-0 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] text-muted">
-                      {it.type === 'project' ? '프로젝트' : '할 일'}
-                    </span>
-                  </Link>
-                </li>
-              )
-            })}
+                  )}
+                </Link>
+              </li>
+            ))}
           </ul>
         )}
       </div>
