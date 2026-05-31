@@ -2,6 +2,7 @@
 // MFH-INTERCESSIONS-LIST-V1
 // 멤버 전용 메시지함 — 받은 중보기도 목록 + 읽음 토글 · 삭제.
 import { useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
 
 export type Intercession = {
@@ -93,6 +94,12 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
             </div>
             <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{it.message}</p>
             <div className="mt-3 flex items-center gap-3 border-t border-line pt-2.5">
+              <Link
+                href={`/journal/new?intercession=${it.id}`}
+                className="text-xs font-semibold text-primary underline transition hover:opacity-80"
+              >
+                일지 쓰기
+              </Link>
               <button
                 type="button"
                 onClick={() => toggleRead(it)}
@@ -105,7 +112,7 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
                 type="button"
                 onClick={() => remove(it)}
                 disabled={busy === it.id}
-                className="text-xs font-semibold text-accent underline transition hover:opacity-80 disabled:opacity-50"
+                className="ml-auto text-xs font-semibold text-accent underline transition hover:opacity-80 disabled:opacity-50"
               >
                 삭제
               </button>

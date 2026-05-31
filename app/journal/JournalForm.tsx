@@ -21,13 +21,16 @@ type Props = {
   mode: 'new' | 'edit'
   initial?: JournalEntry | null
   initialPhotoUrl?: string | null
+  initialIntercessionId?: string // new?intercession=<id> 로 연계 진입
 }
+
+type LinkedIntercession = { id: string; visitor_name: string; message: string }
 
 type PastPlace = { id: string; name: string; lat: number; lng: number }
 
 type SubKey = 'thanks' | 'meditation'
 
-export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
+export default function JournalForm({ mode, initial, initialPhotoUrl, initialIntercessionId }: Props) {
   const router = useRouter()
 
   const [entryDate, setEntryDate] = useState(initial?.entry_date ?? todayStr())
@@ -40,6 +43,10 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
   const [prayerCandidate, setPrayerCandidate] = useState(initial?.prayer_candidate ?? false)
   const [projectId, setProjectId] = useState(initial?.project_id ?? '')
   const [taskId, setTaskId] = useState(initial?.task_id ?? '')
+  const [intercessionId, setIntercessionId] = useState<string | null>(
+    initial?.intercession_id ?? initialIntercessionId ?? null,
+  )
+  const [linkedIntercession, setLinkedIntercession] = useState<LinkedIntercession | null>(null)
 
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -145,6 +152,21 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
     }
     setPlaceSuggestion(best && best.dist <= 200 ? best : null)
   }, [photoLat, photoLng, pastPlaces, placeName])
+
+  // 연계된 중보기도 정보 로드(배너 표시용)
+  useEffect(() => {
+    if (!intercessionId) {
+      setLinkedIntercession(null)
+      return
+    }
+    const supabase = createClient()
+    void supabase
+      .from('intercessions')
+      .select('id, visitor_name, message')
+      .eq('id', intercessionId)
+      .maybeSingle()
+      .then(({ data }) => setLinkedIntercession((data as LinkedIntercession) ?? null))
+  }, [intercessionId])
 
   async function onPick(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null
@@ -272,6 +294,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
       prayer_candidate: prayerCandidate,
       project_id: projectId || null,
       task_id: taskId || null,
+      intercession_id: intercessionId,
       photo_path: photoPath,
       photo_taken_at: photoTakenAt || null,
       photo_lat: latNum != null && !Number.isNaN(latNum) ? latNum : null,
@@ -576,6 +599,26 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
             <p className="mt-3 text-xs text-faint">
               사진을 선택하면 장소·촬영일·위치 정보를 입력할 수 있습니다.
             </p>
+          )}
+
+          {/* 연계된 중보기도 배너 */}
+          {linkedIntercession && (
+            <div className="mt-5 rounded-2xl border border-primary bg-primary-soft p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-primary">🙏 중보기도 연계</span>
+                <button
+                  type="button"
+                  onClick={() => setIntercessionId(null)}
+                  className="text-[11px] font-semibold text-primary/70 underline"
+                >
+                  연결 해제
+                </button>
+              </div>
+              <p className="mt-1 text-xs font-semibold text-ink">{linkedIntercession.visitor_name}</p>
+              <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-muted">
+                {linkedIntercession.message}
+              </p>
+            </div>
           )}
 
           {/* 연계 한 줄 */}

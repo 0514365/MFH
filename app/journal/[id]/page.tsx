@@ -46,6 +46,16 @@ export default async function JournalDetail({
   const membersMap = await getMembersMap(supabase)
   const canEdit = entry.user_id === user.id
 
+  let linkedIntercession: { visitor_name: string; message: string } | null = null
+  if (entry.intercession_id) {
+    const { data: ic } = await supabase
+      .from('intercessions')
+      .select('visitor_name, message')
+      .eq('id', entry.intercession_id)
+      .maybeSingle()
+    linkedIntercession = (ic as { visitor_name: string; message: string }) ?? null
+  }
+
   // 목록과 동일한 필터+검색+정렬로 전체를 재계산 → 현재 항목의 이전/다음.
   const filter = parseJournalFilter({ get: (k) => {
     const v = searchParams[k]
@@ -101,6 +111,16 @@ export default async function JournalDetail({
         )}
       </div>
       {entry.headline && <h1 className="mb-6 text-xl font-extrabold text-ink">{entry.headline}</h1>}
+
+      {linkedIntercession && (
+        <div className="mb-6 rounded-2xl border border-primary bg-primary-soft p-4">
+          <div className="text-xs font-bold text-primary">🙏 중보기도 연계</div>
+          <p className="mt-1 text-sm font-semibold text-ink">{linkedIntercession.visitor_name}</p>
+          <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-muted">
+            {linkedIntercession.message}
+          </p>
+        </div>
+      )}
 
       {photoUrl && (
         <figure className="mb-6">

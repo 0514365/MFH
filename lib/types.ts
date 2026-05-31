@@ -29,6 +29,7 @@ export type JournalEntry = {
   place_name: string | null
   project_id: string | null
   task_id: string | null
+  intercession_id: string | null
   created_at: string
 }
 
