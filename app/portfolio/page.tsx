@@ -5,6 +5,7 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase-server';
+import { PORTFOLIO_OWNER_ID, PUBLIC_PORTFOLIO_PATH } from '@/lib/members';
 import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, PortfolioLetter } from '@/lib/portfolio';
 import PortfolioForm from './PortfolioForm';
 import AccordionSection from './AccordionSection';
@@ -22,6 +23,11 @@ export default async function PortfolioEditPage() {
 
   if (!user) {
     redirect('/login');
+  }
+
+  // 포트폴리오 편집은 소유자(김우진)만 — 다른 멤버는 공개 페이지로.
+  if (user.id !== PORTFOLIO_OWNER_ID) {
+    redirect(PUBLIC_PORTFOLIO_PATH);
   }
 
   const { data: portfolioRow } = await supabase
