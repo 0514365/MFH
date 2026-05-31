@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import type { JournalEntry, Project, Task } from '@/lib/types'
+import type { MembersMap } from '@/lib/members'
+import AuthorBadge from '@/components/AuthorBadge'
 import { chip, chipOn, toggle } from '@/lib/statusChip'
 import {
   applyJournalFilter,
@@ -25,11 +27,12 @@ import {
 } from '@/lib/bulkUpdate'
 
 // 일지 카드 본문(날짜·배지·머리말·오늘).
-function EntryBody({ e }: { e: JournalEntry }) {
+function EntryBody({ e, authorName }: { e: JournalEntry; authorName?: string }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold text-muted">{e.entry_date}</span>
+        <AuthorBadge name={authorName} />
         {e.place_name && (
           <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
             📍 {e.place_name}
@@ -48,7 +51,17 @@ function EntryBody({ e }: { e: JournalEntry }) {
 }
 
 // 요약 패널(읽기전용). 넓은 화면 우측. '상세' → /journal/[id], '편집' → /journal/[id]/edit.
-function EntrySummary({ e, detailSuffix }: { e: JournalEntry; detailSuffix: string }) {
+function EntrySummary({
+  e,
+  detailSuffix,
+  authorName,
+  canEdit,
+}: {
+  e: JournalEntry
+  detailSuffix: string
+  authorName?: string
+  canEdit: boolean
+}) {
   const Section = ({ label, text }: { label: string; text: string | null }) =>
     text ? (
       <div className="py-2">
@@ -62,6 +75,7 @@ function EntrySummary({ e, detailSuffix }: { e: JournalEntry; detailSuffix: stri
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-muted">{e.entry_date}</span>
+            <AuthorBadge name={authorName} />
             {e.place_name && (
               <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
                 📍 {e.place_name}
@@ -87,12 +101,14 @@ function EntrySummary({ e, detailSuffix }: { e: JournalEntry; detailSuffix: stri
           >
             상세
           </Link>
-          <Link
-            href={`/journal/${e.id}/edit`}
-            className="rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
-          >
-            편집
-          </Link>
+          {canEdit && (
+            <Link
+              href={`/journal/${e.id}/edit`}
+              className="rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+            >
+              편집
+            </Link>
+          )}
         </div>
       </div>
 
@@ -110,11 +126,15 @@ export default function JournalList({
   entries,
   projects,
   tasks,
+  membersMap = {},
+  currentUserId,
 }: {
   entries: JournalEntry[]
   // 일괄변경의 '연계 프로젝트/할일' chip 옵션. page.tsx 가 함께 select 해서 주입.
   projects?: Pick<Project, 'id' | 'title'>[]
   tasks?: Pick<Task, 'id' | 'title' | 'done'>[]
+  membersMap?: MembersMap
+  currentUserId?: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -306,7 +326,7 @@ export default function JournalList({
             onClick={() => sel.toggleId(e.id)}
             className="min-w-0 flex-1 pr-20 text-left"
           >
-            <EntryBody e={e} />
+            <EntryBody e={e} authorName={membersMap[e.user_id]} />
           </button>
         ) : wide ? (
           <button
@@ -314,14 +334,14 @@ export default function JournalList({
             onClick={() => setSelectedId(e.id)}
             className="min-w-0 flex-1 pr-20 text-left"
           >
-            <EntryBody e={e} />
+            <EntryBody e={e} authorName={membersMap[e.user_id]} />
           </button>
         ) : (
           <Link
             href={`/journal/${e.id}${detailSuffix}`}
             className="min-w-0 flex-1 pr-20"
           >
-            <EntryBody e={e} />
+            <EntryBody e={e} authorName={membersMap[e.user_id]} />
           </Link>
         )}
 
@@ -565,7 +585,12 @@ export default function JournalList({
                 </p>
               )
             ) : selectedEntry ? (
-              <EntrySummary e={selectedEntry} detailSuffix={detailSuffix} />
+              <EntrySummary
+                e={selectedEntry}
+                detailSuffix={detailSuffix}
+                authorName={membersMap[selectedEntry.user_id]}
+                canEdit={selectedEntry.user_id === currentUserId}
+              />
             ) : (
               <p className="py-10 text-center text-sm text-faint">왼쪽에서 일지를 선택하세요.</p>
             )}

@@ -17,6 +17,8 @@ import {
 } from '@/lib/taskFilter'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import { fmtTime } from '@/lib/calendar'
+import type { MembersMap } from '@/lib/members'
+import AuthorBadge from '@/components/AuthorBadge'
 import { StatusBadge, CategoryBadge, ImportanceStars } from '../projects/badges'
 import { useWideScreen } from '@/lib/useWideScreen'
 import {
@@ -45,6 +47,7 @@ export type TaskListRow = {
   due_time: string | null
   place_name: string | null
   project_id: string | null
+  user_id: string
   projects: { title: string } | null
 }
 
@@ -65,7 +68,7 @@ function isOverdue(d: string): boolean {
 }
 
 // 요약 패널(읽기전용). 넓은 화면 우측. '편집' 버튼 → /tasks/[id]/edit.
-function TaskSummary({ t }: { t: TaskListRow }) {
+function TaskSummary({ t, authorName, canEdit }: { t: TaskListRow; authorName?: string; canEdit: boolean }) {
   const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="flex gap-3 py-2">
@@ -76,17 +79,20 @@ function TaskSummary({ t }: { t: TaskListRow }) {
   return (
     <div>
       <div className="flex items-start justify-between gap-3">
-        <h2
-          className={`text-lg font-bold ${t.done ? 'text-faint line-through' : 'text-ink'}`}
-        >
-          {t.title}
-        </h2>
-        <Link
-          href={`/tasks/${t.id}/edit`}
-          className="shrink-0 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
-        >
-          편집
-        </Link>
+        <div className="min-w-0">
+          <AuthorBadge name={authorName} />
+          <h2 className={`mt-1 text-lg font-bold ${t.done ? 'text-faint line-through' : 'text-ink'}`}>
+            {t.title}
+          </h2>
+        </div>
+        {canEdit && (
+          <Link
+            href={`/tasks/${t.id}/edit`}
+            className="shrink-0 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+          >
+            편집
+          </Link>
+        )}
       </div>
 
       {t.description && (
@@ -126,7 +132,15 @@ function TaskSummary({ t }: { t: TaskListRow }) {
   )
 }
 
-export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
+export default function TasksListClient({
+  tasks,
+  membersMap = {},
+  currentUserId,
+}: {
+  tasks: TaskListRow[]
+  membersMap?: MembersMap
+  currentUserId?: string
+}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   // URL 쿼리 → 초기 필터(새로고침·뒤로가기·상세왕복까지 영속). 로그아웃 시 /login 이동으로 자동 소멸.
@@ -516,13 +530,14 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
           const grouped = sortKey === 'due' && asc
 
           // 카드 내용(날짜·제목·설명·배지). TaskCheck 는 renderTask 의 li 직속 자식으로 분리(button 중첩 회피).
-          function TaskBody({ t }: { t: TaskListRow }) {
+          function TaskBody({ t, authorName }: { t: TaskListRow; authorName?: string }) {
             const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
             return (
               <>
-                {/* 1행: 날짜(작게) + 프로젝트 칩 — 연체면 빨강. 우측 상단 완료영역 자리는 li 측에서 별도 배치(pr-* 로 겹침 방지). */}
-                {(t.due_date || t.projects?.title) && (
+                {/* 1행: 작성자 + 날짜(작게) + 프로젝트 칩 — 연체면 빨강. 우측 상단 완료영역 자리는 li 측에서 별도 배치(pr-* 로 겹침 방지). */}
+                {(t.due_date || t.projects?.title || authorName) && (
                   <div className="flex flex-wrap items-center gap-2">
+                    <AuthorBadge name={authorName} />
                     {t.due_date && (
                       <span
                         className={`text-[11px] font-medium ${overdue ? 'text-danger' : 'text-faint'}`}
@@ -610,7 +625,7 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
                     onClick={() => sel.toggleId(t.id)}
                     className="min-w-0 flex-1 pr-16 text-left"
                   >
-                    <TaskBody t={t} />
+                    <TaskBody t={t} authorName={membersMap[t.user_id]} />
                   </button>
                 ) : wide ? (
                   <button
@@ -618,14 +633,14 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
                     onClick={() => setSelectedId(t.id)}
                     className="min-w-0 flex-1 pr-16 text-left"
                   >
-                    <TaskBody t={t} />
+                    <TaskBody t={t} authorName={membersMap[t.user_id]} />
                   </button>
                 ) : (
                   <Link
                     href={`/tasks/${t.id}${detailSuffix}`}
                     className="min-w-0 flex-1 pr-16"
                   >
-                    <TaskBody t={t} />
+                    <TaskBody t={t} authorName={membersMap[t.user_id]} />
                   </Link>
                 )}
 
@@ -739,7 +754,11 @@ export default function TasksListClient({ tasks }: { tasks: TaskListRow[] }) {
                       </p>
                     )
                   ) : selectedTask ? (
-                    <TaskSummary t={selectedTask} />
+                    <TaskSummary
+                      t={selectedTask}
+                      authorName={membersMap[selectedTask.user_id]}
+                      canEdit={selectedTask.user_id === currentUserId}
+                    />
                   ) : (
                     <p className="py-10 text-center text-sm text-faint">
                       왼쪽에서 할 일을 선택하세요.

@@ -15,6 +15,8 @@ export default async function EditTask({ params }: { params: { id: string } }) {
   const { data } = await supabase.from('tasks').select('*').eq('id', params.id).maybeSingle()
   const task = data as Task | null
   if (!task) notFound()
+  // 본인 할 일만 편집 — 남의 것은 상세로.
+  if (task.user_id !== user.id) redirect(`/tasks/${params.id}`)
 
   return <TaskForm mode="edit" initial={task} />
 }

@@ -62,6 +62,8 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
 
   const [projects, setProjects] = useState<Project[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [members, setMembers] = useState<Record<string, string>>({})
+  const [meId, setMeId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
@@ -76,14 +78,23 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
 
   useEffect(() => {
     const supabase = createClient()
+    void supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id ?? null))
+    void supabase
+      .from('app_members')
+      .select('user_id, display_name')
+      .then(({ data }) => {
+        const m: Record<string, string> = {}
+        for (const r of (data ?? []) as { user_id: string; display_name: string }[]) m[r.user_id] = r.display_name
+        setMembers(m)
+      })
     void supabase
       .from('projects')
-      .select('id, title')
+      .select('id, title, user_id')
       .order('created_at', { ascending: false })
       .then(({ data }) => setProjects((data ?? []) as Project[]))
     void supabase
       .from('tasks')
-      .select('id, title, project_id')
+      .select('id, title, project_id, user_id')
       .order('created_at', { ascending: false })
       .then(({ data }) => setTasks((data ?? []) as Task[]))
     void supabase
@@ -575,6 +586,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.title}
+                  {p.user_id && p.user_id !== meId && members[p.user_id] ? ` · ${members[p.user_id]}` : ''}
                 </option>
               ))}
             </select>
@@ -583,6 +595,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl }: Props) {
               {tasks.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.title}
+                  {t.user_id && t.user_id !== meId && members[t.user_id] ? ` · ${members[t.user_id]}` : ''}
                 </option>
               ))}
             </select>

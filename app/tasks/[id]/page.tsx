@@ -1,12 +1,14 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import { getMembersMap } from '@/lib/members'
 import { parseTaskFilter, orderTaskIds } from '@/lib/taskFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import { StatusBadge, CategoryBadge, ImportanceStars, fmtDate } from '../../projects/badges'
 import { fmtTime } from '@/lib/calendar'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
+import AuthorBadge from '@/components/AuthorBadge'
 import TaskCheck from '../TaskCheck'
 import DeleteButton from './DeleteButton'
 
@@ -26,6 +28,7 @@ type TaskDetail = {
   due_time: string | null
   project_id: string | null
   completed_at: string | null
+  user_id: string
   projects: { id: string; title: string } | null
 }
 
@@ -57,12 +60,15 @@ export default async function TaskDetailPage({
   const { data } = await supabase
     .from('tasks')
     .select(
-      'id, title, description, done, priority, importance, status, category, place_name, due_date, due_time, project_id, completed_at, projects(id, title)',
+      'id, title, description, done, priority, importance, status, category, place_name, due_date, due_time, project_id, completed_at, user_id, projects(id, title)',
     )
     .eq('id', params.id)
     .maybeSingle()
   const task = data as unknown as TaskDetail | null
   if (!task) notFound()
+
+  const membersMap = await getMembersMap(supabase)
+  const canEdit = task.user_id === user.id
 
   // 목록과 동일한 필터+정렬+그룹평탄화로 전체를 재계산 → 현재 항목의 이전/다음.
   const filter = parseTaskFilter({
@@ -100,12 +106,15 @@ export default async function TaskDetailPage({
         <StatusBadge value={task.status ?? 'upcoming'} />
         <CategoryBadge value={task.category} />
         {task.importance > 0 && <ImportanceStars value={task.importance} />}
+        <AuthorBadge name={membersMap[task.user_id]} />
       </div>
 
       <div className="flex items-start gap-3">
-        <div className="pt-1.5">
-          <TaskCheck id={task.id} done={task.done} />
-        </div>
+        {canEdit && (
+          <div className="pt-1.5">
+            <TaskCheck id={task.id} done={task.done} />
+          </div>
+        )}
         <h1
           className={`text-2xl font-extrabold ${
             task.done ? 'text-faint line-through' : 'text-ink'
@@ -159,15 +168,21 @@ export default async function TaskDetailPage({
         </section>
       )}
 
-      <div className="mt-10 flex items-center gap-4">
-        <Link
-          href={`/tasks/${task.id}/edit`}
-          className="text-xs font-semibold text-accent underline"
-        >
-          수정
-        </Link>
-        <DeleteButton id={task.id} />
-      </div>
+      {canEdit ? (
+        <div className="mt-10 flex items-center gap-4">
+          <Link
+            href={`/tasks/${task.id}/edit`}
+            className="text-xs font-semibold text-accent underline"
+          >
+            수정
+          </Link>
+          <DeleteButton id={task.id} />
+        </div>
+      ) : (
+        <p className="mt-10 text-xs text-faint">
+          {membersMap[task.user_id] ?? '다른 멤버'}님의 할 일입니다. 보기만 가능합니다.
+        </p>
+      )}
     </main>
   )
 }

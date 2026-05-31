@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import { getMembersMap } from '@/lib/members'
 import PageHeader from '@/components/PageHeader'
 import type { Project } from '@/lib/types'
 import ProjectsList from './ProjectsList'
@@ -31,6 +32,8 @@ export default async function ProjectsPage() {
     counts[t.project_id] = c
   }
 
+  const membersMap = await getMembersMap(supabase)
+
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
       <PageHeader
@@ -46,7 +49,7 @@ export default async function ProjectsPage() {
         }
       />
 
-      <ProjectsList projects={projects} counts={counts} />
+      <ProjectsList projects={projects} counts={counts} membersMap={membersMap} currentUserId={user.id} />
     </main>
   )
 }

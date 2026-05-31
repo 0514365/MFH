@@ -1,11 +1,13 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import { getMembersMap } from '@/lib/members'
 import type { JournalEntry } from '@/lib/types'
 import { applyJournalFilter, parseJournalFilter } from '@/lib/journalFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
+import AuthorBadge from '@/components/AuthorBadge'
 import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
@@ -40,6 +42,9 @@ export default async function JournalDetail({
     .maybeSingle()
   const entry = data as JournalEntry | null
   if (!entry) notFound()
+
+  const membersMap = await getMembersMap(supabase)
+  const canEdit = entry.user_id === user.id
 
   // 목록과 동일한 필터+검색+정렬로 전체를 재계산 → 현재 항목의 이전/다음.
   const filter = parseJournalFilter({ get: (k) => {
@@ -82,6 +87,7 @@ export default async function JournalDetail({
       </div>
       <div className="mb-4 mt-2 flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold text-muted">{entry.entry_date}</span>
+        <AuthorBadge name={membersMap[entry.user_id]} />
         {entry.place_name && (
           <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
             📍 {entry.place_name}
@@ -121,12 +127,18 @@ export default async function JournalDetail({
       <Section label="💭 묵상·깨달음" text={entry.meditation} />
       <Section label="📌 기도제목" text={entry.prayer} />
 
-      <div className="mt-10 flex items-center gap-4">
-        <Link href={`/journal/${entry.id}/edit`} className="text-xs font-semibold text-accent underline">
-          수정
-        </Link>
-        <DeleteButton id={entry.id} photoPath={entry.photo_path} />
-      </div>
+      {canEdit ? (
+        <div className="mt-10 flex items-center gap-4">
+          <Link href={`/journal/${entry.id}/edit`} className="text-xs font-semibold text-accent underline">
+            수정
+          </Link>
+          <DeleteButton id={entry.id} photoPath={entry.photo_path} />
+        </div>
+      ) : (
+        <p className="mt-10 text-xs text-faint">
+          {membersMap[entry.user_id] ?? '다른 멤버'}님의 일지입니다. 보기만 가능합니다.
+        </p>
+      )}
     </main>
   )
 }

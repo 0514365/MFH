@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import { getMembersMap } from '@/lib/members'
 import PageHeader from '@/components/PageHeader'
 import type { JournalEntry, Project, Task } from '@/lib/types'
 import JournalList from './JournalList'
@@ -30,6 +31,7 @@ export default async function JournalPage() {
   const entries = (entriesQ.data ?? []) as JournalEntry[]
   const projects = (projectsQ.data ?? []) as Pick<Project, 'id' | 'title'>[]
   const tasks = (tasksQ.data ?? []) as Pick<Task, 'id' | 'title' | 'done'>[]
+  const membersMap = await getMembersMap(supabase)
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
@@ -46,7 +48,13 @@ export default async function JournalPage() {
         }
       />
 
-      <JournalList entries={entries} projects={projects} tasks={tasks} />
+      <JournalList
+        entries={entries}
+        projects={projects}
+        tasks={tasks}
+        membersMap={membersMap}
+        currentUserId={user.id}
+      />
     </main>
   )
 }

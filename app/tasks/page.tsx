@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import { getMembersMap } from '@/lib/members'
 import PageHeader from '@/components/PageHeader'
 import type { TaskListRow } from './TasksListClient'
 import TasksListClient from './TasksListClient'
@@ -18,13 +19,14 @@ export default async function TasksPage() {
   const { data } = await supabase
     .from('tasks')
     .select(
-      'id, title, description, done, priority, importance, status, category, place_name, due_date, due_time, project_id, projects(title)',
+      'id, title, description, done, priority, importance, status, category, place_name, due_date, due_time, project_id, user_id, projects(title)',
     )
     .order('done', { ascending: true })
     .order('due_date', { ascending: true, nullsFirst: false })
     .order('due_time', { ascending: true, nullsFirst: true })
     .order('created_at', { ascending: false })
   const tasks = (data ?? []) as unknown as TaskListRow[]
+  const membersMap = await getMembersMap(supabase)
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
@@ -38,7 +40,7 @@ export default async function TasksPage() {
         }
       />
 
-      <TasksListClient tasks={tasks} />
+      <TasksListClient tasks={tasks} membersMap={membersMap} currentUserId={user.id} />
     </main>
   )
 }

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import { getMembersMap } from '@/lib/members'
 import type { Project } from '@/lib/types'
 import { applyProjectFilter, parseProjectFilter } from '@/lib/projectFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
@@ -9,6 +10,7 @@ import { ProgressRing } from '../Progress'
 import TaskCheck from '../../tasks/TaskCheck'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
+import AuthorBadge from '@/components/AuthorBadge'
 import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
@@ -31,6 +33,9 @@ export default async function ProjectDetail({
   const { data } = await supabase.from('projects').select('*').eq('id', params.id).maybeSingle()
   const project = data as Project | null
   if (!project) notFound()
+
+  const membersMap = await getMembersMap(supabase)
+  const canEdit = project.user_id === user.id
 
   // 목록과 동일한 필터+정렬로 전체를 재계산 → 현재 항목의 이전/다음.
   const filter = parseProjectFilter({ get: (k) => {
@@ -80,6 +85,7 @@ export default async function ProjectDetail({
         <PriorityBadge value={project.priority} />
         <CategoryBadge value={project.category} />
         <ImportanceStars value={project.importance} />
+        <AuthorBadge name={membersMap[project.user_id]} />
       </div>
       <h1 className="text-2xl font-extrabold text-ink">{project.title}</h1>
       {period && <p className="mt-1 text-sm text-muted">{period}</p>}
@@ -129,12 +135,18 @@ export default async function ProjectDetail({
         )}
       </section>
 
-      <div className="mt-10 flex items-center gap-4">
-        <Link href={`/projects/${project.id}/edit`} className="text-xs font-semibold text-accent underline">
-          수정
-        </Link>
-        <DeleteButton id={project.id} />
-      </div>
+      {canEdit ? (
+        <div className="mt-10 flex items-center gap-4">
+          <Link href={`/projects/${project.id}/edit`} className="text-xs font-semibold text-accent underline">
+            수정
+          </Link>
+          <DeleteButton id={project.id} />
+        </div>
+      ) : (
+        <p className="mt-10 text-xs text-faint">
+          {membersMap[project.user_id] ?? '다른 멤버'}님의 프로젝트입니다. 보기·할 일 추가만 가능합니다.
+        </p>
+      )}
     </main>
   )
 }

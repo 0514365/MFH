@@ -19,6 +19,8 @@ export default async function EditJournal({ params }: { params: { id: string } }
     .maybeSingle()
   const entry = data as JournalEntry | null
   if (!entry) notFound()
+  // 본인 글만 편집 — 남의 일지는 상세로 돌려보냄(RLS 도 막지만 UI 가드).
+  if (entry.user_id !== user.id) redirect(`/journal/${params.id}`)
 
   let photoUrl: string | null = null
   if (entry.photo_path) {
