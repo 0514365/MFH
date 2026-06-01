@@ -1,7 +1,8 @@
 'use client';
 
-// MFH-PORTFOLIO-LETTER-EDITOR-V3
+// MFH-PORTFOLIO-LETTER-EDITOR-V4
 // 선교편지 관리 (편집 페이지).
+// V4: 요약 기도문에 "인사이트 불러오기" — 최근 인사이트(prayer 우선)를 골라 summary 에 삽입(읽기 연계).
 // V3: 외곽 제목 제거 — AccordionSection("선교편지 관리") 안에 들어감.
 // (이전 주석) 선교편지 관리 (편집 페이지, 영상 관리 아래).
 // 추가 폼(년월·호수·제목 + PDF필수 + 표지선택 + 요약기도문 + 공개토글) + 리스트(공개표시·공유URL복사·순서·삭제).
@@ -16,6 +17,21 @@ import { letterMonthLabel } from '@/lib/portfolio';
 import PortfolioLetterUpload from '@/components/PortfolioLetterUpload';
 
 const BUCKET = 'portfolio-letters';
+
+// 요약 기도문에 끌어올 최근 인사이트(읽기 전용 연계).
+type InsightPick = {
+  id: string;
+  domain: string;
+  content: string | null;
+  created_at: string | null;
+  in_letter: boolean | null;
+};
+const INSIGHT_LABEL: Record<string, string> = {
+  prayer: '기도제목',
+  fruit: '간증·열매',
+  letter: '편지 초안',
+  overall: '종합',
+};
 
 type Props = {
   initial: PortfolioLetter[];
@@ -42,6 +58,11 @@ export default function LetterEditor({ initial, userId }: Props) {
   const [summaryEditId, setSummaryEditId] = useState<string | null>(null);
   const [summaryDraft, setSummaryDraft] = useState('');
   const [summarySaving, setSummarySaving] = useState(false);
+
+  // 인사이트 불러오기 (요약 기도문 연계)
+  const [insightPicks, setInsightPicks] = useState<InsightPick[] | null>(null);
+  const [pickerFor, setPickerFor] = useState<'new' | string | null>(null);
+  const [picksLoading, setPicksLoading] = useState(false);
 
   function resetForm() {
     setYearMonth('');
@@ -183,6 +204,95 @@ export default function LetterEditor({ initial, userId }: Props) {
     }
   }
 
+  async function loadInsights() {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('insights')
+      .select('id,domain,content,created_at,in_letter')
+      .in('domain', ['prayer', 'fruit', 'letter', 'overall'])
+      .order('created_at', { ascending: false })
+      .limit(20);
+    const rows = (data ?? []) as InsightPick[];
+    // prayer(기도제목)를 상단으로, 그 안에서 최신순.
+    rows.sort((a, b) => {
+      const pa = a.domain === 'prayer' ? 0 : 1;
+      const pb = b.domain === 'prayer' ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+      return (b.created_at ?? '').localeCompare(a.created_at ?? '');
+    });
+    setInsightPicks(rows);
+  }
+
+  async function openPicker(target: 'new' | string) {
+    if (pickerFor === target) {
+      setPickerFor(null);
+      return;
+    }
+    setPickerFor(target);
+    if (insightPicks === null) {
+      setPicksLoading(true);
+      try {
+        await loadInsights();
+      } finally {
+        setPicksLoading(false);
+      }
+    }
+  }
+
+  function applyInsight(text: string | null) {
+    const content = (text ?? '').trim();
+    if (content) {
+      if (pickerFor === 'new') {
+        setSummary((cur) => (cur.trim() ? `${cur.trim()}\n${content}` : content));
+      } else if (pickerFor) {
+        setSummaryDraft((cur) => (cur.trim() ? `${cur.trim()}\n${content}` : content));
+      }
+    }
+    setPickerFor(null);
+  }
+
+  function renderInsightPicker() {
+    return (
+      <div className="mt-1.5 rounded-md border border-line bg-surface p-2">
+        {picksLoading ? (
+          <p className="text-[11px] text-faint">불러오는 중…</p>
+        ) : !insightPicks || insightPicks.length === 0 ? (
+          <p className="text-[11px] text-faint">저장된 인사이트가 없습니다.</p>
+        ) : (
+          <ul className="max-h-48 space-y-1 overflow-y-auto">
+            {insightPicks.map((ins) => {
+              const date = ins.created_at?.slice(0, 10) ?? '';
+              const preview =
+                (ins.content ?? '')
+                  .split('\n')
+                  .map((s) => s.trim())
+                  .find(Boolean)
+                  ?.slice(0, 40) ?? '';
+              return (
+                <li key={ins.id}>
+                  <button
+                    type="button"
+                    onClick={() => applyInsight(ins.content)}
+                    className="w-full rounded px-2 py-1.5 text-left hover:bg-primary-soft"
+                  >
+                    <span className="text-[11px] font-medium text-primary">
+                      {INSIGHT_LABEL[ins.domain] ?? ins.domain}
+                    </span>
+                    <span className="ml-1.5 text-[10px] text-faint">{date}</span>
+                    {ins.in_letter && (
+                      <span className="ml-1.5 text-[10px] text-accent">편지에 담김</span>
+                    )}
+                    <span className="mt-0.5 block truncate text-[11px] text-muted">{preview}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-3 flex items-center justify-end">
@@ -240,9 +350,18 @@ export default function LetterEditor({ initial, userId }: Props) {
             />
           </div>
           <div className="mb-2">
-            <label className="mb-1 block text-[11px] text-muted">
-              요약 기도문 (최신호만 · 선택) — 공개 페이지 ‘최신 선교편지’ 우측에 표시
-            </label>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="block text-[11px] text-muted">
+                요약 기도문 (최신호만 · 선택) — 공개 페이지 ‘최신 선교편지’ 우측에 표시
+              </label>
+              <button
+                type="button"
+                onClick={() => openPicker('new')}
+                className="flex-shrink-0 text-[11px] font-medium text-primary hover:underline"
+              >
+                인사이트 불러오기
+              </button>
+            </div>
             <textarea
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
@@ -250,6 +369,7 @@ export default function LetterEditor({ initial, userId }: Props) {
               placeholder={'- 기도제목 1\n- 기도제목 2'}
               className="w-full rounded-md border border-line bg-surface px-2 py-1.5 text-xs leading-relaxed focus:border-primary focus:outline-none"
             />
+            {pickerFor === 'new' && renderInsightPicker()}
           </div>
           <label className="mb-3 flex items-center gap-2 text-xs text-ink">
             <input
@@ -375,9 +495,18 @@ export default function LetterEditor({ initial, userId }: Props) {
 
                 {summaryEditId === l.id && (
                   <div className="mt-2.5 border-t border-line pt-2.5">
-                    <label className="mb-1 block text-[11px] text-muted">
-                      요약 기도문 — 공개 ‘최신 선교편지’ 우측에 표시 (최신호만 작성 권장)
-                    </label>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <label className="block text-[11px] text-muted">
+                        요약 기도문 — 공개 ‘최신 선교편지’ 우측에 표시 (최신호만 작성 권장)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => openPicker(l.id)}
+                        className="flex-shrink-0 text-[11px] font-medium text-primary hover:underline"
+                      >
+                        인사이트 불러오기
+                      </button>
+                    </div>
                     <textarea
                       value={summaryDraft}
                       onChange={(e) => setSummaryDraft(e.target.value)}
@@ -385,6 +514,7 @@ export default function LetterEditor({ initial, userId }: Props) {
                       placeholder={'- 기도제목 1\n- 기도제목 2'}
                       className="w-full rounded-md border border-line bg-surface px-2 py-1.5 text-xs leading-relaxed focus:border-primary focus:outline-none"
                     />
+                    {pickerFor === l.id && renderInsightPicker()}
                     <div className="mt-1.5 flex gap-2">
                       <button
                         type="button"
