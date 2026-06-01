@@ -49,7 +49,10 @@ export function parseInsightBundle(text: string, fallbackDomain: InsightDomain):
     const raw = m[1]
     const sep = raw.indexOf('---')
     const header = sep >= 0 ? raw.slice(0, sep) : raw
-    const body = (sep >= 0 ? raw.slice(sep + 3) : raw).trim()
+    // "---" 구분자가 있으면 그 뒤가 본문. 없으면(양식 흔들림) 헤더 줄(LENS/PERIOD/RATING)을 제거한 나머지를 본문으로.
+    const body = (
+      sep >= 0 ? raw.slice(sep + 3) : raw.replace(/^[ \t]*(?:LENS|PERIOD|RATING)[ \t]*:.*$/gim, '')
+    ).trim()
     if (!body) continue
     const lensM = header.match(LENS_RE)
     const key = lensM ? lensM[1].toLowerCase() : ''
