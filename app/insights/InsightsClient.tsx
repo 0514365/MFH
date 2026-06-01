@@ -102,9 +102,10 @@ function LensIcon({ name, size = 20 }: { name: LensKey; size?: number }) {
 type MemberBalance = { userId: string; name: string; data: CategoryBreakdown }
 type BalanceResult = { all: CategoryBreakdown; byMember: MemberBalance[] }
 
-// Balance 렌즈: 기간 내 일지 분류를 클라에서 직접 집계(API 호출 없음 = 무료).
-// journal_entries RLS 가 멤버 공유(is_member)라 user_id 필터를 일부러 걸지 않는다
-// → 부부(우진+서진아) 일지를 함께 모아 전체 합산 + 작성자별로 분해(사역 분담 가시화).
+// Balance 렌즈: 기간 내 활동(일지 + 완료 할일 + 착수 프로젝트) 분류를 클라에서 직접 집계.
+// API 호출 없음 = 무료. 세 소스 모두 RLS 멤버 공유 → 부부(우진+서진아) 합산 + 작성자별 분해.
+// 날짜 기준: 일지 entry_date / 할일 completed_at(완료분만) / 프로젝트 created_at(착수).
+//   타임스탬프 소스는 미래 데이터가 없어 상한 없이 gte(start)만으로 "최근 N일"을 만족.
 function useBalance(days: number, enabled: boolean) {
   const [data, setData] = useState<BalanceResult | null>(null)
   const [loading, setLoading] = useState(enabled)
@@ -114,16 +115,29 @@ function useBalance(days: number, enabled: boolean) {
     setLoading(true)
     const supabase = createClient()
     void (async () => {
-      const [rowsRes, membersMap] = await Promise.all([
+      const start = periodStart(days)
+      const end = todayStr()
+      type CatRow = { category: string | null; user_id: string }
+      const [jRes, tRes, pRes, membersMap] = await Promise.all([
         supabase
           .from('journal_entries')
           .select('category, user_id')
-          .gte('entry_date', periodStart(days))
-          .lte('entry_date', todayStr()),
+          .gte('entry_date', start)
+          .lte('entry_date', end),
+        supabase
+          .from('tasks')
+          .select('category, user_id')
+          .not('completed_at', 'is', null)
+          .gte('completed_at', start),
+        supabase.from('projects').select('category, user_id').gte('created_at', start),
         getMembersMap(supabase),
       ])
       if (!alive) return
-      const rows = (rowsRes.data ?? []) as { category: string | null; user_id: string }[]
+      const rows: CatRow[] = [
+        ...((jRes.data ?? []) as CatRow[]),
+        ...((tRes.data ?? []) as CatRow[]),
+        ...((pRes.data ?? []) as CatRow[]),
+      ]
       const all = buildCategoryBreakdown(rows.map((r) => r.category))
       const groups = new Map<string, (string | null)[]>()
       for (const r of rows) {
@@ -179,13 +193,13 @@ function BalanceSection({ loading, data }: { loading: boolean; data: BalanceResu
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold text-primary">분류 비중</div>
         {data && data.all.total > 0 && (
-          <div className="text-[11px] text-faint">일지 {data.all.total}건</div>
+          <div className="text-[11px] text-faint">활동 {data.all.total}건</div>
         )}
       </div>
       {loading ? (
         <p className="text-sm text-faint">집계 중…</p>
       ) : !data || data.all.total === 0 ? (
-        <p className="text-sm text-faint">기간 내 일지 기록이 없습니다.</p>
+        <p className="text-sm text-faint">기간 내 활동 기록이 없습니다.</p>
       ) : (
         <>
           <BalanceBar data={data.all} height={10} />
