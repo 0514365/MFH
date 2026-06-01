@@ -3,12 +3,10 @@
 // API 호출 없음. model='manual' 로 표기해 자동 생성분과 구분.
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
-import { periodStart, todayStr, type InsightDomain } from '@/lib/insightExport'
+import { isValidDomain, periodStart, todayStr, type InsightDomain } from '@/lib/insightExport'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-
-const VALID: InsightDomain[] = ['journal', 'project', 'task', 'overall']
 
 export async function POST(req: Request) {
   const supabase = createClient()
@@ -24,7 +22,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
   }
   const domain = (body.domain ?? 'overall') as InsightDomain
-  if (!VALID.includes(domain)) return NextResponse.json({ error: '알 수 없는 분야입니다.' }, { status: 400 })
+  if (!isValidDomain(domain)) return NextResponse.json({ error: '알 수 없는 분야입니다.' }, { status: 400 })
   const content = (body.content ?? '').trim()
   if (!content) return NextResponse.json({ error: '내용이 비어 있습니다.' }, { status: 400 })
   const days = [7, 30, 90].includes(Number(body.periodDays)) ? Number(body.periodDays) : 30

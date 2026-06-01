@@ -6,6 +6,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import {
   buildDataMarkdown,
+  domainNeeds,
+  isValidDomain,
   periodStart,
   todayStr,
   type InsightDomain,
@@ -22,7 +24,6 @@ export const runtime = 'nodejs'
 
 const MODEL = 'claude-sonnet-4-6'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const VALID_DOMAINS: InsightDomain[] = ['journal', 'project', 'task', 'overall']
 
 export async function POST(req: Request) {
   const supabase = createClient()
@@ -46,20 +47,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
   }
   const domain = (body.domain ?? 'overall') as InsightDomain
-  if (!VALID_DOMAINS.includes(domain)) {
+  if (!isValidDomain(domain)) {
     return NextResponse.json({ error: '알 수 없는 분야입니다.' }, { status: 400 })
   }
   const days = [7, 30, 90].includes(Number(body.periodDays)) ? Number(body.periodDays) : 30
   const pStart = periodStart(days)
   const pEnd = todayStr()
 
-  const wantJournal = domain === 'journal' || domain === 'overall'
-  const wantProject = domain === 'project' || domain === 'overall'
-  const wantTask = domain === 'task' || domain === 'overall'
+  const need = domainNeeds(domain)
 
   const data: ExportData = { domain, periodDays: days, periodStart: pStart, periodEnd: pEnd }
 
-  if (wantJournal) {
+  if (need.journal) {
     const { data: rows } = await supabase
       .from('journal_entries')
       .select(
@@ -70,14 +69,14 @@ export async function POST(req: Request) {
       .order('entry_date', { ascending: true })
     data.journals = rows ?? []
   }
-  if (wantProject) {
+  if (need.project) {
     const { data: rows } = await supabase
       .from('projects')
       .select('title,description,status,importance,start_date,due_date,category')
       .order('due_date', { ascending: true })
     data.projects = rows ?? []
   }
-  if (wantTask) {
+  if (need.task) {
     const { data: rows } = await supabase
       .from('tasks')
       .select('title,description,status,done,importance,due_date,due_time,category')

@@ -4,8 +4,8 @@
 // - rating>=4 인 과거 인사이트를 few-shot 으로 주입(프롬프트 레벨 개인화 — 재학습 아님).
 // 자동(API route)·수동(claude.ai 프로젝트 지침) 양쪽이 동일 문구를 쓰도록 export.
 
-import type { InsightDomain } from './insightExport'
-import { DOMAIN_LABEL } from './insightExport'
+import type { InsightDomain, RawDomain, LensKey } from './insightExport'
+import { DOMAIN_LABEL, isLens } from './insightExport'
 
 // 선교 배경 — MFH-CONTEXT '선교 배경/맥락' 요약(에이전트 컨텍스트).
 export const MISSION_BACKGROUND = `당신은 온두라스 선교사 부부(김우진·서진아, 자녀 김겸손·김서진)의 사역 기록을 분석하는 보조자입니다.
@@ -27,7 +27,8 @@ export const TONE_GUIDE = `[톤 — 따뜻한 목양적 동행]
 - 시간 지향은 도메인마다 다릅니다(일지=돌아봄 / 프로젝트=지금과 다음 한 걸음 / 할 일=앞을 보는 리마인더 / 종합=돌아봄과 내다봄을 함께). 아래 작업 지시를 따릅니다.`
 
 // 도메인별 분석 관점 — 시간 지향 + 목양적 시선을 명시(MFH-CONTEXT 모듈 사양 반영).
-const DOMAIN_FOCUS: Record<InsightDomain, string> = {
+// Raw(레거시 4도메인) 전용. 렌즈 관점은 아래 LENS_FOCUS.
+const DOMAIN_FOCUS: Record<RawDomain, string> = {
   journal:
     '일지 분석은 돌아봄이 중심입니다. 지난 기간 반복된 주제·깨달음·감정의 흐름을 되짚고, 사역과 신앙과 가정이 만나는 지점, 그 가운데 하나님이 함께하신 흔적을 따뜻하게 비춰 줍니다. 다그치지 말고, 지나온 길을 함께 바라보듯 씁니다.',
   project:
@@ -36,6 +37,34 @@ const DOMAIN_FOCUS: Record<InsightDomain, string> = {
     '할 일 분석은 앞을 보는 리마인더입니다. 오늘과 이번 주에 꼭 챙길 것, 마감이 가까운 것에 집중해 간결하게 정리합니다. 너무 많은 일에 눌리지 않도록, 핵심 몇 가지로 추려 가볍게 길을 비춰 줍니다.',
   overall:
     '종합 분석은 돌아봄과 내다봄을 함께 엮습니다. 일지·프로젝트·할 일을 연계해 분야를 가로지르는 흐름을 되짚고, 앞으로 나아갈 방향의 큰 그림과 우선순위, 그리고 격려가 될 통찰을 함께 제시합니다.',
+}
+
+// 목적 렌즈별 분석 관점(MFH-INSIGHTS-REDESIGN §6). raw 와 달리 "지금 무엇을 위해 보는가"가 기준.
+export const LENS_FOCUS: Record<LensKey, string> = {
+  prayer:
+    '흩어진 기도제목·기도후보를 3원칙대로 모읍니다. 사역 기도는 1~2개로 압축하고, 가정의 평강·문제예방·사전축복을 담으며, 나라(온두라스)는 정당·인물 거명 없이 중립적 평안으로만 적습니다. 후원자가 함께 기도할 수 있는 따뜻한 문장으로.',
+  balance:
+    '사역 분류별 활동 비중을 보고 사역과 가정의 리듬을 목양적으로 짚습니다. 죄책감을 주지 말고, 한쪽으로 치우쳤다면 쉼·가정 시간을 사전축복으로 격려합니다. 수치는 참고일 뿐 사람을 평가하지 않습니다.',
+  fruit:
+    '감사·응답 기록에서 하나님이 하신 일을 1~3개의 간증으로 모읍니다. 기록에 충실하게, 과장 없이, 감사의 언어로 다듬습니다. 작은 신실함과 응답의 흔적을 먼저 알아봐 줍니다.',
+  letter:
+    '(v3) 기도제목과 간증, 종합 흐름을 묶어 월간 기도편지 초안의 재료로 정리합니다. 온두라스/사역/선교사 가정 3단 구조를 염두에 둡니다.',
+}
+
+// 렌즈별 출력 형식(raw 의 OUTPUT_FORMAT 대신 사용).
+export const LENS_OUTPUT: Record<LensKey, string> = {
+  prayer: `[출력 형식 — 기도제목]
+- 정확히 세 줄로 압축합니다: "사역 · …", "가정 · …", "나라 · …".
+- 사역은 1~2개 핵심만, 가정은 평강·축복, 나라는 중립적 평안. 각 줄 1~2문장.
+- 따뜻한 한국어. 기록에 없는 사실은 지어내지 않습니다.`,
+  balance: `[출력 형식 — 균형]
+- 비중을 한 문단으로 요약하고, 균형에 대한 목양적 권면을 1~2문장 덧붙입니다.
+- 죄책감을 주지 않습니다. 데이터가 적으면 그 점을 솔직히 적습니다.`,
+  fruit: `[출력 형식 — 간증]
+- 1~3개의 간증을 대시 불릿으로 적습니다. 각 항목은 날짜·맥락을 포함한 2~3문장.
+- 감사의 언어로, 기록에 충실하게.`,
+  letter: `[출력 형식 — 편지 재료]
+- 온두라스 / 사역 / 선교사 가정 3단으로 짧게 정리합니다(초안 재료).`,
 }
 
 export const OUTPUT_FORMAT = `[출력 형식]
@@ -64,18 +93,20 @@ export function buildFewShot(examples: FewShotExample[]): string {
   return `\n\n[사용자가 높이 평가한 과거 인사이트 — 이 톤·깊이·구성을 참고하되 내용은 새 데이터에 맞게 새로 작성]\n${blocks}`
 }
 
-// 최종 system 프롬프트.
+// 최종 system 프롬프트. 렌즈면 LENS_FOCUS/LENS_OUTPUT, raw 면 DOMAIN_FOCUS/OUTPUT_FORMAT.
 export function buildSystemPrompt(domain: InsightDomain, fewShot: string): string {
+  const focus = isLens(domain) ? LENS_FOCUS[domain] : DOMAIN_FOCUS[domain]
+  const format = isLens(domain) ? LENS_OUTPUT[domain] : OUTPUT_FORMAT
   return [
     MISSION_BACKGROUND,
     '',
     TONE_GUIDE,
     '',
-    `이번 작업: ${DOMAIN_LABEL[domain]}. ${DOMAIN_FOCUS[domain]}`,
+    `이번 작업: ${DOMAIN_LABEL[domain]}. ${focus}`,
     '',
     PRAYER_GUARDRAILS,
     '',
-    OUTPUT_FORMAT,
+    format,
     fewShot,
   ].join('\n')
 }

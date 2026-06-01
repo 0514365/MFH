@@ -1,15 +1,22 @@
 'use client'
 
-// MFH-INSIGHTS-CLIENT-V1
-// 하이브리드 인사이트 UI.
-//  · 도메인 탭(종합/일지/프로젝트/할 일) + 기간 칩(7/30/90)
-//  · 수동 경로: [데이터 내보내기](.md 다운로드) → claude.ai(Max) 분석 → [결과 붙여넣어 저장]
-//  · 자동 경로: [AI로 생성](API, 종량제) — hasApiKey 일 때만 강조, 아니면 안내
-//  · 결과 카드: 별점(1~5) + 메모 저장(피드백 → 선호 프로파일), 삭제
-// 색: palette var 매핑이라 색-슬래시 opacity 금지(요소 opacity-* 만). 동적 클래스 금지(정적 분기).
+// MFH-INSIGHTS-CLIENT-V2
+// 목적 렌즈 구조 — 데이터 출처 4탭 → 선교 목적 렌즈(Prayer/Balance/Fruit/Letter).
+//  · 렌즈 홈: 연주제 strip + 렌즈 카드 4 + Raw 도메인 접이식(레거시 보존).
+//  · 렌즈 상세(범용): 기간칩 + AI생성/가져오기(붙여넣기·파일, 양식 파서) + 결과카드(별점·메모·편지에담기·삭제).
+//  · 백엔드(insightExport/insightPrompt/api) 재사용. 회수 = /api/insights/import(무료, 멀티렌즈 분배).
+// 색: palette var 매핑 → 색-슬래시 opacity 금지(요소 opacity-* 만). 동적 클래스 금지(정적 분기).
 
 import { useState } from 'react'
-import { INSIGHT_PERIODS, DOMAIN_LABEL, type InsightDomain } from '@/lib/insightExport'
+import type { ReactElement, ChangeEvent } from 'react'
+import {
+  INSIGHT_PERIODS,
+  DOMAIN_LABEL,
+  LENS_LABEL,
+  isLens,
+  type InsightDomain,
+  type LensKey,
+} from '@/lib/insightExport'
 
 export type InsightRow = {
   id: string
@@ -23,29 +30,205 @@ export type InsightRow = {
   created_at: string
 }
 
-const DOMAINS: InsightDomain[] = ['overall', 'journal', 'project', 'task']
+type LensMeta = { key: LensKey; desc: string; v3?: boolean }
+const LENS_META: LensMeta[] = [
+  { key: 'prayer', desc: '기도제목 모으기 (3원칙)' },
+  { key: 'balance', desc: '사역·가정 리듬' },
+  { key: 'fruit', desc: '간증·응답된 기도' },
+  { key: 'letter', desc: '월간 기도편지 초안', v3: true },
+]
 
-function periodDaysOf(end: string | null, start: string | null): number {
-  if (!end || !start) return 30
-  const d = Math.round((+new Date(end) - +new Date(start)) / 86400000)
-  return [7, 30, 90].includes(d) ? d : 30
+const RAW_DOMAINS_UI: InsightDomain[] = ['overall', 'journal', 'project', 'task']
+
+// 렌즈 아이콘(인라인 SVG, 24x24, currentColor 상속 — ModuleIcon 스타일).
+function LensIcon({ name, size = 20 }: { name: LensKey; size?: number }) {
+  const paths: Record<LensKey, ReactElement> = {
+    prayer: (
+      <path d="M12 20.5s-6.5-4-9-7.8C1.4 9.6 2.6 6 6 6c1.9 0 3.2 1.2 4 2.6C10.8 7.2 12.1 6 14 6c3.4 0 4.6 3.6 3 6.7-2.5 3.8-9 7.8-9 7.8z" />
+    ),
+    balance: (
+      <>
+        <path d="M12 4 V20" />
+        <path d="M7 20 H17" />
+        <path d="M4 8 H20" />
+        <path d="M4 8 l-2 5 h4 z" />
+        <path d="M20 8 l-2 5 h4 z" />
+        <circle cx="12" cy="5" r="1.2" fill="currentColor" stroke="none" />
+      </>
+    ),
+    fruit: (
+      <>
+        <path d="M12 21 V12" />
+        <path d="M12 14 c-3 0 -5 -2 -5 -5 c3 0 5 2 5 5 z" />
+        <path d="M12 12 c3 0 5 -2 5 -5 c-3 0 -5 2 -5 5 z" />
+      </>
+    ),
+    letter: (
+      <>
+        <rect x="3" y="6" width="18" height="13" rx="2" />
+        <path d="M3.5 7.5 L12 13 L20.5 7.5" />
+      </>
+    ),
+  }
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {paths[name]}
+    </svg>
+  )
 }
 
 export default function InsightsClient({
   initial,
   hasApiKey,
+  year,
+  themeName,
 }: {
   initial: InsightRow[]
   hasApiKey: boolean
+  year: number
+  themeName: string | null
 }) {
   const [rows, setRows] = useState<InsightRow[]>(initial)
-  const [domain, setDomain] = useState<InsightDomain>('overall')
-  const [days, setDays] = useState<number>(30)
-  const [busy, setBusy] = useState<'' | 'auto' | 'manual'>('')
-  const [err, setErr] = useState<string>('')
-  const [pasteOpen, setPasteOpen] = useState(false)
-  const [pasteText, setPasteText] = useState('')
+  const [view, setView] = useState<'home' | InsightDomain>('home')
 
+  const addRows = (added: InsightRow[]) => setRows((r) => [...added, ...r])
+  const patchRow = (id: string, patch: Partial<InsightRow>) =>
+    setRows((r) => r.map((x) => (x.id === id ? { ...x, ...patch } : x)))
+  const removeRow = (id: string) => setRows((r) => r.filter((x) => x.id !== id))
+  const countOf = (d: InsightDomain) => rows.filter((r) => r.domain === d).length
+
+  if (view !== 'home') {
+    return (
+      <LensDetail
+        domain={view}
+        rows={rows.filter((r) => r.domain === view)}
+        hasApiKey={hasApiKey}
+        onBack={() => setView('home')}
+        onAdd={addRows}
+        onPatch={patchRow}
+        onRemove={removeRow}
+      />
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* 연 주제 strip */}
+      {themeName && (
+        <div className="rounded-xl border border-line bg-surface-subtle px-4 py-2 text-xs text-muted">
+          {year} · {themeName}
+        </div>
+      )}
+
+      {/* 렌즈 카드 */}
+      <div className="space-y-3">
+        {LENS_META.map((m) => (
+          <button
+            key={m.key}
+            onClick={() => {
+              if (!m.v3) setView(m.key)
+            }}
+            disabled={m.v3}
+            className={
+              m.v3
+                ? 'flex w-full items-center gap-3 rounded-2xl border-2 border-primary bg-surface p-4 text-left opacity-70'
+                : 'flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary'
+            }
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+              <LensIcon name={m.key} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-base font-bold text-primary">{LENS_LABEL[m.key]}</span>
+              <span className="block text-xs text-muted">{m.desc}</span>
+            </span>
+            {m.v3 ? (
+              <span className="rounded-md bg-primary-soft px-2 py-0.5 font-display text-[10px] font-bold text-primary">
+                v3
+              </span>
+            ) : (
+              <span className="text-xs text-faint">{countOf(m.key) > 0 ? `${countOf(m.key)}개` : ''}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Raw 도메인 접이식 */}
+      <RawSection onOpen={(d) => setView(d)} countOf={countOf} />
+    </div>
+  )
+}
+
+function RawSection({
+  onOpen,
+  countOf,
+}: {
+  onOpen: (d: InsightDomain) => void
+  countOf: (d: InsightDomain) => number
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="rounded-2xl border border-line bg-surface">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3 text-xs text-muted"
+      >
+        <span>Raw domain analysis</span>
+        <span className="text-faint">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div className="flex flex-wrap gap-2 border-t border-line px-4 py-3">
+          {RAW_DOMAINS_UI.map((d) => (
+            <button
+              key={d}
+              onClick={() => onOpen(d)}
+              className="rounded-full border border-line px-3 py-1 text-xs text-muted transition hover:border-primary"
+            >
+              {DOMAIN_LABEL[d]}
+              {countOf(d) > 0 ? ` (${countOf(d)})` : ''}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function LensDetail({
+  domain,
+  rows,
+  hasApiKey,
+  onBack,
+  onAdd,
+  onPatch,
+  onRemove,
+}: {
+  domain: InsightDomain
+  rows: InsightRow[]
+  hasApiKey: boolean
+  onBack: () => void
+  onAdd: (added: InsightRow[]) => void
+  onPatch: (id: string, patch: Partial<InsightRow>) => void
+  onRemove: (id: string) => void
+}) {
+  const [days, setDays] = useState<number>(30)
+  const [busy, setBusy] = useState<'' | 'auto' | 'import'>('')
+  const [err, setErr] = useState<string>('')
+  const [importOpen, setImportOpen] = useState(false)
+  const [importText, setImportText] = useState('')
+
+  const lens = isLens(domain)
+  const title = lens ? LENS_LABEL[domain] : DOMAIN_LABEL[domain]
   const exportHref = `/api/insights/export?domain=${domain}&days=${days}`
 
   async function genAuto() {
@@ -62,7 +245,7 @@ export default function InsightsClient({
         setErr(json.error ?? '생성에 실패했습니다.')
         return
       }
-      setRows((r) => [json.insight as InsightRow, ...r])
+      onAdd([json.insight as InsightRow])
     } catch {
       setErr('네트워크 오류가 발생했습니다.')
     } finally {
@@ -70,28 +253,28 @@ export default function InsightsClient({
     }
   }
 
-  async function saveManual() {
-    const content = pasteText.trim()
+  async function doImport() {
+    const content = importText.trim()
     if (!content) {
-      setErr('붙여넣을 내용이 없습니다.')
+      setErr('가져올 내용이 없습니다.')
       return
     }
     setErr('')
-    setBusy('manual')
+    setBusy('import')
     try {
-      const res = await fetch('/api/insights/manual', {
+      const res = await fetch('/api/insights/import', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ domain, periodDays: days, content }),
       })
       const json = await res.json()
       if (!res.ok) {
-        setErr(json.error ?? '저장에 실패했습니다.')
+        setErr(json.error ?? '가져오기에 실패했습니다.')
         return
       }
-      setRows((r) => [json.insight as InsightRow, ...r])
-      setPasteText('')
-      setPasteOpen(false)
+      onAdd((json.insights ?? []) as InsightRow[])
+      setImportText('')
+      setImportOpen(false)
     } catch {
       setErr('네트워크 오류가 발생했습니다.')
     } finally {
@@ -99,12 +282,16 @@ export default function InsightsClient({
     }
   }
 
-  function patchRow(id: string, patch: Partial<InsightRow>) {
-    setRows((r) => r.map((x) => (x.id === id ? { ...x, ...patch } : x)))
+  function onFile(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    const reader = new FileReader()
+    reader.onload = () => setImportText(String(reader.result ?? ''))
+    reader.readAsText(f)
   }
 
   async function setRating(id: string, rating: number) {
-    patchRow(id, { rating })
+    onPatch(id, { rating })
     await fetch(`/api/insights/${id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
@@ -113,6 +300,7 @@ export default function InsightsClient({
   }
 
   async function saveNote(id: string, note: string) {
+    onPatch(id, { feedback_note: note })
     await fetch(`/api/insights/${id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
@@ -122,29 +310,28 @@ export default function InsightsClient({
 
   async function remove(id: string) {
     const res = await fetch(`/api/insights/${id}`, { method: 'DELETE' })
-    if (res.ok) setRows((r) => r.filter((x) => x.id !== id))
+    if (res.ok) onRemove(id)
   }
 
   return (
-    <div className="space-y-6">
-      {/* 도메인 탭 */}
-      <div className="flex flex-wrap gap-2">
-        {DOMAINS.map((d) => {
-          const active = d === domain
-          return (
-            <button
-              key={d}
-              onClick={() => setDomain(d)}
-              className={
-                active
-                  ? 'rounded-full border-2 border-primary bg-primary-soft px-3 py-1 text-sm font-semibold text-primary'
-                  : 'rounded-full border border-line px-3 py-1 text-sm text-muted transition hover:border-primary'
-              }
-            >
-              {DOMAIN_LABEL[d]}
-            </button>
-          )
-        })}
+    <div className="space-y-5">
+      {/* 헤더 */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onBack}
+          aria-label="뒤로"
+          className="rounded-xl border border-line p-2 text-muted transition hover:border-primary"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        {lens && (
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft text-primary">
+            <LensIcon name={domain} size={18} />
+          </span>
+        )}
+        <h2 className="font-display text-lg font-bold text-primary">{title}</h2>
       </div>
 
       {/* 기간 칩 */}
@@ -170,13 +357,11 @@ export default function InsightsClient({
 
       {/* 액션 패널 */}
       <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
-        <div className="text-sm font-semibold text-primary">새 인사이트</div>
-
-        {/* 수동(무료) */}
+        {/* 수동 회수(무료) */}
         <div className="rounded-xl bg-surface-subtle p-4">
           <div className="text-xs font-semibold text-ink">수동 (Max 구독 · 무료)</div>
           <p className="mt-1 text-[11px] leading-snug text-faint">
-            데이터를 내려받아 claude.ai 프로젝트에 올려 분석한 뒤, 결과를 붙여넣어 저장합니다.
+            데이터를 내려받아 Claude 에서 분석한 뒤, 양식 결과를 가져오면 렌즈별로 저장됩니다.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <a
@@ -188,49 +373,63 @@ export default function InsightsClient({
             <button
               onClick={() => {
                 setErr('')
-                setPasteOpen((v) => !v)
+                setImportOpen((v) => !v)
               }}
               className="rounded-xl border border-line px-3 py-2 text-sm text-muted transition hover:border-primary"
             >
-              {pasteOpen ? '붙여넣기 닫기' : '결과 붙여넣어 저장'}
+              {importOpen ? '가져오기 닫기' : '결과 가져오기'}
             </button>
           </div>
-          {pasteOpen && (
+          {importOpen && (
             <div className="mt-3 space-y-2">
+              <label className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                <span className="cursor-pointer rounded-lg border border-line px-2 py-1 transition hover:border-primary">
+                  파일 선택 (.md/.txt)
+                </span>
+                <input
+                  type="file"
+                  accept=".md,.txt,text/markdown,text/plain"
+                  onChange={onFile}
+                  className="hidden"
+                />
+                <span className="text-faint">또는 아래에 붙여넣기</span>
+              </label>
               <textarea
-                value={pasteText}
-                onChange={(e) => setPasteText(e.target.value)}
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
                 rows={8}
-                placeholder="claude.ai 에서 받은 인사이트 전문을 붙여넣으세요."
+                placeholder="Claude 에서 받은 양식 결과를 붙여넣으세요. (===MFH-INSIGHT=== 블록)"
                 className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-primary"
               />
               <button
-                onClick={saveManual}
+                onClick={doImport}
                 disabled={busy !== ''}
                 className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
               >
-                {busy === 'manual' ? '저장 중…' : `${DOMAIN_LABEL[domain]} 저장`}
+                {busy === 'import' ? '가져오는 중…' : '가져오기'}
               </button>
             </div>
           )}
         </div>
 
-        {/* 자동(종량제) */}
-        <div className="rounded-xl bg-surface-subtle p-4">
-          <div className="text-xs font-semibold text-ink">자동 (API · 종량제)</div>
-          <p className="mt-1 text-[11px] leading-snug text-faint">
-            {hasApiKey
-              ? '앱이 직접 분석합니다. 호출당 소액(약 수십 원)이 과금됩니다.'
-              : 'API 키·결제수단이 준비되면 활성화됩니다. 현재는 수동 방식을 사용하세요.'}
-          </p>
-          <button
-            onClick={genAuto}
-            disabled={!hasApiKey || busy !== ''}
-            className="mt-3 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {busy === 'auto' ? '생성 중…' : 'AI로 생성'}
-          </button>
-        </div>
+        {/* 자동(종량제) — Letter(v3) 제외 */}
+        {domain !== 'letter' && (
+          <div className="rounded-xl bg-surface-subtle p-4">
+            <div className="text-xs font-semibold text-ink">자동 (API · 종량제)</div>
+            <p className="mt-1 text-[11px] leading-snug text-faint">
+              {hasApiKey
+                ? '앱이 직접 분석합니다. 호출당 소액이 과금됩니다.'
+                : 'API 키가 준비되면 활성화됩니다. 현재는 수동(가져오기)을 사용하세요.'}
+            </p>
+            <button
+              onClick={genAuto}
+              disabled={!hasApiKey || busy !== ''}
+              className="mt-3 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              {busy === 'auto' ? '생성 중…' : 'AI로 생성'}
+            </button>
+          </div>
+        )}
 
         {err && <p className="text-sm text-danger">{err}</p>}
       </div>
@@ -245,11 +444,9 @@ export default function InsightsClient({
             <InsightCard
               key={row.id}
               row={row}
+              showLetter={domain === 'prayer' || domain === 'fruit'}
               onRate={(r) => setRating(row.id, r)}
-              onNote={(n) => {
-                patchRow(row.id, { feedback_note: n })
-                saveNote(row.id, n)
-              }}
+              onNote={(n) => saveNote(row.id, n)}
               onDelete={() => remove(row.id)}
             />
           ))
@@ -261,37 +458,36 @@ export default function InsightsClient({
 
 function InsightCard({
   row,
+  showLetter,
   onRate,
   onNote,
   onDelete,
 }: {
   row: InsightRow
+  showLetter: boolean
   onRate: (rating: number) => void
   onNote: (note: string) => void
   onDelete: () => void
 }) {
   const [noteOpen, setNoteOpen] = useState(false)
   const [note, setNote] = useState(row.feedback_note ?? '')
+  const [inLetter, setInLetter] = useState(false)
   const created = row.created_at?.slice(0, 10) ?? ''
   const isManual = row.model === 'manual'
 
   return (
     <article className="rounded-2xl border border-line bg-surface p-5">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-sm font-bold text-primary">{DOMAIN_LABEL[row.domain]}</div>
+        <div className="text-[11px] text-faint">
+          {row.period_start} ~ {row.period_end}
+        </div>
         <div className="text-[11px] text-faint">
           {created} · {isManual ? '수동' : 'AI'}
         </div>
       </div>
-      <div className="mt-1 text-[11px] text-faint">
-        {row.period_start} ~ {row.period_end}
-      </div>
 
-      <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink">
-        {row.content}
-      </div>
+      <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink">{row.content}</div>
 
-      {/* 별점 */}
       <div className="mt-4 flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((n) => {
           const on = (row.rating ?? 0) >= n
@@ -306,12 +502,17 @@ function InsightCard({
             </button>
           )
         })}
-        <button
-          onClick={() => setNoteOpen((v) => !v)}
-          className="ml-3 text-xs text-muted underline"
-        >
+        <button onClick={() => setNoteOpen((v) => !v)} className="ml-3 text-xs text-muted underline">
           {noteOpen ? '메모 닫기' : '메모'}
         </button>
+        {showLetter && (
+          <button
+            onClick={() => setInLetter((v) => !v)}
+            className={inLetter ? 'ml-2 text-xs text-primary underline' : 'ml-2 text-xs text-muted underline'}
+          >
+            {inLetter ? '편지에 담김' : '편지에 담기'}
+          </button>
+        )}
         <button onClick={onDelete} className="ml-auto text-xs text-faint underline">
           삭제
         </button>

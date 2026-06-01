@@ -2,8 +2,26 @@
 // 일지·프로젝트·할 일 데이터를 분석용 Markdown 한 장으로 직렬화.
 // 수동 경로(claude.ai 업로드)와 자동 경로(API route)가 공유한다.
 // 모델에 넘기는 텍스트는 여기서만 만든다 → 두 경로의 분석 입력이 동일.
+// [V2 확장] 데이터 출처 도메인(raw) + 목적 렌즈(lens)를 InsightDomain 합집합으로 통합.
+//   insights.domain 은 text 라 스키마 변경 없이 렌즈 키를 그대로 저장한다.
 
-export type InsightDomain = 'journal' | 'project' | 'task' | 'overall'
+// 기존 데이터 출처 도메인(레거시 Raw 분석) — 유지.
+export type RawDomain = 'journal' | 'project' | 'task' | 'overall'
+// 신규 목적 렌즈 키.
+export type LensKey = 'prayer' | 'balance' | 'fruit' | 'letter'
+// insights.domain 에 저장될 수 있는 모든 값.
+export type InsightDomain = RawDomain | LensKey
+
+export const RAW_DOMAINS: RawDomain[] = ['overall', 'journal', 'project', 'task']
+export const LENS_KEYS: LensKey[] = ['prayer', 'balance', 'fruit', 'letter']
+export const ALL_DOMAINS: InsightDomain[] = [...RAW_DOMAINS, ...LENS_KEYS]
+
+export function isLens(d: string): d is LensKey {
+  return (LENS_KEYS as string[]).includes(d)
+}
+export function isValidDomain(d: string): d is InsightDomain {
+  return (ALL_DOMAINS as string[]).includes(d)
+}
 
 export const INSIGHT_PERIODS = [
   { value: 7, label: '7일' },
@@ -13,11 +31,37 @@ export const INSIGHT_PERIODS = [
 
 export type PeriodDays = (typeof INSIGHT_PERIODS)[number]['value']
 
+// 저장·프롬프트 표기용 한글 풀네임(raw 4 + 렌즈 4).
 export const DOMAIN_LABEL: Record<InsightDomain, string> = {
   journal: '일지 인사이트',
   project: '프로젝트 인사이트',
   task: '할 일 인사이트',
   overall: '종합 인사이트',
+  prayer: '기도제목',
+  balance: '사역·가정 균형',
+  fruit: '간증·열매',
+  letter: '월간 기도편지',
+}
+
+// UI 렌즈 카드용 영어 라벨(모듈 라벨·제목은 영어 규칙).
+export const LENS_LABEL: Record<LensKey, string> = {
+  prayer: 'Prayer',
+  balance: 'Balance',
+  fruit: 'Fruit',
+  letter: 'Letter',
+}
+
+// 도메인/렌즈별로 어떤 데이터 블록을 내보낼지 결정(API route 3곳 공유).
+export function domainNeeds(d: InsightDomain): {
+  journal: boolean
+  project: boolean
+  task: boolean
+} {
+  return {
+    journal: ['journal', 'overall', 'prayer', 'fruit', 'balance'].includes(d),
+    project: ['project', 'overall', 'balance'].includes(d),
+    task: ['task', 'overall', 'balance'].includes(d),
+  }
 }
 
 // period_start(YYYY-MM-DD) 계산: 오늘에서 days 만큼 뺀 날짜.
@@ -134,11 +178,9 @@ export function buildDataMarkdown(d: ExportData): string {
     `# MFH ${DOMAIN_LABEL[d.domain]} 분석 데이터\n` +
     `기간: ${d.periodStart} ~ ${d.periodEnd} (최근 ${d.periodDays}일)\n`
   const blocks: string[] = [head]
-  const wantJournal = d.domain === 'journal' || d.domain === 'overall'
-  const wantProject = d.domain === 'project' || d.domain === 'overall'
-  const wantTask = d.domain === 'task' || d.domain === 'overall'
-  if (wantJournal) blocks.push(journalBlock(d.journals ?? []))
-  if (wantProject) blocks.push(projectBlock(d.projects ?? []))
-  if (wantTask) blocks.push(taskBlock(d.tasks ?? []))
+  const need = domainNeeds(d.domain)
+  if (need.journal) blocks.push(journalBlock(d.journals ?? []))
+  if (need.project) blocks.push(projectBlock(d.projects ?? []))
+  if (need.task) blocks.push(taskBlock(d.tasks ?? []))
   return blocks.join('\n')
 }

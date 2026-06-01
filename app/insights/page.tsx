@@ -22,12 +22,25 @@ export default async function InsightsPage() {
     .order('created_at', { ascending: false })
     .limit(50)
 
+  const year = new Date().getFullYear()
+  const { data: themeRow } = await supabase
+    .from('year_themes')
+    .select('theme')
+    .eq('year', year)
+    .maybeSingle()
+  const themeName = (themeRow as { theme?: string | null } | null)?.theme ?? null
+
   const hasApiKey = !!process.env.ANTHROPIC_API_KEY
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
       <PageHeader title="Insights" current="insights" />
-      <InsightsClient initial={(rows ?? []) as InsightRow[]} hasApiKey={hasApiKey} />
+      <InsightsClient
+        initial={(rows ?? []) as InsightRow[]}
+        hasApiKey={hasApiKey}
+        year={year}
+        themeName={themeName}
+      />
     </main>
   )
 }
