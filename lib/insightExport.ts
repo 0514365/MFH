@@ -61,9 +61,9 @@ export function domainNeeds(d: InsightDomain): {
   task: boolean
 } {
   return {
-    journal: ['journal', 'overall', 'prayer', 'fruit', 'balance'].includes(d),
-    project: ['project', 'overall', 'balance'].includes(d),
-    task: ['task', 'overall', 'balance'].includes(d),
+    journal: ['journal', 'overall', 'prayer', 'fruit', 'balance', 'letter'].includes(d),
+    project: ['project', 'overall', 'balance', 'letter'].includes(d),
+    task: ['task', 'overall', 'balance', 'letter'].includes(d),
   }
 }
 

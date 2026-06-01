@@ -41,12 +41,12 @@ export type InsightRow = {
   created_at: string
 }
 
-type LensMeta = { key: LensKey; desc: string; v3?: boolean }
+type LensMeta = { key: LensKey; desc: string }
 const LENS_META: LensMeta[] = [
   { key: 'prayer', desc: '기도제목 모으기 (3원칙)' },
   { key: 'balance', desc: '사역·가정 리듬' },
   { key: 'fruit', desc: '간증·응답된 기도' },
-  { key: 'letter', desc: '월간 기도편지 초안', v3: true },
+  { key: 'letter', desc: '월간 기도편지 초안' },
 ]
 
 const RAW_DOMAINS_UI: InsightDomain[] = ['overall', 'journal', 'project', 'task']
@@ -771,15 +771,8 @@ export default function InsightsClient({
           return (
             <button
               key={m.key}
-              onClick={() => {
-                if (!m.v3) setView(m.key)
-              }}
-              disabled={m.v3}
-              className={
-                m.v3
-                  ? 'block w-full rounded-2xl border-2 border-primary bg-surface p-4 text-left opacity-70'
-                  : 'block w-full rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary'
-              }
+              onClick={() => setView(m.key)}
+              className="block w-full rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary"
             >
               <span className="flex items-center gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
@@ -791,15 +784,9 @@ export default function InsightsClient({
                   </span>
                   <span className="block text-xs text-muted">{m.desc}</span>
                 </span>
-                {m.v3 ? (
-                  <span className="rounded-md bg-primary-soft px-2 py-0.5 font-display text-[10px] font-bold text-primary">
-                    v3
-                  </span>
-                ) : (
-                  <span className="text-xs text-faint">
-                    {countOf(m.key) > 0 ? `${countOf(m.key)}개` : ''}
-                  </span>
-                )}
+                <span className="text-xs text-faint">
+                  {countOf(m.key) > 0 ? `${countOf(m.key)}개` : ''}
+                </span>
               </span>
               {mini && (
                 <span className="mt-3 block">
@@ -971,24 +958,22 @@ function LensDetail({
           onAdd={onAdd}
         />
 
-        {/* 자동(종량제) — Letter(v3) 제외 */}
-        {domain !== 'letter' && (
-          <div className="rounded-xl bg-surface-subtle p-4">
-            <div className="text-xs font-semibold text-ink">자동 (API · 종량제)</div>
-            <p className="mt-1 text-[11px] leading-snug text-faint">
-              {hasApiKey
-                ? '앱이 직접 분석합니다. 호출당 소액이 과금됩니다.'
-                : 'API 키가 준비되면 활성화됩니다. 현재는 수동(가져오기)을 사용하세요.'}
-            </p>
-            <button
-              onClick={genAuto}
-              disabled={!hasApiKey || busy !== ''}
-              className="mt-3 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-            >
-              {busy === 'auto' ? '생성 중…' : 'AI로 생성'}
-            </button>
-          </div>
-        )}
+        {/* 자동(종량제) */}
+        <div className="rounded-xl bg-surface-subtle p-4">
+          <div className="text-xs font-semibold text-ink">자동 (API · 종량제)</div>
+          <p className="mt-1 text-[11px] leading-snug text-faint">
+            {hasApiKey
+              ? '앱이 직접 분석합니다. 호출당 소액이 과금됩니다.'
+              : 'API 키가 준비되면 활성화됩니다. 현재는 수동(가져오기)을 사용하세요.'}
+          </p>
+          <button
+            onClick={genAuto}
+            disabled={!hasApiKey || busy !== ''}
+            className="mt-3 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+          >
+            {busy === 'auto' ? '생성 중…' : 'AI로 생성'}
+          </button>
+        </div>
 
         {err && <p className="text-sm text-danger">{err}</p>}
       </div>

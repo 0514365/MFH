@@ -94,6 +94,8 @@ export async function POST(req: Request) {
   const fewShot = buildFewShot((liked ?? []) as FewShotExample[])
   const system = buildSystemPrompt(domain, fewShot)
   const dataMd = buildDataMarkdown(data)
+  // 편지(letter)는 3단 구조라 길다 → 토큰 여유를 더 준다.
+  const maxTokens = domain === 'letter' ? 2500 : 1500
 
   // Anthropic 호출 — system 은 cache_control 로 캐싱(반복 호출 입력비 절감).
   let content = ''
@@ -108,7 +110,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1500,
+        max_tokens: maxTokens,
         system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: dataMd }],
       }),
