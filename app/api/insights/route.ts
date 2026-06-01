@@ -85,15 +85,26 @@ export async function POST(req: Request) {
     data.tasks = rows ?? []
   }
 
-  // 편지(letter)는 최근 인사이트(기도·간증·종합)도 재료로 합성한다.
+  // 편지(letter) 재료 = "편지에 담기"(in_letter)로 고른 인사이트 우선.
+  // 하나도 없으면 기존대로 최근 prayer/fruit/overall 을 자동 합성한다.
   if (domain === 'letter') {
-    const { data: recent } = await supabase
+    const { data: picked } = await supabase
       .from('insights')
       .select('domain,content,period_start,period_end')
-      .in('domain', ['prayer', 'fruit', 'overall'])
+      .eq('in_letter', true)
       .order('created_at', { ascending: false })
-      .limit(6)
-    data.insights = (recent ?? []) as InsightDigestRow[]
+      .limit(12)
+    let digest = picked ?? []
+    if (digest.length === 0) {
+      const { data: recent } = await supabase
+        .from('insights')
+        .select('domain,content,period_start,period_end')
+        .in('domain', ['prayer', 'fruit', 'overall'])
+        .order('created_at', { ascending: false })
+        .limit(6)
+      digest = recent ?? []
+    }
+    data.insights = digest as InsightDigestRow[]
   }
 
   // few-shot: rating>=4 과거 인사이트(같은 domain 우선, 없으면 overall 포함).
@@ -174,7 +185,7 @@ export async function POST(req: Request) {
       content,
       model: modelUsed,
     })
-    .select('id,domain,period_start,period_end,content,model,rating,feedback_note,created_at')
+    .select('id,domain,period_start,period_end,content,model,rating,feedback_note,in_letter,created_at')
     .single()
   if (insErr) {
     console.error('insights insert error', insErr)

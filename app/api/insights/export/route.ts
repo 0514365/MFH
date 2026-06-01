@@ -67,15 +67,26 @@ export async function GET(req: Request) {
     data.tasks = rows ?? []
   }
 
-  // 개별 편지(letter) 내보내기는 최근 인사이트(기도·간증·종합)도 재료로 동봉.
+  // 개별 편지(letter) 내보내기 재료 = "편지에 담기"(in_letter) 우선,
+  // 없으면 최근 prayer/fruit/overall 자동 동봉.
   if (!bundle && domain === 'letter') {
-    const { data: recent } = await supabase
+    const { data: picked } = await supabase
       .from('insights')
       .select('domain,content,period_start,period_end')
-      .in('domain', ['prayer', 'fruit', 'overall'])
+      .eq('in_letter', true)
       .order('created_at', { ascending: false })
-      .limit(6)
-    data.insights = (recent ?? []) as InsightDigestRow[]
+      .limit(12)
+    let digest = picked ?? []
+    if (digest.length === 0) {
+      const { data: recent } = await supabase
+        .from('insights')
+        .select('domain,content,period_start,period_end')
+        .in('domain', ['prayer', 'fruit', 'overall'])
+        .order('created_at', { ascending: false })
+        .limit(6)
+      digest = recent ?? []
+    }
+    data.insights = digest as InsightDigestRow[]
   }
 
   const instruction = bundle

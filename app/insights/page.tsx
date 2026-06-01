@@ -18,7 +18,7 @@ export default async function InsightsPage() {
 
   const { data: rows } = await supabase
     .from('insights')
-    .select('id,domain,period_start,period_end,content,model,rating,feedback_note,created_at')
+    .select('id,domain,period_start,period_end,content,model,rating,feedback_note,in_letter,created_at')
     .order('created_at', { ascending: false })
     .limit(50)
 

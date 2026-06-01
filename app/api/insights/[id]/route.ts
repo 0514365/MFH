@@ -16,14 +16,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
-  let body: { rating?: number | null; feedback_note?: string | null }
+  let body: { rating?: number | null; feedback_note?: string | null; in_letter?: boolean }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
   }
 
-  const patch: { rating?: number | null; feedback_note?: string | null } = {}
+  const patch: { rating?: number | null; feedback_note?: string | null; in_letter?: boolean } = {}
   if ('rating' in body) {
     const r = body.rating
     if (r === null) patch.rating = null
@@ -33,6 +33,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if ('feedback_note' in body) {
     patch.feedback_note = body.feedback_note ? String(body.feedback_note).slice(0, 2000) : null
   }
+  if ('in_letter' in body) {
+    patch.in_letter = body.in_letter === true
+  }
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: '변경할 내용이 없습니다.' }, { status: 400 })
   }
@@ -41,7 +44,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     .from('insights')
     .update(patch)
     .eq('id', params.id)
-    .select('id,rating,feedback_note')
+    .select('id,rating,feedback_note,in_letter')
     .single()
   if (error) {
     console.error('insights patch error', error)

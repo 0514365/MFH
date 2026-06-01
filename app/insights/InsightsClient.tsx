@@ -38,6 +38,7 @@ export type InsightRow = {
   model: string | null
   rating: number | null
   feedback_note: string | null
+  in_letter: boolean
   created_at: string
 }
 
@@ -982,6 +983,15 @@ export function DomainInsightBody({
     }).catch(() => {})
   }
 
+  async function toggleLetter(id: string, value: boolean) {
+    onPatch(id, { in_letter: value })
+    await fetch(`/api/insights/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ in_letter: value }),
+    }).catch(() => {})
+  }
+
   async function remove(id: string) {
     const res = await fetch(`/api/insights/${id}`, { method: 'DELETE' })
     if (res.ok) onRemove(id)
@@ -1012,9 +1022,10 @@ export function DomainInsightBody({
             <InsightCard
               key={row.id}
               row={row}
-              showLetter={domain === 'prayer' || domain === 'fruit'}
+              showLetter={domain === 'prayer' || domain === 'fruit' || domain === 'overall'}
               onRate={(r) => setRating(row.id, r)}
               onNote={(n) => saveNote(row.id, n)}
+              onToggleLetter={(v) => toggleLetter(row.id, v)}
               onDelete={() => remove(row.id)}
             />
           ))
@@ -1029,17 +1040,19 @@ function InsightCard({
   showLetter,
   onRate,
   onNote,
+  onToggleLetter,
   onDelete,
 }: {
   row: InsightRow
   showLetter: boolean
   onRate: (rating: number) => void
   onNote: (note: string) => void
+  onToggleLetter: (value: boolean) => void
   onDelete: () => void
 }) {
   const [noteOpen, setNoteOpen] = useState(false)
   const [note, setNote] = useState(row.feedback_note ?? '')
-  const [inLetter, setInLetter] = useState(false)
+  const inLetter = row.in_letter === true
   const created = row.created_at?.slice(0, 10) ?? ''
   const isManual = row.model === 'manual'
 
@@ -1075,7 +1088,7 @@ function InsightCard({
         </button>
         {showLetter && (
           <button
-            onClick={() => setInLetter((v) => !v)}
+            onClick={() => onToggleLetter(!inLetter)}
             className={inLetter ? 'ml-2 text-xs text-primary underline' : 'ml-2 text-xs text-muted underline'}
           >
             {inLetter ? '편지에 담김' : '편지에 담기'}
