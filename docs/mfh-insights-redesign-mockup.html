@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MFH · Insights 전면 개정 목업</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.31.0/tabler-icons.min.css">
+<style>
+  :root{
+    --primary:#661F20; --primaryHover:#531719;
+    --accent:#B61821; --accentHover:#9A141B;
+    --primarySoft:#F1E4E4; --accentSoft:#FAE3E4;
+    --paper:#FAF8F7; --surface:#FFFFFF; --surfaceSubtle:#F2EEEC;
+    --line:#E5DFDC; --text:#221C1C; --textMuted:#80807F; --textFaint:#A8A6A4;
+    --on:#FFFFFF;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--text);
+    font-family:"Pretendard","Montserrat",-apple-system,BlinkMacSystemFont,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:34px 18px 64px}
+  .en{font-family:"Montserrat",sans-serif}
+  .head{max-width:760px;margin:0 auto 26px}
+  .logo{font-family:"Montserrat";font-weight:800;letter-spacing:.06em;color:var(--primary);font-size:21px}
+  .head h1{font-family:"Montserrat";font-weight:700;font-size:18px;margin:12px 0 4px}
+  .head p{color:var(--textMuted);font-size:13.5px;margin:0;line-height:1.55}
+
+  .stage{display:flex;gap:26px;flex-wrap:wrap;justify-content:center}
+  .col{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .label{font-family:"Montserrat";font-weight:600;font-size:11.5px;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--textMuted)}
+  .phone{width:316px;background:var(--surface);border:1px solid var(--line);
+    border-radius:26px;padding:16px 16px 22px}
+
+  .pbar{display:flex;align-items:center;gap:9px;margin-bottom:5px}
+  .mark{width:26px;height:26px;border-radius:8px;background:var(--primary);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:14px}
+  .ptitle{font-family:"Montserrat";font-weight:700;font-size:18px;color:var(--text)}
+  .theme{font-size:11.5px;color:var(--textMuted);border-bottom:1px solid var(--line);
+    padding-bottom:11px;margin-bottom:13px}
+
+  .lens{border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:10px}
+  .lens.feat{border-color:var(--primary);border-width:1.5px}
+  .lrow{display:flex;align-items:center;gap:10px}
+  .ico{width:32px;height:32px;border-radius:9px;background:var(--primarySoft);color:var(--primary);
+    display:flex;align-items:center;justify-content:center;font-size:18px}
+  .lt{flex:1}
+  .lt .nm{font-family:"Montserrat";font-weight:700;font-size:14.5px;color:var(--primary)}
+  .lt .ds{font-size:12px;color:var(--textMuted);margin-top:1px}
+  .chev{color:var(--textFaint);font-size:18px}
+  .vbadge{font-family:"Montserrat";font-size:10px;font-weight:700;background:var(--primarySoft);
+    color:var(--primary);border-radius:7px;padding:2px 7px}
+  .prev{font-size:12px;color:var(--textMuted);margin-top:9px;line-height:1.5}
+
+  .barwrap{display:flex;height:8px;border-radius:5px;overflow:hidden;margin-top:10px}
+  .barwrap span{display:block}
+
+  .advanced{display:flex;align-items:center;justify-content:space-between;
+    font-size:11.5px;color:var(--textMuted);padding:9px 3px 0}
+
+  .back{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+  .back i{font-size:19px;color:var(--primary)}
+  .chips{display:flex;gap:7px;margin-bottom:12px}
+  .chip{font-family:"Montserrat";font-weight:600;font-size:11.5px;border:1px solid var(--line);
+    border-radius:20px;padding:4px 11px;color:var(--textMuted);background:var(--surface)}
+  .chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .gens{display:flex;gap:8px;margin-bottom:14px}
+  .btn{font-family:"Montserrat";font-weight:600;font-size:11.5px;border-radius:9px;
+    padding:7px 12px;border:1px solid var(--primary);color:var(--primary);background:var(--surface);
+    display:flex;align-items:center;gap:5px}
+  .btn.fill{background:var(--primary);color:#fff}
+
+  .card{border:1px solid var(--line);border-radius:14px;padding:12px 13px}
+  .ctop{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+  .src{font-family:"Montserrat";font-size:10.5px;font-weight:600;background:var(--primarySoft);
+    color:var(--primary);border-radius:7px;padding:3px 8px}
+  .stars i{font-size:14px;color:var(--textFaint)}
+  .stars i.on{color:var(--accent)}
+  .pt{font-size:12.5px;line-height:1.55;color:var(--text);margin-bottom:6px}
+  .pt b{color:var(--primary);font-weight:600}
+  .cact{display:flex;gap:14px;align-items:center;margin-top:11px;padding-top:10px;
+    border-top:1px solid var(--line);font-size:11.5px;color:var(--textMuted)}
+  .cact .del{margin-left:auto;color:var(--accent)}
+  .past{font-family:"Montserrat";font-weight:600;font-size:11px;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--textMuted);margin:15px 3px 4px}
+  .prow{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text);
+    padding:9px 3px;border-top:1px solid var(--line)}
+  .prow .r{color:var(--textFaint)}
+  .prow .r i{color:var(--accent);font-size:13px}
+
+  .note{max-width:760px;margin:28px auto 0;border-top:1px solid var(--line);padding-top:18px;
+    font-size:13px;color:var(--textMuted);line-height:1.7}
+  .note b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="logo">MFH</div>
+  <h1 class="en">Insights — redesign concept</h1>
+  <p>데이터 출처(일지·프로젝트·할일·종합) 중심 → <b>선교 목적 렌즈</b> 중심으로 재편.
+     기존 4도메인 분석은 하단 <span class="en">Raw domain analysis</span>로 보존.</p>
+</div>
+
+<div class="stage">
+
+  <!-- SCREEN 1 -->
+  <div class="col">
+    <div class="phone">
+      <div class="pbar">
+        <div class="mark"><i class="ti ti-building-church"></i></div>
+        <span class="ptitle en">Insights</span>
+      </div>
+      <div class="theme">2026 · 길을 만드시는 주님</div>
+
+      <div class="lens">
+        <div class="lrow">
+          <div class="ico"><i class="ti ti-heart-handshake"></i></div>
+          <div class="lt"><div class="nm en">Prayer</div><div class="ds">이번 주 기도제목 모으기</div></div>
+          <i class="ti ti-chevron-right chev"></i>
+        </div>
+        <div class="prev">3 points · 시 119:105</div>
+      </div>
+
+      <div class="lens">
+        <div class="lrow">
+          <div class="ico"><i class="ti ti-scale"></i></div>
+          <div class="lt"><div class="nm en">Balance</div><div class="ds">사역·가정 리듬</div></div>
+          <i class="ti ti-chevron-right chev"></i>
+        </div>
+        <div class="barwrap">
+          <span style="width:42%;background:#661F20"></span>
+          <span style="width:20%;background:#9A141B"></span>
+          <span style="width:16%;background:#B61821"></span>
+          <span style="width:13%;background:#D9A0A2"></span>
+          <span style="width:9%;background:#E5DFDC"></span>
+        </div>
+        <div class="prev">Church 42 · Family 13 · Relief 9 · …</div>
+      </div>
+
+      <div class="lens">
+        <div class="lrow">
+          <div class="ico"><i class="ti ti-seeding"></i></div>
+          <div class="lt"><div class="nm en">Fruit</div><div class="ds">간증·응답된 기도</div></div>
+          <i class="ti ti-chevron-right chev"></i>
+        </div>
+        <div class="prev">7 testimonies this month</div>
+      </div>
+
+      <div class="lens feat">
+        <div class="lrow">
+          <div class="ico"><i class="ti ti-mail"></i></div>
+          <div class="lt"><div class="nm en">Letter</div><div class="ds">월간 기도편지 초안</div></div>
+          <span class="vbadge en">v3</span>
+        </div>
+        <div class="prev">Prayer + Fruit → 초안 생성</div>
+      </div>
+
+      <div class="advanced">
+        <span><i class="ti ti-adjustments" style="vertical-align:-2px;margin-right:5px"></i>Raw domain analysis</span>
+        <i class="ti ti-chevron-down"></i>
+      </div>
+    </div>
+    <div class="label">Insights home</div>
+  </div>
+
+  <!-- SCREEN 2 -->
+  <div class="col">
+    <div class="phone">
+      <div class="back">
+        <i class="ti ti-arrow-left"></i>
+        <div class="ico"><i class="ti ti-heart-handshake"></i></div>
+        <span class="ptitle en" style="font-size:16px">Prayer</span>
+      </div>
+
+      <div class="chips">
+        <span class="chip on en">This week</span>
+        <span class="chip en">This month</span>
+      </div>
+      <div class="gens">
+        <button class="btn fill en"><i class="ti ti-sparkles"></i>AI generate</button>
+        <button class="btn en"><i class="ti ti-download"></i>Manual export</button>
+      </div>
+
+      <div class="card">
+        <div class="ctop">
+          <span class="src en">AI · 5/24–5/30</span>
+          <span class="stars"><i class="ti ti-star on"></i><i class="ti ti-star on"></i><i class="ti ti-star on"></i><i class="ti ti-star on"></i><i class="ti ti-star"></i></span>
+        </div>
+        <div class="pt"><b>사역 ·</b> 방과후학교 새 학기 준비와 교사 충원</div>
+        <div class="pt"><b>가정 ·</b> 가족이 함께 쉴 안식의 시간</div>
+        <div class="pt" style="margin-bottom:0"><b>나라 ·</b> 온두라스의 평안과 회복</div>
+        <div class="cact">
+          <span><i class="ti ti-message" style="vertical-align:-2px;margin-right:4px"></i>메모</span>
+          <span><i class="ti ti-bookmark" style="vertical-align:-2px;margin-right:4px"></i>편지에 담기</span>
+          <span class="del"><i class="ti ti-trash"></i></span>
+        </div>
+      </div>
+
+      <div class="past en">Past</div>
+      <div class="prow"><span>5/17–5/23</span><span class="r"><i class="ti ti-star"></i> 5</span></div>
+      <div class="prow"><span>5/10–5/16</span><span class="r"><i class="ti ti-star"></i> 4</span></div>
+      <div class="prow"><span>5/03–5/09</span><span class="r"><i class="ti ti-star"></i> 5</span></div>
+    </div>
+    <div class="label">Prayer lens detail</div>
+  </div>
+
+</div>
+
+<div class="note">
+  <b>핵심 변화</b> — 진입점이 "어떤 데이터를 분석할까"가 아니라 "<b>지금 무엇을 위해 보는가</b>"(기도·균형·열매·편지)로 바뀝니다.
+  각 렌즈는 같은 엔진(<span class="en">insightExport + insightPrompt + /api/insights</span>)을 재사용하되,
+  렌즈마다 <b>전용 프롬프트 관점</b>과 <b>전용 표현</b>(기도=3원칙 목록 / 균형=비중 막대 / 열매=타임라인)을 가집니다.
+  별점·메모는 그대로, 추가로 "<b>편지에 담기</b>"가 인사이트를 <span class="en">Letter</span>(v3)로 흘려보냅니다.
+</div>
+
+</body>
+</html>
