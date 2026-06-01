@@ -54,12 +54,15 @@
 
 ## 3. 다음 작업 후보
 
+> ※ 정정: **캘린더 ICS 피드는 이미 완료**(patch71 v2s 구현·실기기 검증 + patch72 v2t "할 일만" 반환). v3 의 "캘린더 ICS" 항목은 done. 아래는 그 정정 반영.
+
 | # | 후보 | 비고 |
 |---|---|---|
-| A | **E 캘린더 ICS / 번역** | CLAUDE.md 빌드단계 v3 잔여 |
-| B | **F 이월** | 영상 5건 YouTube 등록 / 중보 스팸 / 방문자 카운팅 / service_role 키 회수 |
-| C | letter 단독 AI 생성(선택) | 다시 필요하면 **web_search 실동작 검증부터**(미검증) |
-| D | patch78 clear-insights(선택) | 인사이트 초기화 원할 때만 |
+| A | **번역 (v3 잔여)** | 사양 미정 — 범위 결정 먼저(① 편지 번역 / ② 포트폴리오 공개페이지 다국어 / ③ 앱 UI 다국어). 편지 번역(Anthropic API)이 최소 출발 |
+| B | **캘린더 디자인 개선** | v2s 후보 A 이월(미착수) — 상단 컨트롤 한 줄 정리 / 월간 셀 가독성 / 막대·카드 스타일 / 마룬 톤. `app/calendar/CalendarView.tsx` |
+| C | **F 이월** | 영상 5건 YouTube 등록(URL 주면 일괄) / 중보 스팸 강화(rate limit·승인제) / 방문자 카운팅(방식 미정) / **service_role 키 회수**(import·ICS 끝나 미사용, Reset 권장) |
+| D | letter 단독 AI 생성(선택) | 다시 필요하면 **web_search 실동작 검증부터**(미검증) |
+| E | patch78 clear-insights(선택) | 인사이트 초기화 원할 때만 |
 
 ## 4. 열린 결정사항
 
@@ -70,4 +73,4 @@
 
 ## 5. 다음 세션 시작 문구(예시)
 
-> "안녕 Claude. MFH 이어서. `docs/MFH-HANDOFF-v2z.md` 기준. 인사이트↔편지 연계(C/D) 완료·검증됨. 이번엔 **캘린더 ICS / 번역(E)** 또는 **이월(F)** 가죠."
+> "안녕 Claude. MFH 이어서. `docs/MFH-HANDOFF-v2z.md` 기준. 인사이트↔편지 연계(C/D) 완료·검증됨. (캘린더 ICS 는 이미 완료.) 이번엔 **번역**(범위 정하기) 또는 **캘린더 디자인 개선**, 또는 **이월 F**(영상 5건 / service_role 키 회수 등) 가죠."
