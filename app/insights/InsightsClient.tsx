@@ -717,7 +717,7 @@ export default function InsightsClient({
   const removeRow = (id: string) => setRows((r) => r.filter((x) => x.id !== id))
   const countOf = (d: InsightDomain) => rows.filter((r) => r.domain === d).length
 
-  // AI 전체 생성 — 모든 렌즈·분야를 순차 호출(balance 는 집계라 제외). 입력은 홈에서만.
+  // AI 전체 생성 — 분야·렌즈를 순차 호출(balance=집계, letter=웹검색 비용으로 제외). 입력은 홈에서만.
   const [genBusy, setGenBusy] = useState<string>('')
   const [genErr, setGenErr] = useState<string>('')
   async function genAll() {
@@ -729,7 +729,6 @@ export default function InsightsClient({
       'task',
       'prayer',
       'fruit',
-      'letter',
     ]
     for (let i = 0; i < targets.length; i++) {
       setGenBusy(`${i + 1}/${targets.length}`)
@@ -793,7 +792,7 @@ export default function InsightsClient({
           <div className="text-xs font-semibold text-ink">AI 전체 생성 (API · 종량제)</div>
           <p className="mt-1 text-[11px] leading-snug text-faint">
             {hasApiKey
-              ? '앱이 모든 렌즈·분야를 직접 분석합니다. 호출당 소액이 과금됩니다(편지는 웹검색 포함).'
+              ? '앱이 분야·렌즈를 직접 분석합니다. 호출당 소액이 과금됩니다. (편지는 제외 — 수동·가져오기로 작성)'
               : 'API 키가 준비되면 활성화됩니다. 현재는 수동·드롭박스를 사용하세요.'}
           </p>
           <button
