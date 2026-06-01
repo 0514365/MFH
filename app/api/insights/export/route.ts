@@ -11,6 +11,7 @@ import {
   todayStr,
   type InsightDomain,
   type ExportData,
+  type InsightDigestRow,
 } from '@/lib/insightExport'
 import { buildBundleInstruction, buildManualInstruction } from '@/lib/insightPrompt'
 import { IMPORT_FORMAT_GUIDE } from '@/lib/insightImport'
@@ -64,6 +65,17 @@ export async function GET(req: Request) {
       .select('title,description,status,done,importance,due_date,due_time,category')
       .order('due_date', { ascending: true })
     data.tasks = rows ?? []
+  }
+
+  // 개별 편지(letter) 내보내기는 최근 인사이트(기도·간증·종합)도 재료로 동봉.
+  if (!bundle && domain === 'letter') {
+    const { data: recent } = await supabase
+      .from('insights')
+      .select('domain,content,period_start,period_end')
+      .in('domain', ['prayer', 'fruit', 'overall'])
+      .order('created_at', { ascending: false })
+      .limit(6)
+    data.insights = (recent ?? []) as InsightDigestRow[]
   }
 
   const instruction = bundle

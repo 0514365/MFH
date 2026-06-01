@@ -12,6 +12,7 @@ import {
   todayStr,
   type InsightDomain,
   type ExportData,
+  type InsightDigestRow,
 } from '@/lib/insightExport'
 import {
   buildSystemPrompt,
@@ -84,6 +85,17 @@ export async function POST(req: Request) {
     data.tasks = rows ?? []
   }
 
+  // 편지(letter)는 최근 인사이트(기도·간증·종합)도 재료로 합성한다.
+  if (domain === 'letter') {
+    const { data: recent } = await supabase
+      .from('insights')
+      .select('domain,content,period_start,period_end')
+      .in('domain', ['prayer', 'fruit', 'overall'])
+      .order('created_at', { ascending: false })
+      .limit(6)
+    data.insights = (recent ?? []) as InsightDigestRow[]
+  }
+
   // few-shot: rating>=4 과거 인사이트(같은 domain 우선, 없으면 overall 포함).
   const { data: liked } = await supabase
     .from('insights')
@@ -94,8 +106,17 @@ export async function POST(req: Request) {
   const fewShot = buildFewShot((liked ?? []) as FewShotExample[])
   const system = buildSystemPrompt(domain, fewShot)
   const dataMd = buildDataMarkdown(data)
-  // 편지(letter)는 3단 구조라 길다 → 토큰 여유를 더 준다.
-  const maxTokens = domain === 'letter' ? 2500 : 1500
+  // 편지(letter)는 방향 제안 + 개요 + 웹검색이라 길다 → 토큰 여유를 더 준다.
+  const maxTokens = domain === 'letter' ? 3000 : 1500
+  // 편지는 온두라스 최근 뉴스를 web search(server tool)로 확인. 정당·인물 거명 금지(중립).
+  const tools =
+    domain === 'letter'
+      ? [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }]
+      : undefined
+  const userContent =
+    domain === 'letter'
+      ? `${dataMd}\n\n[지시] 온두라스 최근 뉴스(기상·경제·사회·정치)는 웹 검색으로 최신 정보를 확인해 1부 방향 제안과 2부 온두라스 소식에 반영하세요. 단 정당·인물·진영 거명은 절대 금지하고 중립적으로만 다룹니다.`
+      : dataMd
 
   // Anthropic 호출 — system 은 cache_control 로 캐싱(반복 호출 입력비 절감).
   let content = ''
@@ -112,7 +133,8 @@ export async function POST(req: Request) {
         model: MODEL,
         max_tokens: maxTokens,
         system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-        messages: [{ role: 'user', content: dataMd }],
+        messages: [{ role: 'user', content: userContent }],
+        ...(tools ? { tools } : {}),
       }),
     })
     if (!res.ok) {

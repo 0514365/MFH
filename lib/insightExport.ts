@@ -109,6 +109,14 @@ export type TaskRow = {
   category: string | null
 }
 
+// 편지(letter) 입력 합성용 — 최근 인사이트 요약 행.
+export type InsightDigestRow = {
+  domain: InsightDomain
+  content: string | null
+  period_start: string | null
+  period_end: string | null
+}
+
 export type ExportData = {
   domain: InsightDomain
   periodDays: number
@@ -117,6 +125,7 @@ export type ExportData = {
   journals?: JournalRow[]
   projects?: ProjectRow[]
   tasks?: TaskRow[]
+  insights?: InsightDigestRow[]
 }
 
 const dash = (s: string | null | undefined) => (s && s.trim() ? s.trim() : '—')
@@ -185,7 +194,21 @@ export function buildDataMarkdown(d: ExportData): string {
   if (need.journal) blocks.push(journalBlock(d.journals ?? []))
   if (need.project) blocks.push(projectBlock(d.projects ?? []))
   if (need.task) blocks.push(taskBlock(d.tasks ?? []))
+  if (d.insights && d.insights.length) blocks.push(buildInsightDigest(d.insights))
   return blocks.join('\n')
+}
+
+// 최근 인사이트(기도·간증·종합)를 편지(letter) 재료로 직렬화.
+export function buildInsightDigest(rows: InsightDigestRow[]): string {
+  const valid = rows.filter((r) => r.content && r.content.trim())
+  if (!valid.length) return '## 최근 인사이트 (편지 재료)\n(아직 저장된 인사이트 없음)\n'
+  const items = valid
+    .map(
+      (r) =>
+        `### ${DOMAIN_LABEL[r.domain]} (${r.period_start ?? '?'} ~ ${r.period_end ?? '?'})\n${(r.content ?? '').trim()}`,
+    )
+    .join('\n\n')
+  return `## 최근 인사이트 (편지 재료)\n${items}\n`
 }
 
 // ── Balance 렌즈: 분류 비중 집계(순수 함수 — API 불필요 = 무료) ───────────
