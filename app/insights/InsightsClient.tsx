@@ -16,12 +16,15 @@ import {
   LENS_LABEL,
   isLens,
   buildCategoryBreakdown,
+  buildFruitTimeline,
   categoryColor,
   periodStart,
   todayStr,
+  UNCATEGORIZED,
   type InsightDomain,
   type LensKey,
   type CategoryBreakdown,
+  type FruitItem,
 } from '@/lib/insightExport'
 import { createClient } from '@/lib/supabase-browser'
 
@@ -173,6 +176,84 @@ function BalanceSection({ loading, data }: { loading: boolean; data: CategoryBre
             ))}
           </ul>
         </>
+      )}
+    </div>
+  )
+}
+
+// Fruit 렌즈: 기간 내 thanks(감사·응답) 있는 일지를 클라에서 직접 조회(API 없음 = 무료).
+// journal_entries RLS 가 멤버 공유라 부부(우진+서진아) 기록을 함께 모은다.
+function useFruit(days: number, enabled: boolean) {
+  const [items, setItems] = useState<FruitItem[] | null>(null)
+  const [loading, setLoading] = useState(enabled)
+  useEffect(() => {
+    if (!enabled) return
+    let alive = true
+    setLoading(true)
+    const supabase = createClient()
+    void supabase
+      .from('journal_entries')
+      .select('entry_date, headline, thanks, category')
+      .gte('entry_date', periodStart(days))
+      .lte('entry_date', todayStr())
+      .not('thanks', 'is', null)
+      .then(({ data: rows }) => {
+        if (!alive) return
+        setItems(buildFruitTimeline(rows ?? []))
+        setLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [days, enabled])
+  return { items, loading }
+}
+
+// 감사·응답 세로 타임라인(점·연결선 + 날짜·제목·요약).
+function FruitTimeline({ items }: { items: FruitItem[] }) {
+  return (
+    <ol className="space-y-0">
+      {items.map((it, i) => (
+        <li key={`${it.date}-${i}`} className="flex gap-3">
+          <div className="flex flex-col items-center">
+            <span
+              className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ background: categoryColor(it.category || UNCATEGORIZED) }}
+            />
+            {i < items.length - 1 && <span className="w-px flex-1 bg-line" />}
+          </div>
+          <div className="min-w-0 flex-1 pb-4">
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-xs text-faint">{it.date}</span>
+              {it.category && <span className="text-[11px] text-muted">{it.category}</span>}
+            </div>
+            {it.headline && (
+              <div className="mt-0.5 text-sm font-semibold text-ink">{it.headline}</div>
+            )}
+            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-relaxed text-muted">
+              {it.thanks}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+// 렌즈 상세 상단 타임라인 섹션(로딩·빈 처리 래퍼).
+function FruitSection({ loading, items }: { loading: boolean; items: FruitItem[] | null }) {
+  return (
+    <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-semibold text-primary">감사·응답 타임라인</div>
+        {items && items.length > 0 && <div className="text-[11px] text-faint">{items.length}건</div>}
+      </div>
+      {loading ? (
+        <p className="text-sm text-faint">불러오는 중…</p>
+      ) : !items || items.length === 0 ? (
+        <p className="text-sm text-faint">기간 내 감사·응답 기록이 없습니다.</p>
+      ) : (
+        <FruitTimeline items={items} />
       )}
     </div>
   )
@@ -340,6 +421,7 @@ export default function InsightsClient({
   const [view, setView] = useState<'home' | InsightDomain>('home')
   const [bundleDays, setBundleDays] = useState<number>(30)
   const homeBalance = useBalance(bundleDays, view === 'home')
+  const homeFruit = useFruit(bundleDays, view === 'home')
 
   const addRows = (added: InsightRow[]) => setRows((r) => [...added, ...r])
   const patchRow = (id: string, patch: Partial<InsightRow>) =>
@@ -395,6 +477,7 @@ export default function InsightsClient({
             m.key === 'balance' && homeBalance.data && homeBalance.data.total > 0
               ? homeBalance.data
               : null
+          const fruitN = m.key === 'fruit' && homeFruit.items ? homeFruit.items.length : 0
           return (
             <button
               key={m.key}
@@ -432,6 +515,9 @@ export default function InsightsClient({
                 <span className="mt-3 block">
                   <BalanceBar data={mini} height={6} />
                 </span>
+              )}
+              {fruitN > 0 && (
+                <span className="mt-2 block text-xs text-muted">최근 감사·응답 {fruitN}건</span>
               )}
             </button>
           )
@@ -502,6 +588,8 @@ function LensDetail({
 
   const isBalance = domain === 'balance'
   const balance = useBalance(days, isBalance)
+  const isFruit = domain === 'fruit'
+  const fruit = useFruit(days, isFruit)
   const title = isLens(domain) ? LENS_LABEL[domain] : DOMAIN_LABEL[domain]
 
   async function genAuto() {
@@ -578,6 +666,9 @@ function LensDetail({
 
       {/* Balance: 분류 비중 막대(무료 집계) */}
       {isBalance && <BalanceSection loading={balance.loading} data={balance.data} />}
+
+      {/* Fruit: 감사·응답 타임라인(무료 집계) */}
+      {isFruit && <FruitSection loading={fruit.loading} items={fruit.items} />}
 
       {/* 액션 패널 */}
       <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">

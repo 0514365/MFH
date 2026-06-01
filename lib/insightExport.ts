@@ -231,3 +231,32 @@ export function categoryColor(category: string): string {
   for (let i = 0; i < category.length; i++) h = (h * 31 + category.charCodeAt(i)) >>> 0
   return BALANCE_PALETTE[h % BALANCE_PALETTE.length]
 }
+
+// ── Fruit 렌즈: 감사·응답(thanks) 타임라인(순수 함수 — API 불필요 = 무료) ──
+// 일지엔 "응답된 prayer" 전용 플래그가 없고 thanks 가 감사·응답을 겸한다 → thanks 기준.
+export type FruitItem = {
+  date: string | null
+  headline: string | null
+  thanks: string
+  category: string | null
+}
+
+export type FruitRow = {
+  entry_date: string | null
+  headline: string | null
+  thanks: string | null
+  category: string | null
+}
+
+// thanks 가 있는 일지만 골라 최신→과거 순. 간증 타임라인 재료.
+export function buildFruitTimeline(rows: FruitRow[]): FruitItem[] {
+  return rows
+    .filter((r) => r.thanks && r.thanks.trim())
+    .map((r) => ({
+      date: r.entry_date,
+      headline: r.headline,
+      thanks: (r.thanks ?? '').trim(),
+      category: r.category,
+    }))
+    .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+}
