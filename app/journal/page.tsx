@@ -6,6 +6,7 @@ import { getMembersMap } from '@/lib/members'
 import PageHeader from '@/components/PageHeader'
 import type { JournalEntry, Project, Task } from '@/lib/types'
 import JournalList from './JournalList'
+import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +33,7 @@ export default async function JournalPage() {
   const projects = (projectsQ.data ?? []) as Pick<Project, 'id' | 'title'>[]
   const tasks = (tasksQ.data ?? []) as Pick<Task, 'id' | 'title' | 'done'>[]
   const membersMap = await getMembersMap(supabase)
+  const hasApiKey = !!process.env.ANTHROPIC_API_KEY
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
@@ -47,6 +49,8 @@ export default async function JournalPage() {
           </Link>
         }
       />
+
+      <DomainInsightPanel domain="journal" hasApiKey={hasApiKey} />
 
       <JournalList
         entries={entries}

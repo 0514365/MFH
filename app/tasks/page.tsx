@@ -5,6 +5,7 @@ import { getMembersMap } from '@/lib/members'
 import PageHeader from '@/components/PageHeader'
 import type { TaskListRow } from './TasksListClient'
 import TasksListClient from './TasksListClient'
+import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 
 // MFH-TASKS-PAGE-V2
 export const dynamic = 'force-dynamic'
@@ -27,6 +28,7 @@ export default async function TasksPage() {
     .order('created_at', { ascending: false })
   const tasks = (data ?? []) as unknown as TaskListRow[]
   const membersMap = await getMembersMap(supabase)
+  const hasApiKey = !!process.env.ANTHROPIC_API_KEY
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
@@ -39,6 +41,8 @@ export default async function TasksPage() {
           </Link>
         }
       />
+
+      <DomainInsightPanel domain="task" hasApiKey={hasApiKey} />
 
       <TasksListClient tasks={tasks} membersMap={membersMap} currentUserId={user.id} />
     </main>

@@ -49,7 +49,6 @@ const LENS_META: LensMeta[] = [
   { key: 'letter', desc: '월간 기도편지 초안' },
 ]
 
-const RAW_DOMAINS_UI: InsightDomain[] = ['overall', 'journal', 'project', 'task']
 
 // 렌즈 아이콘(인라인 SVG, 24x24, currentColor 상속 — ModuleIcon 스타일).
 function LensIcon({ name, size = 20 }: { name: LensKey; size?: number }) {
@@ -799,45 +798,30 @@ export default function InsightsClient({
             </button>
           )
         })}
+
+        {/* 종합(overall) */}
+        <button
+          onClick={() => setView('overall')}
+          className="block w-full rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary"
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18" />
+                <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18" />
+              </svg>
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-base font-bold text-primary">Overall</span>
+              <span className="block text-xs text-muted">일지·프로젝트·할일 종합</span>
+            </span>
+            <span className="text-xs text-faint">
+              {countOf('overall') > 0 ? `${countOf('overall')}개` : ''}
+            </span>
+          </span>
+        </button>
       </div>
-
-      {/* Raw 도메인 접이식 */}
-      <RawSection onOpen={(d) => setView(d)} countOf={countOf} />
-    </div>
-  )
-}
-
-function RawSection({
-  onOpen,
-  countOf,
-}: {
-  onOpen: (d: InsightDomain) => void
-  countOf: (d: InsightDomain) => number
-}) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="rounded-2xl border border-line bg-surface">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3 text-xs text-muted"
-      >
-        <span>Raw domain analysis</span>
-        <span className="text-faint">{open ? '▾' : '▸'}</span>
-      </button>
-      {open && (
-        <div className="flex flex-wrap gap-2 border-t border-line px-4 py-3">
-          {RAW_DOMAINS_UI.map((d) => (
-            <button
-              key={d}
-              onClick={() => onOpen(d)}
-              className="rounded-full border border-line px-3 py-1 text-xs text-muted transition hover:border-primary"
-            >
-              {DOMAIN_LABEL[d]}
-              {countOf(d) > 0 ? ` (${countOf(d)})` : ''}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -859,6 +843,57 @@ function LensDetail({
   onPatch: (id: string, patch: Partial<InsightRow>) => void
   onRemove: (id: string) => void
 }) {
+  const title = isLens(domain) ? LENS_LABEL[domain] : DOMAIN_LABEL[domain]
+  return (
+    <div className="space-y-5">
+      {/* 헤더 */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onBack}
+          aria-label="뒤로"
+          className="rounded-xl border border-line p-2 text-muted transition hover:border-primary"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        {isLens(domain) && (
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft text-primary">
+            <LensIcon name={domain} size={18} />
+          </span>
+        )}
+        <h2 className="font-display text-lg font-bold text-primary">{title}</h2>
+      </div>
+
+      <DomainInsightBody
+        domain={domain}
+        rows={rows}
+        hasApiKey={hasApiKey}
+        onAdd={onAdd}
+        onPatch={onPatch}
+        onRemove={onRemove}
+      />
+    </div>
+  )
+}
+
+// 한 도메인(렌즈/분야)의 인사이트 본문 — 기간칩 + (Balance/Fruit 집계) + 생성·가져오기 + 결과목록.
+// 인사이트 페이지(LensDetail)와 분야 페이지(DomainInsightPanel) 공용.
+export function DomainInsightBody({
+  domain,
+  rows,
+  hasApiKey,
+  onAdd,
+  onPatch,
+  onRemove,
+}: {
+  domain: InsightDomain
+  rows: InsightRow[]
+  hasApiKey: boolean
+  onAdd: (added: InsightRow[]) => void
+  onPatch: (id: string, patch: Partial<InsightRow>) => void
+  onRemove: (id: string) => void
+}) {
   const [days, setDays] = useState<number>(30)
   const [busy, setBusy] = useState<'' | 'auto'>('')
   const [err, setErr] = useState<string>('')
@@ -867,7 +902,6 @@ function LensDetail({
   const balance = useBalance(days, isBalance)
   const isFruit = domain === 'fruit'
   const fruit = useFruit(days, isFruit)
-  const title = isLens(domain) ? LENS_LABEL[domain] : DOMAIN_LABEL[domain]
 
   async function genAuto() {
     setErr('')
@@ -916,25 +950,6 @@ function LensDetail({
 
   return (
     <div className="space-y-5">
-      {/* 헤더 */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onBack}
-          aria-label="뒤로"
-          className="rounded-xl border border-line p-2 text-muted transition hover:border-primary"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        {isLens(domain) && (
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft text-primary">
-            <LensIcon name={domain} size={18} />
-          </span>
-        )}
-        <h2 className="font-display text-lg font-bold text-primary">{title}</h2>
-      </div>
-
       {/* 기간 칩 */}
       <div className="flex items-center gap-2">
         <span className="text-xs text-faint">기간</span>

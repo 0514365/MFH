@@ -5,6 +5,7 @@ import { getMembersMap } from '@/lib/members'
 import PageHeader from '@/components/PageHeader'
 import type { Project } from '@/lib/types'
 import ProjectsList from './ProjectsList'
+import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,6 +34,7 @@ export default async function ProjectsPage() {
   }
 
   const membersMap = await getMembersMap(supabase)
+  const hasApiKey = !!process.env.ANTHROPIC_API_KEY
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
@@ -48,6 +50,8 @@ export default async function ProjectsPage() {
           </Link>
         }
       />
+
+      <DomainInsightPanel domain="project" hasApiKey={hasApiKey} />
 
       <ProjectsList projects={projects} counts={counts} membersMap={membersMap} currentUserId={user.id} />
     </main>
