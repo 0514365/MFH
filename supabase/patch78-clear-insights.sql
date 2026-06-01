@@ -4,4 +4,4 @@
 
 delete from public.insights;
 
-update public.insight_sources set last_hash = null, last_count = null;
+update public.insight_sources set last_hash = null;
