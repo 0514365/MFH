@@ -94,7 +94,9 @@ function LensIcon({ name, size = 20 }: { name: LensKey; size?: number }) {
   )
 }
 
-// Balance 렌즈: 기간 내 일지 분류를 클라에서 직접 집계(RLS 적용, API 호출 없음 = 무료).
+// Balance 렌즈: 기간 내 일지 분류를 클라에서 직접 집계(API 호출 없음 = 무료).
+// journal_entries RLS 가 멤버 공유(is_member)라 user_id 필터를 일부러 걸지 않는다
+// → 부부(우진+서진아) 일지를 함께 합산. 필터 추가 금지(insights 의 두 사람 종합 방침).
 function useBalance(days: number, enabled: boolean) {
   const [data, setData] = useState<CategoryBreakdown | null>(null)
   const [loading, setLoading] = useState(enabled)
