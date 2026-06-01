@@ -33,7 +33,6 @@ export default async function JournalPage() {
   const projects = (projectsQ.data ?? []) as Pick<Project, 'id' | 'title'>[]
   const tasks = (tasksQ.data ?? []) as Pick<Task, 'id' | 'title' | 'done'>[]
   const membersMap = await getMembersMap(supabase)
-  const hasApiKey = !!process.env.ANTHROPIC_API_KEY
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
@@ -50,7 +49,7 @@ export default async function JournalPage() {
         }
       />
 
-      <DomainInsightPanel domain="journal" hasApiKey={hasApiKey} />
+      <DomainInsightPanel domain="journal" />
 
       <JournalList
         entries={entries}

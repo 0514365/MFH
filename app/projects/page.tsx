@@ -34,7 +34,6 @@ export default async function ProjectsPage() {
   }
 
   const membersMap = await getMembersMap(supabase)
-  const hasApiKey = !!process.env.ANTHROPIC_API_KEY
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
@@ -51,7 +50,7 @@ export default async function ProjectsPage() {
         }
       />
 
-      <DomainInsightPanel domain="project" hasApiKey={hasApiKey} />
+      <DomainInsightPanel domain="project" />
 
       <ProjectsList projects={projects} counts={counts} membersMap={membersMap} currentUserId={user.id} />
     </main>

@@ -28,7 +28,6 @@ export default async function TasksPage() {
     .order('created_at', { ascending: false })
   const tasks = (data ?? []) as unknown as TaskListRow[]
   const membersMap = await getMembersMap(supabase)
-  const hasApiKey = !!process.env.ANTHROPIC_API_KEY
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
@@ -42,7 +41,7 @@ export default async function TasksPage() {
         }
       />
 
-      <DomainInsightPanel domain="task" hasApiKey={hasApiKey} />
+      <DomainInsightPanel domain="task" />
 
       <TasksListClient tasks={tasks} membersMap={membersMap} currentUserId={user.id} />
     </main>

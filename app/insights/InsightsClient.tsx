@@ -717,14 +717,44 @@ export default function InsightsClient({
   const removeRow = (id: string) => setRows((r) => r.filter((x) => x.id !== id))
   const countOf = (d: InsightDomain) => rows.filter((r) => r.domain === d).length
 
+  // AI 전체 생성 — 모든 렌즈·분야를 순차 호출(balance 는 집계라 제외). 입력은 홈에서만.
+  const [genBusy, setGenBusy] = useState<string>('')
+  const [genErr, setGenErr] = useState<string>('')
+  async function genAll() {
+    setGenErr('')
+    const targets: InsightDomain[] = [
+      'overall',
+      'journal',
+      'project',
+      'task',
+      'prayer',
+      'fruit',
+      'letter',
+    ]
+    for (let i = 0; i < targets.length; i++) {
+      setGenBusy(`${i + 1}/${targets.length}`)
+      try {
+        const res = await fetch('/api/insights', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ domain: targets[i], periodDays: bundleDays }),
+        })
+        const json = await res.json()
+        if (res.ok) addRows([json.insight as InsightRow])
+        else setGenErr(json.error ?? '일부 생성에 실패했습니다.')
+      } catch {
+        setGenErr('네트워크 오류가 발생했습니다.')
+      }
+    }
+    setGenBusy('')
+  }
+
   if (view !== 'home') {
     return (
       <LensDetail
         domain={view}
         rows={rows.filter((r) => r.domain === view)}
-        hasApiKey={hasApiKey}
         onBack={() => setView('home')}
-        onAdd={addRows}
         onPatch={patchRow}
         onRemove={removeRow}
       />
@@ -757,6 +787,24 @@ export default function InsightsClient({
           onAdd={addRows}
         />
         <DropboxSyncPanel onAdd={addRows} />
+
+        {/* AI 전체 생성 (API · 종량제) */}
+        <div className="rounded-xl bg-surface-subtle p-4">
+          <div className="text-xs font-semibold text-ink">AI 전체 생성 (API · 종량제)</div>
+          <p className="mt-1 text-[11px] leading-snug text-faint">
+            {hasApiKey
+              ? '앱이 모든 렌즈·분야를 직접 분석합니다. 호출당 소액이 과금됩니다(편지는 웹검색 포함).'
+              : 'API 키가 준비되면 활성화됩니다. 현재는 수동·드롭박스를 사용하세요.'}
+          </p>
+          <button
+            onClick={genAll}
+            disabled={!hasApiKey || genBusy !== ''}
+            className="mt-3 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+          >
+            {genBusy ? `생성 중… ${genBusy}` : 'AI로 전체 생성'}
+          </button>
+          {genErr && <p className="mt-2 text-sm text-danger">{genErr}</p>}
+        </div>
       </div>
 
       {/* 렌즈 카드 */}
@@ -821,6 +869,32 @@ export default function InsightsClient({
             </span>
           </span>
         </button>
+
+        {/* 분야별 분석 (전체 히스토리) */}
+        <div className="px-1 pt-2 text-xs font-semibold text-muted">분야별 분석</div>
+        {(['journal', 'project', 'task'] as InsightDomain[]).map((d) => (
+          <button
+            key={d}
+            onClick={() => setView(d)}
+            className="block w-full rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-subtle text-muted">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 6h16M4 12h16M4 18h10" />
+                </svg>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-display text-base font-bold text-primary">
+                  {DOMAIN_LABEL[d]}
+                </span>
+              </span>
+              <span className="text-xs text-faint">
+                {countOf(d) > 0 ? `${countOf(d)}개` : ''}
+              </span>
+            </span>
+          </button>
+        ))}
       </div>
     </div>
   )
@@ -829,17 +903,13 @@ export default function InsightsClient({
 function LensDetail({
   domain,
   rows,
-  hasApiKey,
   onBack,
-  onAdd,
   onPatch,
   onRemove,
 }: {
   domain: InsightDomain
   rows: InsightRow[]
-  hasApiKey: boolean
   onBack: () => void
-  onAdd: (added: InsightRow[]) => void
   onPatch: (id: string, patch: Partial<InsightRow>) => void
   onRemove: (id: string) => void
 }) {
@@ -868,8 +938,6 @@ function LensDetail({
       <DomainInsightBody
         domain={domain}
         rows={rows}
-        hasApiKey={hasApiKey}
-        onAdd={onAdd}
         onPatch={onPatch}
         onRemove={onRemove}
       />
@@ -877,53 +945,25 @@ function LensDetail({
   )
 }
 
-// 한 도메인(렌즈/분야)의 인사이트 본문 — 기간칩 + (Balance/Fruit 집계) + 생성·가져오기 + 결과목록.
-// 인사이트 페이지(LensDetail)와 분야 페이지(DomainInsightPanel) 공용.
+// 한 도메인(렌즈/분야)의 인사이트 본문 — (Balance/Fruit 집계) + 결과 히스토리(읽기·별점·삭제).
+// 생성·내보내기·가져오기는 인사이트 홈의 "전체 분석"에서만. 여기는 보기 전용.
 export function DomainInsightBody({
   domain,
   rows,
-  hasApiKey,
-  onAdd,
   onPatch,
   onRemove,
 }: {
   domain: InsightDomain
   rows: InsightRow[]
-  hasApiKey: boolean
-  onAdd: (added: InsightRow[]) => void
   onPatch: (id: string, patch: Partial<InsightRow>) => void
   onRemove: (id: string) => void
 }) {
   const [days, setDays] = useState<number>(30)
-  const [busy, setBusy] = useState<'' | 'auto'>('')
-  const [err, setErr] = useState<string>('')
 
   const isBalance = domain === 'balance'
   const balance = useBalance(days, isBalance)
   const isFruit = domain === 'fruit'
   const fruit = useFruit(days, isFruit)
-
-  async function genAuto() {
-    setErr('')
-    setBusy('auto')
-    try {
-      const res = await fetch('/api/insights', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ domain, periodDays: days }),
-      })
-      const json = await res.json()
-      if (!res.ok) {
-        setErr(json.error ?? '생성에 실패했습니다.')
-        return
-      }
-      onAdd([json.insight as InsightRow])
-    } catch {
-      setErr('네트워크 오류가 발생했습니다.')
-    } finally {
-      setBusy('')
-    }
-  }
 
   async function setRating(id: string, rating: number) {
     onPatch(id, { rating })
@@ -950,11 +990,12 @@ export function DomainInsightBody({
 
   return (
     <div className="space-y-5">
-      {/* 기간 칩 */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-faint">기간</span>
-        <PeriodChips days={days} onChange={setDays} />
-      </div>
+      {(isBalance || isFruit) && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-faint">기간</span>
+          <PeriodChips days={days} onChange={setDays} />
+        </div>
+      )}
 
       {/* Balance: 분류 비중 막대(무료 집계) */}
       {isBalance && <BalanceSection loading={balance.loading} data={balance.data} />}
@@ -962,38 +1003,7 @@ export function DomainInsightBody({
       {/* Fruit: 감사·응답 타임라인(무료 집계) */}
       {isFruit && <FruitSection loading={fruit.loading} items={fruit.items} />}
 
-      {/* 액션 패널 */}
-      <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
-        <ImportPanel
-          title="수동 (Max 구독 · 무료)"
-          desc="데이터를 내려받아 Claude 에서 분석한 뒤, 양식 결과를 가져오면 렌즈별로 저장됩니다."
-          exportHref={`/api/insights/export?domain=${domain}&days=${days}`}
-          fallbackDomain={domain}
-          days={days}
-          onAdd={onAdd}
-        />
-
-        {/* 자동(종량제) */}
-        <div className="rounded-xl bg-surface-subtle p-4">
-          <div className="text-xs font-semibold text-ink">자동 (API · 종량제)</div>
-          <p className="mt-1 text-[11px] leading-snug text-faint">
-            {hasApiKey
-              ? '앱이 직접 분석합니다. 호출당 소액이 과금됩니다.'
-              : 'API 키가 준비되면 활성화됩니다. 현재는 수동(가져오기)을 사용하세요.'}
-          </p>
-          <button
-            onClick={genAuto}
-            disabled={!hasApiKey || busy !== ''}
-            className="mt-3 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {busy === 'auto' ? '생성 중…' : 'AI로 생성'}
-          </button>
-        </div>
-
-        {err && <p className="text-sm text-danger">{err}</p>}
-      </div>
-
-      {/* 결과 목록 */}
+      {/* 결과 목록(히스토리) */}
       <div className="space-y-4">
         <div className="text-sm font-semibold text-primary">저장된 인사이트</div>
         {rows.length === 0 ? (

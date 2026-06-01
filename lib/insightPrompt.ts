@@ -134,11 +134,13 @@ export function buildManualInstruction(domain: InsightDomain): string {
 
 // 전체 번들 경로용: 한 번의 데이터로 여러 렌즈를 각각 분석하도록 묶은 지침.
 // 회수 양식 블록을 렌즈별로 출력하게 해 한 번의 가져오기로 전 렌즈에 분배되도록 한다.
-export function buildBundleInstruction(lenses: LensKey[]): string {
-  const blocks = lenses.map(
-    (l) => `■ ${DOMAIN_LABEL[l]} (LENS: ${l})\n관점: ${LENS_FOCUS[l]}\n${LENS_OUTPUT[l]}`,
-  )
-  const hasLetter = lenses.includes('letter')
+export function buildBundleInstruction(domains: InsightDomain[]): string {
+  const blocks = domains.map((d) => {
+    const focus = isLens(d) ? LENS_FOCUS[d] : DOMAIN_FOCUS[d]
+    const format = isLens(d) ? LENS_OUTPUT[d] : OUTPUT_FORMAT
+    return `■ ${DOMAIN_LABEL[d]} (LENS: ${d})\n관점: ${focus}\n${format}`
+  })
+  const hasLetter = domains.includes('letter')
   return [
     MISSION_BACKGROUND,
     '',
