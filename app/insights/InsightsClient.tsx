@@ -751,7 +751,7 @@ export default function InsightsClient({
         </div>
         <ImportPanel
           title="전체 데이터 → 모든 렌즈 (무료)"
-          desc="전체 데이터를 한 번에 내보내 Claude 에서 분석한 뒤, 결과를 가져오면 Prayer·Fruit 등 모든 렌즈에 자동 분배됩니다."
+          desc="전체 데이터를 한 번에 내보내 Claude 에서 분석한 뒤, 결과를 가져오면 Prayer·Fruit·Letter 에 자동 분배됩니다."
           exportHref={`/api/insights/export?bundle=1&days=${bundleDays}`}
           fallbackDomain="overall"
           days={bundleDays}

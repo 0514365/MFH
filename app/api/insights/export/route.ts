@@ -67,7 +67,7 @@ export async function GET(req: Request) {
   }
 
   const instruction = bundle
-    ? buildBundleInstruction(['prayer', 'fruit'])
+    ? buildBundleInstruction(['prayer', 'fruit', 'letter'])
     : buildManualInstruction(domain)
   const md = `${instruction}\n\n${IMPORT_FORMAT_GUIDE}\n\n---\n\n${buildDataMarkdown(data)}`
   const filename = bundle ? `mfh-bundle-${pEnd}.md` : `mfh-${domain}-${pEnd}.md`
