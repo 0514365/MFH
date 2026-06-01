@@ -2,8 +2,9 @@
 
 // MFH-INSIGHTS-CLIENT-V2
 // 목적 렌즈 구조 — 데이터 출처 4탭 → 선교 목적 렌즈(Prayer/Balance/Fruit/Letter).
-//  · 렌즈 홈: 연주제 strip + 렌즈 카드 4 + Raw 도메인 접이식(레거시 보존).
-//  · 렌즈 상세(범용): 기간칩 + AI생성/가져오기(붙여넣기·파일, 양식 파서) + 결과카드(별점·메모·편지에담기·삭제).
+//  · 렌즈 홈: 연주제 strip + [전체 분석 일괄 패널] + 렌즈 카드 4 + Raw 도메인 접이식.
+//  · 전체 분석: 전체 데이터를 한 번 내보내(?bundle=1) Claude 분석 → 한 번 가져오기로 모든 렌즈에 분배.
+//  · 렌즈 상세(범용): 기간칩 + 개별 내보내기/가져오기 + AI생성 + 결과카드(별점·메모·편지에담기·삭제).
 //  · 백엔드(insightExport/insightPrompt/api) 재사용. 회수 = /api/insights/import(무료, 멀티렌즈 분배).
 // 색: palette var 매핑 → 색-슬래시 opacity 금지(요소 opacity-* 만). 동적 클래스 금지(정적 분기).
 
@@ -87,6 +88,153 @@ function LensIcon({ name, size = 20 }: { name: LensKey; size?: number }) {
   )
 }
 
+// 내보내기 + 결과 가져오기(공용). 홈 전체 패널 / 렌즈 상세 모두 사용.
+function ImportPanel({
+  title,
+  desc,
+  exportHref,
+  fallbackDomain,
+  days,
+  onAdd,
+}: {
+  title: string
+  desc: string
+  exportHref: string
+  fallbackDomain: InsightDomain
+  days: number
+  onAdd: (added: InsightRow[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function doImport() {
+    const content = text.trim()
+    if (!content) {
+      setErr('가져올 내용이 없습니다.')
+      return
+    }
+    setErr('')
+    setBusy(true)
+    try {
+      const res = await fetch('/api/insights/import', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ domain: fallbackDomain, periodDays: days, content }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setErr(json.error ?? '가져오기에 실패했습니다.')
+        return
+      }
+      onAdd((json.insights ?? []) as InsightRow[])
+      setText('')
+      setOpen(false)
+    } catch {
+      setErr('네트워크 오류가 발생했습니다.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function onFile(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    const reader = new FileReader()
+    reader.onload = () => setText(String(reader.result ?? ''))
+    reader.readAsText(f)
+  }
+
+  return (
+    <div className="rounded-xl bg-surface-subtle p-4">
+      <div className="text-xs font-semibold text-ink">{title}</div>
+      <p className="mt-1 text-[11px] leading-snug text-faint">{desc}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <a
+          href={exportHref}
+          className="rounded-xl border border-primary px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary-soft"
+        >
+          데이터 내보내기
+        </a>
+        <button
+          onClick={() => {
+            setErr('')
+            setOpen((v) => !v)
+          }}
+          className="rounded-xl border border-line px-3 py-2 text-sm text-muted transition hover:border-primary"
+        >
+          {open ? '가져오기 닫기' : '결과 가져오기'}
+        </button>
+      </div>
+      {open && (
+        <div className="mt-3 space-y-2">
+          <label className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
+            <span className="cursor-pointer rounded-lg border border-line px-2 py-1 transition hover:border-primary">
+              파일 선택 (.md/.txt)
+            </span>
+            <input
+              type="file"
+              accept=".md,.txt,text/markdown,text/plain"
+              onChange={onFile}
+              className="hidden"
+            />
+            <span className="text-faint">또는 아래에 붙여넣기</span>
+          </label>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={8}
+            placeholder="Claude 에서 받은 양식 결과를 붙여넣으세요. (===MFH-INSIGHT=== 블록)"
+            className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-primary"
+          />
+          <button
+            onClick={doImport}
+            disabled={busy}
+            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+          >
+            {busy ? '가져오는 중…' : '가져오기'}
+          </button>
+        </div>
+      )}
+      {err && <p className="mt-2 text-sm text-danger">{err}</p>}
+    </div>
+  )
+}
+
+// 기간 칩(공용).
+function PeriodChips({
+  days,
+  onChange,
+  small,
+}: {
+  days: number
+  onChange: (d: number) => void
+  small?: boolean
+}) {
+  return (
+    <>
+      {INSIGHT_PERIODS.map((p) => {
+        const active = p.value === days
+        const pad = small ? 'px-2.5 py-0.5 text-xs' : 'px-3 py-1 text-sm'
+        return (
+          <button
+            key={p.value}
+            onClick={() => onChange(p.value)}
+            className={
+              active
+                ? `rounded-full border-2 border-primary font-semibold text-primary ${pad}`
+                : `rounded-full border border-line text-muted transition hover:border-primary ${pad}`
+            }
+          >
+            {p.label}
+          </button>
+        )
+      })}
+    </>
+  )
+}
+
 export default function InsightsClient({
   initial,
   hasApiKey,
@@ -100,6 +248,7 @@ export default function InsightsClient({
 }) {
   const [rows, setRows] = useState<InsightRow[]>(initial)
   const [view, setView] = useState<'home' | InsightDomain>('home')
+  const [bundleDays, setBundleDays] = useState<number>(30)
 
   const addRows = (added: InsightRow[]) => setRows((r) => [...added, ...r])
   const patchRow = (id: string, patch: Partial<InsightRow>) =>
@@ -129,6 +278,24 @@ export default function InsightsClient({
           {year} · {themeName}
         </div>
       )}
+
+      {/* 전체 분석 — 한 번에 내보내고 한 번에 가져오기 */}
+      <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm font-semibold text-primary">전체 분석</div>
+          <div className="flex items-center gap-1">
+            <PeriodChips days={bundleDays} onChange={setBundleDays} small />
+          </div>
+        </div>
+        <ImportPanel
+          title="전체 데이터 → 모든 렌즈 (무료)"
+          desc="전체 데이터를 한 번에 내보내 Claude 에서 분석한 뒤, 결과를 가져오면 Prayer·Fruit 등 모든 렌즈에 자동 분배됩니다."
+          exportHref={`/api/insights/export?bundle=1&days=${bundleDays}`}
+          fallbackDomain="overall"
+          days={bundleDays}
+          onAdd={addRows}
+        />
+      </div>
 
       {/* 렌즈 카드 */}
       <div className="space-y-3">
@@ -222,14 +389,10 @@ function LensDetail({
   onRemove: (id: string) => void
 }) {
   const [days, setDays] = useState<number>(30)
-  const [busy, setBusy] = useState<'' | 'auto' | 'import'>('')
+  const [busy, setBusy] = useState<'' | 'auto'>('')
   const [err, setErr] = useState<string>('')
-  const [importOpen, setImportOpen] = useState(false)
-  const [importText, setImportText] = useState('')
 
-  const lens = isLens(domain)
-  const title = lens ? LENS_LABEL[domain] : DOMAIN_LABEL[domain]
-  const exportHref = `/api/insights/export?domain=${domain}&days=${days}`
+  const title = isLens(domain) ? LENS_LABEL[domain] : DOMAIN_LABEL[domain]
 
   async function genAuto() {
     setErr('')
@@ -251,43 +414,6 @@ function LensDetail({
     } finally {
       setBusy('')
     }
-  }
-
-  async function doImport() {
-    const content = importText.trim()
-    if (!content) {
-      setErr('가져올 내용이 없습니다.')
-      return
-    }
-    setErr('')
-    setBusy('import')
-    try {
-      const res = await fetch('/api/insights/import', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ domain, periodDays: days, content }),
-      })
-      const json = await res.json()
-      if (!res.ok) {
-        setErr(json.error ?? '가져오기에 실패했습니다.')
-        return
-      }
-      onAdd((json.insights ?? []) as InsightRow[])
-      setImportText('')
-      setImportOpen(false)
-    } catch {
-      setErr('네트워크 오류가 발생했습니다.')
-    } finally {
-      setBusy('')
-    }
-  }
-
-  function onFile(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = () => setImportText(String(reader.result ?? ''))
-    reader.readAsText(f)
   }
 
   async function setRating(id: string, rating: number) {
@@ -326,7 +452,7 @@ function LensDetail({
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        {lens && (
+        {isLens(domain) && (
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft text-primary">
             <LensIcon name={domain} size={18} />
           </span>
@@ -337,80 +463,19 @@ function LensDetail({
       {/* 기간 칩 */}
       <div className="flex items-center gap-2">
         <span className="text-xs text-faint">기간</span>
-        {INSIGHT_PERIODS.map((p) => {
-          const active = p.value === days
-          return (
-            <button
-              key={p.value}
-              onClick={() => setDays(p.value)}
-              className={
-                active
-                  ? 'rounded-full border-2 border-primary px-3 py-1 text-sm font-semibold text-primary'
-                  : 'rounded-full border border-line px-3 py-1 text-sm text-muted transition hover:border-primary'
-              }
-            >
-              {p.label}
-            </button>
-          )
-        })}
+        <PeriodChips days={days} onChange={setDays} />
       </div>
 
       {/* 액션 패널 */}
       <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
-        {/* 수동 회수(무료) */}
-        <div className="rounded-xl bg-surface-subtle p-4">
-          <div className="text-xs font-semibold text-ink">수동 (Max 구독 · 무료)</div>
-          <p className="mt-1 text-[11px] leading-snug text-faint">
-            데이터를 내려받아 Claude 에서 분석한 뒤, 양식 결과를 가져오면 렌즈별로 저장됩니다.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <a
-              href={exportHref}
-              className="rounded-xl border border-primary px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary-soft"
-            >
-              데이터 내보내기
-            </a>
-            <button
-              onClick={() => {
-                setErr('')
-                setImportOpen((v) => !v)
-              }}
-              className="rounded-xl border border-line px-3 py-2 text-sm text-muted transition hover:border-primary"
-            >
-              {importOpen ? '가져오기 닫기' : '결과 가져오기'}
-            </button>
-          </div>
-          {importOpen && (
-            <div className="mt-3 space-y-2">
-              <label className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
-                <span className="cursor-pointer rounded-lg border border-line px-2 py-1 transition hover:border-primary">
-                  파일 선택 (.md/.txt)
-                </span>
-                <input
-                  type="file"
-                  accept=".md,.txt,text/markdown,text/plain"
-                  onChange={onFile}
-                  className="hidden"
-                />
-                <span className="text-faint">또는 아래에 붙여넣기</span>
-              </label>
-              <textarea
-                value={importText}
-                onChange={(e) => setImportText(e.target.value)}
-                rows={8}
-                placeholder="Claude 에서 받은 양식 결과를 붙여넣으세요. (===MFH-INSIGHT=== 블록)"
-                className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-primary"
-              />
-              <button
-                onClick={doImport}
-                disabled={busy !== ''}
-                className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-              >
-                {busy === 'import' ? '가져오는 중…' : '가져오기'}
-              </button>
-            </div>
-          )}
-        </div>
+        <ImportPanel
+          title="수동 (Max 구독 · 무료)"
+          desc="데이터를 내려받아 Claude 에서 분석한 뒤, 양식 결과를 가져오면 렌즈별로 저장됩니다."
+          exportHref={`/api/insights/export?domain=${domain}&days=${days}`}
+          fallbackDomain={domain}
+          days={days}
+          onAdd={onAdd}
+        />
 
         {/* 자동(종량제) — Letter(v3) 제외 */}
         {domain !== 'letter' && (

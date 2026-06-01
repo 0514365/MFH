@@ -12,7 +12,7 @@ import {
   type InsightDomain,
   type ExportData,
 } from '@/lib/insightExport'
-import { buildManualInstruction } from '@/lib/insightPrompt'
+import { buildBundleInstruction, buildManualInstruction } from '@/lib/insightPrompt'
 import { IMPORT_FORMAT_GUIDE } from '@/lib/insightImport'
 
 export const dynamic = 'force-dynamic'
@@ -26,7 +26,11 @@ export async function GET(req: Request) {
   if (!user) return new Response('인증이 필요합니다.', { status: 401 })
 
   const url = new URL(req.url)
-  const domain = (url.searchParams.get('domain') ?? 'overall') as InsightDomain
+  const bundle = url.searchParams.get('bundle') === '1'
+  // 번들 모드: 전체 데이터(overall) + 여러 렌즈 지침을 한 번에.
+  const domain: InsightDomain = bundle
+    ? 'overall'
+    : ((url.searchParams.get('domain') ?? 'overall') as InsightDomain)
   if (!isValidDomain(domain)) return new Response('알 수 없는 분야입니다.', { status: 400 })
   const daysRaw = Number(url.searchParams.get('days'))
   const days = [7, 30, 90].includes(daysRaw) ? daysRaw : 30
@@ -62,8 +66,11 @@ export async function GET(req: Request) {
     data.tasks = rows ?? []
   }
 
-  const md = `${buildManualInstruction(domain)}\n\n${IMPORT_FORMAT_GUIDE}\n\n---\n\n${buildDataMarkdown(data)}`
-  const filename = `mfh-${domain}-${pEnd}.md`
+  const instruction = bundle
+    ? buildBundleInstruction(['prayer', 'fruit'])
+    : buildManualInstruction(domain)
+  const md = `${instruction}\n\n${IMPORT_FORMAT_GUIDE}\n\n---\n\n${buildDataMarkdown(data)}`
+  const filename = bundle ? `mfh-bundle-${pEnd}.md` : `mfh-${domain}-${pEnd}.md`
   return new Response(md, {
     status: 200,
     headers: {

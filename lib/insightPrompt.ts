@@ -119,3 +119,23 @@ export function buildManualInstruction(domain: InsightDomain): string {
     '[사용법] 아래(또는 첨부 파일)의 MFH 데이터를 위 기준으로 분석해 인사이트를 작성해 주세요.',
   ].join('\n')
 }
+
+// 전체 번들 경로용: 한 번의 데이터로 여러 렌즈를 각각 분석하도록 묶은 지침.
+// 회수 양식 블록을 렌즈별로 출력하게 해 한 번의 가져오기로 전 렌즈에 분배되도록 한다.
+export function buildBundleInstruction(lenses: LensKey[]): string {
+  const blocks = lenses.map(
+    (l) => `■ ${DOMAIN_LABEL[l]} (LENS: ${l})\n관점: ${LENS_FOCUS[l]}\n${LENS_OUTPUT[l]}`,
+  )
+  return [
+    MISSION_BACKGROUND,
+    '',
+    TONE_GUIDE,
+    '',
+    PRAYER_GUARDRAILS,
+    '',
+    '[전체 분석 — 아래 MFH 데이터를 여러 렌즈로 함께 분석해 주세요]',
+    '하나의 데이터로 다음 각 렌즈를 작성하고, 렌즈마다 회수 양식 블록(===MFH-INSIGHT=== … ===END===)으로 감싸 LENS 를 정확히 표기해 출력해 주세요.',
+    '',
+    blocks.join('\n\n'),
+  ].join('\n')
+}
