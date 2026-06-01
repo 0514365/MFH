@@ -27,6 +27,7 @@ import {
   type FruitItem,
 } from '@/lib/insightExport'
 import { createClient } from '@/lib/supabase-browser'
+import { getMembersMap, PORTFOLIO_OWNER_ID } from '@/lib/members'
 
 export type InsightRow = {
   id: string
@@ -97,28 +98,54 @@ function LensIcon({ name, size = 20 }: { name: LensKey; size?: number }) {
   )
 }
 
+// 작성자별 분류 비중(우진/서진아) + 전체 합산.
+type MemberBalance = { userId: string; name: string; data: CategoryBreakdown }
+type BalanceResult = { all: CategoryBreakdown; byMember: MemberBalance[] }
+
 // Balance 렌즈: 기간 내 일지 분류를 클라에서 직접 집계(API 호출 없음 = 무료).
 // journal_entries RLS 가 멤버 공유(is_member)라 user_id 필터를 일부러 걸지 않는다
-// → 부부(우진+서진아) 일지를 함께 합산. 필터 추가 금지(insights 의 두 사람 종합 방침).
+// → 부부(우진+서진아) 일지를 함께 모아 전체 합산 + 작성자별로 분해(사역 분담 가시화).
 function useBalance(days: number, enabled: boolean) {
-  const [data, setData] = useState<CategoryBreakdown | null>(null)
+  const [data, setData] = useState<BalanceResult | null>(null)
   const [loading, setLoading] = useState(enabled)
   useEffect(() => {
     if (!enabled) return
     let alive = true
     setLoading(true)
     const supabase = createClient()
-    void supabase
-      .from('journal_entries')
-      .select('category')
-      .gte('entry_date', periodStart(days))
-      .lte('entry_date', todayStr())
-      .then(({ data: rows }) => {
-        if (!alive) return
-        const cats = ((rows ?? []) as { category: string | null }[]).map((r) => r.category)
-        setData(buildCategoryBreakdown(cats))
-        setLoading(false)
-      })
+    void (async () => {
+      const [rowsRes, membersMap] = await Promise.all([
+        supabase
+          .from('journal_entries')
+          .select('category, user_id')
+          .gte('entry_date', periodStart(days))
+          .lte('entry_date', todayStr()),
+        getMembersMap(supabase),
+      ])
+      if (!alive) return
+      const rows = (rowsRes.data ?? []) as { category: string | null; user_id: string }[]
+      const all = buildCategoryBreakdown(rows.map((r) => r.category))
+      const groups = new Map<string, (string | null)[]>()
+      for (const r of rows) {
+        const arr = groups.get(r.user_id) ?? []
+        arr.push(r.category)
+        groups.set(r.user_id, arr)
+      }
+      const byMember: MemberBalance[] = Array.from(groups.entries())
+        .map(([userId, cats]) => ({
+          userId,
+          name: membersMap[userId] ?? '알 수 없음',
+          data: buildCategoryBreakdown(cats),
+        }))
+        .sort((a, b) => {
+          // 소유자(우진) 먼저, 그다음 건수 많은 순.
+          if (a.userId === PORTFOLIO_OWNER_ID) return -1
+          if (b.userId === PORTFOLIO_OWNER_ID) return 1
+          return b.data.total - a.data.total
+        })
+      setData({ all, byMember })
+      setLoading(false)
+    })()
     return () => {
       alive = false
     }
@@ -145,23 +172,25 @@ function BalanceBar({ data, height = 8 }: { data: CategoryBreakdown; height?: nu
   )
 }
 
-// 렌즈 상세 상단 비중 섹션(막대 + 범례). 죄책감 아닌 균형 관찰용.
-function BalanceSection({ loading, data }: { loading: boolean; data: CategoryBreakdown | null }) {
+// 렌즈 상세 상단 비중 섹션(합산 막대 + 범례 + 작성자별). 죄책감 아닌 균형 관찰용.
+function BalanceSection({ loading, data }: { loading: boolean; data: BalanceResult | null }) {
   return (
     <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold text-primary">분류 비중</div>
-        {data && data.total > 0 && <div className="text-[11px] text-faint">일지 {data.total}건</div>}
+        {data && data.all.total > 0 && (
+          <div className="text-[11px] text-faint">일지 {data.all.total}건</div>
+        )}
       </div>
       {loading ? (
         <p className="text-sm text-faint">집계 중…</p>
-      ) : !data || data.total === 0 ? (
+      ) : !data || data.all.total === 0 ? (
         <p className="text-sm text-faint">기간 내 일지 기록이 없습니다.</p>
       ) : (
         <>
-          <BalanceBar data={data} height={10} />
+          <BalanceBar data={data.all} height={10} />
           <ul className="space-y-1.5">
-            {data.items.map((it) => (
+            {data.all.items.map((it) => (
               <li key={it.category} className="flex items-center gap-2 text-xs text-ink">
                 <span
                   className="h-3 w-3 shrink-0 rounded-sm"
@@ -175,6 +204,22 @@ function BalanceSection({ loading, data }: { loading: boolean; data: CategoryBre
               </li>
             ))}
           </ul>
+
+          {/* 작성자별(우진/서진아) — 2명 이상일 때만 */}
+          {data.byMember.length > 1 && (
+            <div className="space-y-2.5 border-t border-line pt-3">
+              <div className="text-[11px] font-semibold text-muted">작성자별</div>
+              {data.byMember.map((m) => (
+                <div key={m.userId} className="space-y-1">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xs font-semibold text-ink">{m.name}</span>
+                    <span className="text-[11px] text-faint">{m.data.total}건</span>
+                  </div>
+                  <BalanceBar data={m.data} height={7} />
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>
@@ -474,8 +519,8 @@ export default function InsightsClient({
       <div className="space-y-3">
         {LENS_META.map((m) => {
           const mini =
-            m.key === 'balance' && homeBalance.data && homeBalance.data.total > 0
-              ? homeBalance.data
+            m.key === 'balance' && homeBalance.data && homeBalance.data.all.total > 0
+              ? homeBalance.data.all
               : null
           const fruitN = m.key === 'fruit' && homeFruit.items ? homeFruit.items.length : 0
           return (
