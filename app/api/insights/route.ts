@@ -143,6 +143,7 @@ export async function POST(req: Request) {
   const { data: inserted, error: insErr } = await supabase
     .from('insights')
     .insert({
+      user_id: user.id,
       domain,
       period_start: pStart,
       period_end: pEnd,

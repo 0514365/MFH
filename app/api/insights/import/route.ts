@@ -38,8 +38,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '인식할 내용이 없습니다.' }, { status: 400 })
   }
 
-  // user_id 는 insights 테이블 default(auth.uid())로 채워진다(기존 manual 경로와 동일 패턴).
+  // RLS insert 정책(auth.uid() = user_id)을 통과하려면 user_id 를 명시해야 한다.
   const payload = parsed.map((p) => ({
+    user_id: user.id,
     domain: p.domain,
     period_start: p.periodStart ?? defStart,
     period_end: p.periodEnd ?? defEnd,
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
     .select('id,domain,period_start,period_end,content,model,rating,feedback_note,created_at')
   if (error) {
     console.error('insights import error', error)
-    return NextResponse.json({ error: '저장에 실패했습니다.' }, { status: 500 })
+    return NextResponse.json({ error: `저장에 실패했습니다. (${error.message})` }, { status: 500 })
   }
 
   return NextResponse.json({ insights: inserted ?? [] }, { status: 201 })
