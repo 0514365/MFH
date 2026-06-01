@@ -8,16 +8,22 @@
 //  · 백엔드(insightExport/insightPrompt/api) 재사용. 회수 = /api/insights/import(무료, 멀티렌즈 분배).
 // 색: palette var 매핑 → 색-슬래시 opacity 금지(요소 opacity-* 만). 동적 클래스 금지(정적 분기).
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactElement, ChangeEvent } from 'react'
 import {
   INSIGHT_PERIODS,
   DOMAIN_LABEL,
   LENS_LABEL,
   isLens,
+  buildCategoryBreakdown,
+  categoryColor,
+  periodStart,
+  todayStr,
   type InsightDomain,
   type LensKey,
+  type CategoryBreakdown,
 } from '@/lib/insightExport'
+import { createClient } from '@/lib/supabase-browser'
 
 export type InsightRow = {
   id: string
@@ -85,6 +91,88 @@ function LensIcon({ name, size = 20 }: { name: LensKey; size?: number }) {
     >
       {paths[name]}
     </svg>
+  )
+}
+
+// Balance 렌즈: 기간 내 일지 분류를 클라에서 직접 집계(RLS 적용, API 호출 없음 = 무료).
+function useBalance(days: number, enabled: boolean) {
+  const [data, setData] = useState<CategoryBreakdown | null>(null)
+  const [loading, setLoading] = useState(enabled)
+  useEffect(() => {
+    if (!enabled) return
+    let alive = true
+    setLoading(true)
+    const supabase = createClient()
+    void supabase
+      .from('journal_entries')
+      .select('category')
+      .gte('entry_date', periodStart(days))
+      .lte('entry_date', todayStr())
+      .then(({ data: rows }) => {
+        if (!alive) return
+        const cats = ((rows ?? []) as { category: string | null }[]).map((r) => r.category)
+        setData(buildCategoryBreakdown(cats))
+        setLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [days, enabled])
+  return { data, loading }
+}
+
+// 분류 비중 막대(홈 미니 / 상세 공용). 색-슬래시 금지 → 인라인 style 로 분류색·너비.
+// span 기반(+w-full) — 홈 카드 button 안에 들어가도 HTML 유효(div-in-span 회피).
+function BalanceBar({ data, height = 8 }: { data: CategoryBreakdown; height?: number }) {
+  return (
+    <span
+      className="flex w-full overflow-hidden rounded-full bg-surface-subtle"
+      style={{ height }}
+    >
+      {data.items.map((it) => (
+        <span
+          key={it.category}
+          title={`${it.category} ${Math.round(it.ratio * 100)}%`}
+          style={{ width: `${it.ratio * 100}%`, background: categoryColor(it.category) }}
+        />
+      ))}
+    </span>
+  )
+}
+
+// 렌즈 상세 상단 비중 섹션(막대 + 범례). 죄책감 아닌 균형 관찰용.
+function BalanceSection({ loading, data }: { loading: boolean; data: CategoryBreakdown | null }) {
+  return (
+    <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-semibold text-primary">분류 비중</div>
+        {data && data.total > 0 && <div className="text-[11px] text-faint">일지 {data.total}건</div>}
+      </div>
+      {loading ? (
+        <p className="text-sm text-faint">집계 중…</p>
+      ) : !data || data.total === 0 ? (
+        <p className="text-sm text-faint">기간 내 일지 기록이 없습니다.</p>
+      ) : (
+        <>
+          <BalanceBar data={data} height={10} />
+          <ul className="space-y-1.5">
+            {data.items.map((it) => (
+              <li key={it.category} className="flex items-center gap-2 text-xs text-ink">
+                <span
+                  className="h-3 w-3 shrink-0 rounded-sm"
+                  style={{ background: categoryColor(it.category) }}
+                />
+                <span className="flex-1 truncate">{it.category}</span>
+                <span className="text-muted">{it.count}건</span>
+                <span className="w-9 text-right font-display text-faint">
+                  {Math.round(it.ratio * 100)}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -249,6 +337,7 @@ export default function InsightsClient({
   const [rows, setRows] = useState<InsightRow[]>(initial)
   const [view, setView] = useState<'home' | InsightDomain>('home')
   const [bundleDays, setBundleDays] = useState<number>(30)
+  const homeBalance = useBalance(bundleDays, view === 'home')
 
   const addRows = (added: InsightRow[]) => setRows((r) => [...added, ...r])
   const patchRow = (id: string, patch: Partial<InsightRow>) =>
@@ -299,35 +388,52 @@ export default function InsightsClient({
 
       {/* 렌즈 카드 */}
       <div className="space-y-3">
-        {LENS_META.map((m) => (
-          <button
-            key={m.key}
-            onClick={() => {
-              if (!m.v3) setView(m.key)
-            }}
-            disabled={m.v3}
-            className={
-              m.v3
-                ? 'flex w-full items-center gap-3 rounded-2xl border-2 border-primary bg-surface p-4 text-left opacity-70'
-                : 'flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary'
-            }
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-              <LensIcon name={m.key} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-display text-base font-bold text-primary">{LENS_LABEL[m.key]}</span>
-              <span className="block text-xs text-muted">{m.desc}</span>
-            </span>
-            {m.v3 ? (
-              <span className="rounded-md bg-primary-soft px-2 py-0.5 font-display text-[10px] font-bold text-primary">
-                v3
+        {LENS_META.map((m) => {
+          const mini =
+            m.key === 'balance' && homeBalance.data && homeBalance.data.total > 0
+              ? homeBalance.data
+              : null
+          return (
+            <button
+              key={m.key}
+              onClick={() => {
+                if (!m.v3) setView(m.key)
+              }}
+              disabled={m.v3}
+              className={
+                m.v3
+                  ? 'block w-full rounded-2xl border-2 border-primary bg-surface p-4 text-left opacity-70'
+                  : 'block w-full rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary'
+              }
+            >
+              <span className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                  <LensIcon name={m.key} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-display text-base font-bold text-primary">
+                    {LENS_LABEL[m.key]}
+                  </span>
+                  <span className="block text-xs text-muted">{m.desc}</span>
+                </span>
+                {m.v3 ? (
+                  <span className="rounded-md bg-primary-soft px-2 py-0.5 font-display text-[10px] font-bold text-primary">
+                    v3
+                  </span>
+                ) : (
+                  <span className="text-xs text-faint">
+                    {countOf(m.key) > 0 ? `${countOf(m.key)}개` : ''}
+                  </span>
+                )}
               </span>
-            ) : (
-              <span className="text-xs text-faint">{countOf(m.key) > 0 ? `${countOf(m.key)}개` : ''}</span>
-            )}
-          </button>
-        ))}
+              {mini && (
+                <span className="mt-3 block">
+                  <BalanceBar data={mini} height={6} />
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {/* Raw 도메인 접이식 */}
@@ -392,6 +498,8 @@ function LensDetail({
   const [busy, setBusy] = useState<'' | 'auto'>('')
   const [err, setErr] = useState<string>('')
 
+  const isBalance = domain === 'balance'
+  const balance = useBalance(days, isBalance)
   const title = isLens(domain) ? LENS_LABEL[domain] : DOMAIN_LABEL[domain]
 
   async function genAuto() {
@@ -465,6 +573,9 @@ function LensDetail({
         <span className="text-xs text-faint">기간</span>
         <PeriodChips days={days} onChange={setDays} />
       </div>
+
+      {/* Balance: 분류 비중 막대(무료 집계) */}
+      {isBalance && <BalanceSection loading={balance.loading} data={balance.data} />}
 
       {/* 액션 패널 */}
       <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">

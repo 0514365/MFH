@@ -4,6 +4,9 @@
 // 모델에 넘기는 텍스트는 여기서만 만든다 → 두 경로의 분석 입력이 동일.
 // [V2 확장] 데이터 출처 도메인(raw) + 목적 렌즈(lens)를 InsightDomain 합집합으로 통합.
 //   insights.domain 은 text 라 스키마 변경 없이 렌즈 키를 그대로 저장한다.
+// [Balance] 분류 비중 집계(buildCategoryBreakdown)+분류색은 순수 함수 — API 호출 없이 무료 동작.
+
+import { JOURNAL_CATEGORIES } from '@/lib/constants'
 
 // 기존 데이터 출처 도메인(레거시 Raw 분석) — 유지.
 export type RawDomain = 'journal' | 'project' | 'task' | 'overall'
@@ -183,4 +186,48 @@ export function buildDataMarkdown(d: ExportData): string {
   if (need.project) blocks.push(projectBlock(d.projects ?? []))
   if (need.task) blocks.push(taskBlock(d.tasks ?? []))
   return blocks.join('\n')
+}
+
+// ── Balance 렌즈: 분류 비중 집계(순수 함수 — API 불필요 = 무료) ───────────
+export type CategoryStat = { category: string; count: number; ratio: number }
+export type CategoryBreakdown = { items: CategoryStat[]; total: number }
+
+export const UNCATEGORIZED = '미분류'
+
+// category 문자열 목록 → 건수·비중(내림차순). 빈/공백은 '미분류'로 묶는다.
+export function buildCategoryBreakdown(
+  categories: (string | null | undefined)[],
+): CategoryBreakdown {
+  const counts = new Map<string, number>()
+  for (const c of categories) {
+    const name = c && c.trim() ? c.trim() : UNCATEGORIZED
+    counts.set(name, (counts.get(name) ?? 0) + 1)
+  }
+  const total = categories.length
+  const items = Array.from(counts.entries())
+    .map(([category, count]) => ({ category, count, ratio: total ? count / total : 0 }))
+    .sort((a, b) => b.count - a.count || a.category.localeCompare(b.category, 'ko'))
+  return { items, total }
+}
+
+// 분류 막대 색: 브랜드(마룬-레드-그레이) 축 안에서 명도·색조를 보간한 고정 팔레트.
+// 시드 분류는 인덱스 고정, 그 외 동적 분류는 이름 해시로 안정 배정(렌더마다 동일).
+export const BALANCE_PALETTE = [
+  '#661F20', // 딥마룬 (primary)
+  '#B61821', // 레드 (accent)
+  '#8A3A2E', // 적갈
+  '#C56A60', // 로즈
+  '#9A6A55', // 토프 (마룬+그레이)
+  '#80807F', // 그레이 (neutral)
+  '#B9928F', // 더스티 로즈
+  '#A8A6A4', // 라이트 그레이
+] as const
+
+export function categoryColor(category: string): string {
+  if (category === UNCATEGORIZED) return '#D8D4D2'
+  const seedIdx = (JOURNAL_CATEGORIES as readonly string[]).indexOf(category)
+  if (seedIdx >= 0) return BALANCE_PALETTE[seedIdx % BALANCE_PALETTE.length]
+  let h = 0
+  for (let i = 0; i < category.length; i++) h = (h * 31 + category.charCodeAt(i)) >>> 0
+  return BALANCE_PALETTE[h % BALANCE_PALETTE.length]
 }
