@@ -432,6 +432,236 @@ function ImportPanel({
   )
 }
 
+// 드롭박스 준자동 회수(1b) — 링크 등록 + 진입 시 자동 동기화 + 수동 동기화.
+//  · 마운트 시 소스 조회 → 링크가 있으면 자동으로 1회 동기화(폴링).
+//  · POST /api/insights/source = 드롭박스 fetch → 해시 비교 → 바뀐 경우만 분배 회수(무료).
+type SourceInfo = {
+  url: string
+  last_fetched_at: string | null
+  last_imported_at: string | null
+  last_count: number | null
+}
+
+function fmtWhen(iso: string | null): string {
+  if (!iso) return '아직 없음'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '아직 없음'
+  return d.toLocaleString('ko-KR', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function DropboxSyncPanel({ onAdd }: { onAdd: (added: InsightRow[]) => void }) {
+  const [loading, setLoading] = useState(true)
+  const [source, setSource] = useState<SourceInfo | null>(null)
+  const [url, setUrl] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
+
+  async function refreshSource(): Promise<SourceInfo | null> {
+    try {
+      const res = await fetch('/api/insights/source')
+      const json = await res.json()
+      return (json.source ?? null) as SourceInfo | null
+    } catch {
+      return null
+    }
+  }
+
+  async function runSync(auto: boolean) {
+    setBusy(true)
+    setErr('')
+    if (!auto) setMsg('')
+    try {
+      const res = await fetch('/api/insights/source', { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) {
+        if (!auto) setErr(json.error ?? '동기화에 실패했습니다.')
+        return
+      }
+      const added = (json.insights ?? []) as InsightRow[]
+      if (added.length > 0) {
+        onAdd(added)
+        setMsg(`드롭박스에서 ${added.length}건을 회수했습니다.`)
+      } else if (json.noBlocks) {
+        if (!auto) setErr('파일에서 인식할 양식 블록(===MFH-INSIGHT===)을 찾지 못했습니다.')
+      } else if (json.unchanged) {
+        if (!auto) setMsg('변경된 내용이 없습니다.')
+      } else if (!auto) {
+        setMsg('회수할 새 내용이 없습니다.')
+      }
+      setSource(await refreshSource())
+    } catch {
+      if (!auto) setErr('네트워크 오류가 발생했습니다.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // 마운트: 소스 조회 → 링크가 있으면 자동 동기화 1회(진입 폴링).
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      const src = await refreshSource()
+      if (!alive) return
+      setSource(src)
+      setUrl(src?.url ?? '')
+      setLoading(false)
+      if (src?.url) void runSync(true)
+    })()
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function save() {
+    const u = url.trim()
+    if (!u) {
+      setErr('링크를 입력해 주세요.')
+      return
+    }
+    setBusy(true)
+    setErr('')
+    setMsg('')
+    try {
+      const res = await fetch('/api/insights/source', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: u }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setErr(json.error ?? '저장에 실패했습니다.')
+        return
+      }
+      setSource((json.source ?? null) as SourceInfo | null)
+      setEditing(false)
+      await runSync(false)
+    } catch {
+      setErr('네트워크 오류가 발생했습니다.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function remove() {
+    setBusy(true)
+    setErr('')
+    setMsg('')
+    try {
+      const res = await fetch('/api/insights/source', { method: 'DELETE' })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setErr((j as { error?: string }).error ?? '해제에 실패했습니다.')
+        return
+      }
+      setSource(null)
+      setUrl('')
+      setEditing(false)
+      setMsg('드롭박스 자동 회수를 해제했습니다.')
+    } catch {
+      setErr('네트워크 오류가 발생했습니다.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const showForm = !loading && (editing || !source)
+
+  return (
+    <div className="rounded-xl bg-surface-subtle p-4">
+      <div className="text-xs font-semibold text-ink">드롭박스 자동 회수 (준자동)</div>
+      <p className="mt-1 text-[11px] leading-snug text-faint">
+        claude.ai 분석 결과를 드롭박스 텍스트 파일에 덮어쓰고 공유 링크를 등록하면, 인사이트를 열 때마다 새 결과를 자동으로 가져옵니다.
+      </p>
+
+      {loading && <p className="mt-3 text-[11px] text-faint">불러오는 중…</p>}
+
+      {!loading && source && !editing && (
+        <div className="mt-3 space-y-2">
+          <div className="truncate rounded-lg border border-line bg-surface px-3 py-2 text-[11px] text-muted">
+            {source.url}
+          </div>
+          <p className="text-[11px] text-faint">
+            마지막 회수: {fmtWhen(source.last_imported_at)}
+            {source.last_count ? ` · ${source.last_count}건` : ''}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => void runSync(false)}
+              disabled={busy}
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              {busy ? '동기화 중…' : '지금 동기화'}
+            </button>
+            <button
+              onClick={() => {
+                setErr('')
+                setMsg('')
+                setEditing(true)
+              }}
+              disabled={busy}
+              className="rounded-xl border border-line px-3 py-2 text-sm text-muted transition hover:border-primary disabled:opacity-50"
+            >
+              링크 수정
+            </button>
+            <button
+              onClick={() => void remove()}
+              disabled={busy}
+              className="rounded-xl border border-line px-3 py-2 text-sm text-muted transition hover:border-primary disabled:opacity-50"
+            >
+              해제
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showForm && (
+        <div className="mt-3 space-y-2">
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://www.dropbox.com/scl/fi/…?dl=0"
+            className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-primary"
+          />
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => void save()}
+              disabled={busy}
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              {busy ? '저장 중…' : '저장하고 가져오기'}
+            </button>
+            {source && (
+              <button
+                onClick={() => {
+                  setEditing(false)
+                  setUrl(source.url)
+                  setErr('')
+                }}
+                disabled={busy}
+                className="rounded-xl border border-line px-3 py-2 text-sm text-muted transition hover:border-primary disabled:opacity-50"
+              >
+                취소
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {msg && <p className="mt-2 text-[11px] text-muted">{msg}</p>}
+      {err && <p className="mt-2 text-sm text-danger">{err}</p>}
+    </div>
+  )
+}
+
 // 기간 칩(공용).
 function PeriodChips({
   days,
@@ -527,6 +757,7 @@ export default function InsightsClient({
           days={bundleDays}
           onAdd={addRows}
         />
+        <DropboxSyncPanel onAdd={addRows} />
       </div>
 
       {/* 렌즈 카드 */}
