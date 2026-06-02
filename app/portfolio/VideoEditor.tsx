@@ -1,6 +1,6 @@
 'use client';
-// MFH-PORTFOLIO-VIDEO-EDITOR-V4
-// 사역 영상 CRUD. 추가 폼(카테고리/년도/제목/영상 URL) + 리스트(미니썸네일 + 썸네일설정 + ↑↓ + 삭제).
+// MFH-PORTFOLIO-VIDEO-EDITOR-V5
+// 사역 영상 CRUD. 추가 폼(카테고리/년도/제목/영상 URL) + 리스트(미니썸네일 + 수정 + 썸네일설정 + ↑↓ + 삭제).
 // 카테고리 + 영상을 한 섹션으로 묶음(VideoCategoryEditor 포함).
 // V2: URL 검증 완화 — YouTube 뿐 아니라 재생목록·Facebook 등 http(s) URL 모두 허용
 //     (YouTube 가 아니면 썸네일은 placeholder, 클릭은 원본으로 정상 이동).
@@ -8,6 +8,7 @@
 //     표시 우선순위 = 커스텀 → YouTube → placeholder.
 // V4: 외곽 카드/제목 제거(AccordionSection 안에 들어감) + CSV 내보내기/가져오기.
 //     CSV 가져오기 = id 기준 upsert(있으면 수정·없으면 추가), 카테고리는 이름 매칭, 빠진 행은 삭제 안 함.
+// V5: 등록된 영상 인라인 수정(제목·URL·카테고리·년도) — 각 항목 "수정" 버튼 토글 폼. SQL 변경 없음.
 
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -59,6 +60,12 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [thumbEditId, setThumbEditId] = useState<string | null>(null);
+  // 인라인 수정: 편집 중 영상 id + 편집 필드값
+  const [editId, setEditId] = useState<string | null>(null);
+  const [eCat, setECat] = useState<string>('');
+  const [eYear, setEYear] = useState<string>('');
+  const [eTitle, setETitle] = useState<string>('');
+  const [eUrl, setEUrl] = useState<string>('');
   const importRef = useRef<HTMLInputElement>(null);
 
   function catName(id: string | null): string {
@@ -264,6 +271,60 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
     router.refresh();
   }
 
+  // 인라인 수정: 편집 시작 / 취소 / 저장
+  function startEdit(v: PortfolioVideo) {
+    setThumbEditId(null);
+    setEditId(v.id);
+    setECat(v.category_id ?? '');
+    setEYear(v.year != null ? String(v.year) : '');
+    setETitle(v.title);
+    setEUrl(v.youtube_url);
+    setError(null);
+  }
+
+  function cancelEdit() {
+    setEditId(null);
+    setError(null);
+  }
+
+  async function saveEdit(v: PortfolioVideo) {
+    const title = eTitle.trim();
+    const url = eUrl.trim();
+    if (!title) {
+      setError('제목을 입력하세요.');
+      return;
+    }
+    if (!url) {
+      setError('영상 URL 을 입력하세요.');
+      return;
+    }
+    if (!/^https?:\/\/.+/i.test(url)) {
+      setError('유효한 URL 을 입력하세요. (http:// 또는 https:// 로 시작)');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const yearNum = eYear.trim() ? parseInt(eYear.trim(), 10) : null;
+    const patch: VideoPatch = {
+      title,
+      youtube_url: url,
+      category_id: eCat || null,
+      year: Number.isFinite(yearNum as number) ? yearNum : null,
+    };
+    const { error: upError } = await supabase
+      .from('portfolio_videos')
+      .update(patch)
+      .eq('id', v.id);
+    setBusy(false);
+    if (upError) {
+      setError(upError.message);
+      return;
+    }
+    setVideos((prev) => prev.map((x) => (x.id === v.id ? { ...x, ...patch } : x)));
+    setEditId(null);
+    router.refresh();
+  }
+
   // 커스텀 썸네일 저장(업로드 URL) / 제거(빈 문자열 → null)
   async function setThumb(v: PortfolioVideo, url: string) {
     const next = url.trim() ? url.trim() : null;
@@ -407,6 +468,7 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
             const thumb = videoThumbnail(v);
             const custom = !!(v.thumbnail_url && v.thumbnail_url.trim());
             const open = thumbEditId === v.id;
+            const editing = editId === v.id;
             return (
               <li
                 key={v.id}
@@ -427,10 +489,23 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
                       {custom ? ' · 커스텀 썸네일' : ''}
                     </p>
                   </div>
-                  <div className="flex flex-shrink-0 items-center gap-1">
+                  <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-1">
                     <button
                       type="button"
-                      onClick={() => setThumbEditId(open ? null : v.id)}
+                      onClick={() => (editing ? cancelEdit() : startEdit(v))}
+                      disabled={busy}
+                      className={`rounded border px-2 py-1 text-xs disabled:opacity-30 ${
+                        editing ? 'border-primary text-primary' : 'border-line bg-surface text-muted'
+                      }`}
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditId(null);
+                        setThumbEditId(open ? null : v.id);
+                      }}
                       disabled={busy}
                       className={`rounded border px-2 py-1 text-xs disabled:opacity-30 ${
                         open ? 'border-primary text-primary' : 'border-line bg-surface text-muted'
@@ -464,6 +539,65 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
                     </button>
                   </div>
                 </div>
+
+                {editing && (
+                  <div className="mt-2 border-t border-line pt-2">
+                    <div className="mb-2 grid grid-cols-1 gap-2 min-[740px]:grid-cols-[1fr_120px]">
+                      <select
+                        value={eCat}
+                        onChange={(e) => setECat(e.target.value)}
+                        className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
+                      >
+                        <option value="">카테고리 선택…</option>
+                        {cats.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        value={eYear}
+                        onChange={(e) => setEYear(e.target.value)}
+                        placeholder="년도"
+                        className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={eTitle}
+                      onChange={(e) => setETitle(e.target.value)}
+                      placeholder="영상 제목"
+                      className="mb-2 w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                    <input
+                      type="url"
+                      value={eUrl}
+                      onChange={(e) => setEUrl(e.target.value)}
+                      placeholder="영상 URL (YouTube · 재생목록 · Facebook 모두 가능)"
+                      className="mb-2 w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => saveEdit(v)}
+                        disabled={busy}
+                        className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                        style={{ background: 'var(--accent)' }}
+                      >
+                        {busy ? '저장 중…' : '저장'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        disabled={busy}
+                        className="rounded-md border border-line bg-surface px-4 py-2 text-sm font-medium text-muted disabled:opacity-50"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {open && (
                   <div className="mt-2 border-t border-line pt-2">
