@@ -11,6 +11,7 @@ import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategor
 import PortfolioView from './PortfolioView';
 import PrayerCta from './PrayerCta';
 import SplashGate from '@/app/SplashGate';
+import OwnerBar from '@/components/OwnerBar';
 
 type Props = { params: { slug: string } };
 
@@ -119,6 +120,7 @@ export default async function PublicPortfolioPage({ params }: Props) {
 
   return (
     <SplashGate skip={!!user}>
+      <OwnerBar userId={user?.id ?? null} />
       <PortfolioView
         portfolio={p}
         history={history}

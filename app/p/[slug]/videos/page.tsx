@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase-server';
 import type { Portfolio, PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
 import BrandBar from '../BrandBar';
 import VideoSection from '../VideoSection';
+import OwnerBar from '@/components/OwnerBar';
 
 type Props = { params: { slug: string } };
 
@@ -18,6 +19,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PortfolioVideosPage({ params }: Props) {
   const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: portfolio } = await supabase
     .from('portfolio')
@@ -50,6 +55,7 @@ export default async function PortfolioVideosPage({ params }: Props) {
 
   return (
     <div style={{ background: 'var(--paper)', minHeight: '100vh' }}>
+      <OwnerBar userId={user?.id ?? null} />
       <BrandBar homeHref={`/p/${p.slug}`} />
 
       <div className="mx-auto max-w-6xl px-4 py-6 min-[740px]:px-6 min-[740px]:py-8 min-[1100px]:px-8">
