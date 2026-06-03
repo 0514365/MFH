@@ -187,10 +187,10 @@ export default async function Home() {
         </section>
 
         {/* 마일스톤 (자매앱 WorshipFlow·Brew Journal 형식).
-            v1.1 = 현재 버전. 2026.5.29 13:49 = "the First Chapter" — 우진이 이 앱을
+            v1.2 = 현재 버전. 2026.5.29 13:49 = "the First Chapter" — 우진이 이 앱을
             가족에게 처음으로 공개 배포한 날·시각(최초 공개 배포 마일스톤). */}
         <footer className="mt-10 text-center">
-          <p className="font-mono text-[11px] tracking-[0.2em] text-faint">v 1.1 · 2026. 5. 29</p>
+          <p className="font-mono text-[11px] tracking-[0.2em] text-faint">v 1.2 · 2026. 6. 2</p>
           <p className="mt-1 text-[11px] italic tracking-wide text-faint">
             the First Chapter · 2026. 5. 29. 13:49
           </p>
