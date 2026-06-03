@@ -112,7 +112,9 @@ export default async function PublicPortfolioPage({ params }: Props) {
 
   const letters = ((letterRows ?? []) as PortfolioLetter[]).map((l) => ({
     ...l,
-    pdf_url: supabase.storage.from('portfolio-letters').getPublicUrl(l.pdf_path).data.publicUrl,
+    pdf_url: l.pdf_path
+      ? supabase.storage.from('portfolio-letters').getPublicUrl(l.pdf_path).data.publicUrl
+      : null,
     cover_url: l.cover_path
       ? supabase.storage.from('portfolio-letters').getPublicUrl(l.cover_path).data.publicUrl
       : null,

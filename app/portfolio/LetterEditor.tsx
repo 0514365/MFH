@@ -1,7 +1,8 @@
 'use client';
 
-// MFH-PORTFOLIO-LETTER-EDITOR-V4
+// MFH-PORTFOLIO-LETTER-EDITOR-V5
 // 선교편지 관리 (편집 페이지).
+// V5: 영상 편지(video_url, patch81) — PDF 없이 YouTube 영상만 등록 가능(PDF·영상 중 하나 필수).
 // V4: 요약 기도문에 "인사이트 불러오기" — 최근 인사이트(prayer 우선)를 골라 summary 에 삽입(읽기 연계).
 // V3: 외곽 제목 제거 — AccordionSection("선교편지 관리") 안에 들어감.
 // (이전 주석) 선교편지 관리 (편집 페이지, 영상 관리 아래).
@@ -48,6 +49,7 @@ export default function LetterEditor({ initial, userId }: Props) {
   const [title, setTitle] = useState('');
   const [pdfPath, setPdfPath] = useState<string | null>(null);
   const [coverPath, setCoverPath] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState('');
   const [summary, setSummary] = useState('');
   const [pub, setPub] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,6 +72,7 @@ export default function LetterEditor({ initial, userId }: Props) {
     setTitle('');
     setPdfPath(null);
     setCoverPath(null);
+    setVideoUrl('');
     setSummary('');
     setPub(true);
     setFormError(null);
@@ -85,8 +88,12 @@ export default function LetterEditor({ initial, userId }: Props) {
       setFormError('제목을 입력하세요.');
       return;
     }
-    if (!pdfPath) {
-      setFormError('PDF 파일을 업로드하세요.');
+    if (!pdfPath && !videoUrl.trim()) {
+      setFormError('PDF 파일 또는 영상 URL 중 하나는 필요합니다.');
+      return;
+    }
+    if (videoUrl.trim() && !/^https?:\/\/.+/i.test(videoUrl.trim())) {
+      setFormError('영상 URL 이 올바르지 않습니다. (http:// 또는 https:// 로 시작)');
       return;
     }
     setSaving(true);
@@ -102,6 +109,7 @@ export default function LetterEditor({ initial, userId }: Props) {
           title: title.trim(),
           pdf_path: pdfPath,
           cover_path: coverPath,
+          video_url: videoUrl.trim() || null,
           summary: summary.trim() || null,
           public_view: pub,
           sort_order: maxSort + 10,
@@ -193,8 +201,13 @@ export default function LetterEditor({ initial, userId }: Props) {
 
   async function copyUrl(letter: PortfolioLetter) {
     const supabase = createClient();
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(letter.pdf_path);
-    const url = data.publicUrl;
+    let url: string | null = null;
+    if (letter.pdf_path) {
+      url = supabase.storage.from(BUCKET).getPublicUrl(letter.pdf_path).data.publicUrl;
+    } else if (letter.video_url) {
+      url = letter.video_url;
+    }
+    if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
       setCopiedId(letter.id);
@@ -339,7 +352,7 @@ export default function LetterEditor({ initial, userId }: Props) {
               kind="pdf"
               currentPath={pdfPath}
               onUploaded={setPdfPath}
-              label="PDF 업로드 *"
+              label="PDF 업로드"
             />
             <PortfolioLetterUpload
               userId={userId}
@@ -349,6 +362,14 @@ export default function LetterEditor({ initial, userId }: Props) {
               label="표지 (선택)"
             />
           </div>
+          <input
+            type="url"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="영상 URL (YouTube) — PDF 없이 영상만 있는 편지"
+            className="mb-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-xs focus:border-primary focus:outline-none"
+          />
+          <p className="mb-2 text-[11px] text-faint">PDF 또는 영상 URL 중 하나는 필수입니다. (영상 편지는 YouTube 썸네일이 표지로 표시됩니다.)</p>
           <div className="mb-2">
             <div className="mb-1 flex items-center justify-between gap-2">
               <label className="block text-[11px] text-muted">
@@ -418,7 +439,7 @@ export default function LetterEditor({ initial, userId }: Props) {
                 <div className="flex items-center justify-between">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <span className="text-base text-primary" aria-hidden>
-                    📄
+                    {l.video_url && !l.pdf_path ? '▶' : '📄'}
                   </span>
                   <div className="min-w-0">
                     {l.number && (

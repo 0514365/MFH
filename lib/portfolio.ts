@@ -1,10 +1,11 @@
-// MFH-PORTFOLIO-TYPES-V6
+// MFH-PORTFOLIO-TYPES-V7
 // 포트폴리오 도메인 타입 + 헬퍼
 // V2: couple_photo_url / couple_intro (부부사진 + 부부 소개 개요, patch63) 추가.
 // V3: youtubeVideoId 에 live/ 패턴 추가(라이브 영상 썸네일 지원).
 // V4: portfolio_videos.thumbnail_url(커스텀 썸네일, patch66) + VIDEO_BANNER_RAMP(브랜드 배너 그라데이션) 추가.
 // V5: letters.summary(최신 선교편지 요약 기도문, patch67) + LETTER_BANNER_RAMP(앰버·세피아 년도 배너) 추가.
 // V6: donation_info(후원 안내 — 푸터 후원방법 블록, patch68) 추가.
+// V7: letters.video_url(영상 편지 — PDF 없이 YouTube 영상만, patch81) + pdf_path nullable.
 
 export type Portfolio = {
   id: string;
@@ -199,9 +200,10 @@ export type PortfolioLetter = {
   year_month: string;        // "2026-05"
   number: string | null;     // "42" (호수)
   title: string;
-  pdf_path: string;          // storage: portfolio-letters
+  pdf_path: string | null;   // storage: portfolio-letters (영상 편지는 null — patch81)
   cover_path: string | null; // 표지 이미지 (선택)
   summary: string | null;    // 요약 기도문(최신호만, patch67) — 공개 "최신 선교편지" 블록 우측 칼럼
+  video_url: string | null;  // 영상 편지(PDF 없이 YouTube 영상만) — patch81
   public_view: boolean;
   sort_order: number;
   created_at: string;
