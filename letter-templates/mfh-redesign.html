@@ -1,0 +1,134 @@
+<!doctype html>
+<!-- MFH-REDESIGN-COVER-V2 -->
+<!-- 선교편지 표지 마스터 — 파스텔 톤 + 온두라스로고4 + 실제 사진. 사진 상단 + 텍스트 하단. 4:5(1080x1350). -->
+<!-- 색: 파스텔 하늘/크림/피치 + 딥네이비 텍스트(로고와 통일). 브랜드 마룬 폐기. -->
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MFH 선교편지 · 표지 마스터(파스텔)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.min.css" />
+<style>
+  :root{
+    --navy:#2B4066; --navy-soft:#5E76A2; --ink:#33405A; --sub:#7C8499;
+    --sky:#B9D2E8; --sky-2:#D8E7F3; --sky-line:#7FA8D2;
+    --peach:#EFC6B0; --peach-d:#C98A6B;
+    --sand:#EAD9BC; --sand-d:#C2A878;
+    --cream:#F7F0E2; --paper:#FCF9F1; --line:#EBE1CE;
+    --myeong:"Nanum Myeongjo",serif;
+    --sans:"Montserrat","Pretendard",sans-serif;
+    --body:"Pretendard",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{background:#cbc7c2;}
+  body{display:flex;flex-direction:column;align-items:center;gap:14px;padding:26px 0 50px;-webkit-font-smoothing:antialiased;}
+  .note{font-family:var(--sans);font-size:12.5px;color:var(--navy);background:var(--sky-2);padding:8px 16px;border-radius:999px;border:1px solid var(--sky);}
+  .note b{font-weight:700;}
+
+  .stage{width:454px;height:567px;}
+  .card{width:1080px;height:1350px;transform:scale(.42);transform-origin:top left;
+    background:var(--paper);position:relative;overflow:hidden;font-family:var(--body);color:var(--ink);
+    display:flex;flex-direction:column;}
+
+  /* 헤더바 — 로고 흰배경이 자연스럽게 녹도록 밝게 */
+  .head{height:122px;flex:none;background:#FFFFFF;display:flex;align-items:center;
+    justify-content:space-between;padding:0 56px;border-bottom:3px solid var(--sky);}
+  .head .brand{display:flex;align-items:center;gap:0;}
+  .head .brand img{height:96px;width:auto;display:block;}
+  .head .no{font-family:var(--sans);font-weight:700;font-size:21px;letter-spacing:.06em;color:var(--navy);
+    border:2px solid var(--sky-line);border-radius:999px;padding:8px 20px;background:var(--sky-2);}
+
+  /* 사진(가로) */
+  .photo{height:556px;flex:none;position:relative;background:#3a3a3a;}
+  .photo img{width:100%;height:100%;object-fit:cover;object-position:center 38%;display:block;}
+  .photo::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(43,64,102,.10) 0%,transparent 22%,transparent 74%,rgba(43,64,102,.22) 100%);}
+  .photo .ph-hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-family:var(--sans);
+    font-size:13px;letter-spacing:.06em;color:rgba(255,255,255,.85);background:rgba(43,64,102,.40);
+    padding:5px 14px;border-radius:999px;}
+
+  /* 텍스트 영역 — 파스텔 그라데이션 */
+  .body{flex:1;background:linear-gradient(180deg,var(--sky-2) 0%,var(--cream) 34%,var(--paper) 70%);
+    padding:34px 56px 0;position:relative;}
+  .theme{display:inline-block;font-family:var(--sans);font-size:16px;font-weight:600;letter-spacing:.04em;
+    color:var(--navy);background:var(--peach);padding:7px 18px;border-radius:999px;}
+  .kicker{font-family:var(--sans);font-size:20px;font-weight:700;letter-spacing:.16em;color:var(--navy);
+    text-transform:uppercase;margin-top:24px;display:flex;align-items:center;gap:14px;}
+  .kicker::before{content:"";width:34px;height:3px;background:var(--sky-line);border-radius:2px;}
+  .body h1{font-family:var(--myeong);font-weight:800;font-size:76px;line-height:1.12;color:var(--ink);margin-top:14px;letter-spacing:-.01em;}
+  .body .sub{font-family:var(--myeong);font-weight:700;font-size:31px;color:var(--peach-d);margin-top:14px;}
+  .verse{margin-top:26px;padding-left:22px;border-left:4px solid var(--sky-line);}
+  .verse p{font-family:var(--myeong);font-style:italic;font-size:28px;line-height:1.5;color:var(--navy);}
+  .verse span{font-family:var(--sans);font-size:16px;letter-spacing:.05em;color:var(--sub);display:block;margin-top:8px;}
+
+  .foot{position:absolute;left:56px;right:56px;bottom:60px;display:flex;justify-content:space-between;align-items:flex-end;
+    border-top:1px solid var(--line);padding-top:20px;}
+  .foot .who{font-family:var(--sans);font-size:21px;font-weight:600;letter-spacing:.03em;color:var(--navy);}
+  .foot .pg{font-family:var(--sans);font-size:19px;color:var(--sub);}
+
+  .stars{position:absolute;left:56px;bottom:22px;}
+  .bluebar{position:absolute;left:0;right:0;bottom:0;height:14px;
+    background:linear-gradient(90deg,var(--sky-line) 0%,var(--sky) 50%,var(--peach) 100%);}
+
+  @media print{
+    html,body{background:#fff;}
+    body{padding:0;gap:0;}
+    .note{display:none;}
+    .stage{width:auto;height:auto;}
+    .card{transform:none;}
+    @page{size:1080px 1350px;margin:0;}
+  }
+</style>
+</head>
+<body>
+  <div class="note">표지 마스터 · <b>파스텔 톤</b> + 온두라스로고4 + 실제 사진</div>
+
+  <div class="stage">
+    <div class="card">
+      <!-- 헤더 -->
+      <div class="head">
+        <div class="brand"><img src="assets/온두라스로고4.png" alt="Mission for Honduras" /></div>
+        <div class="no">MFH&nbsp;#2606</div>
+      </div>
+
+      <!-- 사진 -->
+      <div class="photo">
+        <img src="assets/cover.jpg" alt="" />
+        <div class="ph-hint">이달의 대표 사진</div>
+      </div>
+
+      <!-- 텍스트 -->
+      <div class="body">
+        <span class="theme">2026 연 주제 · 강가에 심긴 나무처럼</span>
+        <div class="kicker">2026년 6월 · 선교편지</div>
+        <h1>비를 기다리는 땅에서</h1>
+        <div class="sub">메마른 땅에 다시 흐르는 은혜</div>
+        <div class="verse">
+          <p>“내가 광야에 길을, 사막에 강을 내리니”</p>
+          <span>이사야 43:19</span>
+        </div>
+
+        <div class="foot">
+          <div class="who">김우진 · 서진아 선교사</div>
+          <div class="pg">01 / 09</div>
+        </div>
+
+        <svg class="stars" width="180" height="34" viewBox="0 0 180 34" fill="none">
+          <g fill="#5E76A2">
+            <use href="#s2" x="74" y="9"/>
+            <use href="#s2" x="30" y="2"/>
+            <use href="#s2" x="118" y="2"/>
+            <use href="#s2" x="30" y="18"/>
+            <use href="#s2" x="118" y="18"/>
+          </g>
+          <defs><polygon id="s2" points="12,0 15.5,7.5 24,7.5 17,12.5 19.5,21 12,16 4.5,21 7,12.5 0,7.5 8.5,7.5"/></defs>
+        </svg>
+      </div>
+      <div class="bluebar"></div>
+    </div>
+  </div>
+</body>
+</html>

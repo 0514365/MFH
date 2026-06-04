@@ -1,0 +1,160 @@
+<!doctype html>
+<!-- MFH-MOBILE-MASTER-V2 -->
+<!-- 모바일 세로 선교편지 마스터 — 파스텔 + 월별 베리에이션 + 온두라스로고4 + 앱 링크. -->
+<!-- 매월 색 변경: :root 의 --cool / --accent 두 줄만 교체. -->
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MFH 선교편지 · 모바일 마스터(파스텔)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.min.css" />
+<style>
+  :root{
+    /* ▼▼▼ 매월 이 두 색만 교체 ▼▼▼ */
+    --cool:#B9D2E8;     /* 쿨 메인 — 6월: 파스텔 블루 */
+    --accent:#EFC6B0;   /* 웜 포인트 — 6월: 피치 */
+    /* ▲▲▲ 카드뉴스 마스터와 동일한 월별 프리셋 사용 ▲▲▲ */
+    --cool-2: color-mix(in srgb, var(--cool) 42%, #fff);
+    --cool-3: color-mix(in srgb, var(--cool) 22%, #fff);
+    --cool-line: color-mix(in srgb, var(--cool) 64%, #2B4066);
+    --accent-d: color-mix(in srgb, var(--accent) 62%, #7A3F28);
+    --navy:#2B4066; --ink:#33405A; --sub:#7C8499;
+    --cream:#F7F0E2; --paper:#FCF9F1; --line:#EBE1CE;
+    --myeong:"Nanum Myeongjo",serif;
+    --sans:"Montserrat","Pretendard",sans-serif;
+    --body:"Pretendard",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{background:#cbc7c2;}
+  body{display:flex;flex-direction:column;align-items:center;padding:24px 0 40px;-webkit-font-smoothing:antialiased;}
+  .note{font-family:var(--sans);font-size:12.5px;color:var(--navy);background:var(--cool-2);border:1px solid var(--cool);padding:8px 16px;border-radius:999px;margin-bottom:18px;}
+  .note b{font-weight:700;}
+
+  .frame{width:430px;background:var(--paper);position:relative;border-radius:30px;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.26);}
+
+  /* 표지 헤더(로고) */
+  .m-head{height:60px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:2px solid var(--cool);}
+  .m-head img{height:40px;}
+  .m-head .no{font-family:var(--sans);font-weight:700;font-size:11px;color:var(--navy);border:1.5px solid var(--cool-line);background:var(--cool-2);border-radius:999px;padding:4px 11px;}
+  /* 사진 */
+  .m-photo{height:236px;position:relative;background:#3a3a3a;}
+  .m-photo img{width:100%;height:100%;object-fit:cover;object-position:center 38%;}
+  .m-photo .hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-family:var(--sans);font-size:10px;color:rgba(255,255,255,.85);background:rgba(43,64,102,.4);padding:4px 11px;border-radius:999px;}
+  /* 표지 텍스트(파스텔) */
+  .m-cover{background:linear-gradient(180deg,var(--cool-3),var(--cream));padding:18px 22px 20px;}
+  .m-theme{display:inline-block;font-family:var(--sans);font-size:10.5px;font-weight:600;color:var(--navy);background:var(--accent);padding:5px 12px;border-radius:999px;}
+  .m-kicker{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--navy);text-transform:uppercase;margin-top:12px;display:flex;align-items:center;gap:9px;}
+  .m-kicker::before{content:"";width:22px;height:3px;background:var(--cool-line);border-radius:2px;}
+  .m-cover h1{font-family:var(--myeong);font-weight:800;font-size:36px;line-height:1.12;color:var(--ink);margin-top:8px;}
+  .m-cover .sub{font-family:var(--myeong);font-weight:700;font-size:17px;color:var(--accent-d);margin-top:8px;}
+  .m-verse{margin-top:13px;padding-left:11px;border-left:3px solid var(--cool-line);}
+  .m-verse p{font-family:var(--myeong);font-style:italic;font-size:14px;line-height:1.5;color:var(--navy);}
+  .m-verse span{font-family:var(--sans);font-size:10px;color:var(--sub);display:block;margin-top:4px;}
+  .m-who{margin-top:13px;padding-top:11px;border-top:1px solid var(--line);font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--navy);}
+
+  /* 앱 링크 바 */
+  .appbar{display:flex;align-items:center;gap:10px;background:var(--navy);color:#fff;padding:13px 22px;text-decoration:none;}
+  .appbar .ic{width:26px;height:26px;border-radius:7px;background:#fff;color:var(--navy);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
+  .appbar .tx{font-family:var(--sans);font-weight:600;font-size:13.5px;}
+  .appbar .go{margin-left:auto;font-family:var(--sans);font-weight:700;font-size:16px;color:var(--accent);}
+
+  /* 본문(텍스트 위주) */
+  .content{padding:28px 24px 8px;}
+  .sec{margin-bottom:28px;}
+  .sec-h{display:flex;align-items:center;gap:11px;margin-bottom:12px;}
+  .sec-no{flex:none;width:30px;height:30px;border-radius:50%;background:var(--navy);color:#fff;font-family:var(--sans);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;}
+  .sec-h h2{font-family:var(--myeong);font-weight:800;font-size:23px;color:var(--navy);}
+  .sec-h .en{margin-left:auto;font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.16em;color:var(--cool-line);text-transform:uppercase;}
+  .sec p{font-family:var(--body);font-size:16px;line-height:1.82;color:#3f3c44;}
+  .sec ul{list-style:none;margin-top:11px;}
+  .sec li{position:relative;padding-left:20px;font-size:15.5px;line-height:1.7;color:#48454d;margin-bottom:7px;}
+  .sec li::before{content:"";position:absolute;left:0;top:10px;width:9px;height:9px;border-radius:50%;background:var(--cool-line);}
+  .divider{height:1px;background:var(--line);margin:0 0 28px;}
+
+  .pray{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 24px;margin-bottom:26px;box-shadow:0 6px 24px rgba(43,64,102,.06);}
+  .pray h3{font-family:var(--myeong);font-weight:800;font-size:21px;color:var(--navy);display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .pray h3::before{content:"";width:26px;height:4px;background:var(--cool-line);border-radius:2px;}
+  .pray .grp{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--accent-d);text-transform:uppercase;margin:14px 0 5px;}
+  .pray .grp:first-of-type{margin-top:0;}
+  .pray li{list-style:none;position:relative;padding-left:18px;font-size:15px;line-height:1.6;color:#48454d;margin-bottom:5px;}
+  .pray li::before{content:"";position:absolute;left:3px;top:9px;width:8px;height:8px;border-radius:50%;background:var(--cool-line);}
+
+  .cta{display:flex;align-items:center;gap:16px;background:var(--navy);border-radius:18px;padding:20px 22px;margin-bottom:24px;text-decoration:none;}
+  .cta .qr{width:72px;height:72px;border-radius:10px;flex:none;border:2.5px solid rgba(255,255,255,.65);background:repeating-linear-gradient(45deg,#fff 0 6px,#5E76A2 6px 12px);}
+  .cta .tx b{display:block;font-family:var(--myeong);font-weight:800;font-size:20px;color:#fff;}
+  .cta .tx span{display:block;font-family:var(--body);font-size:13px;color:rgba(255,255,255,.82);margin-top:5px;}
+  .cta .go{margin-left:auto;font-family:var(--sans);font-weight:700;font-size:22px;color:var(--accent);}
+
+  .foot{text-align:center;padding:2px 24px 28px;font-family:var(--sans);}
+  .foot img{height:46px;margin-bottom:12px;opacity:.92;}
+  .foot .acc{font-size:13px;color:var(--ink);line-height:1.7;}
+  .foot .acc b{color:var(--navy);font-weight:700;}
+  .foot .sns{font-size:11.5px;color:var(--sub);margin-top:7px;letter-spacing:.05em;}
+
+  .sticky{position:sticky;bottom:0;background:color-mix(in srgb,var(--paper) 86%,transparent);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:12px 18px;}
+  .sticky a{display:flex;align-items:center;justify-content:center;gap:9px;background:var(--navy);color:#fff;text-decoration:none;border-radius:13px;padding:14px;font-family:var(--sans);font-weight:700;font-size:15px;}
+
+  .ph-txt{color:var(--accent-d);background:color-mix(in srgb,var(--accent) 40%,#fff);padding:0 5px;border-radius:4px;}
+
+  @media print{html,body{background:#fff;}body{padding:0;}.note{display:none;}.frame{width:430px;border-radius:0;box-shadow:none;}.sticky{position:static;}}
+</style>
+</head>
+<body>
+  <div class="note">모바일 마스터 · <b>파스텔 + 월별 베리에이션</b> · 표지 + 텍스트 본문 + 앱 링크(상단·중간·하단)</div>
+
+  <div class="frame">
+    <!-- 표지 -->
+    <div class="m-head"><img src="assets/온두라스로고4.png" alt="MFH" /><div class="no">MFH #2606</div></div>
+    <div class="m-photo"><img src="assets/cover.jpg" alt="" /><div class="hint">이달의 대표 사진</div></div>
+    <div class="m-cover">
+      <span class="m-theme">2026 연 주제 · 강가에 심긴 나무처럼</span>
+      <div class="m-kicker">2026년 6월 · 선교편지</div>
+      <h1>비를 기다리는<br />땅에서</h1>
+      <div class="sub">메마른 땅에 다시 흐르는 은혜</div>
+      <div class="m-verse"><p>“내가 광야에 길을, 사막에 강을 내리니”</p><span>이사야 43:19</span></div>
+      <div class="m-who">김우진 · 서진아 선교사</div>
+    </div>
+
+    <a class="appbar" href="#"><span class="ic">📱</span><span class="tx">MFH 앱에서 일지·사역 현황 전체 보기</span><span class="go">→</span></a>
+
+    <main class="content">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-no">1</span><h2>온두라스</h2><span class="en">Honduras</span></div>
+        <p>5월 말부터 우기에 접어들며 메마른 땅이 다시 초록을 머금고 있습니다. 다만 환율과 생활 물가가 올라 이웃들의 살림이 빠듯한 시기입니다.</p>
+        <ul><li>우기 시작 — 농촌의 식수·농사 형편이 나아지는 계절입니다.</li><li>물가 상승 — 이웃들의 생계와 일자리에 지혜가 필요합니다.</li></ul>
+      </div>
+      <div class="divider"></div>
+      <div class="sec">
+        <div class="sec-h"><span class="sec-no">2</span><h2>사역</h2><span class="en">Ministry</span></div>
+        <p>지역 청소년들과의 모임이 한 걸음 더 깊어졌습니다. 처음엔 낯설어하던 친구들이 이제 스스로 찾아와 마음을 나누기 시작했습니다.</p>
+        <ul><li>청소년 모임 — 함께 기도하는 친구들이 늘었습니다.</li><li>주말 공부방 — <span class="ph-txt">[새 가정]</span> 합류, 학습과 돌봄을 병행합니다.</li></ul>
+      </div>
+      <div class="divider"></div>
+      <div class="sec">
+        <div class="sec-h"><span class="sec-no">3</span><h2>선교사 가정</h2><span class="en">Family</span></div>
+        <p>저희 부부와 <span class="ph-txt">[자녀 이름]</span>은(는) 건강하게 지내고 있습니다. 새 학기에 적응하며 가정에 웃음이 끊이지 않도록 돌봐 주시는 은혜에 감사드립니다.</p>
+      </div>
+
+      <div class="pray">
+        <h3>함께 기도해 주세요</h3>
+        <div class="grp">사역</div><ul><li>청소년 친구들이 신앙 안에 깊이 뿌리내리도록.</li></ul>
+        <div class="grp">가정</div><ul><li>온 가족의 건강과 평강, 자녀의 학교 적응.</li></ul>
+        <div class="grp">나라</div><ul><li>온두라스가 평안 가운데 회복되도록.</li></ul>
+      </div>
+
+      <a class="cta" href="#"><div class="qr"></div><div class="tx"><b>MFH 앱에서 더 보기</b><span>일지 · 사역 현황 · 지난 편지 전체</span></div><div class="go">→</div></a>
+    </main>
+
+    <div class="foot">
+      <img src="assets/온두라스로고4.png" alt="" />
+      <div class="acc"><b>후원 안내</b> · <span class="ph-txt">[은행 / 예금주 / 계좌번호]</span></div>
+      <div class="sns">@missionforhonduras · <span class="ph-txt">[이메일]</span> · MFH #2606</div>
+    </div>
+
+    <div class="sticky"><a href="#"><span class="ic">📱</span> MFH 앱 열기</a></div>
+  </div>
+</body>
+</html>
