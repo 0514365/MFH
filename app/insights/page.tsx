@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
@@ -35,6 +36,13 @@ export default async function InsightsPage() {
   return (
     <main className="mx-auto max-w-md px-5 py-8">
       <PageHeader title="Insights" current="insights" />
+      <Link
+        href="/letter-materials"
+        className="mb-4 flex items-center gap-2 rounded-xl border border-line bg-surface-subtle px-4 py-3 text-sm font-semibold text-primary transition hover:border-primary"
+      >
+        📨 편지 재료 내보내기
+        <span className="ml-auto text-xs font-normal text-muted">그달 일지·사진 모으기 →</span>
+      </Link>
       <InsightsClient
         initial={(rows ?? []) as InsightRow[]}
         hasApiKey={hasApiKey}
