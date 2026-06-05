@@ -4,6 +4,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { buildDataMarkdown } from '@/lib/insightExport'
+import { resolveJournalPhotos } from '@/lib/journalPhotos'
+import type { JournalPhoto } from '@/lib/types'
 import LetterMaterialsClient, { type PhotoItem } from './LetterMaterialsClient'
 
 export const dynamic = 'force-dynamic'
@@ -26,8 +28,12 @@ type JRow = {
   prayer: string | null
   prayer_candidate: boolean | null
   place_name: string | null
+  photos: JournalPhoto[] | null
   photo_path: string | null
   photo_taken_at: string | null
+  photo_lat: number | null
+  photo_lng: number | null
+  photo_meta: Record<string, unknown> | null
 }
 
 export default async function LetterMaterialsPage({
@@ -51,7 +57,7 @@ export default async function LetterMaterialsPage({
   const { data } = await supabase
     .from('journal_entries')
     .select(
-      'entry_date,category,headline,today,thanks,meditation,prayer,prayer_candidate,place_name,photo_path,photo_taken_at',
+      'entry_date,category,headline,today,thanks,meditation,prayer,prayer_candidate,place_name,photos,photo_path,photo_taken_at,photo_lat,photo_lng,photo_meta',
     )
     .gte('entry_date', start)
     .lte('entry_date', end)
@@ -77,21 +83,23 @@ export default async function LetterMaterialsPage({
     })),
   })
 
-  // 사진 — photo_path 있는 일지만 Signed URL 생성(1시간 만료).
+  // 사진 — 일지별 사진(다중) 각각 Signed URL 생성(1시간 만료). photos 우선·레거시 단일 fallback.
   const photos: PhotoItem[] = []
   for (const r of rows) {
-    if (!r.photo_path) continue
-    const { data: signed } = await supabase.storage
-      .from('journal-photos')
-      .createSignedUrl(r.photo_path, 3600)
-    if (signed?.signedUrl) {
-      photos.push({
-        url: signed.signedUrl,
-        date: r.entry_date,
-        category: r.category,
-        headline: r.headline,
-        takenAt: r.photo_taken_at ? r.photo_taken_at.slice(0, 10) : null,
-      })
+    const resolved = resolveJournalPhotos(r)
+    for (const ph of resolved) {
+      const { data: signed } = await supabase.storage
+        .from('journal-photos')
+        .createSignedUrl(ph.path, 3600)
+      if (signed?.signedUrl) {
+        photos.push({
+          url: signed.signedUrl,
+          date: r.entry_date,
+          category: r.category,
+          headline: r.headline,
+          takenAt: ph.taken_at ? ph.taken_at.slice(0, 10) : null,
+        })
+      }
     }
   }
 

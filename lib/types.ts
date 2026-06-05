@@ -10,6 +10,19 @@ export type YearTheme = {
   created_at: string
 }
 
+// 일지 사진 1장. journal_entries.photos jsonb 배열의 요소.
+// place_name 이 비면 일지 레벨 대표 place_name 을 상속(공통 기본).
+export type JournalPhoto = {
+  path: string
+  place_name?: string | null
+  taken_at?: string | null
+  lat?: number | null
+  lng?: number | null
+  meta?: Record<string, unknown> | null
+}
+
+export const MAX_JOURNAL_PHOTOS = 5
+
 export type JournalEntry = {
   id: string
   user_id: string
@@ -21,6 +34,9 @@ export type JournalEntry = {
   meditation: string | null
   prayer: string | null
   prayer_candidate: boolean
+  // 다중 사진(최대 5장). 저장은 이 컬럼을 사용.
+  photos: JournalPhoto[] | null
+  // 단일 사진 레거시 컬럼 — 읽기 fallback 용으로 보존(patch82 로 photos 로 이전됨).
   photo_path: string | null
   photo_taken_at: string | null
   photo_lat: number | null

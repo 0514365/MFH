@@ -4,11 +4,12 @@
 import { useEffect, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import { readPhotoMeta, uploadJournalPhoto } from '@/lib/photo'
+import { readPhotoMeta, uploadJournalPhoto, type PhotoMeta } from '@/lib/photo'
 import CategorySelect from '@/components/CategorySelect'
 import BackButton from '@/components/BackButton'
 import { haversineMeters } from '@/lib/geo'
-import type { JournalEntry, Project, Task } from '@/lib/types'
+import { MAX_JOURNAL_PHOTOS } from '@/lib/types'
+import type { JournalEntry, JournalPhoto, Project, Task } from '@/lib/types'
 import DateField from './DateField'
 
 function todayStr() {
@@ -17,11 +18,42 @@ function todayStr() {
   return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10)
 }
 
+// 편집 진입 시 서버가 채워 주는 기존 사진(서명 URL 포함).
+export type InitialPhoto = {
+  path: string
+  url: string
+  place_name: string | null
+  taken_at: string | null
+  lat: number | null
+  lng: number | null
+  meta: Record<string, unknown> | null
+}
+
 type Props = {
   mode: 'new' | 'edit'
   initial?: JournalEntry | null
-  initialPhotoUrl?: string | null
+  initialPhotos?: InitialPhoto[]
   initialIntercessionId?: string // new?intercession=<id> 로 연계 진입
+}
+
+// 폼 내부 사진 슬롯(미리보기 URL·새 파일·사진별 메타). 첫 슬롯 = 대표.
+type PhotoSlot = {
+  key: string
+  path?: string // 기존 저장 경로(편집). 새 파일은 업로드 후 채워짐.
+  url: string // 미리보기(서명 URL 또는 ObjectURL)
+  isObjectUrl: boolean
+  file?: File
+  placeName: string // 사진별 장소('' = 대표 상속)
+  takenAt: string // 'YYYY-MM-DD' | ''
+  lat: number | null
+  lng: number | null
+  meta: Record<string, unknown> | null
+}
+
+let slotSeq = 0
+function newSlotKey() {
+  slotSeq += 1
+  return `slot-${slotSeq}-${Date.now()}`
 }
 
 type LinkedIntercession = { id: string; visitor_name: string; message: string }
@@ -30,7 +62,7 @@ type PastPlace = { id: string; name: string; lat: number; lng: number }
 
 type SubKey = 'thanks' | 'meditation'
 
-export default function JournalForm({ mode, initial, initialPhotoUrl, initialIntercessionId }: Props) {
+export default function JournalForm({ mode, initial, initialPhotos, initialIntercessionId }: Props) {
   const router = useRouter()
 
   const [entryDate, setEntryDate] = useState(initial?.entry_date ?? todayStr())
@@ -48,11 +80,22 @@ export default function JournalForm({ mode, initial, initialPhotoUrl, initialInt
   )
   const [linkedIntercession, setLinkedIntercession] = useState<LinkedIntercession | null>(null)
 
-  const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
-  const [existingUrl, setExistingUrl] = useState<string | null>(initialPhotoUrl ?? null)
-  const [removePhoto, setRemovePhoto] = useState(false)
-  const [metaRaw, setMetaRaw] = useState<Record<string, unknown> | null>(initial?.photo_meta ?? null)
+  // 다중 사진 슬롯(최대 MAX_JOURNAL_PHOTOS). 첫 슬롯 = 대표.
+  const [photos, setPhotos] = useState<PhotoSlot[]>(() =>
+    (initialPhotos ?? []).map((p) => ({
+      key: newSlotKey(),
+      path: p.path,
+      url: p.url,
+      isObjectUrl: false,
+      placeName: p.place_name ?? '',
+      takenAt: p.taken_at ? p.taken_at.slice(0, 10) : '',
+      lat: p.lat,
+      lng: p.lng,
+      meta: p.meta,
+    })),
+  )
+  // 편집 중 제거된 기존 사진 경로(저장 시 Storage 에서 삭제).
+  const [removedPaths, setRemovedPaths] = useState<string[]>([])
   const [photoNote, setPhotoNote] = useState<string | null>(null)
 
   const [photoTakenAt, setPhotoTakenAt] = useState(
@@ -168,39 +211,69 @@ export default function JournalForm({ mode, initial, initialPhotoUrl, initialInt
       .then(({ data }) => setLinkedIntercession((data as LinkedIntercession) ?? null))
   }, [intercessionId])
 
-  async function onPick(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null
-    if (preview) URL.revokeObjectURL(preview)
-    if (!f) {
-      setFile(null)
-      setPreview(null)
-      setPhotoNote(null)
+  async function addFiles(e: ChangeEvent<HTMLInputElement>) {
+    const list = e.target.files
+    e.currentTarget.value = '' // 같은 파일 다시 선택 허용
+    if (!list || list.length === 0) return
+    const room = MAX_JOURNAL_PHOTOS - photos.length
+    if (room <= 0) {
+      setPhotoNote(`사진은 최대 ${MAX_JOURNAL_PHOTOS}장까지 첨부할 수 있습니다.`)
       return
     }
-    setFile(f)
-    setRemovePhoto(false)
-    setExistingUrl(null)
-    setPreview(URL.createObjectURL(f))
-    const m = await readPhotoMeta(f)
-    setMetaRaw(m.raw)
-    if (m.takenAt) {
-      setPhotoTakenAt(m.takenAt.slice(0, 10))
-      setApplyPhotoDate(true)
-      setEntryDate(m.takenAt.slice(0, 10))
+    const picked = Array.from(list).slice(0, room)
+    const wasEmpty = photos.length === 0
+    const slots: PhotoSlot[] = []
+    let firstMeta: PhotoMeta | null = null
+    let anyMeta = false
+    for (const f of picked) {
+      const m = await readPhotoMeta(f)
+      if (!firstMeta) firstMeta = m
+      if (m.takenAt || m.lat != null) anyMeta = true
+      slots.push({
+        key: newSlotKey(),
+        url: URL.createObjectURL(f),
+        isObjectUrl: true,
+        file: f,
+        placeName: '',
+        takenAt: m.takenAt ? m.takenAt.slice(0, 10) : '',
+        lat: m.lat,
+        lng: m.lng,
+        meta: m.raw,
+      })
     }
-    if (m.lat != null) setPhotoLat(String(m.lat))
-    if (m.lng != null) setPhotoLng(String(m.lng))
+    setPhotos((cur) => [...cur, ...slots])
 
-    if (m.takenAt || m.lat != null) {
-      const parts: string[] = []
-      if (m.takenAt) parts.push('촬영일')
-      if (m.lat != null) parts.push('위치')
-      setPhotoNote(`사진에서 ${parts.join(' · ')} 정보를 불러왔습니다.`)
-    } else {
-      setPhotoNote(
-        '이 사진에는 촬영일·위치 정보가 없습니다. 편집본이나 메신저로 받은 사진일 수 있어요. 필요하면 아래에서 촬영일을 직접 입력하세요.'
-      )
+    // 첫 사진이 처음 추가될 때만 대표 촬영일·좌표·일지 날짜 자동 채움(기존 단일 동작 유지).
+    if (wasEmpty && firstMeta) {
+      if (firstMeta.takenAt) {
+        setPhotoTakenAt(firstMeta.takenAt.slice(0, 10))
+        setApplyPhotoDate(true)
+        setEntryDate(firstMeta.takenAt.slice(0, 10))
+      }
+      if (firstMeta.lat != null) setPhotoLat(String(firstMeta.lat))
+      if (firstMeta.lng != null) setPhotoLng(String(firstMeta.lng))
     }
+
+    const overflow = list.length > room
+    setPhotoNote(
+      (anyMeta
+        ? '사진에서 촬영일·위치 정보를 불러왔습니다.'
+        : '이 사진에는 촬영일·위치 정보가 없습니다. 필요하면 촬영일·장소를 직접 입력하세요.') +
+        (overflow ? ` (최대 ${MAX_JOURNAL_PHOTOS}장까지만 추가됨)` : ''),
+    )
+  }
+
+  function removeSlot(key: string) {
+    setPhotos((cur) => {
+      const slot = cur.find((s) => s.key === key)
+      if (slot?.isObjectUrl) URL.revokeObjectURL(slot.url)
+      if (slot?.path) setRemovedPaths((r) => (r.includes(slot.path!) ? r : [...r, slot.path!]))
+      return cur.filter((s) => s.key !== key)
+    })
+  }
+
+  function setSlotPlace(key: string, val: string) {
+    setPhotos((cur) => cur.map((s) => (s.key === key ? { ...s, placeName: val } : s)))
   }
 
   function changeTakenAt(val: string) {
@@ -211,15 +284,6 @@ export default function JournalForm({ mode, initial, initialPhotoUrl, initialInt
   function toggleApply(checked: boolean) {
     setApplyPhotoDate(checked)
     if (checked && photoTakenAt) setEntryDate(photoTakenAt)
-  }
-
-  function removeCurrentPhoto() {
-    if (preview) URL.revokeObjectURL(preview)
-    setFile(null)
-    setPreview(null)
-    setExistingUrl(null)
-    setRemovePhoto(true)
-    setPhotoNote(null)
   }
 
   // 「현재 위치」 — 좌표만 채움. 장소 추천은 기존 200m 로직이 자동 처리.
@@ -265,13 +329,17 @@ export default function JournalForm({ mode, initial, initialPhotoUrl, initialInt
       return
     }
 
-    const oldPath = initial?.photo_path ?? null
-    let photoPath: string | null = oldPath
+    // 새 파일이 있는 슬롯만 업로드 → 슬롯별 path 확정.
+    let finalSlots: PhotoSlot[]
     try {
-      if (file) {
-        photoPath = await uploadJournalPhoto(supabase, user.id, file)
-      } else if (removePhoto) {
-        photoPath = null
+      finalSlots = []
+      for (const s of photos) {
+        if (s.file && !s.path) {
+          const path = await uploadJournalPhoto(supabase, user.id, s.file)
+          finalSlots.push({ ...s, path })
+        } else {
+          finalSlots.push(s)
+        }
       }
     } catch (err) {
       setSaving(false)
@@ -279,8 +347,24 @@ export default function JournalForm({ mode, initial, initialPhotoUrl, initialInt
       return
     }
 
+    const photosPayload: JournalPhoto[] = finalSlots
+      .filter((s) => s.path)
+      .map((s, i) => ({
+        path: s.path as string,
+        // 첫 사진(대표)은 대표 장소칸을, 나머지는 사진별 입력값을 사용.
+        place_name: (i === 0 ? placeName.trim() : s.placeName.trim()) || null,
+        // 첫 사진은 대표 촬영일(일지 날짜 연동)을 우선 사용.
+        taken_at: (i === 0 ? photoTakenAt || s.takenAt : s.takenAt) || null,
+        lat: s.lat,
+        lng: s.lng,
+        meta: s.meta,
+      }))
+    const first = photosPayload[0] ?? null
+
     const latNum = photoLat.trim() ? Number(photoLat) : null
     const lngNum = photoLng.trim() ? Number(photoLng) : null
+    const repLat = latNum != null && !Number.isNaN(latNum) ? latNum : null
+    const repLng = lngNum != null && !Number.isNaN(lngNum) ? lngNum : null
 
     const payload = {
       user_id: user.id,
@@ -295,11 +379,13 @@ export default function JournalForm({ mode, initial, initialPhotoUrl, initialInt
       project_id: projectId || null,
       task_id: taskId || null,
       intercession_id: intercessionId,
-      photo_path: photoPath,
-      photo_taken_at: photoTakenAt || null,
-      photo_lat: latNum != null && !Number.isNaN(latNum) ? latNum : null,
-      photo_lng: lngNum != null && !Number.isNaN(lngNum) ? lngNum : null,
-      photo_meta: photoPath ? metaRaw : null,
+      photos: photosPayload.length ? photosPayload : null,
+      // 레거시 단일 컬럼 — 첫 사진 기준으로 호환 유지.
+      photo_path: first?.path ?? null,
+      photo_taken_at: photoTakenAt || first?.taken_at || null,
+      photo_lat: repLat ?? first?.lat ?? null,
+      photo_lng: repLng ?? first?.lng ?? null,
+      photo_meta: first?.meta ?? null,
       place_name: placeName.trim() || null,
     }
 
@@ -325,9 +411,16 @@ export default function JournalForm({ mode, initial, initialPhotoUrl, initialInt
       resultId = (data as { id: string }).id
     }
 
-    if (oldPath && oldPath !== photoPath) {
+    // 제거된 기존 사진 Storage 정리 — 최종 photos 에 없는 경로만.
+    const finalPaths = new Set(photosPayload.map((p) => p.path))
+    const toRemove = removedPaths.filter((p) => !finalPaths.has(p))
+    const legacyPath = initial?.photo_path
+    if (legacyPath && !finalPaths.has(legacyPath) && !toRemove.includes(legacyPath)) {
+      toRemove.push(legacyPath)
+    }
+    if (toRemove.length) {
       try {
-        await supabase.storage.from('journal-photos').remove([oldPath])
+        await supabase.storage.from('journal-photos').remove(toRemove)
       } catch {
         // 이전 사진 삭제 실패는 무시
       }
@@ -342,8 +435,8 @@ export default function JournalForm({ mode, initial, initialPhotoUrl, initialInt
     'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
   const small = 'mb-1 mt-4 block text-xs text-muted'
   const sectionTitle = 'mb-1 block text-sm font-bold text-primary'
-  const showPhoto = preview ?? existingUrl
-  const hasPhotoInfo = Boolean(showPhoto || file)
+  const hasPhotoInfo = photos.length > 0
+  const canAddPhoto = photos.length < MAX_JOURNAL_PHOTOS
   const placeMatches = placeNames
     .filter((n) => n !== placeName && (!placeName || n.toLowerCase().includes(placeName.toLowerCase())))
     .slice(0, 6)
@@ -477,24 +570,79 @@ export default function JournalForm({ mode, initial, initialPhotoUrl, initialInt
         {/* ── 우측 카드: 사진 + 연계 ── */}
         <div className={`${card} min-w-0`}>
           <div className="flex items-center justify-between gap-2">
-            <span className="shrink-0 whitespace-nowrap text-sm font-bold text-primary">📷 사진</span>
-            <label className="shrink-0 cursor-pointer whitespace-nowrap rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-muted hover:border-primary">
-              파일 선택
-              <input type="file" accept="image/*" onChange={onPick} className="hidden" />
+            <span className="shrink-0 whitespace-nowrap text-sm font-bold text-primary">
+              📷 사진{' '}
+              <span className="text-xs font-normal text-faint">
+                ({photos.length}/{MAX_JOURNAL_PHOTOS})
+              </span>
+            </span>
+            <label
+              className={`shrink-0 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                canAddPhoto
+                  ? 'cursor-pointer border-line text-muted hover:border-primary'
+                  : 'cursor-not-allowed border-line text-faint opacity-50'
+              }`}
+            >
+              사진 추가
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={addFiles}
+                disabled={!canAddPhoto}
+                className="hidden"
+              />
             </label>
           </div>
-          {showPhoto && (
-            <div className="mt-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={showPhoto} alt="" className="w-full rounded-xl border border-line" />
-              <button
-                type="button"
-                onClick={removeCurrentPhoto}
-                className="mt-2 text-xs text-danger underline"
-              >
-                사진 제거
-              </button>
-            </div>
+
+          {photos.length > 0 && (
+            <ul className="mt-3 space-y-2">
+              {photos.map((s, i) => (
+                <li
+                  key={s.key}
+                  className="flex items-center gap-2 rounded-xl border border-line bg-surface p-2"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={s.url}
+                    alt=""
+                    className="h-16 w-16 shrink-0 rounded-lg border border-line object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    {i === 0 ? (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="inline-block rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-primary">
+                          대표
+                        </span>
+                        <span className="text-[11px] text-faint">장소는 아래 ‘대표 장소’ 적용</span>
+                      </div>
+                    ) : (
+                      <input
+                        value={s.placeName}
+                        onChange={(e) => setSlotPlace(s.key, e.target.value)}
+                        className="w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs outline-none focus:border-primary"
+                        placeholder={placeName ? `대표: ${placeName}` : '이 사진 장소 (선택)'}
+                      />
+                    )}
+                    {(s.takenAt || s.lat != null) && (
+                      <p className="mt-1 text-[11px] text-faint">
+                        {s.takenAt && <span>📅 {s.takenAt}</span>}
+                        {s.takenAt && s.lat != null && <span> · </span>}
+                        {s.lat != null && <span>📍 위치 있음</span>}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeSlot(s.key)}
+                    className="shrink-0 rounded-lg border border-line px-2 py-1 text-xs text-danger hover:border-danger"
+                    aria-label="사진 제거"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
           {photoNote && <p className="mt-2 text-xs text-faint">{photoNote}</p>}
 
@@ -503,7 +651,7 @@ export default function JournalForm({ mode, initial, initialPhotoUrl, initialInt
             <div className={`mt-4 ${innerBox}`}>
               <p className="mb-3 text-xs font-bold text-muted">사진 정보 (선택 시 자동 채움)</p>
 
-              <label className="mb-1 block text-xs text-muted">장소 (사진 위치 이름)</label>
+              <label className="mb-1 block text-xs text-muted">대표 장소 (목록·검색 표시)</label>
               <input
                 value={placeName}
                 onChange={(e) => setPlaceName(e.target.value)}

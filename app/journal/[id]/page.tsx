@@ -8,6 +8,8 @@ import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
 import AuthorBadge from '@/components/AuthorBadge'
+import { collectPhotoPaths, resolveJournalPhotos } from '@/lib/journalPhotos'
+import PhotoCollage, { type CollagePhoto } from '../PhotoCollage'
 import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
@@ -70,17 +72,23 @@ export default async function JournalDetail({
   const nav = computeListNav(orderedIds, params.id)
   const navQuery = searchParamsToQuery(searchParams)
 
-  let photoUrl: string | null = null
-  if (entry.photo_path) {
+  // photos(우선) 또는 레거시 단일 → 각 사진 서명 URL(1시간). 사진별 장소·좌표는 대표 상속.
+  const resolved = resolveJournalPhotos(entry)
+  const collage: CollagePhoto[] = []
+  for (const p of resolved) {
     const { data: signed } = await supabase.storage
       .from('journal-photos')
-      .createSignedUrl(entry.photo_path, 3600)
-    photoUrl = signed?.signedUrl ?? null
+      .createSignedUrl(p.path, 3600)
+    if (signed?.signedUrl) {
+      collage.push({
+        url: signed.signedUrl,
+        place_name: p.place_name,
+        taken_at: p.taken_at ? p.taken_at.slice(0, 10) : null,
+        lat: p.lat,
+        lng: p.lng,
+      })
+    }
   }
-
-  const taken = entry.photo_taken_at ? entry.photo_taken_at.slice(0, 10) : null
-  const lat = entry.photo_lat
-  const lng = entry.photo_lng
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
@@ -122,24 +130,10 @@ export default async function JournalDetail({
         </div>
       )}
 
-      {photoUrl && (
-        <figure className="mb-6">
-          <img src={photoUrl} alt="" className="w-full rounded-2xl border border-line" />
-          <figcaption className="mt-2 text-xs text-faint">
-            {taken && <span>촬영일 {taken}</span>}
-            {taken && lat != null && lng != null && <span> · </span>}
-            {lat != null && lng != null && (
-              <a
-                className="underline"
-                target="_blank"
-                rel="noreferrer"
-                href={`https://maps.google.com/?q=${lat},${lng}`}
-              >
-                지도에서 열기
-              </a>
-            )}
-          </figcaption>
-        </figure>
+      {collage.length > 0 && (
+        <div className="mb-6">
+          <PhotoCollage photos={collage} />
+        </div>
       )}
 
       <Section label="🌿 오늘 있었던 일" text={entry.today} />
@@ -152,7 +146,7 @@ export default async function JournalDetail({
           <Link href={`/journal/${entry.id}/edit`} className="text-xs font-semibold text-accent underline">
             수정
           </Link>
-          <DeleteButton id={entry.id} photoPath={entry.photo_path} />
+          <DeleteButton id={entry.id} paths={collectPhotoPaths(entry)} />
         </div>
       ) : (
         <p className="mt-10 text-xs text-faint">
