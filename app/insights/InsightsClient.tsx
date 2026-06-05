@@ -1,15 +1,13 @@
 'use client'
 
-// MFH-INSIGHTS-CLIENT-V2
-// 목적 렌즈 구조 — 데이터 출처 4탭 → 선교 목적 렌즈(Prayer/Balance/Fruit/Letter).
-//  · 렌즈 홈: 연주제 strip + [전체 분석 일괄 패널] + 렌즈 카드 4 + Raw 도메인 접이식.
-//  · 전체 분석: 전체 데이터를 한 번 내보내(?bundle=1) Claude 분석 → 한 번 가져오기로 모든 렌즈에 분배.
-//  · 렌즈 상세(범용): 기간칩 + 개별 내보내기/가져오기 + AI생성 + 결과카드(별점·메모·편지에담기·삭제).
-//  · 백엔드(insightExport/insightPrompt/api) 재사용. 회수 = /api/insights/import(무료, 멀티렌즈 분배).
-// 색: palette var 매핑 → 색-슬래시 opacity 금지(요소 opacity-* 만). 동적 클래스 금지(정적 분기).
+// MFH-INSIGHTS-CLIENT-V3
+// 목적 렌즈 구조(읽기 전용) — 연주제 strip + 렌즈 카드(Prayer/Balance/Fruit/Letter) + 분야별(Raw) 카드.
+//  · 인사이트 생성은 Claude Code Local 루틴(데스크톱·외부)에서 수행 → 앱은 결과 표시·별점·메모·삭제만.
+//  · Balance/Fruit 는 클라에서 직접 집계(무료, Anthropic 미사용).
+//  · 색: palette var 매핑 → 색-슬래시 opacity 금지(요소 opacity-* 만). 동적 클래스 금지(정적 분기).
 
 import { useEffect, useState } from 'react'
-import type { ReactElement, ChangeEvent } from 'react'
+import type { ReactElement } from 'react'
 import {
   INSIGHT_PERIODS,
   DOMAIN_LABEL,
@@ -318,350 +316,6 @@ function FruitSection({ loading, items }: { loading: boolean; items: FruitItem[]
   )
 }
 
-// 내보내기 + 결과 가져오기(공용). 홈 전체 패널 / 렌즈 상세 모두 사용.
-function ImportPanel({
-  title,
-  desc,
-  exportHref,
-  fallbackDomain,
-  days,
-  onAdd,
-}: {
-  title: string
-  desc: string
-  exportHref: string
-  fallbackDomain: InsightDomain
-  days: number
-  onAdd: (added: InsightRow[]) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [text, setText] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState('')
-
-  async function doImport() {
-    const content = text.trim()
-    if (!content) {
-      setErr('가져올 내용이 없습니다.')
-      return
-    }
-    setErr('')
-    setBusy(true)
-    try {
-      const res = await fetch('/api/insights/import', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ domain: fallbackDomain, periodDays: days, content }),
-      })
-      const json = await res.json()
-      if (!res.ok) {
-        setErr(json.error ?? '가져오기에 실패했습니다.')
-        return
-      }
-      onAdd((json.insights ?? []) as InsightRow[])
-      setText('')
-      setOpen(false)
-    } catch {
-      setErr('네트워크 오류가 발생했습니다.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  function onFile(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = () => setText(String(reader.result ?? ''))
-    reader.readAsText(f)
-  }
-
-  return (
-    <div className="rounded-xl bg-surface-subtle p-4">
-      <div className="text-xs font-semibold text-ink">{title}</div>
-      <p className="mt-1 text-[11px] leading-snug text-faint">{desc}</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <a
-          href={exportHref}
-          className="rounded-xl border border-primary px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary-soft"
-        >
-          데이터 내보내기
-        </a>
-        <button
-          onClick={() => {
-            setErr('')
-            setOpen((v) => !v)
-          }}
-          className="rounded-xl border border-line px-3 py-2 text-sm text-muted transition hover:border-primary"
-        >
-          {open ? '가져오기 닫기' : '결과 가져오기'}
-        </button>
-      </div>
-      {open && (
-        <div className="mt-3 space-y-2">
-          <label className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
-            <span className="cursor-pointer rounded-lg border border-line px-2 py-1 transition hover:border-primary">
-              파일 선택 (.md/.txt)
-            </span>
-            <input
-              type="file"
-              accept=".md,.txt,text/markdown,text/plain"
-              onChange={onFile}
-              className="hidden"
-            />
-            <span className="text-faint">또는 아래에 붙여넣기</span>
-          </label>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={8}
-            placeholder="Claude 에서 받은 양식 결과를 붙여넣으세요. (===MFH-INSIGHT=== 블록)"
-            className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-primary"
-          />
-          <button
-            onClick={doImport}
-            disabled={busy}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {busy ? '가져오는 중…' : '가져오기'}
-          </button>
-        </div>
-      )}
-      {err && <p className="mt-2 text-sm text-danger">{err}</p>}
-    </div>
-  )
-}
-
-// 드롭박스 준자동 회수(1b) — 링크 등록 + 진입 시 자동 동기화 + 수동 동기화.
-//  · 마운트 시 소스 조회 → 링크가 있으면 자동으로 1회 동기화(폴링).
-//  · POST /api/insights/source = 드롭박스 fetch → 해시 비교 → 바뀐 경우만 분배 회수(무료).
-type SourceInfo = {
-  url: string
-  last_fetched_at: string | null
-  last_imported_at: string | null
-  last_count: number | null
-}
-
-function fmtWhen(iso: string | null): string {
-  if (!iso) return '아직 없음'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return '아직 없음'
-  return d.toLocaleString('ko-KR', {
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function DropboxSyncPanel({ onAdd }: { onAdd: (added: InsightRow[]) => void }) {
-  const [loading, setLoading] = useState(true)
-  const [source, setSource] = useState<SourceInfo | null>(null)
-  const [url, setUrl] = useState('')
-  const [editing, setEditing] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState('')
-  const [err, setErr] = useState('')
-
-  async function refreshSource(): Promise<SourceInfo | null> {
-    try {
-      const res = await fetch('/api/insights/source')
-      const json = await res.json()
-      return (json.source ?? null) as SourceInfo | null
-    } catch {
-      return null
-    }
-  }
-
-  async function runSync(auto: boolean) {
-    setBusy(true)
-    setErr('')
-    if (!auto) setMsg('')
-    try {
-      const res = await fetch('/api/insights/source', { method: 'POST' })
-      const json = await res.json()
-      if (!res.ok) {
-        if (!auto) setErr(json.error ?? '동기화에 실패했습니다.')
-        return
-      }
-      const added = (json.insights ?? []) as InsightRow[]
-      if (added.length > 0) {
-        onAdd(added)
-        setMsg(`드롭박스에서 ${added.length}건을 회수했습니다.`)
-      } else if (json.noBlocks) {
-        if (!auto) setErr('파일에서 인식할 양식 블록(===MFH-INSIGHT===)을 찾지 못했습니다.')
-      } else if (json.unchanged) {
-        if (!auto) setMsg('변경된 내용이 없습니다.')
-      } else if (!auto) {
-        setMsg('회수할 새 내용이 없습니다.')
-      }
-      setSource(await refreshSource())
-    } catch {
-      if (!auto) setErr('네트워크 오류가 발생했습니다.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  // 마운트: 소스 조회 → 링크가 있으면 자동 동기화 1회(진입 폴링).
-  useEffect(() => {
-    let alive = true
-    void (async () => {
-      const src = await refreshSource()
-      if (!alive) return
-      setSource(src)
-      setUrl(src?.url ?? '')
-      setLoading(false)
-      if (src?.url) void runSync(true)
-    })()
-    return () => {
-      alive = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  async function save() {
-    const u = url.trim()
-    if (!u) {
-      setErr('링크를 입력해 주세요.')
-      return
-    }
-    setBusy(true)
-    setErr('')
-    setMsg('')
-    try {
-      const res = await fetch('/api/insights/source', {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url: u }),
-      })
-      const json = await res.json()
-      if (!res.ok) {
-        setErr(json.error ?? '저장에 실패했습니다.')
-        return
-      }
-      setSource((json.source ?? null) as SourceInfo | null)
-      setEditing(false)
-      await runSync(false)
-    } catch {
-      setErr('네트워크 오류가 발생했습니다.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function remove() {
-    setBusy(true)
-    setErr('')
-    setMsg('')
-    try {
-      const res = await fetch('/api/insights/source', { method: 'DELETE' })
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}))
-        setErr((j as { error?: string }).error ?? '해제에 실패했습니다.')
-        return
-      }
-      setSource(null)
-      setUrl('')
-      setEditing(false)
-      setMsg('드롭박스 자동 회수를 해제했습니다.')
-    } catch {
-      setErr('네트워크 오류가 발생했습니다.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const showForm = !loading && (editing || !source)
-
-  return (
-    <div className="rounded-xl bg-surface-subtle p-4">
-      <div className="text-xs font-semibold text-ink">드롭박스 자동 회수 (준자동)</div>
-      <p className="mt-1 text-[11px] leading-snug text-faint">
-        claude.ai 분석 결과를 드롭박스 텍스트 파일에 덮어쓰고 공유 링크를 등록하면, 인사이트를 열 때마다 새 결과를 자동으로 가져옵니다.
-      </p>
-
-      {loading && <p className="mt-3 text-[11px] text-faint">불러오는 중…</p>}
-
-      {!loading && source && !editing && (
-        <div className="mt-3 space-y-2">
-          <div className="truncate rounded-lg border border-line bg-surface px-3 py-2 text-[11px] text-muted">
-            {source.url}
-          </div>
-          <p className="text-[11px] text-faint">
-            마지막 회수: {fmtWhen(source.last_imported_at)}
-            {source.last_count ? ` · ${source.last_count}건` : ''}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => void runSync(false)}
-              disabled={busy}
-              className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-            >
-              {busy ? '동기화 중…' : '지금 동기화'}
-            </button>
-            <button
-              onClick={() => {
-                setErr('')
-                setMsg('')
-                setEditing(true)
-              }}
-              disabled={busy}
-              className="rounded-xl border border-line px-3 py-2 text-sm text-muted transition hover:border-primary disabled:opacity-50"
-            >
-              링크 수정
-            </button>
-            <button
-              onClick={() => void remove()}
-              disabled={busy}
-              className="rounded-xl border border-line px-3 py-2 text-sm text-muted transition hover:border-primary disabled:opacity-50"
-            >
-              해제
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showForm && (
-        <div className="mt-3 space-y-2">
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://www.dropbox.com/scl/fi/…?dl=0"
-            className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-primary"
-          />
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => void save()}
-              disabled={busy}
-              className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-            >
-              {busy ? '저장 중…' : '저장하고 가져오기'}
-            </button>
-            {source && (
-              <button
-                onClick={() => {
-                  setEditing(false)
-                  setUrl(source.url)
-                  setErr('')
-                }}
-                disabled={busy}
-                className="rounded-xl border border-line px-3 py-2 text-sm text-muted transition hover:border-primary disabled:opacity-50"
-              >
-                취소
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {msg && <p className="mt-2 text-[11px] text-muted">{msg}</p>}
-      {err && <p className="mt-2 text-sm text-danger">{err}</p>}
-    </div>
-  )
-}
-
 // 기간 칩(공용).
 function PeriodChips({
   days,
@@ -697,57 +351,22 @@ function PeriodChips({
 
 export default function InsightsClient({
   initial,
-  hasApiKey,
   year,
   themeName,
 }: {
   initial: InsightRow[]
-  hasApiKey: boolean
   year: number
   themeName: string | null
 }) {
   const [rows, setRows] = useState<InsightRow[]>(initial)
   const [view, setView] = useState<'home' | InsightDomain>('home')
-  const [bundleDays, setBundleDays] = useState<number>(30)
-  const homeBalance = useBalance(bundleDays, view === 'home')
-  const homeFruit = useFruit(bundleDays, view === 'home')
+  const homeBalance = useBalance(30, view === 'home')
+  const homeFruit = useFruit(30, view === 'home')
 
-  const addRows = (added: InsightRow[]) => setRows((r) => [...added, ...r])
   const patchRow = (id: string, patch: Partial<InsightRow>) =>
     setRows((r) => r.map((x) => (x.id === id ? { ...x, ...patch } : x)))
   const removeRow = (id: string) => setRows((r) => r.filter((x) => x.id !== id))
   const countOf = (d: InsightDomain) => rows.filter((r) => r.domain === d).length
-
-  // AI 전체 생성 — 분야·렌즈를 순차 호출(balance=집계, letter=웹검색 비용으로 제외). 입력은 홈에서만.
-  const [genBusy, setGenBusy] = useState<string>('')
-  const [genErr, setGenErr] = useState<string>('')
-  async function genAll() {
-    setGenErr('')
-    const targets: InsightDomain[] = [
-      'overall',
-      'journal',
-      'project',
-      'task',
-      'prayer',
-      'fruit',
-    ]
-    for (let i = 0; i < targets.length; i++) {
-      setGenBusy(`${i + 1}/${targets.length}`)
-      try {
-        const res = await fetch('/api/insights', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ domain: targets[i], periodDays: bundleDays }),
-        })
-        const json = await res.json()
-        if (res.ok) addRows([json.insight as InsightRow])
-        else setGenErr(json.error ?? '일부 생성에 실패했습니다.')
-      } catch {
-        setGenErr('네트워크 오류가 발생했습니다.')
-      }
-    }
-    setGenBusy('')
-  }
 
   if (view !== 'home') {
     return (
@@ -769,43 +388,6 @@ export default function InsightsClient({
           {year} · {themeName}
         </div>
       )}
-
-      {/* 전체 분석 — 한 번에 내보내고 한 번에 가져오기 */}
-      <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-sm font-semibold text-primary">전체 분석</div>
-          <div className="flex items-center gap-1">
-            <PeriodChips days={bundleDays} onChange={setBundleDays} small />
-          </div>
-        </div>
-        <ImportPanel
-          title="전체 데이터 → 모든 렌즈 (무료)"
-          desc="전체 데이터를 한 번에 내보내 Claude 에서 분석한 뒤, 결과를 가져오면 Prayer·Fruit·Letter 에 자동 분배됩니다."
-          exportHref={`/api/insights/export?bundle=1&days=${bundleDays}`}
-          fallbackDomain="overall"
-          days={bundleDays}
-          onAdd={addRows}
-        />
-        <DropboxSyncPanel onAdd={addRows} />
-
-        {/* AI 전체 생성 (API · 종량제) */}
-        <div className="rounded-xl bg-surface-subtle p-4">
-          <div className="text-xs font-semibold text-ink">AI 전체 생성 (API · 종량제)</div>
-          <p className="mt-1 text-[11px] leading-snug text-faint">
-            {hasApiKey
-              ? '앱이 분야·렌즈를 직접 분석합니다. 호출당 소액이 과금됩니다. (편지는 제외 — 수동·가져오기로 작성)'
-              : 'API 키가 준비되면 활성화됩니다. 현재는 수동·드롭박스를 사용하세요.'}
-          </p>
-          <button
-            onClick={genAll}
-            disabled={!hasApiKey || genBusy !== ''}
-            className="mt-3 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {genBusy ? `생성 중… ${genBusy}` : 'AI로 전체 생성'}
-          </button>
-          {genErr && <p className="mt-2 text-sm text-danger">{genErr}</p>}
-        </div>
-      </div>
 
       {/* 렌즈 카드 */}
       <div className="space-y-3">
@@ -946,7 +528,7 @@ function LensDetail({
 }
 
 // 한 도메인(렌즈/분야)의 인사이트 본문 — (Balance/Fruit 집계) + 결과 히스토리(읽기·별점·삭제).
-// 생성·내보내기·가져오기는 인사이트 홈의 "전체 분석"에서만. 여기는 보기 전용.
+// 생성은 Claude Code Local 루틴(외부)에서. 여기는 보기·별점·메모·삭제 전용.
 export function DomainInsightBody({
   domain,
   rows,
