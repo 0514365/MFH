@@ -15,9 +15,14 @@ export default function TaskCheck({ id, done }: { id: string; done: boolean }) {
     setChecked(next)
     setBusy(true)
     const supabase = createClient()
+    // 완료 체크 ↔ Status 연동: 완료 ON → done, 완료 OFF → in_progress 로 되돌림.
     const { error } = await supabase
       .from('tasks')
-      .update({ done: next, completed_at: next ? new Date().toISOString() : null })
+      .update({
+        done: next,
+        status: next ? 'done' : 'in_progress',
+        completed_at: next ? new Date().toISOString() : null,
+      })
       .eq('id', id)
     setBusy(false)
     if (error) {
