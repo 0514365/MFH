@@ -212,15 +212,16 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
   }, [intercessionId])
 
   async function addFiles(e: ChangeEvent<HTMLInputElement>) {
-    const list = e.target.files
-    e.currentTarget.value = '' // 같은 파일 다시 선택 허용
-    if (!list || list.length === 0) return
+    const input = e.currentTarget
+    const all = Array.from(input.files ?? []) // FileList 는 live 참조 — value 비우기 전에 먼저 복사
+    input.value = '' // 같은 파일 다시 선택 허용
+    if (all.length === 0) return
     const room = MAX_JOURNAL_PHOTOS - photos.length
     if (room <= 0) {
       setPhotoNote(`사진은 최대 ${MAX_JOURNAL_PHOTOS}장까지 첨부할 수 있습니다.`)
       return
     }
-    const picked = Array.from(list).slice(0, room)
+    const picked = all.slice(0, room)
     const wasEmpty = photos.length === 0
     const slots: PhotoSlot[] = []
     let firstMeta: PhotoMeta | null = null
@@ -254,7 +255,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
       if (firstMeta.lng != null) setPhotoLng(String(firstMeta.lng))
     }
 
-    const overflow = list.length > room
+    const overflow = all.length > room
     setPhotoNote(
       (anyMeta
         ? '사진에서 촬영일·위치 정보를 불러왔습니다.'
