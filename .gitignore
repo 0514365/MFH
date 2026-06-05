@@ -9,3 +9,7 @@ build
 .DS_Store
 next-env.d.ts
 News Letter/
+
+# 편지 호별 인스턴스·재료 (개인 사역내용·사진 — DB에서 생성)
+letter-templates/issues/
+letter-templates/mfh-2605-letter.html

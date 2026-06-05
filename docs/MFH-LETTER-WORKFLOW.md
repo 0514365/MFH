@@ -68,11 +68,26 @@
 
 ---
 
-## 5. 차후 자동화 (앱 보강 — 선택)
+## 5. 완전자동 — Supabase 직접 (구현됨)
 
-- 앱에 **'그달 재료 내보내기'**: 일지+사진 → 편지 재료(JSON/zip) 한 번에.
-- 기존 **letter 인사이트**(일지+프로젝트+할일 종합 AI 초안)와 연결 → 글 초안 자동.
-- 템플릿에 데이터 바인딩 → 버튼 한 번으로 반자동 생성 (Claude Code 개발 영역).
+내보내기·복사조차 필요 없다. 이 창(Claude Code)에서 한 줄로 그달 재료를 DB에서 직접 받는다:
+
+```
+node scripts/fetch-letter-materials.mjs 2026-06     # 그달 추출
+node scripts/fetch-letter-materials.mjs --list      # 월별 데이터 분포
+```
+
+→ 그달 일지·사진을 `letter-templates/issues/2026-06/` 에 저장 (`materials.md` + `photos/`).
+→ Claude가 그 폴더를 읽고 마스터 템플릿에 채워 편지를 생성 (예: `letter-templates/mfh-2605-letter.html`).
+
+- 키: `.env.local` 의 `SUPABASE_SERVICE_ROLE_KEY` (RLS 우회). **코드·git에 키 없음.**
+- `letter-templates/issues/` 는 개인 일지·사진이라 **git 제외**(.gitignore).
+
+### 운영 한 줄 요약
+> 앱 일지에 사역 기록·사진을 쌓아두면 → 이 창에서 **"6월호 만들어줘"** → 끝.
+
+### 앱 경로 (보조)
+앱 `/letter-materials` 페이지(insights에서 진입)에서도 텍스트 복사 + 사진 다운로드가 가능하다 (무료, RLS).
 
 ---
 
