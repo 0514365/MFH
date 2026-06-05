@@ -6,6 +6,7 @@ import { normalizeStatus, type StatusValue } from '@/lib/constants'
 export type ProjectSortKey = 'due' | 'importance'
 
 export type ProjectFilter = {
+  hideDone: boolean
   fStatus: StatusValue[]
   fImportance: number[]
   fCategory: string[]
@@ -14,6 +15,7 @@ export type ProjectFilter = {
 }
 
 export const EMPTY_PROJECT_FILTER: ProjectFilter = {
+  hideDone: true,
   fStatus: [],
   fImportance: [],
   fCategory: [],
@@ -36,6 +38,9 @@ function splitCsv(v: string | null): string[] {
 }
 
 export function parseProjectFilter(sp: ParamsLike): ProjectFilter {
+  // 완료숨김 기본 true → 쿼리에 done=0 이 있을 때만 완료 표시(hideDone=false). (Tasks 와 동일 규칙)
+  const hideDone = sp.get('done') === '0' ? false : true
+
   const statusRaw = splitCsv(sp.get('status'))
   const fStatus = statusRaw.filter((s): s is StatusValue =>
     (STATUS_SET as string[]).includes(s),
@@ -53,12 +58,13 @@ export function parseProjectFilter(sp: ParamsLike): ProjectFilter {
   const dirRaw = sp.get('dir')
   const asc = dirRaw === 'desc' ? false : true
 
-  return { fStatus, fImportance, fCategory, sortKey, asc }
+  return { hideDone, fStatus, fImportance, fCategory, sortKey, asc }
 }
 
 // 필터를 쿼리스트링으로. 기본값(빈 필터)이면 빈 문자열을 반환 -> URL 깔끔하게 유지.
 export function buildProjectQuery(f: ProjectFilter): string {
   const params = new URLSearchParams()
+  if (!f.hideDone) params.set('done', '0')
   if (f.fStatus.length) params.set('status', f.fStatus.join(','))
   if (f.fImportance.length) params.set('imp', f.fImportance.join(','))
   if (f.fCategory.length) params.set('cat', f.fCategory.join(','))
@@ -69,6 +75,7 @@ export function buildProjectQuery(f: ProjectFilter): string {
 
 export function isDefaultProjectFilter(f: ProjectFilter): boolean {
   return (
+    f.hideDone === true &&
     f.fStatus.length === 0 &&
     f.fImportance.length === 0 &&
     f.fCategory.length === 0 &&
@@ -91,6 +98,8 @@ type FilterableProject = {
 // due 동률/importance 동률일 때 created_at desc 로 tie-break 하여 prev/next 가 흔들리지 않게 한다.
 export function applyProjectFilter<T extends FilterableProject>(projects: T[], f: ProjectFilter): T[] {
   let list = projects.filter((p) => {
+    // 프로젝트엔 done 컬럼이 없음 → status==='done' 을 완료로 간주(Tasks 의 done 숨김과 동일 UX).
+    if (f.hideDone && normalizeStatus(p.status) === 'done') return false
     if (f.fStatus.length && !f.fStatus.includes(normalizeStatus(p.status))) return false
     if (f.fImportance.length && !f.fImportance.includes(p.importance)) return false
     if (f.fCategory.length && !(p.category && f.fCategory.includes(p.category))) return false

@@ -136,6 +136,7 @@ export default function ProjectsList({
     [],
   )
 
+  const [hideDone, setHideDone] = useState(initial.hideDone)
   const [fStatus, setFStatus] = useState<StatusValue[]>(initial.fStatus)
   const [fImportance, setFImportance] = useState<number[]>(initial.fImportance)
   const [fCategory, setFCategory] = useState<string[]>(initial.fCategory)
@@ -152,12 +153,12 @@ export default function ProjectsList({
 
   // 필터/정렬 → URL 쿼리 동기화
   useEffect(() => {
-    const f: ProjectFilter = { fStatus, fImportance, fCategory, sortKey, asc }
+    const f: ProjectFilter = { hideDone, fStatus, fImportance, fCategory, sortKey, asc }
     const qs = buildProjectQuery(f)
     const current = searchParams.toString()
     if (qs === current) return
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [fStatus, fImportance, fCategory, sortKey, asc, pathname, router, searchParams])
+  }, [hideDone, fStatus, fImportance, fCategory, sortKey, asc, pathname, router, searchParams])
 
   const importanceOpts = useMemo(
     () =>
@@ -175,13 +176,13 @@ export default function ProjectsList({
   )
 
   const filtered = useMemo(
-    () => applyProjectFilter(projects, { fStatus, fImportance, fCategory, sortKey, asc }),
-    [projects, fStatus, fImportance, fCategory, sortKey, asc],
+    () => applyProjectFilter(projects, { hideDone, fStatus, fImportance, fCategory, sortKey, asc }),
+    [projects, hideDone, fStatus, fImportance, fCategory, sortKey, asc],
   )
 
   const detailQuery = useMemo(
-    () => buildProjectQuery({ fStatus, fImportance, fCategory, sortKey, asc }),
-    [fStatus, fImportance, fCategory, sortKey, asc],
+    () => buildProjectQuery({ hideDone, fStatus, fImportance, fCategory, sortKey, asc }),
+    [hideDone, fStatus, fImportance, fCategory, sortKey, asc],
   )
   const detailSuffix = detailQuery ? `?${detailQuery}` : ''
 
@@ -201,12 +202,14 @@ export default function ProjectsList({
     [filtered, selectedId],
   )
 
-  const activeCount = fStatus.length + fImportance.length + fCategory.length
+  const activeCount =
+    (hideDone ? 0 : 1) + fStatus.length + fImportance.length + fCategory.length
   const hasFilter = activeCount > 0
   const sortChanged = sortKey !== 'due' || !asc
   const canReset = hasFilter || sortChanged
 
   function resetAll() {
+    setHideDone(true)
     setFStatus([])
     setFImportance([])
     setFCategory([])
@@ -353,6 +356,18 @@ export default function ProjectsList({
       {/* 필터 칩바 (접이식) */}
       {filterOpen && (
         <div className="mb-3 space-y-2 rounded-xl border border-line bg-surface-subtle p-3">
+          {/* 완료 숨김 (Tasks 목록과 동일) */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-[11px] font-semibold text-faint">완료</span>
+            <button
+              type="button"
+              onClick={() => setHideDone((v) => !v)}
+              className={`${chip} ${hideDone ? chipOn : ''}`}
+            >
+              완료 숨김
+            </button>
+          </div>
+
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="mr-1 text-[11px] font-semibold text-faint">상태</span>
             {STATUSES.map((s) => (
