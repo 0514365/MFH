@@ -70,6 +70,7 @@
 3. **가정 평강·문제예방·사전축복** 비중.
 
 - 월간 편지 3단 구조(온두라스 / 사역 / 선교사 가정), 굵은 번호 제목 + 맥락 문단 + 대시 불릿, 번호 `MFH #YYMM`.
+- **선교편지 제작은 5-에이전트 팀**(`docs/MFH-LETTER-AGENTS.md`)으로 진행 — collector→strategist→writer→designer→assembler, 매 단계 우진 승인. "○월호 만들어줘"로 가동(팀장이 오케스트레이터).
 
 ## 8. 빌드 단계 / 현재 위치
 
@@ -80,5 +81,5 @@ v0(스키마+Auth+오프닝+홈+일지) → v1(프로젝트·할 일) → v2(에
 ## 9. 세션 시작 시 Claude 가 할 일
 
 1. `docs/` 에서 최신 핸드오프(`MFH-HANDOFF-*.md` 최고 버전) + `MFH-CONTEXT.md` 를 읽는다.
-2. 포트폴리오 작업이면 `MFH-PORTFOLIO-DESIGN.md` 도 읽는다.
+2. 포트폴리오 작업이면 `MFH-PORTFOLIO-DESIGN.md`, 선교편지 작업이면 `MFH-LETTER-AGENTS.md` 도 읽는다.
 3. 현재 위치·다음 작업을 한 줄로 요약하고, 결정 테이블로 방향을 확인한 뒤 진행한다.
