@@ -40,7 +40,7 @@
 | # | 에이전트 | 역할(1줄) | 입력 | 출력(계약) |
 |---|---|---|---|---|
 | 1 | `letter-collector` | 그달 일지·사진(다중)·인사이트를 모아 정리·인덱싱, 누락자료 질문 작성 | 대상 월 | `materials.md` · `photos/` · `photo-index.md` |
-| 2 | `letter-strategist` | 자료 분석 → 편지 방향 2~3안 + 추천 | 1의 출력 | `direction.md` |
+| 2 | `letter-strategist` | 자료 분석 + **온두라스 현황 웹검색** → 편지 방향 2~3안 + 추천 | 1의 출력 | `direction.md` |
 | 3 | `letter-writer` | 확정 방향으로 원고 + 글↔사진 매핑 | 2의 확정안 | `manuscript.md` · `image-map.md` |
 | 4 | `letter-designer` | 마스터 HTML → 그달 시안 2~3개 | 3의 출력 + 사진 | `variants/letter-*.html` → `letter.html` |
 | 5 | `letter-assembler` | 도메인 규칙 QA·최종 통합·출력 | 3+4 확정본 | `MFH-XXXX.pdf` + 포트폴리오 등록 메모 |
@@ -109,6 +109,8 @@ letter-templates/issues/<YYYY-MM>/
 - 3원칙: ① 온두라스 정치 **중립**(정당·인물 거명 금지) ② 사역 기도제목 **1~2개 압축** ③ **가정 평강·문제예방·사전축복** 비중.
 - 월간 편지 3단 구조: **온두라스 / 사역 / 선교사 가정**. 굵은 번호 제목 + 맥락 문단 + 대시 불릿. 번호 `MFH #YYMM`.
 - 연 주제 표기: **"2026년 주제 · 주님은 길을 내십니다"**.
+- **온두라스 섹션 = 웹검색 기반**: strategist가 그달 온두라스 기상·경제·사회·치안 뉴스를 `WebSearch`로 확인해 시의성 있게 반영하되, **정당·인물·진영 거명 금지**, 정치 사안은 '사회 안정·치안·회복을 위한 중립 기도'로만. (근거: 기존 반자동 프로세스 PROJECT-INSTRUCTIONS/KNOWLEDGE)
+- **앱 `letter` 인사이트(편지 초안 추천) 활용**: 앱이 생성한 '월간 기도편지(letter)' 인사이트 = 편지 방향 2~3안 + 3단 초안 추천. collector가 수집해 표시하고, strategist는 이를 **방향 설계의 출발점**으로 참조한 뒤 그달 자료·웹검색으로 검증·보완한다(중복 작업·앱 추천과 따로 놀기 방지).
 
 **브랜드 (디자인)**
 - 색 토큰: `--cool #DCC2C3`(더스티로즈) / `--accent #EFC8B8`(살구코랄) / `--navy #5E2A2B`(딥마룬). 월 변주는 `--cool`/`--accent` 두 색만 교체.

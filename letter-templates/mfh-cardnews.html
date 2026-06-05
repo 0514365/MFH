@@ -96,9 +96,10 @@
   .cl-head .en{font-family:var(--sans);font-size:18px;font-weight:700;letter-spacing:.3em;color:var(--accent-d);text-transform:uppercase;}
   .cl-head h2{font-family:var(--myeong);font-weight:800;font-size:62px;line-height:1.3;margin-top:18px;color:var(--navy);}
   .cl-pray{position:absolute;top:418px;left:64px;right:64px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:34px 40px;box-shadow:0 8px 28px rgba(43,64,102,.07);}
-  .cl-pray .grp{font-family:var(--sans);font-size:18px;font-weight:700;letter-spacing:.12em;color:var(--accent-d);text-transform:uppercase;margin-bottom:8px;}
-  .cl-pray .grp:not(:first-child){margin-top:20px;}
-  .cl-pray li{list-style:none;position:relative;padding-left:28px;font-size:27px;line-height:1.5;color:#46434b;margin-bottom:9px;}
+  /* 기도제목 그룹 타이틀 = 뱃지(알약) 강조 */
+  .cl-pray .grp{display:inline-block;font-family:var(--sans);font-size:22px;font-weight:800;letter-spacing:.06em;color:var(--navy);background:var(--accent);padding:7px 22px;border-radius:999px;margin-bottom:12px;}
+  .cl-pray .grp:not(:first-child){margin-top:18px;}
+  .cl-pray li{list-style:none;position:relative;padding-left:30px;font-size:28px;line-height:1.5;color:#46434b;margin-bottom:9px;}
   .cl-pray li::before{content:"";position:absolute;left:3px;top:14px;width:12px;height:12px;border-radius:50%;background:var(--cool-line);}
   .cl-cta{position:absolute;left:64px;right:64px;bottom:214px;display:flex;align-items:center;gap:24px;background:var(--navy);border-radius:18px;padding:24px 28px;}
   .cl-cta .qr{width:104px;height:104px;border-radius:16px;flex:none;object-fit:cover;display:block;}
