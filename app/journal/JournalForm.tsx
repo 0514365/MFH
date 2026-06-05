@@ -1,11 +1,12 @@
 // MFH-JOURNAL-REDESIGN-V3
 'use client'
 
-import { useEffect, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { readPhotoMeta, uploadJournalPhoto, type PhotoMeta } from '@/lib/photo'
 import CategorySelect from '@/components/CategorySelect'
+import LinkedPicker, { type PickerItem } from '@/components/LinkedPicker'
 import BackButton from '@/components/BackButton'
 import { haversineMeters } from '@/lib/geo'
 import { MAX_JOURNAL_PHOTOS } from '@/lib/types'
@@ -139,12 +140,12 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
       })
     void supabase
       .from('projects')
-      .select('id, title, user_id')
+      .select('id, title, user_id, status')
       .order('created_at', { ascending: false })
       .then(({ data }) => setProjects((data ?? []) as Project[]))
     void supabase
       .from('tasks')
-      .select('id, title, project_id, user_id')
+      .select('id, title, project_id, user_id, done, status')
       .order('created_at', { ascending: false })
       .then(({ data }) => setTasks((data ?? []) as Task[]))
     void supabase
@@ -441,6 +442,63 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
   const placeMatches = placeNames
     .filter((n) => n !== placeName && (!placeName || n.toLowerCase().includes(placeName.toLowerCase())))
     .slice(0, 6)
+
+  // ── 연계(프로젝트↔할일) 양방향 필터 + 완료 항목 분리 ──
+  // 현재 선택값의 표시명(완료·필터 제외 항목이어도 항상 보이게).
+  const projectLabel = useMemo(
+    () => projects.find((p) => p.id === projectId)?.title ?? '',
+    [projects, projectId],
+  )
+  const taskLabel = useMemo(() => tasks.find((t) => t.id === taskId)?.title ?? '', [tasks, taskId])
+  // 작성자 보조표기(내 것이 아니면 이름).
+  const subOf = (uid: string) => (uid && uid !== meId && members[uid] ? members[uid] : undefined)
+
+  // 프로젝트 후보: 할일을 먼저 고르면 그 할일의 프로젝트로 좁힘. 완료(status='done')는 따로.
+  const projectItems = useMemo(() => {
+    const selTask = tasks.find((t) => t.id === taskId)
+    const cand =
+      taskId && selTask?.project_id
+        ? projects.filter((p) => p.id === selTask.project_id)
+        : projects
+    const active: PickerItem[] = []
+    const done: PickerItem[] = []
+    for (const p of cand) {
+      const item: PickerItem = { id: p.id, title: p.title, sub: subOf(p.user_id) }
+      ;(p.status === 'done' ? done : active).push(item)
+    }
+    return { active, done }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, tasks, taskId, meId, members])
+
+  // 할일 후보: 프로젝트를 먼저 고르면 그 프로젝트 소속만. 완료(done 또는 status='done')는 따로.
+  const taskItems = useMemo(() => {
+    const cand = projectId ? tasks.filter((t) => t.project_id === projectId) : tasks
+    const active: PickerItem[] = []
+    const done: PickerItem[] = []
+    for (const t of cand) {
+      const item: PickerItem = { id: t.id, title: t.title, sub: subOf(t.user_id) }
+      ;(t.done || t.status === 'done' ? done : active).push(item)
+    }
+    return { active, done }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, projectId, meId, members])
+
+  function pickProject(id: string) {
+    setProjectId(id)
+    // 프로젝트를 바꿔 기존 선택 할일이 안 맞으면 할일 해제.
+    if (id && taskId) {
+      const t = tasks.find((x) => x.id === taskId)
+      if (t && t.project_id !== id) setTaskId('')
+    }
+  }
+  function pickTask(id: string) {
+    setTaskId(id)
+    // 할일을 고르면 그 할일의 프로젝트로 자동 설정.
+    if (id) {
+      const t = tasks.find((x) => x.id === id)
+      if (t?.project_id) setProjectId(t.project_id)
+    }
+  }
 
   function toggleSub(k: SubKey) {
     setOpenSubs((s) => ({ ...s, [k]: !s[k] }))
@@ -770,27 +828,29 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
             </div>
           )}
 
-          {/* 연계 한 줄 */}
+          {/* 연계 한 줄 — 프로젝트↔할일 양방향 필터 + 완료 항목 접이식 */}
           <label className={`${sectionTitle} mt-5`}>🔗 연계 (선택)</label>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={input}>
-              <option value="">프로젝트 없음</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                  {p.user_id && p.user_id !== meId && members[p.user_id] ? ` · ${members[p.user_id]}` : ''}
-                </option>
-              ))}
-            </select>
-            <select value={taskId} onChange={(e) => setTaskId(e.target.value)} className={input}>
-              <option value="">할 일 없음</option>
-              {tasks.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.title}
-                  {t.user_id && t.user_id !== meId && members[t.user_id] ? ` · ${members[t.user_id]}` : ''}
-                </option>
-              ))}
-            </select>
+            <LinkedPicker
+              value={projectId}
+              onChange={pickProject}
+              activeItems={projectItems.active}
+              doneItems={projectItems.done}
+              selectedLabel={projectLabel}
+              placeholder="프로젝트 없음"
+              emptyLabel="프로젝트 없음"
+              doneLabel="완료된 프로젝트"
+            />
+            <LinkedPicker
+              value={taskId}
+              onChange={pickTask}
+              activeItems={taskItems.active}
+              doneItems={taskItems.done}
+              selectedLabel={taskLabel}
+              placeholder="할 일 없음"
+              emptyLabel="할 일 없음"
+              doneLabel="완료된 할 일"
+            />
           </div>
 
           {msg && <p className="mt-4 text-sm text-danger">{msg}</p>}
