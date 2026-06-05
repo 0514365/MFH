@@ -178,7 +178,7 @@ letter-templates/issues/<YYYY-MM>/
 | F | `letter-assembler` 정의서 | ✓ 확정 |
 | G | `.claude/agents/` 점검 | ✓ 완료 (5종 frontmatter 유효) |
 
-**팀 구성 완료.** 가동: 팀장에게 "○월호 만들어줘" → collector부터 §8 런북대로.
+**팀 구성 + 기조 확립 완료.** 기조 = "보고+기도"(도입 이야기 + 사역 항목별 보고·기도 + 기도제목 요약 반복), 온두라스 WebSearch(중립), 앱 `letter` 인사이트(편지 초안 추천) 출발점 참조. **5월 데이터로 전 과정 리허설·검증 완료.** 가동: 팀장에게 "○월호 만들어줘" → collector부터 §8 런북대로.
 
 ---
 
