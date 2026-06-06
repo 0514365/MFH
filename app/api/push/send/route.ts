@@ -87,6 +87,18 @@ async function run(): Promise<NextResponse> {
 }
 
 export async function GET(req: Request) {
+  // 임시 진단(값 비노출, 존재·길이만). 검증 후 제거 예정.
+  if (new URL(req.url).searchParams.get('debug') === '1') {
+    const s = process.env.CRON_SECRET
+    return NextResponse.json({
+      hasCronSecret: !!s,
+      cronSecretLen: s ? s.length : 0,
+      hasVapidPublic: !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      hasVapidPrivate: !!process.env.VAPID_PRIVATE_KEY,
+      hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      authHeaderReceived: !!req.headers.get('authorization'),
+    })
+  }
   if (!authorized(req)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   return run()
 }
