@@ -31,7 +31,20 @@ export default function LinkedPicker({
 }: Props) {
   const [open, setOpen] = useState(false)
   const [showDone, setShowDone] = useState(false)
+  const [dropUp, setDropUp] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+
+  // 트리거가 화면 하단이면(아래 공간 부족) 드롭다운을 위로 펼친다.
+  function toggleOpen() {
+    setOpen((v) => {
+      const next = !v
+      if (next && rootRef.current) {
+        const rect = rootRef.current.getBoundingClientRect()
+        setDropUp(window.innerHeight - rect.bottom < 320)
+      }
+      return next
+    })
+  }
 
   // 외부 클릭 시 닫기
   useEffect(() => {
@@ -72,7 +85,7 @@ export default function LinkedPicker({
 
   return (
     <div ref={rootRef} className="relative">
-      <button type="button" onClick={() => setOpen((v) => !v)} className={trigger}>
+      <button type="button" onClick={toggleOpen} className={trigger}>
         <span className={`min-w-0 truncate ${selectedLabel ? 'text-ink' : 'text-faint'}`}>
           {selectedLabel || placeholder}
         </span>
@@ -80,7 +93,9 @@ export default function LinkedPicker({
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 z-30 mt-1 max-h-72 overflow-auto rounded-xl border border-line bg-surface py-1 shadow-lg">
+        <div
+          className={`absolute left-0 right-0 z-30 max-h-72 overflow-auto rounded-xl border border-line bg-surface py-1 shadow-lg ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+        >
           {/* 선택 해제 */}
           <button
             type="button"
