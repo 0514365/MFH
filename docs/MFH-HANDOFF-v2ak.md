@@ -37,14 +37,23 @@ Phase 5a **할 일 앱 아이콘 뱃지(포그라운드) 완료·배포**. PWA�
 - ✅ `npx tsc --noEmit` 통과 · ✅ `npm run build` 통과(전 라우트 정상).
 - 로컬 미리보기 검증 스킵: Badging API/SW는 *설치된 PWA + 로그인 상태*(특히 iOS 홈화면)에서만 관찰 가능 → localhost 일반 탭 검증 불가. 실기기 확인이 표준.
 
+### Phase 5a 보완 — iOS 뱃지 권한 옵트인 (배포 후 발견·해결)
+
+**증상**: iOS 홈화면 PWA에서 아이콘에 숫자 미표시. **원인**: iOS는 W3C 표준과 달리 **알림 권한이 granted 여야** `setAppBadge`가 홈화면에 표시된다(WebKit). 권한 요청은 사용자 제스처(버튼 클릭) 안에서만 가능 → 자동 요청 불가, "켜기" 버튼 필수. **데스크톱·안드로이드는 권한 없이도 표시** → 이 옵트인은 iOS 전용 대응.
+
+| 파일 | 신규/수정 | 내용 |
+|---|---|---|
+| `components/BadgeOptIn.tsx` | 신규(client) | 권한 상태 배너: `default`→"뱃지 켜기" 버튼(클릭→`Notification.requestPermission()`→granted 시 즉시 `refreshAppBadge()`), `granted`/미지원→배너 숨김, `denied`→"설정 > 알림" 안내. 초기값 `unsupported`로 hydration 안전 |
+| `app/tasks/page.tsx` | 수정 | 헤더 아래 `<BadgeOptIn/>` 배치 |
+
 ---
 
 ## 우진 액션 (배포 후 iOS 실기기 확인)
 
 1. iOS에서 앱을 **홈화면에 추가**(이미 있으면 재설치 권장 — SW 최초 등록 반영).
-2. 마감일이 오늘이거나 지난 미완료 할 일을 만든 뒤 앱을 닫으면 → 아이콘에 숫자.
-3. 완료 처리 후 앱을 나갔다 보면 숫자 감소, 0이면 뱃지 사라짐.
-4. ⚠️ **만약 iOS에서 숫자가 안 보이면**: iOS의 뱃지가 알림 권한과 연동될 가능성 → 그 경우 5a에 알림 권한 요청 한 줄 추가가 필요할 수 있음(확인 후 판단).
+2. 할 일 페이지의 **"뱃지 켜기"** 배너를 누르고 **알림 허용**(iOS 필수 — 권한 없으면 숫자 안 뜸).
+3. 마감일이 오늘이거나 지난 미완료 할 일을 만들면 → 아이콘에 숫자. 완료 처리 후 나갔다 보면 감소, 0이면 사라짐.
+4. ✅ **iOS 권한 필요는 확정·해결됨**(WebKit 제약). 권한 허용 후 즉시 표시.
 
 ---
 
@@ -70,5 +79,7 @@ Phase 5a **할 일 앱 아이콘 뱃지(포그라운드) 완료·배포**. PWA�
 
 - `feat: app icon badge for due tasks (Phase 5a)` — 코드 6파일
 - `docs: handoff v2ak — Phase 5a app icon badge` — 이 문서
+- `fix: iOS badge opt-in via notification permission (Phase 5a)` — BadgeOptIn 배너
+- `docs: handoff v2ak — add iOS badge opt-in` — 이 보강
 
 *작성: 2026-06-06 세션 (Phase 5a 할 일 앱 아이콘 뱃지).*
