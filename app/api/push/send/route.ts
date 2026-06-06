@@ -22,7 +22,11 @@ function authorized(req: Request): boolean {
 async function run(): Promise<NextResponse> {
   const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const priv = process.env.VAPID_PRIVATE_KEY
-  const subject = process.env.VAPID_SUBJECT || 'mailto:noreply@mfh.app'
+  let subject = process.env.VAPID_SUBJECT || 'mailto:noreply@mfh.app'
+  // web-push 는 subject 가 mailto:/https: 여야 함. 이메일만 등록된 경우 mailto: 보정.
+  if (!subject.startsWith('mailto:') && !subject.startsWith('http')) {
+    subject = `mailto:${subject}`
+  }
   if (!pub || !priv) return NextResponse.json({ error: 'VAPID not configured' }, { status: 500 })
   webpush.setVapidDetails(subject, pub, priv)
 
