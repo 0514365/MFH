@@ -14,12 +14,24 @@ type LatestRow = {
   period_end: string | null
   content: string | null
   model: string | null
+  created_at: string | null
 }
 
 export default function DomainInsightPanel({ domain }: { domain: InsightDomain }) {
   const [open, setOpen] = useState(false)
   const [row, setRow] = useState<LatestRow | null | undefined>(undefined) // undefined = 아직 미조회
   const isAssist = domain === 'task_assist' || domain === 'project_assist'
+  // 업데이트 시각(날짜+시:분) — 보는 사람 로컬 기준. SSR=날짜만(UTC) → 마운트 후 시:분(hydration 안전).
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const fmtAt = (iso: string | null) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    return mounted
+      ? `${d.toLocaleDateString('en-CA')} ${d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : d.toISOString().slice(0, 10)
+  }
 
   useEffect(() => {
     if (!open || row !== undefined) return
@@ -27,7 +39,7 @@ export default function DomainInsightPanel({ domain }: { domain: InsightDomain }
     const supabase = createClient()
     void supabase
       .from('insights')
-      .select('period_start,period_end,content,model')
+      .select('period_start,period_end,content,model,created_at')
       .eq('domain', domain)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -62,7 +74,7 @@ export default function DomainInsightPanel({ domain }: { domain: InsightDomain }
           ) : (
             <>
               <div className="text-[11px] text-faint">
-                {row.period_start} ~ {row.period_end} · {row.model === 'manual' ? '수동' : 'AI'} · 최신
+                {row.period_start} ~ {row.period_end} · {row.model === 'manual' ? '수동' : 'AI'} · {fmtAt(row.created_at)}
               </div>
               <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">
                 {row.content}
