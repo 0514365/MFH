@@ -17,14 +17,13 @@ export const dynamic = 'force-dynamic'
 
 type ProjTask = { id: string; title: string; done: boolean; due_date: string | null }
 
-export default async function ProjectDetail({
-  params,
-  searchParams,
-}: {
-  params: { id: string }
-  searchParams: Record<string, string | string[] | undefined>
+export default async function ProjectDetail(props: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const supabase = createClient()
+  const params = await props.params
+  const searchParams = await props.searchParams
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

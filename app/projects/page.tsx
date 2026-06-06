@@ -12,7 +12,7 @@ import { projectSignals } from '@/lib/signals'
 export const dynamic = 'force-dynamic'
 
 export default async function ProjectsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

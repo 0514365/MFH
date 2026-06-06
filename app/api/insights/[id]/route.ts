@@ -9,8 +9,9 @@ import { createClient } from '@/lib/supabase-server'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const supabase = createClient()
+export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const params = await ctx.params
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -53,8 +54,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json({ insight: data })
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const supabase = createClient()
+export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const params = await ctx.params
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

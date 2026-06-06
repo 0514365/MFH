@@ -19,13 +19,14 @@ type FeedRow = {
   done: boolean | null
 }
 
-export async function GET(_req: Request, { params }: { params: { token: string } }) {
+export async function GET(_req: Request, ctx: { params: Promise<{ token: string }> }) {
+  const params = await ctx.params
   // 생성 시각(UTC) → DTSTAMP 'YYYYMMDDTHHMMSSZ'
   const dtstamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
 
   let events: IcsEvent[] = []
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error } = await supabase.rpc('get_calendar_feed', { p_token: params.token })
     if (!error && Array.isArray(data)) {
       events = (data as FeedRow[])

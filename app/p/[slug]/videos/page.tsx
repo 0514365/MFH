@@ -11,14 +11,15 @@ import BrandBar from '../BrandBar';
 import VideoSection from '../VideoSection';
 import OwnerBar from '@/components/OwnerBar';
 
-type Props = { params: { slug: string } };
+type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: 'MFH — 사역 영상', description: 'Mission for Honduras 사역 영상' };
 }
 
-export default async function PortfolioVideosPage({ params }: Props) {
-  const supabase = createClient();
+export default async function PortfolioVideosPage(props: Props) {
+  const params = await props.params;
+  const supabase = await createClient();
 
   const {
     data: { user },

@@ -8,7 +8,7 @@ import IntercessionsList, { type Intercession } from './IntercessionsList'
 export const dynamic = 'force-dynamic'
 
 export default async function IntercessionsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

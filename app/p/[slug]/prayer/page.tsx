@@ -7,8 +7,9 @@ import PrayerForm from './PrayerForm'
 
 export const dynamic = 'force-dynamic'
 
-export default async function PrayerPage({ params }: { params: { slug: string } }) {
-  const supabase = createClient()
+export default async function PrayerPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

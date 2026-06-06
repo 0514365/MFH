@@ -13,13 +13,14 @@ import PrayerCta from './PrayerCta';
 import SplashGate from '@/app/SplashGate';
 import OwnerBar from '@/components/OwnerBar';
 
-type Props = { params: { slug: string } };
+type Props = { params: Promise<{ slug: string }> };
 
 // 공유 링크 미리보기(Open Graph)에 쓸 공개 도메인.
 const SITE_URL = 'https://mfh-snowy.vercel.app';
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const supabase = createClient();
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
+  const supabase = await createClient();
   const { data } = await supabase
     .from('portfolio')
     .select('intro_text, missionary_a_name, missionary_b_name')
@@ -57,8 +58,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function PublicPortfolioPage({ params }: Props) {
-  const supabase = createClient();
+export default async function PublicPortfolioPage(props: Props) {
+  const params = await props.params;
+  const supabase = await createClient();
 
   // 로그인 상태면 오프닝 건너뜀(소유자가 자기 공개페이지를 볼 때)
   const {

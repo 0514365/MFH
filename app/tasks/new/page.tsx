@@ -4,12 +4,11 @@ import TaskForm from '../TaskForm'
 
 export const dynamic = 'force-dynamic'
 
-export default async function NewTaskPage({
-  searchParams,
-}: {
-  searchParams: { project?: string }
+export default async function NewTaskPage(props: {
+  searchParams: Promise<{ project?: string }>
 }) {
-  const supabase = createClient()
+  const searchParams = await props.searchParams
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

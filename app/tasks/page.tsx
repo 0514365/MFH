@@ -14,7 +14,7 @@ import { taskSignals } from '@/lib/signals'
 export const dynamic = 'force-dynamic'
 
 export default async function TasksPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

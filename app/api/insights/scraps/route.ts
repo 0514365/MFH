@@ -15,7 +15,7 @@ const SCRAP_COLS =
   'id,source_id,domain,content,period_start,period_end,rating,feedback_note,scrapped_at'
 
 export async function GET() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -28,7 +28,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
 // DELETE /api/insights/scraps?source_id=<원본 insight id> — 보관 취소(토글 해제).
 //  · 인사이트 카드는 원본 id(source_id)만 알므로 source_id 기준으로 삭제한다. RLS: 본인 것만.
 export async function DELETE(req: Request) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

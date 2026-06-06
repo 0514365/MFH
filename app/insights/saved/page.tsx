@@ -6,7 +6,7 @@ import SavedClient, { type ScrapRow } from './SavedClient'
 export const dynamic = 'force-dynamic'
 
 export default async function SavedInsightsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

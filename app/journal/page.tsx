@@ -11,7 +11,7 @@ import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 export const dynamic = 'force-dynamic'
 
 export default async function JournalPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -5,8 +5,9 @@ import TaskForm from '../../TaskForm'
 
 export const dynamic = 'force-dynamic'
 
-export default async function EditTask({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function EditTask(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

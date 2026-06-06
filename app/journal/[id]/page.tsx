@@ -24,14 +24,13 @@ function Section({ label, text }: { label: string; text: string | null }) {
   )
 }
 
-export default async function JournalDetail({
-  params,
-  searchParams,
-}: {
-  params: { id: string }
-  searchParams: Record<string, string | string[] | undefined>
+export default async function JournalDetail(props: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const supabase = createClient()
+  const params = await props.params
+  const searchParams = await props.searchParams
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

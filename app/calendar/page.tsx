@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 // MFH-CAL-STATUS-V1
 
 export default async function CalendarPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
