@@ -81,3 +81,18 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: `보관에 실패했습니다. (${error.message})` }, { status: 500 })
   return NextResponse.json({ scrap: inserted }, { status: 201 })
 }
+
+// DELETE /api/insights/scraps?source_id=<원본 insight id> — 보관 취소(토글 해제).
+//  · 인사이트 카드는 원본 id(source_id)만 알므로 source_id 기준으로 삭제한다. RLS: 본인 것만.
+export async function DELETE(req: Request) {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+  const sourceId = new URL(req.url).searchParams.get('source_id')
+  if (!sourceId) return NextResponse.json({ error: 'source_id 가 필요합니다.' }, { status: 400 })
+  const { error } = await supabase.from('insight_scraps').delete().eq('source_id', sourceId)
+  if (error) return NextResponse.json({ error: '보관 취소에 실패했습니다.' }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}

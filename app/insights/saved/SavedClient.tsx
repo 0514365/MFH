@@ -2,7 +2,7 @@
 // MFH-INSIGHT-SAVED-CLIENT-V1
 // 보관함 — 스크랩한 인사이트의 영구 복사본 목록(읽기 + 삭제).
 // 인사이트는 도메인별 최신 1행만 유지되므로, 남기고 싶은 건 보관함에 모인다.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DOMAIN_LABEL, type InsightDomain } from '@/lib/insightExport'
 
 export type ScrapRow = {
@@ -19,6 +19,17 @@ export type ScrapRow = {
 
 export default function SavedClient({ initial }: { initial: ScrapRow[] }) {
   const [rows, setRows] = useState<ScrapRow[]>(initial)
+  // 보관 시각(날짜+시:분) — 보는 사람 로컬 기준. SSR=날짜만(UTC) → 마운트 후 시:분(hydration 안전).
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const fmtAt = (iso: string | null) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    return mounted
+      ? `${d.toLocaleDateString('en-CA')} ${d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : d.toISOString().slice(0, 10)
+  }
 
   async function remove(id: string) {
     const res = await fetch(`/api/insights/scraps/${id}`, { method: 'DELETE' })
@@ -41,7 +52,7 @@ export default function SavedClient({ initial }: { initial: ScrapRow[] }) {
             <div className="text-xs font-semibold text-primary">
               {DOMAIN_LABEL[row.domain] ?? row.domain}
             </div>
-            <div className="text-[11px] text-faint">{row.scrapped_at?.slice(0, 10)}</div>
+            <div className="text-[11px] text-faint">{fmtAt(row.scrapped_at)} · 보관</div>
           </div>
           <div className="mt-1 text-[11px] text-faint">
             {row.period_start} ~ {row.period_end}

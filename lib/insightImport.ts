@@ -33,7 +33,7 @@ PERIOD: 2026-05-24 ~ 2026-05-30
 
 const BLOCK_RE = /===MFH-INSIGHT===([\s\S]*?)===END===/g
 const PERIOD_RE = /(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})/
-const LENS_RE = /LENS:\s*([A-Za-z]+)/
+const LENS_RE = /LENS:\s*([A-Za-z_]+)/
 const RATING_RE = /RATING:\s*([1-5])/
 
 const MAX_LEN = 20000

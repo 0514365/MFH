@@ -10,13 +10,13 @@ import { JOURNAL_CATEGORIES } from '@/lib/constants'
 
 // 기존 데이터 출처 도메인(레거시 Raw 분석) — 유지.
 export type RawDomain = 'journal' | 'project' | 'task' | 'overall'
-// 신규 목적 렌즈 키.
-export type LensKey = 'prayer' | 'balance' | 'fruit' | 'letter'
+// 신규 목적 렌즈 키. project_assist·task_assist = 비서(능동 제안, Phase 4).
+export type LensKey = 'prayer' | 'balance' | 'fruit' | 'letter' | 'project_assist' | 'task_assist'
 // insights.domain 에 저장될 수 있는 모든 값.
 export type InsightDomain = RawDomain | LensKey
 
 export const RAW_DOMAINS: RawDomain[] = ['overall', 'journal', 'project', 'task']
-export const LENS_KEYS: LensKey[] = ['prayer', 'balance', 'fruit', 'letter']
+export const LENS_KEYS: LensKey[] = ['prayer', 'balance', 'fruit', 'letter', 'project_assist', 'task_assist']
 export const ALL_DOMAINS: InsightDomain[] = [...RAW_DOMAINS, ...LENS_KEYS]
 
 export function isLens(d: string): d is LensKey {
@@ -44,6 +44,8 @@ export const DOMAIN_LABEL: Record<InsightDomain, string> = {
   balance: '사역·가정 균형',
   fruit: '간증·열매',
   letter: '월간 기도편지',
+  project_assist: '프로젝트 비서',
+  task_assist: '할 일 비서',
 }
 
 // UI 렌즈 카드용 영어 라벨(모듈 라벨·제목은 영어 규칙).
@@ -52,6 +54,8 @@ export const LENS_LABEL: Record<LensKey, string> = {
   balance: 'Balance',
   fruit: 'Fruit',
   letter: 'Letter',
+  project_assist: 'Project',
+  task_assist: 'Task',
 }
 
 // 도메인/렌즈별로 어떤 데이터 블록을 내보낼지 결정(API route 3곳 공유).
@@ -61,9 +65,9 @@ export function domainNeeds(d: InsightDomain): {
   task: boolean
 } {
   return {
-    journal: ['journal', 'overall', 'prayer', 'fruit', 'balance', 'letter'].includes(d),
-    project: ['project', 'overall', 'balance', 'letter'].includes(d),
-    task: ['task', 'overall', 'balance', 'letter'].includes(d),
+    journal: ['journal', 'overall', 'prayer', 'fruit', 'balance', 'letter', 'project_assist', 'task_assist'].includes(d),
+    project: ['project', 'overall', 'balance', 'letter', 'project_assist', 'task_assist'].includes(d),
+    task: ['task', 'overall', 'balance', 'letter', 'project_assist', 'task_assist'].includes(d),
   }
 }
 

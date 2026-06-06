@@ -19,6 +19,7 @@ type LatestRow = {
 export default function DomainInsightPanel({ domain }: { domain: InsightDomain }) {
   const [open, setOpen] = useState(false)
   const [row, setRow] = useState<LatestRow | null | undefined>(undefined) // undefined = 아직 미조회
+  const isAssist = domain === 'task_assist' || domain === 'project_assist'
 
   useEffect(() => {
     if (!open || row !== undefined) return
@@ -54,7 +55,9 @@ export default function DomainInsightPanel({ domain }: { domain: InsightDomain }
             <p className="text-sm text-faint">불러오는 중…</p>
           ) : row === null ? (
             <p className="text-sm text-faint">
-              아직 인사이트가 없습니다. 인사이트의 “전체 분석”에서 생성하세요.
+              {isAssist
+                ? '아직 비서 제안이 없습니다. 데스크톱에서 갱신하면 표시됩니다.'
+                : '아직 인사이트가 없습니다. 인사이트의 “전체 분석”에서 생성하세요.'}
             </p>
           ) : (
             <>

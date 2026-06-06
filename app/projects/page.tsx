@@ -50,6 +50,7 @@ export default async function ProjectsPage() {
         }
       />
 
+      <DomainInsightPanel domain="project_assist" />
       <DomainInsightPanel domain="project" />
 
       <ProjectsList projects={projects} counts={counts} membersMap={membersMap} currentUserId={user.id} />

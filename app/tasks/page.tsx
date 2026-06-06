@@ -41,6 +41,7 @@ export default async function TasksPage() {
         }
       />
 
+      <DomainInsightPanel domain="task_assist" />
       <DomainInsightPanel domain="task" />
 
       <TasksListClient tasks={tasks} membersMap={membersMap} currentUserId={user.id} />

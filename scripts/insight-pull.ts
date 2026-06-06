@@ -21,11 +21,12 @@ import {
   type TaskRow,
   type LetterDigestRow,
   type ScrapRow,
+  isValidDomain,
 } from '@/lib/insightExport'
 import { buildBundleInstruction, buildFewShot, type FewShotExample } from '@/lib/insightPrompt'
 import { IMPORT_FORMAT_GUIDE } from '@/lib/insightImport'
 
-// 생성 도메인 — letter(선교편지 팀)·balance(순수집계·무료) 제외.
+// 기본 생성 도메인(7) — balance(순수집계·무료)·비서 제외. --domains 로 덮어쓸 수 있다.
 const GEN_DOMAINS: InsightDomain[] = ['overall', 'journal', 'project', 'task', 'prayer', 'fruit', 'letter']
 
 // .env.local 파싱(따옴표 제거). fetch-letter-materials.mjs 와 동일 규칙.
@@ -60,6 +61,17 @@ async function main() {
       : 90
   const pStart = periodStart(days)
   const pEnd = todayStr()
+
+  // 인자: --domains a,b,c (기본 GEN_DOMAINS). 비서(/assistant-update)는 --domains project_assist,task_assist 로 호출.
+  const domIdx = process.argv.indexOf('--domains')
+  const domains: InsightDomain[] =
+    domIdx >= 0 && process.argv[domIdx + 1]
+      ? process.argv[domIdx + 1].split(',').map((s) => s.trim()).filter(isValidDomain)
+      : GEN_DOMAINS
+  if (!domains.length) {
+    console.error('유효한 도메인이 없습니다. --domains 값을 확인하세요(예: project_assist,task_assist).')
+    process.exit(1)
+  }
 
   // 데이터 조회(부부 공동). overall 한 장에 journal+project+task 모두 담겨 각 렌즈가 골라 본다.
   const { data: journals, error: jErr } = await sb
@@ -101,25 +113,28 @@ async function main() {
     .limit(6)
   const fewShot = buildFewShot((liked ?? []) as FewShotExample[])
 
-  // letter 재료 — 최근 인사이트(피드백 신호) + 보관. letter 도메인이 "내 피드백" 위주로 편지 방향을 잡게 한다.
-  const { data: digestRows } = await sb
-    .from('insights')
-    .select('domain,content,period_start,period_end,rating,feedback_note,in_letter')
-    .neq('domain', 'letter')
-    .order('in_letter', { ascending: false })
-    .order('rating', { ascending: false, nullsFirst: false })
-  const { data: scrapRows } = await sb
-    .from('insight_scraps')
-    .select('domain,content,rating,feedback_note')
-    .order('scrapped_at', { ascending: false })
-  const letterDigest = buildLetterDigest(
-    (digestRows ?? []) as LetterDigestRow[],
-    (scrapRows ?? []) as ScrapRow[],
-  )
+  // letter 재료 — letter 생성 시에만 조회(비서 등 다른 도메인엔 불필요). 최근 인사이트(피드백 신호) + 보관.
+  let letterDigest = ''
+  if (domains.includes('letter')) {
+    const { data: digestRows } = await sb
+      .from('insights')
+      .select('domain,content,period_start,period_end,rating,feedback_note,in_letter')
+      .neq('domain', 'letter')
+      .order('in_letter', { ascending: false })
+      .order('rating', { ascending: false, nullsFirst: false })
+    const { data: scrapRows } = await sb
+      .from('insight_scraps')
+      .select('domain,content,rating,feedback_note')
+      .order('scrapped_at', { ascending: false })
+    letterDigest = buildLetterDigest(
+      (digestRows ?? []) as LetterDigestRow[],
+      (scrapRows ?? []) as ScrapRow[],
+    )
+  }
 
   // 작업지시서 = 가드레일·도메인 관점·회수양식(lib) + few-shot + 분석 데이터 + 편지 재료 + 양식 가이드.
   const out = [
-    buildBundleInstruction(GEN_DOMAINS),
+    buildBundleInstruction(domains),
     fewShot,
     '',
     `[분석 기간] 각 ===MFH-INSIGHT=== 블록의 PERIOD 는 ${pStart} ~ ${pEnd} 로 표기해 주세요.`,
@@ -134,7 +149,7 @@ async function main() {
 
   process.stdout.write(out + '\n')
   console.error(
-    `[insight-pull] ${pStart}~${pEnd} · 일지 ${journals?.length ?? 0} · 프로젝트 ${projects?.length ?? 0} · 할일 ${tasks?.length ?? 0} · few-shot ${liked?.length ?? 0} → stdout(작업지시서)`,
+    `[insight-pull] ${pStart}~${pEnd} · 도메인 [${domains.join(', ')}] · 일지 ${journals?.length ?? 0} · 프로젝트 ${projects?.length ?? 0} · 할일 ${tasks?.length ?? 0} · few-shot ${liked?.length ?? 0} → stdout`,
   )
 }
 
