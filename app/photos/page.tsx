@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { resolveJournalPhotos } from '@/lib/journalPhotos'
 import type { JournalPhoto } from '@/lib/types'
+import PageHeader from '@/components/PageHeader'
 import PhotoGalleryClient, { type PhotoItem } from './PhotoGalleryClient'
 
 export const dynamic = 'force-dynamic'
@@ -80,5 +81,10 @@ export default async function PhotosPage({
     }
   }
 
-  return <PhotoGalleryClient month={month} entryCount={rows.length} photos={photos} />
+  return (
+    <main className="mx-auto max-w-2xl px-5 py-8">
+      <PageHeader title="Photos" />
+      <PhotoGalleryClient month={month} entryCount={rows.length} photos={photos} />
+    </main>
+  )
 }
