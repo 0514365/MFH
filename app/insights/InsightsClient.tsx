@@ -674,7 +674,17 @@ function InsightCard({
   const [noteOpen, setNoteOpen] = useState(false)
   const [note, setNote] = useState(row.feedback_note ?? '')
   const inLetter = row.in_letter === true
-  const created = row.created_at?.slice(0, 10) ?? ''
+  // 최종 업데이트 시각(날짜+시:분) — 보는 사람의 현재 위치(브라우저 로컬) 기준.
+  // SSR 에선 날짜만(UTC 고정, 안정), 마운트 후 로컬 시:분까지 채움 → hydration mismatch 방지.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const cd = row.created_at ? new Date(row.created_at) : null
+  const created =
+    cd && !Number.isNaN(cd.getTime())
+      ? mounted
+        ? `${cd.toLocaleDateString('en-CA')} ${cd.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+        : cd.toISOString().slice(0, 10)
+      : ''
   const isManual = row.model === 'manual'
 
   return (
