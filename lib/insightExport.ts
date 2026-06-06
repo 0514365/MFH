@@ -211,6 +211,58 @@ export function buildInsightDigest(rows: InsightDigestRow[]): string {
   return `## 최근 인사이트 (편지 재료)\n${items}\n`
 }
 
+// 편지(letter) 재료 — 최근 인사이트 + 우진 피드백 신호(별점·메모·편지에담기·보관)를 직렬화.
+// 루틴 letter 생성이 "내가 가치 있다고 표시한 것" 위주로 편지 방향을 잡도록 한다.
+export type LetterDigestRow = {
+  domain: InsightDomain
+  content: string | null
+  period_start: string | null
+  period_end: string | null
+  rating: number | null
+  feedback_note: string | null
+  in_letter: boolean | null
+}
+export type ScrapRow = {
+  domain: InsightDomain
+  content: string | null
+  rating: number | null
+  feedback_note: string | null
+}
+export function buildLetterDigest(insights: LetterDigestRow[], scraps: ScrapRow[]): string {
+  const valid = insights.filter((r) => r.content && r.content.trim())
+  // in_letter(편지에 담기) 우선 → 별점 높은 순.
+  const sorted = [...valid].sort((a, b) => {
+    const ai = a.in_letter ? 1 : 0
+    const bi = b.in_letter ? 1 : 0
+    if (ai !== bi) return bi - ai
+    return (b.rating ?? 0) - (a.rating ?? 0)
+  })
+  const blocks = sorted.map((r) => {
+    const stars = r.rating ? ` ★${r.rating}` : ''
+    const pick = r.in_letter ? ' [편지에담기]' : ''
+    const period =
+      r.period_start || r.period_end ? ` (${r.period_start ?? '?'}~${r.period_end ?? '?'})` : ''
+    const note = r.feedback_note?.trim() ? `\n  [메모] ${r.feedback_note.trim()}` : ''
+    return `### ${DOMAIN_LABEL[r.domain]}${stars}${pick}${period}\n${(r.content ?? '').trim()}${note}`
+  })
+  const validScraps = scraps.filter((s) => s.content && s.content.trim())
+  const scrapBlocks = validScraps.map((s) => {
+    const stars = s.rating ? ` ★${s.rating}` : ''
+    const note = s.feedback_note?.trim() ? `\n  [메모] ${s.feedback_note.trim()}` : ''
+    return `[보관] ${DOMAIN_LABEL[s.domain]}${stars}\n${(s.content ?? '').trim()}${note}`
+  })
+  const parts = [
+    '## 편지 재료 — 최근 인사이트 + 내 피드백 신호',
+    '(★N=별점 / [편지에담기]=편지 재료로 고른 것 / [메모]=내가 남긴 메모 / [보관]=따로 보관한 것. 우선순위 높은 신호를 먼저 반영하세요.)',
+    '',
+    blocks.length ? blocks.join('\n\n') : '(아직 저장된 인사이트 없음)',
+  ]
+  if (scrapBlocks.length) {
+    parts.push('', '### 따로 보관한 인사이트', scrapBlocks.join('\n\n'))
+  }
+  return parts.join('\n')
+}
+
 // ── Balance 렌즈: 분류 비중 집계(순수 함수 — API 불필요 = 무료) ───────────
 export type CategoryStat = { category: string; count: number; ratio: number }
 export type CategoryBreakdown = { items: CategoryStat[]; total: number }

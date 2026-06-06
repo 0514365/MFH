@@ -11,6 +11,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import {
   buildDataMarkdown,
+  buildLetterDigest,
   periodStart,
   todayStr,
   type ExportData,
@@ -18,12 +19,14 @@ import {
   type JournalRow,
   type ProjectRow,
   type TaskRow,
+  type LetterDigestRow,
+  type ScrapRow,
 } from '@/lib/insightExport'
 import { buildBundleInstruction, buildFewShot, type FewShotExample } from '@/lib/insightPrompt'
 import { IMPORT_FORMAT_GUIDE } from '@/lib/insightImport'
 
 // 생성 도메인 — letter(선교편지 팀)·balance(순수집계·무료) 제외.
-const GEN_DOMAINS: InsightDomain[] = ['overall', 'journal', 'project', 'task', 'prayer', 'fruit']
+const GEN_DOMAINS: InsightDomain[] = ['overall', 'journal', 'project', 'task', 'prayer', 'fruit', 'letter']
 
 // .env.local 파싱(따옴표 제거). fetch-letter-materials.mjs 와 동일 규칙.
 function loadEnv(): Record<string, string> {
@@ -98,7 +101,23 @@ async function main() {
     .limit(6)
   const fewShot = buildFewShot((liked ?? []) as FewShotExample[])
 
-  // 작업지시서 = 가드레일·도메인 관점·회수양식(lib) + few-shot + 분석 데이터 + 양식 가이드.
+  // letter 재료 — 최근 인사이트(피드백 신호) + 보관. letter 도메인이 "내 피드백" 위주로 편지 방향을 잡게 한다.
+  const { data: digestRows } = await sb
+    .from('insights')
+    .select('domain,content,period_start,period_end,rating,feedback_note,in_letter')
+    .neq('domain', 'letter')
+    .order('in_letter', { ascending: false })
+    .order('rating', { ascending: false, nullsFirst: false })
+  const { data: scrapRows } = await sb
+    .from('insight_scraps')
+    .select('domain,content,rating,feedback_note')
+    .order('scrapped_at', { ascending: false })
+  const letterDigest = buildLetterDigest(
+    (digestRows ?? []) as LetterDigestRow[],
+    (scrapRows ?? []) as ScrapRow[],
+  )
+
+  // 작업지시서 = 가드레일·도메인 관점·회수양식(lib) + few-shot + 분석 데이터 + 편지 재료 + 양식 가이드.
   const out = [
     buildBundleInstruction(GEN_DOMAINS),
     fewShot,
@@ -107,6 +126,8 @@ async function main() {
     '',
     '═══════════════════════ 분석 데이터 ═══════════════════════',
     buildDataMarkdown(data),
+    '',
+    letterDigest,
     '',
     IMPORT_FORMAT_GUIDE,
   ].join('\n')
