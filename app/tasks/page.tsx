@@ -6,6 +6,7 @@ import PageHeader from '@/components/PageHeader'
 import type { TaskListRow } from './TasksListClient'
 import TasksListClient from './TasksListClient'
 import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
+import BadgeOptIn from '@/components/BadgeOptIn'
 
 // MFH-TASKS-PAGE-V2
 export const dynamic = 'force-dynamic'
@@ -40,6 +41,8 @@ export default async function TasksPage() {
           </Link>
         }
       />
+
+      <BadgeOptIn />
 
       <DomainInsightPanel domain="task_assist" />
       <DomainInsightPanel domain="task" />
