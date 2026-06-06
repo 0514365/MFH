@@ -353,19 +353,23 @@ export default function InsightsClient({
   initial,
   year,
   themeName,
+  scrappedIds,
 }: {
   initial: InsightRow[]
   year: number
   themeName: string | null
+  scrappedIds: string[]
 }) {
   const [rows, setRows] = useState<InsightRow[]>(initial)
   const [view, setView] = useState<'home' | InsightDomain>('home')
+  const [scrapped, setScrapped] = useState<Set<string>>(new Set(scrappedIds))
   const homeBalance = useBalance(30, view === 'home')
   const homeFruit = useFruit(30, view === 'home')
 
   const patchRow = (id: string, patch: Partial<InsightRow>) =>
     setRows((r) => r.map((x) => (x.id === id ? { ...x, ...patch } : x)))
   const removeRow = (id: string) => setRows((r) => r.filter((x) => x.id !== id))
+  const markScrapped = (id: string) => setScrapped((s) => new Set(s).add(id))
   const countOf = (d: InsightDomain) => rows.filter((r) => r.domain === d).length
 
   if (view !== 'home') {
@@ -373,9 +377,11 @@ export default function InsightsClient({
       <LensDetail
         domain={view}
         rows={rows.filter((r) => r.domain === view)}
+        scrapped={scrapped}
         onBack={() => setView('home')}
         onPatch={patchRow}
         onRemove={removeRow}
+        onScrap={markScrapped}
       />
     )
   }
@@ -485,15 +491,19 @@ export default function InsightsClient({
 function LensDetail({
   domain,
   rows,
+  scrapped,
   onBack,
   onPatch,
   onRemove,
+  onScrap,
 }: {
   domain: InsightDomain
   rows: InsightRow[]
+  scrapped: Set<string>
   onBack: () => void
   onPatch: (id: string, patch: Partial<InsightRow>) => void
   onRemove: (id: string) => void
+  onScrap: (id: string) => void
 }) {
   const title = isLens(domain) ? LENS_LABEL[domain] : DOMAIN_LABEL[domain]
   return (
@@ -520,8 +530,10 @@ function LensDetail({
       <DomainInsightBody
         domain={domain}
         rows={rows}
+        scrapped={scrapped}
         onPatch={onPatch}
         onRemove={onRemove}
+        onScrap={onScrap}
       />
     </div>
   )
@@ -532,13 +544,17 @@ function LensDetail({
 export function DomainInsightBody({
   domain,
   rows,
+  scrapped,
   onPatch,
   onRemove,
+  onScrap,
 }: {
   domain: InsightDomain
   rows: InsightRow[]
+  scrapped: Set<string>
   onPatch: (id: string, patch: Partial<InsightRow>) => void
   onRemove: (id: string) => void
+  onScrap: (id: string) => void
 }) {
   const [days, setDays] = useState<number>(30)
 
@@ -579,6 +595,23 @@ export function DomainInsightBody({
     if (res.ok) onRemove(id)
   }
 
+  async function scrap(row: InsightRow) {
+    const res = await fetch('/api/insights/scraps', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        source_id: row.id,
+        domain: row.domain,
+        content: row.content,
+        period_start: row.period_start,
+        period_end: row.period_end,
+        rating: row.rating,
+        feedback_note: row.feedback_note,
+      }),
+    })
+    if (res.ok) onScrap(row.id)
+  }
+
   return (
     <div className="space-y-5">
       {(isBalance || isFruit) && (
@@ -605,9 +638,11 @@ export function DomainInsightBody({
               key={row.id}
               row={row}
               showLetter={domain === 'prayer' || domain === 'fruit' || domain === 'overall'}
+              isScrapped={scrapped.has(row.id)}
               onRate={(r) => setRating(row.id, r)}
               onNote={(n) => saveNote(row.id, n)}
               onToggleLetter={(v) => toggleLetter(row.id, v)}
+              onScrap={() => scrap(row)}
               onDelete={() => remove(row.id)}
             />
           ))
@@ -620,16 +655,20 @@ export function DomainInsightBody({
 function InsightCard({
   row,
   showLetter,
+  isScrapped,
   onRate,
   onNote,
   onToggleLetter,
+  onScrap,
   onDelete,
 }: {
   row: InsightRow
   showLetter: boolean
+  isScrapped: boolean
   onRate: (rating: number) => void
   onNote: (note: string) => void
   onToggleLetter: (value: boolean) => void
+  onScrap: () => void
   onDelete: () => void
 }) {
   const [noteOpen, setNoteOpen] = useState(false)
@@ -674,6 +713,13 @@ function InsightCard({
             className={inLetter ? 'ml-2 text-xs text-primary underline' : 'ml-2 text-xs text-muted underline'}
           >
             {inLetter ? '편지에 담김' : '편지에 담기'}
+          </button>
+        )}
+        {isScrapped ? (
+          <span className="ml-2 text-xs text-primary">보관됨</span>
+        ) : (
+          <button onClick={onScrap} className="ml-2 text-xs text-muted underline">
+            보관
           </button>
         )}
         <button onClick={onDelete} className="ml-auto text-xs text-faint underline">
