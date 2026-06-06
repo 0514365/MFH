@@ -44,13 +44,13 @@ export default function BadgeOptIn() {
     <div className="mb-5 rounded-2xl border border-line bg-surface px-4 py-3">
       {perm === 'denied' ? (
         <p className="text-sm leading-relaxed text-ink">
-          아이폰 <span className="font-semibold">설정 &gt; 알림 &gt; MFH</span>에서 알림을 허용하면 앱 아이콘에
-          마감 도래 할 일 수가 표시됩니다.
+          아이폰 <span className="font-semibold">설정 &gt; 알림 &gt; MFH</span>에서 알림을 허용하면 매일 아침 마감
+          알림과 앱 아이콘 뱃지를 받습니다.
         </p>
       ) : (
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm leading-relaxed text-ink">
-            앱 아이콘에 <span className="font-semibold">마감 도래 할 일 수</span>를 표시할까요?
+            <span className="font-semibold">매일 아침 마감 알림</span>을 받고, 앱 아이콘에 마감 도래 할 일 수를 표시할까요?
           </p>
           <button
             type="button"
