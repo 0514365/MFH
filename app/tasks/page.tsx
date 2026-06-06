@@ -7,6 +7,8 @@ import type { TaskListRow } from './TasksListClient'
 import TasksListClient from './TasksListClient'
 import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 import BadgeOptIn from '@/components/BadgeOptIn'
+import SignalChips from '@/components/SignalChips'
+import { taskSignals } from '@/lib/signals'
 
 // MFH-TASKS-PAGE-V2
 export const dynamic = 'force-dynamic'
@@ -29,6 +31,8 @@ export default async function TasksPage() {
     .order('created_at', { ascending: false })
   const tasks = (data ?? []) as unknown as TaskListRow[]
   const membersMap = await getMembersMap(supabase)
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
+  const signals = taskSignals(tasks, today)
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
@@ -43,6 +47,8 @@ export default async function TasksPage() {
       />
 
       <BadgeOptIn />
+
+      <SignalChips signals={signals} />
 
       <DomainInsightPanel domain="task_assist" />
       <DomainInsightPanel domain="task" />

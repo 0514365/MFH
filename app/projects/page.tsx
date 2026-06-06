@@ -6,6 +6,8 @@ import PageHeader from '@/components/PageHeader'
 import type { Project } from '@/lib/types'
 import ProjectsList from './ProjectsList'
 import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
+import SignalChips from '@/components/SignalChips'
+import { projectSignals } from '@/lib/signals'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +36,8 @@ export default async function ProjectsPage() {
   }
 
   const membersMap = await getMembersMap(supabase)
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
+  const signals = projectSignals(projects, today)
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
@@ -49,6 +53,8 @@ export default async function ProjectsPage() {
           </Link>
         }
       />
+
+      <SignalChips signals={signals} />
 
       <DomainInsightPanel domain="project_assist" />
       <DomainInsightPanel domain="project" />
