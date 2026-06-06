@@ -86,6 +86,18 @@ async function run(): Promise<NextResponse> {
   return NextResponse.json({ ok: true, today: hnToday, total: subs.length, sent, skipped, removed })
 }
 
+// run()이 throw 해도 함수가 빈 500으로 죽지 않도록 에러를 JSON 으로 반환(cron 견고성 + 진단).
+async function runSafe(): Promise<NextResponse> {
+  try {
+    return await run()
+  } catch (err) {
+    return NextResponse.json(
+      { error: 'send failed', detail: String((err as Error)?.message ?? err) },
+      { status: 500 },
+    )
+  }
+}
+
 export async function GET(req: Request) {
   // 임시 진단(값 비노출, 존재·길이만). 검증 후 제거 예정.
   if (new URL(req.url).searchParams.get('debug') === '1') {
@@ -100,10 +112,10 @@ export async function GET(req: Request) {
     })
   }
   if (!authorized(req)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  return run()
+  return runSafe()
 }
 
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  return run()
+  return runSafe()
 }
