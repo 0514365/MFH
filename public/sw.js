@@ -1,6 +1,5 @@
-// MFH-SW-V1 — 최소 서비스워커 (Phase 5a: 할 일 앱 아이콘 뱃지)
-// 현재는 PWA 신뢰성 + 향후 백그라운드 푸시(5b)의 토대 역할만 한다.
-// fetch 핸들러를 두지 않아 네트워크는 브라우저 기본 동작을 따른다(오프라인 캐싱 없음).
+// MFH-SW-V2 — 서비스워커 (Phase 5a 뱃지 토대 + Phase 5b Web Push)
+// fetch 핸들러는 두지 않아 네트워크는 브라우저 기본 동작(오프라인 캐싱 없음).
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -10,12 +9,53 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 })
 
-// Phase 5b 예정: 앱이 닫혀 있을 때도 push 이벤트로 뱃지/알림을 갱신한다.
-// self.addEventListener('push', (event) => {
-//   event.waitUntil((async () => {
-//     const data = event.data ? event.data.json() : {}
-//     if (typeof data.badge === 'number' && self.navigator.setAppBadge) {
-//       data.badge > 0 ? self.navigator.setAppBadge(data.badge) : self.navigator.clearAppBadge()
-//     }
-//   })())
-// })
+// iOS 필수: 모든 push 마다 알림을 표시해야 한다(silent 금지 — 미표시 시 Safari 가 구독 취소).
+self.addEventListener('push', (event) => {
+  event.waitUntil(
+    (async () => {
+      let data = {}
+      try {
+        data = event.data ? event.data.json() : {}
+      } catch (e) {
+        data = {}
+      }
+      const title = data.title || 'MFH'
+      const body = data.body || ''
+      const count = typeof data.badge === 'number' ? data.badge : 0
+
+      await self.registration.showNotification(title, {
+        body,
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        tag: 'mfh-due',
+        data: { url: '/tasks' },
+      })
+
+      if ('setAppBadge' in self.navigator) {
+        try {
+          if (count > 0) await self.navigator.setAppBadge(count)
+          else await self.navigator.clearAppBadge()
+        } catch (e) {
+          // 일부 환경의 호출 실패는 무시
+        }
+      }
+    })(),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = (event.notification.data && event.notification.data.url) || '/tasks'
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      for (const c of all) {
+        if ('focus' in c) {
+          c.focus()
+          return
+        }
+      }
+      if (self.clients.openWindow) await self.clients.openWindow(url)
+    })(),
+  )
+})

@@ -4,12 +4,17 @@
 // 전역(layout)에 1회 마운트되어, 앱 진입·복귀·변경 요청 시 마감 도래 미완료 수를 아이콘 뱃지에 반영한다.
 import { useEffect } from 'react'
 import { BADGE_EVENT, refreshAppBadge } from '@/lib/badge'
+import { subscribePush } from '@/lib/push-client'
 
 export default function BadgeSync() {
   useEffect(() => {
-    // 서비스워커 등록(PWA 신뢰성 + 향후 백그라운드 푸시 토대). 실패는 무시.
+    // 서비스워커 등록(PWA 신뢰성 + 백그라운드 푸시 토대). 실패는 무시.
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
+    }
+    // 알림 권한이 이미 허용돼 있으면 백그라운드 푸시 구독을 보장/갱신(5b).
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      void subscribePush()
     }
 
     const run = () => {

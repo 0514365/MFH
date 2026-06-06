@@ -6,6 +6,7 @@
 // 권한 granted/미지원이면 배너를 숨기고, denied 면 설정 안내를 보여준다.
 import { useEffect, useState } from 'react'
 import { refreshAppBadge } from '@/lib/badge'
+import { subscribePush } from '@/lib/push-client'
 
 type Perm = 'unsupported' | 'default' | 'granted' | 'denied'
 
@@ -28,7 +29,10 @@ export default function BadgeOptIn() {
     try {
       const result = await Notification.requestPermission()
       setPerm(result)
-      if (result === 'granted') await refreshAppBadge()
+      if (result === 'granted') {
+        await refreshAppBadge()
+        await subscribePush() // 백그라운드 푸시(5b) 구독 등록
+      }
     } catch {
       // 권한 요청 실패는 무시.
     } finally {
