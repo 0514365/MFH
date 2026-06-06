@@ -37,6 +37,10 @@ Phase 4 비서의 **4a(L2 능동 제안) 완료·배포**(커밋 `8416737`). 프
 | 2 | 보관 **토글** — "보관됨" 다시 누르면 취소. `DELETE /api/insights/scraps?source_id=` 신규 | `InsightsClient`(unscrap·unmarkScrapped 4단계 체인), `scraps/route.ts` |
 | 3 | 보관함 **시각** — `scrapped_at` 날짜+시:분(로컬·hydration 안전, mounted 패턴) | `SavedClient` |
 
+### 분야 패널 — 업데이트 시각
+
+- `DomainInsightPanel`(일지·프로젝트·할 일의 인사이트·비서 패널 **공통**): 메타 줄의 `· 최신` 제거 → `created_at` 날짜+시:분(로컬·hydration 안전) 표시. 한 컴포넌트 수정으로 모든 분야 패널 일괄 반영.
+
 ---
 
 ## 우진 액션
@@ -68,6 +72,7 @@ Phase 4 비서의 **4a(L2 능동 제안) 완료·배포**(커밋 `8416737`). 프
 ## 관련 커밋
 
 - `8416737` Phase 4a 비서 + 인사이트 카드 UX + LENS 파싱 수정
-- 이 핸드오프 `v2aj` — commit 대기
+- `d0734eb` 분야 패널 — "최신" → 업데이트 시각
+- 핸드오프 `v2aj`: `d3828a5`(본문) + 이 보강 커밋
 
 *작성: 2026-06-06 세션 (Phase 4a 비서 + 카드 UX).*
