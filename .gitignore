@@ -18,3 +18,6 @@ letter-templates/mfh-2605-letter.html
 tsconfig.tsbuildinfo
 2026 Brand Kit/
 Insight Data/
+
+# 인사이트 자동생성 아카이브·작업파일 (개인 사역내용 — Local 루틴 산출물)
+insights-archive/
