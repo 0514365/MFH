@@ -1,12 +1,11 @@
-// MFH-LETTER-MATERIALS-PAGE-V1
-// 편지 재료 내보내기 — 그달 일지(텍스트) + 사진(Signed URL)을 모아 선교편지 재료로.
-// 텍스트는 buildDataMarkdown 재활용(무료, Anthropic 미사용). 사진은 journal-photos Signed URL.
+// MFH-PHOTOS-PAGE-V1
+// 사진 모아보기 — 월별 일지 사진(Signed URL)을 사역 분류별 그리드로. 다중선택 → ZIP 내보내기.
+// 캡션(ai_caption)은 Phase 3 Local 루틴이 비전 분석으로 생성. 텍스트·편지 재료 없음(Phase 1 폐기).
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { buildDataMarkdown } from '@/lib/insightExport'
 import { resolveJournalPhotos } from '@/lib/journalPhotos'
 import type { JournalPhoto } from '@/lib/types'
-import LetterMaterialsClient, { type PhotoItem } from './LetterMaterialsClient'
+import PhotoGalleryClient, { type PhotoItem } from './PhotoGalleryClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,11 +21,6 @@ type JRow = {
   entry_date: string | null
   category: string | null
   headline: string | null
-  today: string | null
-  thanks: string | null
-  meditation: string | null
-  prayer: string | null
-  prayer_candidate: boolean | null
   place_name: string | null
   photos: JournalPhoto[] | null
   photo_path: string | null
@@ -36,7 +30,7 @@ type JRow = {
   photo_meta: Record<string, unknown> | null
 }
 
-export default async function LetterMaterialsPage({
+export default async function PhotosPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>
@@ -57,31 +51,12 @@ export default async function LetterMaterialsPage({
   const { data } = await supabase
     .from('journal_entries')
     .select(
-      'entry_date,category,headline,today,thanks,meditation,prayer,prayer_candidate,place_name,photos,photo_path,photo_taken_at,photo_lat,photo_lng,photo_meta',
+      'entry_date,category,headline,place_name,photos,photo_path,photo_taken_at,photo_lat,photo_lng,photo_meta',
     )
     .gte('entry_date', start)
     .lte('entry_date', end)
     .order('entry_date', { ascending: true })
   const rows = (data ?? []) as JRow[]
-
-  // 텍스트 재료(일지 블록) — 기존 직렬화 재활용.
-  const markdown = buildDataMarkdown({
-    domain: 'journal',
-    periodDays: 30,
-    periodStart: start,
-    periodEnd: end,
-    journals: rows.map((r) => ({
-      entry_date: r.entry_date,
-      category: r.category,
-      headline: r.headline,
-      today: r.today,
-      thanks: r.thanks,
-      meditation: r.meditation,
-      prayer: r.prayer,
-      prayer_candidate: r.prayer_candidate,
-      place_name: r.place_name,
-    })),
-  })
 
   // 사진 — 일지별 사진(다중) 각각 Signed URL 생성(1시간 만료). photos 우선·레거시 단일 fallback.
   const photos: PhotoItem[] = []
@@ -94,21 +69,16 @@ export default async function LetterMaterialsPage({
       if (signed?.signedUrl) {
         photos.push({
           url: signed.signedUrl,
+          path: ph.path,
           date: r.entry_date,
           category: r.category,
           headline: r.headline,
           takenAt: ph.taken_at ? ph.taken_at.slice(0, 10) : null,
+          caption: ph.ai_caption,
         })
       }
     }
   }
 
-  return (
-    <LetterMaterialsClient
-      month={month}
-      entryCount={rows.length}
-      markdown={markdown}
-      photos={photos}
-    />
-  )
+  return <PhotoGalleryClient month={month} entryCount={rows.length} photos={photos} />
 }

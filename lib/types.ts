@@ -19,6 +19,8 @@ export type JournalPhoto = {
   lat?: number | null
   lng?: number | null
   meta?: Record<string, unknown> | null
+  // AI 캡션(Phase 3 Local 루틴이 비전 분석으로 생성). 사진 보기 표시·편지 이미지 제안에 사용.
+  ai_caption?: string | null
 }
 
 export const MAX_JOURNAL_PHOTOS = 5

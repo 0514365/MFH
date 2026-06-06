@@ -13,3 +13,8 @@ News Letter/
 # 편지 호별 인스턴스·재료 (개인 사역내용·사진 — DB에서 생성)
 letter-templates/issues/
 letter-templates/mfh-2605-letter.html
+
+# 빌드 부산물 · 개인 작업 자료
+tsconfig.tsbuildinfo
+2026 Brand Kit/
+Insight Data/

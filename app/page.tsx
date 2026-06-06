@@ -147,6 +147,19 @@ export default async function Home() {
             <ModuleIcon name="insights" size={32} className="shrink-0 text-primary" />
           </Link>
           <Link
+            href="/photos"
+            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-bold text-primary">Photos</div>
+              <div className="mt-0.5 text-xs text-muted">Moments of grace</div>
+              <div className="mt-1 text-[11px] leading-snug text-faint">
+                <span className="truncate">월·사역별 사진 모아보기</span>
+              </div>
+            </div>
+            <ModuleIcon name="photos" size={32} className="shrink-0 text-primary" />
+          </Link>
+          <Link
             href="/portfolio"
             className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
           >

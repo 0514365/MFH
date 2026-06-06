@@ -13,6 +13,7 @@ export type ResolvedPhoto = {
   lat: number | null
   lng: number | null
   meta: Record<string, unknown> | null
+  ai_caption: string | null
 }
 
 // 원본 그대로의 사진 목록(대표 상속 없음). photos 우선, 없으면 레거시 단일 1장.
@@ -28,6 +29,7 @@ function rawList(entry: PhotoSource): ResolvedPhoto[] {
         lat: p.lat ?? null,
         lng: p.lng ?? null,
         meta: p.meta ?? null,
+        ai_caption: p.ai_caption ?? null,
       }))
   }
   if (entry.photo_path) {
@@ -39,6 +41,7 @@ function rawList(entry: PhotoSource): ResolvedPhoto[] {
         lat: entry.photo_lat ?? null,
         lng: entry.photo_lng ?? null,
         meta: entry.photo_meta ?? null,
+        ai_caption: null,
       },
     ]
   }
