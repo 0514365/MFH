@@ -1,7 +1,7 @@
-// MFH-FETCH-LETTER-MATERIALS-V2
+// MFH-FETCH-LETTER-MATERIALS-V3
 // 그달 일지(다중사진)+인사이트를 Supabase에서 직접 받아 letter-templates/issues/<month>/ 에 저장.
-// V2 변경: photos jsonb 다중사진(최대 5장, 레거시 fallback) + insights 수집(편지적용 in_letter ★)
-//          + 중보기도 연계(intercession_id → 방문자 메시지).
+// V3 변경: 인사이트 피드백 4신호 수집 — ★별점(rating)·[메모](feedback_note)·[편지에담기](in_letter)·[보관](insight_scraps).
+//          앱 letter 루틴 lib/insightExport.ts buildLetterDigest 와 동일 형식. (V2: 다중사진·in_letter·중보연계)
 // 사용:  node scripts/fetch-letter-materials.mjs 2026-06     (그달 추출)
 //        node scripts/fetch-letter-materials.mjs --list      (월별 데이터 분포)
 // 키는 .env.local 에서 읽음(SUPABASE_SERVICE_ROLE_KEY = RLS 우회). 코드에 키를 담지 않는다.
@@ -140,37 +140,65 @@ for (const r of rows) {
   md += '\n'
 }
 
-// ── 인사이트 수집 (옵션 A: in_letter=true 전부 + 대상 월 생성분) ──
+// ── 인사이트 수집 — 피드백 신호(★별점·[메모]·[편지에담기]) 우선 ──
+// in_letter=true 전부 + rating>=4 전부(월 무관) + 대상 월 생성분.
+// letter 도메인(앱이 만든 편지 방향 추천)도 포함 — strategist 출발점이므로 제외하지 않는다.
 const monthEnd = `${end}T23:59:59`
+let insCount = 0
 const { data: insights, error: insErr } = await sb
   .from('insights')
-  .select('domain,content,period_start,period_end,in_letter,created_at')
-  .or(`and(created_at.gte.${start},created_at.lte.${monthEnd}),in_letter.eq.true`)
+  .select('domain,content,period_start,period_end,in_letter,rating,feedback_note,created_at')
+  .or(`and(created_at.gte.${start},created_at.lte.${monthEnd}),in_letter.eq.true,rating.gte.4`)
   .order('in_letter', { ascending: false })
+  .order('rating', { ascending: false, nullsFirst: false })
   .order('created_at', { ascending: false })
 
+md += '## 편지 재료 — 인사이트 + 내 피드백 신호\n'
+md += '(★N=별점 / [편지에담기]=편지 재료로 고른 것 / [메모]=내가 남긴 메모 / [보관]=따로 보관한 것. 우선순위 높은 신호를 먼저 반영하세요.)\n'
 if (insErr) {
-  md += `## 인사이트\n(조회 오류: ${insErr.message})\n\n`
+  md += `\n(인사이트 조회 오류: ${insErr.message})\n\n`
 } else {
   const valid = (insights ?? []).filter((it) => it.content && it.content.trim())
+  insCount = valid.length
   if (valid.length) {
-    md += `## 인사이트 (${valid.length}건 · ★=편지적용)\n`
     for (const it of valid) {
       const label = DOMAIN_LABEL[it.domain] || it.domain
-      const star = it.in_letter ? ' ★[편지적용]' : ''
+      const stars = it.rating ? ` ★${it.rating}` : ''
+      const pick = it.in_letter ? ' [편지에담기]' : ''
       const period =
         it.period_start || it.period_end ? ` (${it.period_start ?? '?'} ~ ${it.period_end ?? '?'})` : ''
-      md += `\n### ${label}${star}${period}\n${it.content.trim()}\n`
+      const note = it.feedback_note?.trim() ? `\n  [메모] ${it.feedback_note.trim()}` : ''
+      md += `\n### ${label}${stars}${pick}${period}\n${it.content.trim()}${note}\n`
+    }
+  } else {
+    md += '\n(대상 월 생성·편지적용·별점 인사이트 없음)\n'
+  }
+  md += '\n'
+}
+
+// ── 따로 보관한 인사이트(insight_scraps) — 시점 무관 "내가 모아둔 것" ──
+let scrapCount = 0
+const { data: scraps, error: scrapErr } = await sb
+  .from('insight_scraps')
+  .select('domain,content,rating,feedback_note')
+  .order('scrapped_at', { ascending: false })
+if (!scrapErr) {
+  const validScraps = (scraps ?? []).filter((s) => s.content && s.content.trim())
+  scrapCount = validScraps.length
+  if (validScraps.length) {
+    md += `## 따로 보관한 인사이트 (${validScraps.length}건)\n`
+    for (const s of validScraps) {
+      const label = DOMAIN_LABEL[s.domain] || s.domain
+      const stars = s.rating ? ` ★${s.rating}` : ''
+      const note = s.feedback_note?.trim() ? `\n  [메모] ${s.feedback_note.trim()}` : ''
+      md += `\n### [보관] ${label}${stars}\n${s.content.trim()}${note}\n`
     }
     md += '\n'
-  } else {
-    md += `## 인사이트\n(대상 월 생성·편지적용 인사이트 없음)\n\n`
   }
 }
 
 writeFileSync(new URL('materials.md', outDir), md)
 const interCount = Object.keys(interMap).length
-const insCount = (insights ?? []).filter((it) => it.content && it.content.trim()).length
 console.log(
-  `완료: ${month} · 일지 ${rows.length}건 · 사진 ${photoCount}장 · 인사이트 ${insCount}건${interCount ? ` · 중보연계 ${interCount}건` : ''} → letter-templates/issues/${month}/ (materials.md + photos/)`,
+  `완료: ${month} · 일지 ${rows.length}건 · 사진 ${photoCount}장 · 인사이트 ${insCount}건${scrapCount ? ` · 보관 ${scrapCount}건` : ''}${interCount ? ` · 중보연계 ${interCount}건` : ''} → letter-templates/issues/${month}/ (materials.md + photos/)`,
 )

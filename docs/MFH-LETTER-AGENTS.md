@@ -111,6 +111,7 @@ letter-templates/issues/<YYYY-MM>/
 - 연 주제 표기: **"2026년 주제 · 주님은 길을 내십니다"**.
 - **온두라스 섹션 = 웹검색 기반**: strategist가 그달 온두라스 기상·경제·사회·치안 뉴스를 `WebSearch`로 확인해 시의성 있게 반영하되, **정당·인물·진영 거명 금지**, 정치 사안은 '사회 안정·치안·회복을 위한 중립 기도'로만. (근거: 기존 반자동 프로세스 PROJECT-INSTRUCTIONS/KNOWLEDGE)
 - **앱 `letter` 인사이트(편지 초안 추천) 활용**: 앱이 생성한 '월간 기도편지(letter)' 인사이트 = 편지 방향 2~3안 + 3단 초안 추천. collector가 수집해 표시하고, strategist는 이를 **방향 설계의 출발점**으로 참조한 뒤 그달 자료·웹검색으로 검증·보완한다(중복 작업·앱 추천과 따로 놀기 방지).
+- **내 피드백 신호(★별점·[편지에담기]·[메모]·[보관]) 우선**: 인사이트에 우진이 남긴 신호 = "이 재료를 편지에 담고 싶다"는 명시적 표시. collector가 `materials.md` 에 표기(★N·[편지에담기]·[메모])하고 `insight_scraps`(보관)를 별도 절로 모으며, strategist는 **[편지에담기] → 별점 → [보관] → [메모] 순으로 우선** 반영한다. 앱 letter 루틴 `lib/insightExport.ts` `buildLetterDigest` 와 동일 신호·형식(수집 스크립트 `fetch-letter-materials.mjs` V3).
 
 **브랜드 (디자인)**
 - 색 토큰: `--cool #DCC2C3`(더스티로즈) / `--accent #EFC8B8`(살구코랄) / `--navy #5E2A2B`(딥마룬). 월 변주는 `--cool`/`--accent` 두 색만 교체.
@@ -130,7 +131,7 @@ letter-templates/issues/<YYYY-MM>/
 | 카드뉴스 마스터 | `letter-templates/mfh-cardnews.html` (4:5, 1080×1350) |
 | 모바일 마스터 | `letter-templates/mfh-mobile-letter.html` (폭 430) |
 | 로고·표지 | `letter-templates/assets/` |
-| 자동 수집 스크립트 | `scripts/fetch-letter-materials.mjs` V2 — 다중사진+인사이트+중보 (`.env.local` SERVICE_ROLE_KEY) |
+| 자동 수집 스크립트 | `scripts/fetch-letter-materials.mjs` V3 — 다중사진+인사이트(피드백 4신호 ★별점·[편지에담기]·[메모])+보관([보관])+중보 (`.env.local` SERVICE_ROLE_KEY) |
 | 앱 수집(보조) | `/letter-materials` (insights 페이지 진입) |
 | 5월 시연물(품질 기준선) | `letter-templates/issues/2026-05/` |
 
