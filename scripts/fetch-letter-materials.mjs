@@ -1,9 +1,12 @@
-// MFH-FETCH-LETTER-MATERIALS-V3
-// 그달 일지(다중사진)+인사이트를 Supabase에서 직접 받아 letter-templates/issues/<month>/ 에 저장.
-// V3 변경: 인사이트 피드백 4신호 수집 — ★별점(rating)·[메모](feedback_note)·[편지에담기](in_letter)·[보관](insight_scraps).
-//          앱 letter 루틴 lib/insightExport.ts buildLetterDigest 와 동일 형식. (V2: 다중사진·in_letter·중보연계)
-// 사용:  node scripts/fetch-letter-materials.mjs 2026-06     (그달 추출)
-//        node scripts/fetch-letter-materials.mjs --list      (월별 데이터 분포)
+// MFH-FETCH-LETTER-MATERIALS-V4
+// 그달(또는 기간) 일지(다중사진)+인사이트를 Supabase에서 직접 받아 letter-templates/issues/<발행호>/ 에 저장.
+// V4 변경: 기간 범위 수집 — 시작월~종료월의 일지·인사이트를 한 호로 묶음. 출력 폴더 = 종료월(발행호).
+//          (지난달 활동을 이번 호에 담는 실운영 패턴 대응. 단일월 인자는 기존과 동일하게 동작.)
+// V3: 인사이트 피드백 4신호 — ★별점(rating)·[메모](feedback_note)·[편지에담기](in_letter)·[보관](insight_scraps).
+//     앱 letter 루틴 lib/insightExport.ts buildLetterDigest 와 동일 형식. (V2: 다중사진·in_letter·중보연계)
+// 사용:  node scripts/fetch-letter-materials.mjs 2026-06            (단일월 추출)
+//        node scripts/fetch-letter-materials.mjs 2026-05 2026-06    (기간 추출 → 06호 폴더)
+//        node scripts/fetch-letter-materials.mjs --list             (월별 데이터 분포)
 // 키는 .env.local 에서 읽음(SUPABASE_SERVICE_ROLE_KEY = RLS 우회). 코드에 키를 담지 않는다.
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync, mkdirSync, writeFileSync } from 'fs'
@@ -72,15 +75,21 @@ if (!arg || arg === '--list') {
   process.exit(0)
 }
 
-// ── 추출 모드 ──
-const month = arg
-if (!/^\d{4}-\d{2}$/.test(month)) {
-  console.error('월 형식 오류. 예: 2026-06')
+// ── 추출 모드 ── (단일월: arg / 기간: arg arg2 → 출력 폴더는 종료월=발행호)
+const startMonth = arg
+const endMonth = process.argv[3] || arg
+if (!/^\d{4}-\d{2}$/.test(startMonth) || !/^\d{4}-\d{2}$/.test(endMonth)) {
+  console.error('월 형식 오류. 예: 2026-06  또는  2026-05 2026-06')
   process.exit(1)
 }
-const [y, mo] = month.split('-').map(Number)
-const start = `${month}-01`
-const end = `${month}-${String(new Date(y, mo, 0).getDate()).padStart(2, '0')}`
+if (endMonth < startMonth) {
+  console.error('종료월이 시작월보다 빠릅니다. 예: 2026-05 2026-06')
+  process.exit(1)
+}
+const month = endMonth // 출력 폴더 = 발행호(종료월)
+const [ey, emo] = endMonth.split('-').map(Number)
+const start = `${startMonth}-01`
+const end = `${endMonth}-${String(new Date(ey, emo, 0).getDate()).padStart(2, '0')}`
 
 const { data: rows, error } = await sb
   .from('journal_entries')
@@ -110,7 +119,8 @@ if (interIds.length) {
   for (const it of inter ?? []) interMap[it.id] = it
 }
 
-let md = `# MFH 편지 재료 — ${month}\n기간: ${start} ~ ${end} · 일지 ${rows.length}건\n\n`
+const rangeLabel = startMonth === endMonth ? `${month}` : `${startMonth} ~ ${endMonth} (→ ${month}호)`
+let md = `# MFH 편지 재료 — ${rangeLabel}\n기간: ${start} ~ ${end} · 일지 ${rows.length}건\n\n`
 let photoCount = 0
 
 for (const r of rows) {
@@ -199,6 +209,7 @@ if (!scrapErr) {
 
 writeFileSync(new URL('materials.md', outDir), md)
 const interCount = Object.keys(interMap).length
+const doneLabel = startMonth === endMonth ? month : `${startMonth}~${endMonth} → ${month}호`
 console.log(
-  `완료: ${month} · 일지 ${rows.length}건 · 사진 ${photoCount}장 · 인사이트 ${insCount}건${scrapCount ? ` · 보관 ${scrapCount}건` : ''}${interCount ? ` · 중보연계 ${interCount}건` : ''} → letter-templates/issues/${month}/ (materials.md + photos/)`,
+  `완료: ${doneLabel} · 일지 ${rows.length}건 · 사진 ${photoCount}장 · 인사이트 ${insCount}건${scrapCount ? ` · 보관 ${scrapCount}건` : ''}${interCount ? ` · 중보연계 ${interCount}건` : ''} → letter-templates/issues/${month}/ (materials.md + photos/)`,
 )
