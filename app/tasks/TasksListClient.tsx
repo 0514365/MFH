@@ -33,6 +33,7 @@ import SelectionCheckbox from '@/components/SelectionCheckbox'
 import SelectionBar from '@/components/SelectionBar'
 import TaskBulkPanel from './TaskBulkPanel'
 import { bulkUpdateTasks, bulkDeleteTasks, type TaskBulkPatch } from '@/lib/bulkUpdate'
+import { requestBadgeRefresh } from '@/lib/badge'
 
 export type TaskListRow = {
   id: string
@@ -294,6 +295,7 @@ export default function TasksListClient({
         return
       }
       sel.exit()
+      requestBadgeRefresh()
       router.refresh()
     } finally {
       setBusy(false)
@@ -313,6 +315,7 @@ export default function TasksListClient({
         return
       }
       sel.exit()
+      requestBadgeRefresh()
       router.refresh()
     } finally {
       setBusy(false)

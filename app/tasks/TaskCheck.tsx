@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
+import { requestBadgeRefresh } from '@/lib/badge'
 
 export default function TaskCheck({ id, done }: { id: string; done: boolean }) {
   const router = useRouter()
@@ -30,6 +31,7 @@ export default function TaskCheck({ id, done }: { id: string; done: boolean }) {
       alert('변경 실패: ' + error.message)
       return
     }
+    requestBadgeRefresh()
     router.refresh()
   }
 

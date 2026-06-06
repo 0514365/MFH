@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { montserrat } from '@/lib/fonts'
 import { light, tokensToCssVars } from '@/lib/palette'
 import BottomNav from '@/components/BottomNav'
+import BadgeSync from '@/components/BadgeSync'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         {children}
         <BottomNav />
+        <BadgeSync />
       </body>
     </html>
   )
