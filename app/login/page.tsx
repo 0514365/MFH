@@ -24,7 +24,7 @@ export default function LoginPage() {
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (signInError) {
-      setError('로그인 실패: 이메일 또는 비밀번호를 확인해 주세요.')
+      setError('로그인 실패: ' + (signInError.message || '이메일 또는 비밀번호를 확인해 주세요.'))
       return
     }
     router.replace('/')

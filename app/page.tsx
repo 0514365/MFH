@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import ModuleIcon from '@/components/ModuleIcon'
 import SplashGate from './SplashGate'
+import SignOutButton from '@/components/SignOutButton'
 import type { YearTheme } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -207,9 +208,9 @@ export default async function Home() {
           <p className="mt-1 text-[11px] italic tracking-wide text-faint">
             the First Chapter · 2026. 5. 29. 13:49
           </p>
-          <form action="/auth/signout" method="post" className="mt-5">
-            <button className="text-xs text-muted underline">로그아웃</button>
-          </form>
+          <div className="mt-5">
+            <SignOutButton />
+          </div>
         </footer>
       </main>
     </SplashGate>
