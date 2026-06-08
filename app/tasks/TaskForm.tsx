@@ -350,18 +350,20 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
             </div>
             {repeatFreq !== 'none' && (
               <div className="min-w-0">
-                <label className={cellLabel}>종료일</label>
+                <label className={cellLabel}>종료일 (필수)</label>
                 <DateField value={repeatUntil} onChange={setRepeatUntil} placeholder="반복 종료일" />
               </div>
             )}
           </div>
           {repeatFreq !== 'none' && (
-            <p className="mt-2 text-[11px] text-faint">
+            <p className={`mt-2 text-[11px] ${!dueDate || !repeatUntil ? 'text-danger' : 'text-faint'}`}>
               {!dueDate
                 ? '먼저 위에서 마감일(첫 날짜)을 정해 주세요.'
-                : `마감일(${dueDate})부터 종료일까지 ${
-                    repeatFreq === 'daily' ? '매일' : repeatFreq === 'weekly' ? '매주' : '매월'
-                  } 같은 할 일을 만듭니다.`}
+                : !repeatUntil
+                  ? '종료일을 정해야 저장됩니다 — 종료일까지만 생성되고 그 뒤로는 만들지 않습니다.'
+                  : `마감일(${dueDate})부터 종료일(${repeatUntil})까지 ${
+                      repeatFreq === 'daily' ? '매일' : repeatFreq === 'weekly' ? '매주' : '매월'
+                    } 같은 할 일을 만듭니다.`}
             </p>
           )}
         </div>
