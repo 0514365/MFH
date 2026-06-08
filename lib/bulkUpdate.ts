@@ -1,9 +1,10 @@
-// MFH-BULK-UPDATE-V5
+// MFH-BULK-UPDATE-V6
 // 다중선택 일괄변경의 supabase 헬퍼. 모듈별 함수 export.
 // V2: 내부에서 createClient 호출 → 호출자가 client 주입 안 해도 됨. 타입 충돌 회피.
 // V3: bulkUpdateJournals / bulkDeleteJournals 추가 (patch58b).
 // V4: bulkUpdateProjects / bulkDeleteProjects 추가 (patch58c).
 // V5: bulkUpdateTasks place_name 추가 (장소 일괄변경).
+// V6: bulkDuplicateTasks 추가 (목록 다중선택 복제).
 import { createClient } from '@/lib/supabase-browser'
 import type { StatusValue } from '@/lib/constants'
 
@@ -14,6 +15,33 @@ export type TaskBulkPatch = {
   category?: string | null
   done?: boolean
   place_name?: string | null
+}
+
+// 복제 insert 한 행(마감일·시간 등 원본 복사 + 완료 해제). title 은 호출자가 자동번호로 채운다.
+export type TaskCopyInput = {
+  user_id: string
+  title: string
+  description: string | null
+  project_id: string | null
+  category: string | null
+  place_name: string | null
+  priority: string
+  importance: number
+  status: string
+  due_date: string | null
+  due_time: string | null
+  done: boolean
+  completed_at: string | null
+}
+
+export async function bulkDuplicateTasks(
+  rows: TaskCopyInput[],
+): Promise<{ ok: boolean; error?: string }> {
+  if (rows.length === 0) return { ok: true }
+  const supabase = createClient()
+  const { error } = await supabase.from('tasks').insert(rows)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
 }
 
 export async function bulkUpdateTasks(

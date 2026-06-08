@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-TASK-BULK-PANEL-V2
+// MFH-TASK-BULK-PANEL-V3
 // 넓은 화면(min-width:740px) 마스터-디테일 우측 패널.
 // selectMode 진입 시 TaskSummary 대신 표시. 같은 액션(분류/장소/Status/중요도/완료/삭제)을
 // 좁은화면 SelectionBar 와 동일하게 노출.
@@ -18,6 +18,7 @@ type Props = {
   onCategory: (c: string | null) => void
   onPlace: (p: string | null) => void
   onDoneToggle: (done: boolean) => void
+  onDuplicate: () => void
   onDelete: () => void
 }
 
@@ -64,6 +65,7 @@ export default function TaskBulkPanel({
   onCategory,
   onPlace,
   onDoneToggle,
+  onDuplicate,
   onDelete,
 }: Props) {
   const [placeInput, setPlaceInput] = useState('')
@@ -75,6 +77,12 @@ export default function TaskBulkPanel({
       </div>
 
       <div className="divide-y divide-line border-y border-line">
+        <Field label="복제">
+          <Btn onClick={onDuplicate} disabled={busy}>
+            선택 항목 복제
+          </Btn>
+        </Field>
+
         <Field label="상태">
           <div className="flex flex-wrap gap-1.5">
             {STATUSES.map((s) => (

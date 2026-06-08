@@ -32,7 +32,13 @@ import { useSelectionMode } from '@/lib/useSelectionMode'
 import SelectionCheckbox from '@/components/SelectionCheckbox'
 import SelectionBar from '@/components/SelectionBar'
 import TaskBulkPanel from './TaskBulkPanel'
-import { bulkUpdateTasks, bulkDeleteTasks, type TaskBulkPatch } from '@/lib/bulkUpdate'
+import {
+  bulkUpdateTasks,
+  bulkDeleteTasks,
+  bulkDuplicateTasks,
+  type TaskBulkPatch,
+  type TaskCopyInput,
+} from '@/lib/bulkUpdate'
 import { requestBadgeRefresh } from '@/lib/badge'
 
 export type TaskListRow = {
@@ -66,6 +72,26 @@ function isOverdue(d: string): boolean {
   const now = new Date()
   const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
   return d < today
+}
+
+// ───── 복제 제목 자동번호 ─────
+// "원제목 (사본)" / "(사본 2)" 접미사를 떼어 원제목만. (중복 복제 시 접미사 누적 방지)
+function baseTitle(title: string): string {
+  const stripped = title.replace(/\s*\(사본(?:\s*\d+)?\)\s*$/, '').trim()
+  return stripped || title.trim()
+}
+// 기존 제목과 겹치지 않는 "(사본)/(사본 N)" 제목. 생성분도 existing 에 즉시 더해 일괄복제끼리도 안 겹침.
+function uniqueCopyTitle(base: string, existing: Set<string>): string {
+  const first = `${base} (사본)`
+  if (!existing.has(first)) {
+    existing.add(first)
+    return first
+  }
+  let n = 2
+  while (existing.has(`${base} (사본 ${n})`)) n++
+  const result = `${base} (사본 ${n})`
+  existing.add(result)
+  return result
 }
 
 // 요약 패널(읽기전용). 넓은 화면 우측. '편집' 버튼 → /tasks/[id]/edit.
@@ -304,6 +330,47 @@ export default function TasksListClient({
       const res = await bulkUpdateTasks(ids, patch)
       if (!res.ok) {
         alert(`변경 실패: ${res.error ?? '알 수 없는 오류'}`)
+        setBusy(false)
+        return
+      }
+      sel.exit()
+      requestBadgeRefresh()
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function runDuplicate() {
+    if (busy || sel.count === 0) return
+    if (!currentUserId) {
+      alert('로그인이 필요합니다.')
+      return
+    }
+    if (!confirm(`${sel.count}개 할 일을 복제할까요?`)) return
+    setBusy(true)
+    try {
+      const picked = tasks.filter((t) => sel.selected.has(t.id))
+      // 기존 제목 + 생성분으로 자동번호(중복 방지).
+      const existing = new Set(tasks.map((t) => t.title))
+      const copies: TaskCopyInput[] = picked.map((t) => ({
+        user_id: currentUserId,
+        title: uniqueCopyTitle(baseTitle(t.title), existing),
+        description: t.description,
+        project_id: t.project_id,
+        category: t.category,
+        place_name: t.place_name,
+        priority: t.priority,
+        importance: t.importance,
+        status: t.status === 'done' ? 'upcoming' : (t.status ?? 'upcoming'),
+        due_date: t.due_date,
+        due_time: t.due_time,
+        done: false,
+        completed_at: null,
+      }))
+      const res = await bulkDuplicateTasks(copies)
+      if (!res.ok) {
+        alert(`복제 실패: ${res.error ?? '알 수 없는 오류'}`)
         setBusy(false)
         return
       }
@@ -756,6 +823,7 @@ export default function TasksListClient({
                       onCategory={(c) => runBulk({ category: c })}
                       onPlace={(p) => runBulk({ place_name: p })}
                       onDoneToggle={(d) => runBulk({ done: d })}
+                      onDuplicate={runDuplicate}
                       onDelete={runDelete}
                     />
                   </SelectionBar>
@@ -786,6 +854,7 @@ export default function TasksListClient({
                         onCategory={(c) => runBulk({ category: c })}
                         onPlace={(p) => runBulk({ place_name: p })}
                         onDoneToggle={(d) => runBulk({ done: d })}
+                        onDuplicate={runDuplicate}
                         onDelete={runDelete}
                       />
                     ) : (
@@ -833,6 +902,7 @@ function BulkActionsRow({
   onCategory,
   onPlace,
   onDoneToggle,
+  onDuplicate,
   onDelete,
 }: {
   busy: boolean
@@ -844,6 +914,7 @@ function BulkActionsRow({
   onCategory: (c: string | null) => void
   onPlace: (p: string | null) => void
   onDoneToggle: (done: boolean) => void
+  onDuplicate: () => void
   onDelete: () => void
 }) {
   const [open, setOpen] = useState<null | 'status' | 'imp' | 'cat' | 'done' | 'place'>(null)
@@ -893,6 +964,14 @@ function BulkActionsRow({
       <Btn on={open === 'place'} onClick={() => tap('place')}>
         장소
       </Btn>
+      <button
+        type="button"
+        onClick={onDuplicate}
+        disabled={busy}
+        className="rounded-lg border border-line px-2.5 py-1.5 text-[11px] font-semibold text-muted transition hover:border-primary disabled:opacity-50"
+      >
+        복제
+      </button>
       <button
         type="button"
         onClick={onDelete}
