@@ -1,4 +1,4 @@
-// MFH-CAPTION-PULL-V1
+// MFH-CAPTION-PULL-V2
 // ai_caption 이 없는 일지 사진을 Storage 에서 내려받아, Claude Code 가 비전 분석할 작업지시서(stdout) + manifest + 이미지 파일을 만든다.
 // 흐름:  caption-pull → Claude Code 비전(이미지 Read→캡션) → caption-push(photos jsonb 병합 update)
 // 사용:  npx tsx scripts/caption-pull.ts          (증분 — 캡션 없는 사진만)
@@ -77,6 +77,12 @@ async function main() {
     if (!Array.isArray(r.photos)) continue
     for (const ph of r.photos) {
       if (!ph || !ph.path) continue
+      // 수동 캡션(caption)은 항상 보호 — AI 비용 절약 + 사용자가 직접 정한 값 보존(--all 이어도 건너뜀).
+      const hasManual = ph.caption && String(ph.caption).trim()
+      if (hasManual) {
+        skipped++
+        continue
+      }
       const hasCaption = ph.ai_caption && String(ph.ai_caption).trim()
       if (hasCaption && !all) {
         skipped++

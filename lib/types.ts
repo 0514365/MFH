@@ -21,6 +21,8 @@ export type JournalPhoto = {
   meta?: Record<string, unknown> | null
   // AI 캡션(Phase 3 Local 루틴이 비전 분석으로 생성). 사진 보기 표시·편지 이미지 제안에 사용.
   ai_caption?: string | null
+  // 수동 캡션(사용자 직접 입력). 표시·편지에서 ai_caption 보다 우선. AI 재스캔이 이 값을 덮지 않는다.
+  caption?: string | null
 }
 
 export const MAX_JOURNAL_PHOTOS = 5

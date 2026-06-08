@@ -19,6 +19,8 @@ function monthRange(month: string): { start: string; end: string } {
 }
 
 type JRow = {
+  id: string
+  user_id: string
   entry_date: string | null
   category: string | null
   headline: string | null
@@ -51,7 +53,7 @@ export default async function PhotosPage(props: {
   const { data } = await supabase
     .from('journal_entries')
     .select(
-      'entry_date,category,headline,place_name,photos,photo_path,photo_taken_at,photo_lat,photo_lng,photo_meta',
+      'id,user_id,entry_date,category,headline,place_name,photos,photo_path,photo_taken_at,photo_lat,photo_lng,photo_meta',
     )
     .gte('entry_date', start)
     .lte('entry_date', end)
@@ -74,7 +76,12 @@ export default async function PhotosPage(props: {
           category: r.category,
           headline: r.headline,
           takenAt: ph.taken_at ? ph.taken_at.slice(0, 10) : null,
-          caption: ph.ai_caption,
+          // 표시 캡션 = 수동 우선 → AI. 편집은 수동(manualCaption)만 다룬다.
+          caption: ph.caption ?? ph.ai_caption,
+          manualCaption: ph.caption,
+          aiCaption: ph.ai_caption,
+          entryId: r.id,
+          ownerId: r.user_id,
         })
       }
     }
@@ -82,8 +89,13 @@ export default async function PhotosPage(props: {
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-8">
-      <PageHeader title="Photos" />
-      <PhotoGalleryClient month={month} entryCount={rows.length} photos={photos} />
+      <PageHeader title="Photos" current="photos" />
+      <PhotoGalleryClient
+        month={month}
+        entryCount={rows.length}
+        photos={photos}
+        currentUserId={user.id}
+      />
     </main>
   )
 }
