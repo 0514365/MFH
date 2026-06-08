@@ -1,12 +1,18 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { Task } from '@/lib/types'
+import { parseTaskFilter, orderTaskIds } from '@/lib/taskFilter'
+import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import TaskForm from '../../TaskForm'
 
 export const dynamic = 'force-dynamic'
 
-export default async function EditTask(props: { params: Promise<{ id: string }> }) {
+export default async function EditTask(props: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const params = await props.params
+  const searchParams = await props.searchParams
   const supabase = await createClient()
   const {
     data: { user },
@@ -19,5 +25,22 @@ export default async function EditTask(props: { params: Promise<{ id: string }> 
   // 본인 할 일만 편집 — 남의 것은 상세로.
   if (task.user_id !== user.id) redirect(`/tasks/${params.id}`)
 
-  return <TaskForm mode="edit" initial={task} />
+  // 목록과 동일한 필터+정렬+그룹평탄화로 전체를 재계산 → 현재 항목의 이전/다음(편집 순회).
+  const filter = parseTaskFilter({
+    get: (k) => {
+      const v = searchParams[k]
+      return Array.isArray(v) ? (v[v.length - 1] ?? null) : (v ?? null)
+    },
+  })
+  const { data: navRows } = await supabase
+    .from('tasks')
+    .select(
+      'id, done, status, importance, category, project_id, due_date, due_time, created_at, title, description, place_name',
+    )
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const orderedIds = orderTaskIds((navRows ?? []) as any[], filter)
+  const nav = computeListNav(orderedIds, params.id)
+  const navQuery = searchParamsToQuery(searchParams)
+
+  return <TaskForm mode="edit" initial={task} nav={nav} navQuery={navQuery} />
 }

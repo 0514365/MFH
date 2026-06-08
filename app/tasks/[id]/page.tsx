@@ -181,7 +181,7 @@ export default async function TaskDetailPage(props: {
         {canEdit && (
           <>
             <Link
-              href={`/tasks/${task.id}/edit`}
+              href={`/tasks/${task.id}/edit${navQuery ? `?${navQuery}` : ''}`}
               className="text-xs font-semibold text-accent underline"
             >
               수정

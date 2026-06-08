@@ -1,15 +1,17 @@
-// MFH-DETAIL-NAV-V2
-// 상세페이지 상단 이전/다음 내비게이션. ◀ (3/12) ▶ 형태.
-// 서버 컴포넌트에서 직접 렌더(정적 Link). 양끝에서는 비활성(흐리게, 클릭 불가).
+// MFH-DETAIL-NAV-V3
+// 상세/편집 페이지 상단 이전/다음 내비게이션. ◀ (3/12) ▶ 형태.
+// 서버·클라 어디서나 렌더(정적 Link). 양끝에서는 비활성(흐리게, 클릭 불가).
+// suffix 로 편집 페이지 링크(/edit)까지 생성 — 같은 목록 순서로 편집을 순회.
 import Link from 'next/link'
 
 type Props = {
-  basePath: string // 예: '/projects' 또는 '/journal'
+  basePath: string // 예: '/projects' 또는 '/journal' 또는 '/tasks'
   prevId: string | null
   nextId: string | null
   index: number // 1-based
   total: number
   query?: string // 목록 필터 유지용 쿼리스트링(없으면 '')
+  suffix?: string // id 뒤에 붙일 경로(예: '/edit'). 없으면 상세로.
 }
 
 function withQuery(href: string, query?: string) {
@@ -29,7 +31,7 @@ function Arrow({ dir }: { dir: 'prev' | 'next' }) {
   )
 }
 
-export default function DetailNav({ basePath, prevId, nextId, index, total, query }: Props) {
+export default function DetailNav({ basePath, prevId, nextId, index, total, query, suffix = '' }: Props) {
   // 목록에 현재 항목이 없거나(필터 불일치) 항목이 1개뿐이면 표시 의미 없음.
   if (total <= 1 || index === 0) return null
 
@@ -37,7 +39,7 @@ export default function DetailNav({ basePath, prevId, nextId, index, total, quer
     <div className="mb-2 flex items-center gap-2">
       {prevId ? (
         <Link
-          href={withQuery(`${basePath}/${prevId}`, query)}
+          href={withQuery(`${basePath}/${prevId}${suffix}`, query)}
           replace
           aria-label="이전"
           className={`${btnBase} ${btnActive}`}
@@ -56,7 +58,7 @@ export default function DetailNav({ basePath, prevId, nextId, index, total, quer
 
       {nextId ? (
         <Link
-          href={withQuery(`${basePath}/${nextId}`, query)}
+          href={withQuery(`${basePath}/${nextId}${suffix}`, query)}
           replace
           aria-label="다음"
           className={`${btnBase} ${btnActive}`}

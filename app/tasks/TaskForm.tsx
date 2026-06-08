@@ -15,6 +15,7 @@ import type { Task } from '@/lib/types'
 import DateField from '../journal/DateField'
 import CategorySelect from '@/components/CategorySelect'
 import BackButton from '@/components/BackButton'
+import DetailNav from '@/components/DetailNav'
 import RecurrenceBadge from '@/components/RecurrenceBadge'
 import RecurrenceScopeModal from '@/components/RecurrenceScopeModal'
 import {
@@ -23,11 +24,15 @@ import {
   deleteRecurringFollowing,
   type RecurrenceScope,
 } from '@/lib/recurrence'
+import type { ListNav } from '@/lib/listNav'
 
 type Props = {
   mode: 'new' | 'edit'
   initial?: Task | null
   presetProjectId?: string | null
+  // 편집 모드에서 목록(필터 반영) 기준 이전/다음 편집 순회.
+  nav?: ListNav | null
+  navQuery?: string
 }
 
 // ── 반복 등록(새 할 일 한정) ───────────────────────────────
@@ -60,7 +65,7 @@ function buildOccurrences(start: string, until: string, freq: 'daily' | 'weekly'
   return dates
 }
 
-export default function TaskForm({ mode, initial, presetProjectId }: Props) {
+export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery }: Props) {
   const router = useRouter()
   const [title, setTitle] = useState(initial?.title ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
@@ -324,7 +329,20 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
-      <BackButton href="/tasks" label="To-Do" />
+      <div className="flex items-center justify-between gap-2">
+        <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label="To-Do" />
+        {mode === 'edit' && nav && (
+          <DetailNav
+            basePath="/tasks"
+            suffix="/edit"
+            prevId={nav.prevId}
+            nextId={nav.nextId}
+            index={nav.index}
+            total={nav.total}
+            query={navQuery}
+          />
+        )}
+      </div>
       <div className="mb-4 mt-2 flex flex-wrap items-center gap-3">
         <h1 className="font-display text-2xl font-extrabold text-primary">
           {mode === 'edit' ? 'Edit To-Do' : 'New To-Do'}

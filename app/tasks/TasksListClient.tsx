@@ -98,7 +98,17 @@ function uniqueCopyTitle(base: string, existing: Set<string>): string {
 }
 
 // 요약 패널(읽기전용). 넓은 화면 우측. '편집' 버튼 → /tasks/[id]/edit.
-function TaskSummary({ t, authorName, canEdit }: { t: TaskListRow; authorName?: string; canEdit: boolean }) {
+function TaskSummary({
+  t,
+  authorName,
+  canEdit,
+  editSuffix,
+}: {
+  t: TaskListRow
+  authorName?: string
+  canEdit: boolean
+  editSuffix: string
+}) {
   const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="flex gap-3 py-2">
@@ -129,7 +139,7 @@ function TaskSummary({ t, authorName, canEdit }: { t: TaskListRow; authorName?: 
           </Link>
           {canEdit && (
             <Link
-              href={`/tasks/${t.id}/edit`}
+              href={`/tasks/${t.id}/edit${editSuffix}`}
               className="rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
             >
               편집
@@ -884,6 +894,7 @@ export default function TasksListClient({
                       t={selectedTask}
                       authorName={membersMap[selectedTask.user_id]}
                       canEdit={selectedTask.user_id === currentUserId}
+                      editSuffix={detailSuffix}
                     />
                   ) : (
                     <p className="py-10 text-center text-sm text-faint">
