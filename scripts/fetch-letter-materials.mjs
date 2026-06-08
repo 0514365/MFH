@@ -1,5 +1,6 @@
-// MFH-FETCH-LETTER-MATERIALS-V4
+// MFH-FETCH-LETTER-MATERIALS-V5
 // 그달(또는 기간) 일지(다중사진)+인사이트를 Supabase에서 직접 받아 letter-templates/issues/<발행호>/ 에 저장.
+// V5 변경: 사진 줄에 저장 캡션(수동 caption ?? AI ai_caption) 포함 → 우진이 손으로 단 캡션이 편지 재료에 반영.
 // V4 변경: 기간 범위 수집 — 시작월~종료월의 일지·인사이트를 한 호로 묶음. 출력 폴더 = 종료월(발행호).
 //          (지난달 활동을 이번 호에 담는 실운영 패턴 대응. 단일월 인자는 기존과 동일하게 동작.)
 // V3: 인사이트 피드백 4신호 — ★별점(rating)·[메모](feedback_note)·[편지에담기](in_letter)·[보관](insight_scraps).
@@ -45,12 +46,15 @@ const DOMAIN_LABEL = {
 
 const dash = (s) => (s && String(s).trim() ? String(s).trim() : '—')
 
-// 일지의 사진 경로 목록(다중 우선, 레거시 fallback). resolveJournalPhotos 규칙 차용.
-function photoPaths(r) {
+// 일지의 사진 목록(다중 우선, 레거시 fallback). 각 항목 { path, caption }.
+// caption = 수동(caption) 우선 → AI(ai_caption). 레거시 단일은 캡션 없음.
+function photoItems(r) {
   if (Array.isArray(r.photos) && r.photos.length) {
-    return r.photos.map((p) => (p && p.path ? p.path : null)).filter(Boolean)
+    return r.photos
+      .filter((p) => p && p.path)
+      .map((p) => ({ path: p.path, caption: (p.caption ?? p.ai_caption) || null }))
   }
-  return r.photo_path ? [r.photo_path] : []
+  return r.photo_path ? [{ path: r.photo_path, caption: null }] : []
 }
 
 const arg = process.argv[2]
@@ -68,7 +72,7 @@ if (!arg || arg === '--list') {
     if (!k) continue
     m[k] = m[k] || { n: 0, p: 0 }
     m[k].n++
-    m[k].p += photoPaths(r).length
+    m[k].p += photoItems(r).length
   }
   console.log(`월별 일지(사진 수) — 총 ${data.length}건`)
   for (const k of Object.keys(m).sort()) console.log(`  ${k} : ${m[k].n}건 (사진 ${m[k].p})`)
@@ -136,15 +140,17 @@ for (const r of rows) {
     const it = interMap[r.intercession_id]
     md += `- [중보기도 응답] ${dash(it.visitor_name)}: ${dash(it.message)}\n`
   }
-  // 사진(다중) 다운로드.
-  for (const p of photoPaths(r)) {
+  // 사진(다중) 다운로드 + 저장 캡션(수동 우선) 표기.
+  for (const it of photoItems(r)) {
+    const p = it.path
     const ext = (p.split('.').pop() || 'jpg').toLowerCase()
     const fname = `${r.entry_date}-${String(++photoCount).padStart(2, '0')}.${ext}`
     const { data: blob, error: dlErr } = await sb.storage.from('journal-photos').download(p)
     if (!dlErr && blob) {
       const buf = Buffer.from(await blob.arrayBuffer())
       writeFileSync(new URL(`photos/${fname}`, outDir), buf)
-      md += `- 사진: photos/${fname}${r.category ? ` (${r.category})` : ''}\n`
+      const cap = it.caption ? ` — 캡션: ${String(it.caption).trim()}` : ''
+      md += `- 사진: photos/${fname}${r.category ? ` (${r.category})` : ''}${cap}\n`
     }
   }
   md += '\n'
