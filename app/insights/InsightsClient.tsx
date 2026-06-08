@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-INSIGHTS-CLIENT-V3
+// MFH-INSIGHTS-CLIENT-V4
 // 목적 렌즈 구조(읽기 전용) — 연주제 strip + 렌즈 카드(Prayer/Balance/Fruit/Letter) + 분야별(Raw) 카드.
 //  · 인사이트 생성은 Claude Code Local 루틴(데스크톱·외부)에서 수행 → 앱은 결과 표시·별점·메모·삭제만.
 //  · Balance/Fruit 는 클라에서 직접 집계(무료, Anthropic 미사용).
@@ -18,6 +18,7 @@ import {
   categoryColor,
   periodStart,
   todayStr,
+  scrapKey,
   UNCATEGORIZED,
   type InsightDomain,
   type LensKey,
@@ -355,16 +356,17 @@ export default function InsightsClient({
   initial,
   year,
   themeName,
-  scrappedIds,
+  scrappedKeys,
 }: {
   initial: InsightRow[]
   year: number
   themeName: string | null
-  scrappedIds: string[]
+  scrappedKeys: string[]
 }) {
   const [rows, setRows] = useState<InsightRow[]>(initial)
   const [view, setView] = useState<'home' | InsightDomain>('home')
-  const [scrapped, setScrapped] = useState<Set<string>>(new Set(scrappedIds))
+  // 보관 일치 키(도메인+내용) 집합. id 가 아니라 내용 기준이라 재생성돼도 정확.
+  const [scrapped, setScrapped] = useState<Set<string>>(new Set(scrappedKeys))
   const homeBalance = useBalance(30, view === 'home')
   const homeFruit = useFruit(30, view === 'home')
 
@@ -378,20 +380,36 @@ export default function InsightsClient({
       n.delete(id)
       return n
     })
-  const countOf = (d: InsightDomain) => rows.filter((r) => r.domain === d).length
+  // 도메인별 최종 업데이트 시각(인사이트 created_at) — 홈 카드 메타.
+  //  · SSR=UTC MM-DD(결정적) → 마운트 후 로컬 MM-DD HH:mm (hydration 안전).
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const fmtUpdated = (iso: string): string => {
+    const dt = new Date(iso)
+    if (Number.isNaN(dt.getTime())) return ''
+    if (!mounted) return dt.toISOString().slice(5, 10)
+    const p = (n: number) => String(n).padStart(2, '0')
+    return `${p(dt.getMonth() + 1)}-${p(dt.getDate())} ${p(dt.getHours())}:${p(dt.getMinutes())}`
+  }
+  const updatedOf = (d: InsightDomain): string => {
+    const r = rows.find((x) => x.domain === d)
+    return r?.created_at ? fmtUpdated(r.created_at) : ''
+  }
 
   if (view !== 'home') {
     return (
-      <LensDetail
-        domain={view}
-        rows={rows.filter((r) => r.domain === view)}
-        scrapped={scrapped}
-        onBack={() => setView('home')}
-        onPatch={patchRow}
-        onRemove={removeRow}
-        onScrap={markScrapped}
-        onUnscrap={unmarkScrapped}
-      />
+      <div className="mx-auto max-w-3xl">
+        <LensDetail
+          domain={view}
+          rows={rows.filter((r) => r.domain === view)}
+          scrapped={scrapped}
+          onBack={() => setView('home')}
+          onPatch={patchRow}
+          onRemove={removeRow}
+          onScrap={markScrapped}
+          onUnscrap={unmarkScrapped}
+        />
+      </div>
     )
   }
 
@@ -404,8 +422,8 @@ export default function InsightsClient({
         </div>
       )}
 
-      {/* 렌즈 카드 */}
-      <div className="space-y-3">
+      {/* 렌즈 + 종합 — 2열 그리드(모바일·데스크탑 공통) */}
+      <div className="grid grid-cols-2 gap-3">
         {LENS_META.map((m) => {
           const mini =
             m.key === 'balance' && homeBalance.data && homeBalance.data.all.total > 0
@@ -428,10 +446,10 @@ export default function InsightsClient({
                   </span>
                   <span className="block text-xs text-muted">{m.desc}</span>
                 </span>
-                <span className="text-xs text-faint">
-                  {countOf(m.key) > 0 ? `${countOf(m.key)}개` : ''}
-                </span>
               </span>
+              {updatedOf(m.key) && (
+                <span className="mt-2 block text-[11px] text-faint">업데이트 {updatedOf(m.key)}</span>
+              )}
               {mini && (
                 <span className="mt-3 block">
                   <BalanceBar data={mini} height={6} />
@@ -461,21 +479,24 @@ export default function InsightsClient({
               <span className="block font-display text-base font-bold text-primary">Overall</span>
               <span className="block text-xs text-muted">일지·프로젝트·할일 종합</span>
             </span>
-            <span className="text-xs text-faint">
-              {countOf('overall') > 0 ? `${countOf('overall')}개` : ''}
-            </span>
           </span>
+          {updatedOf('overall') && (
+            <span className="mt-2 block text-[11px] text-faint">업데이트 {updatedOf('overall')}</span>
+          )}
         </button>
+      </div>
 
-        {/* 분야별 분석 (전체 히스토리) */}
-        <div className="px-1 pt-2 text-xs font-semibold text-muted">분야별 분석</div>
-        {(['journal', 'project', 'task'] as InsightDomain[]).map((d) => (
-          <button
-            key={d}
-            onClick={() => setView(d)}
-            className="block w-full rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary"
-          >
-            <span className="flex items-center gap-3">
+      {/* 분야별 분석 — 2열 그리드(전체 히스토리) */}
+      <div>
+        <div className="px-1 pb-2 text-xs font-semibold text-muted">분야별 분석</div>
+        <div className="grid grid-cols-2 gap-3">
+          {(['journal', 'project', 'task'] as InsightDomain[]).map((d) => (
+            <button
+              key={d}
+              onClick={() => setView(d)}
+              className="block w-full rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary"
+            >
+              <span className="flex items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-subtle text-muted">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M4 6h16M4 12h16M4 18h10" />
@@ -486,12 +507,13 @@ export default function InsightsClient({
                   {DOMAIN_LABEL[d]}
                 </span>
               </span>
-              <span className="text-xs text-faint">
-                {countOf(d) > 0 ? `${countOf(d)}개` : ''}
               </span>
-            </span>
-          </button>
-        ))}
+              {updatedOf(d) && (
+                <span className="mt-2 block text-[11px] text-faint">업데이트 {updatedOf(d)}</span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -623,12 +645,16 @@ export function DomainInsightBody({
         feedback_note: row.feedback_note,
       }),
     })
-    if (res.ok) onScrap(row.id)
+    if (res.ok) onScrap(scrapKey(row.domain, row.content))
   }
 
-  async function unscrap(id: string) {
-    const res = await fetch(`/api/insights/scraps?source_id=${id}`, { method: 'DELETE' })
-    if (res.ok) onUnscrap(id)
+  async function unscrap(row: InsightRow) {
+    const res = await fetch('/api/insights/scraps', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source_id: row.id, content: row.content }),
+    })
+    if (res.ok) onUnscrap(scrapKey(row.domain, row.content))
   }
 
   return (
@@ -657,12 +683,12 @@ export function DomainInsightBody({
               key={row.id}
               row={row}
               showLetter={domain === 'prayer' || domain === 'fruit' || domain === 'overall'}
-              isScrapped={scrapped.has(row.id)}
+              isScrapped={scrapped.has(scrapKey(row.domain, row.content))}
               onRate={(r) => setRating(row.id, r)}
               onNote={(n) => saveNote(row.id, n)}
               onToggleLetter={(v) => toggleLetter(row.id, v)}
               onScrap={() => scrap(row)}
-              onUnscrap={() => unscrap(row.id)}
+              onUnscrap={() => unscrap(row)}
               onDelete={() => remove(row.id)}
             />
           ))

@@ -54,14 +54,15 @@ export async function POST(req: Request) {
   const content = (body.content ?? '').trim()
   if (!content) return NextResponse.json({ error: '내용이 비어 있습니다.' }, { status: 400 })
 
-  // 같은 원본 중복 보관 방지.
-  if (body.source_id) {
-    const { data: exist } = await supabase
-      .from('insight_scraps')
-      .select(SCRAP_COLS)
-      .eq('source_id', body.source_id)
-      .maybeSingle()
-    if (exist) return NextResponse.json({ scrap: exist, already: true }, { status: 200 })
+  // 같은 내용(content) 중복 보관 방지. 인사이트는 도메인당 id 고정(upsert)이라
+  // source_id 만으로 막으면 재생성된 새 내용을 못 담는다 → content 기준(같은 source 우선).
+  {
+    let q = supabase.from('insight_scraps').select(SCRAP_COLS).eq('content', content)
+    if (body.source_id) q = q.eq('source_id', body.source_id)
+    const { data: existRows } = await q.limit(1)
+    if (existRows && existRows.length > 0) {
+      return NextResponse.json({ scrap: existRows[0], already: true }, { status: 200 })
+    }
   }
 
   const { data: inserted, error } = await supabase
@@ -82,17 +83,31 @@ export async function POST(req: Request) {
   return NextResponse.json({ scrap: inserted }, { status: 201 })
 }
 
-// DELETE /api/insights/scraps?source_id=<원본 insight id> — 보관 취소(토글 해제).
-//  · 인사이트 카드는 원본 id(source_id)만 알므로 source_id 기준으로 삭제한다. RLS: 본인 것만.
+// DELETE — 보관 취소(라이브 카드 토글 해제). body { source_id, content } 의 그 스냅샷만 삭제.
+//  · 인사이트는 도메인당 id 고정이라 source_id 만으로 지우면 그 도메인의 보관본 전체가 날아간다.
+//    → content 까지 맞춰 "지금 보이는 그 내용"만 제거. content 없으면(구버전) source_id 전체 삭제.
+//  · 구버전 폴백: 쿼리스트링 source_id. RLS: 본인 것만.
 export async function DELETE(req: Request) {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
-  const sourceId = new URL(req.url).searchParams.get('source_id')
+
+  let sourceId: string | null = null
+  let content: string | null = null
+  try {
+    const body = (await req.json()) as { source_id?: string; content?: string }
+    sourceId = body.source_id ?? null
+    content = typeof body.content === 'string' ? body.content.trim() : null
+  } catch {
+    sourceId = new URL(req.url).searchParams.get('source_id')
+  }
   if (!sourceId) return NextResponse.json({ error: 'source_id 가 필요합니다.' }, { status: 400 })
-  const { error } = await supabase.from('insight_scraps').delete().eq('source_id', sourceId)
+
+  let q = supabase.from('insight_scraps').delete().eq('source_id', sourceId)
+  if (content !== null) q = q.eq('content', content)
+  const { error } = await q
   if (error) return NextResponse.json({ error: '보관 취소에 실패했습니다.' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
+import { scrapKey } from '@/lib/insightExport'
 import InsightsClient, { type InsightRow } from './InsightsClient'
 
 export const dynamic = 'force-dynamic'
@@ -23,14 +24,13 @@ export default async function InsightsPage() {
     .order('created_at', { ascending: false })
     .limit(50)
 
-  // 보관(스크랩)된 원본 id — 카드의 '보관됨' 표시용.
+  // 보관(스크랩)된 인사이트 — 카드의 '보관됨' 표시용. 도메인+내용 키로 매칭(재생성 대비).
   const { data: scrapRows } = await supabase
     .from('insight_scraps')
-    .select('source_id')
-    .not('source_id', 'is', null)
-  const scrappedIds = (scrapRows ?? [])
-    .map((s) => (s as { source_id: string | null }).source_id)
-    .filter((v): v is string => !!v)
+    .select('domain, content')
+  const scrappedKeys = (scrapRows ?? []).map((s) =>
+    scrapKey((s as { domain: string }).domain, (s as { content: string | null }).content),
+  )
 
   const year = new Date().getFullYear()
   const { data: themeRow } = await supabase
@@ -41,7 +41,7 @@ export default async function InsightsPage() {
   const themeName = (themeRow as { theme?: string | null } | null)?.theme ?? null
 
   return (
-    <main className="mx-auto max-w-md px-5 py-8">
+    <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
       <PageHeader title="Insights" current="insights" />
       <div className="mb-4 flex gap-2">
         <Link
@@ -62,7 +62,7 @@ export default async function InsightsPage() {
         initial={(rows ?? []) as InsightRow[]}
         year={year}
         themeName={themeName}
-        scrappedIds={scrappedIds}
+        scrappedKeys={scrappedKeys}
       />
     </main>
   )
