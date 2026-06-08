@@ -40,6 +40,7 @@ import {
   type TaskCopyInput,
 } from '@/lib/bulkUpdate'
 import { requestBadgeRefresh } from '@/lib/badge'
+import RecurrenceBadge from '@/components/RecurrenceBadge'
 
 export type TaskListRow = {
   id: string
@@ -55,6 +56,8 @@ export type TaskListRow = {
   place_name: string | null
   project_id: string | null
   user_id: string
+  recurrence_id: string | null
+  recurrence_freq: string | null
   projects: { title: string } | null
 }
 
@@ -111,6 +114,11 @@ function TaskSummary({ t, authorName, canEdit }: { t: TaskListRow; authorName?: 
           <h2 className={`mt-1 text-lg font-bold ${t.done ? 'text-faint line-through' : 'text-ink'}`}>
             {t.title}
           </h2>
+          {t.recurrence_id && (
+            <div className="mt-1.5">
+              <RecurrenceBadge freq={t.recurrence_freq} />
+            </div>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Link
@@ -649,8 +657,8 @@ export default function TasksListClient({
             const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
             return (
               <>
-                {/* 1행: 작성자 + 날짜(작게) + 프로젝트 칩 — 연체면 빨강. 우측 상단 완료영역 자리는 li 측에서 별도 배치(pr-* 로 겹침 방지). */}
-                {(t.due_date || t.projects?.title || authorName) && (
+                {/* 1행: 작성자 + 날짜(작게) + 반복뱃지 + 프로젝트 칩 — 연체면 빨강. 우측 상단 완료영역 자리는 li 측에서 별도 배치(pr-* 로 겹침 방지). */}
+                {(t.due_date || t.projects?.title || authorName || t.recurrence_id) && (
                   <div className="flex flex-wrap items-center gap-2">
                     <AuthorBadge name={authorName} />
                     {t.due_date && (
@@ -662,6 +670,7 @@ export default function TasksListClient({
                         {overdue ? ' · 연체' : ''}
                       </span>
                     )}
+                    {t.recurrence_id && <RecurrenceBadge freq={t.recurrence_freq} />}
                     {t.projects?.title && (
                       <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
                         {t.projects.title}

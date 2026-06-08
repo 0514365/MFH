@@ -33,6 +33,9 @@ export default async function NewTaskPage(props: {
         done: false,
         status: src.status === 'done' ? 'upcoming' : src.status,
         completed_at: null,
+        // 복제본은 원본 반복 시리즈에 편입하지 않는다(독립 단건).
+        recurrence_id: null,
+        recurrence_freq: null,
       }
     }
   }

@@ -81,5 +81,8 @@ export type Task = {
   category: string | null
   place_name: string | null
   status: string
+  // 반복 시리즈(patch85). 단건은 null. 같은 시리즈의 모든 발생 행이 같은 recurrence_id.
+  recurrence_id: string | null
+  recurrence_freq: string | null
   created_at: string
 }

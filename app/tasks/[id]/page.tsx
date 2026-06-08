@@ -11,6 +11,7 @@ import DetailNav from '@/components/DetailNav'
 import AuthorBadge from '@/components/AuthorBadge'
 import TaskCheck from '../TaskCheck'
 import DeleteButton from './DeleteButton'
+import RecurrenceBadge from '@/components/RecurrenceBadge'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,6 +30,8 @@ type TaskDetail = {
   project_id: string | null
   completed_at: string | null
   user_id: string
+  recurrence_id: string | null
+  recurrence_freq: string | null
   projects: { id: string; title: string } | null
 }
 
@@ -59,7 +62,7 @@ export default async function TaskDetailPage(props: {
   const { data } = await supabase
     .from('tasks')
     .select(
-      'id, title, description, done, priority, importance, status, category, place_name, due_date, due_time, project_id, completed_at, user_id, projects(id, title)',
+      'id, title, description, done, priority, importance, status, category, place_name, due_date, due_time, project_id, completed_at, user_id, recurrence_id, recurrence_freq, projects(id, title)',
     )
     .eq('id', params.id)
     .maybeSingle()
@@ -105,6 +108,7 @@ export default async function TaskDetailPage(props: {
         <StatusBadge value={task.status ?? 'upcoming'} />
         <CategoryBadge value={task.category} />
         {task.importance > 0 && <ImportanceStars value={task.importance} />}
+        {task.recurrence_id && <RecurrenceBadge freq={task.recurrence_freq} />}
         <AuthorBadge name={membersMap[task.user_id]} />
       </div>
 
@@ -182,7 +186,11 @@ export default async function TaskDetailPage(props: {
             >
               수정
             </Link>
-            <DeleteButton id={task.id} />
+            <DeleteButton
+              id={task.id}
+              recurrenceId={task.recurrence_id}
+              dueDate={task.due_date}
+            />
           </>
         )}
       </div>
