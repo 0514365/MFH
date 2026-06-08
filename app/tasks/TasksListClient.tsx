@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-TASKS-LIST-V7
+// MFH-TASKS-LIST-V8
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -86,14 +86,22 @@ function TaskSummary({ t, authorName, canEdit }: { t: TaskListRow; authorName?: 
             {t.title}
           </h2>
         </div>
-        {canEdit && (
+        <div className="flex shrink-0 items-center gap-2">
           <Link
-            href={`/tasks/${t.id}/edit`}
-            className="shrink-0 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+            href={`/tasks/new?from=${t.id}`}
+            className="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-muted transition hover:border-primary"
           >
-            편집
+            복제
           </Link>
-        )}
+          {canEdit && (
+            <Link
+              href={`/tasks/${t.id}/edit`}
+              className="rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+            >
+              편집
+            </Link>
+          )}
+        </div>
       </div>
 
       {t.description && (
@@ -152,6 +160,7 @@ export default function TasksListClient({
   const [fImportance, setFImportance] = useState<number[]>(init.fImportance)
   const [fCategory, setFCategory] = useState<string[]>(init.fCategory)
   const [fProject, setFProject] = useState<string[]>(init.fProject)
+  const [q, setQ] = useState(init.q)
   const [sortKey, setSortKey] = useState<SortKey>(init.sortKey)
   const [asc, setAsc] = useState(init.asc)
   const [filterOpen, setFilterOpen] = useState(false)
@@ -172,18 +181,19 @@ export default function TasksListClient({
     fImportance,
     fCategory,
     fProject,
+    q,
     sortKey,
     asc,
   }
   const detailSuffix = (() => {
-    const q = buildTaskQuery(currentFilter)
-    return q ? `?${q}` : ''
+    const query = buildTaskQuery(currentFilter)
+    return query ? `?${query}` : ''
   })()
   useEffect(() => {
-    const q = buildTaskQuery(currentFilter)
-    router.replace(q ? `/tasks?${q}` : '/tasks', { scroll: false })
+    const query = buildTaskQuery(currentFilter)
+    router.replace(query ? `/tasks?${query}` : '/tasks', { scroll: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hideDone, fStatus, fImportance, fCategory, fProject, sortKey, asc])
+  }, [hideDone, fStatus, fImportance, fCategory, fProject, q, sortKey, asc])
 
   // 마운트 시 1회: URL 에 필터가 없으면(기본값) 세션에 저장된 필터를 복원.
   // (URL 쿼리가 있으면 공유 링크 우선 → 복원 건너뜀.) 편집 왕복 등으로 쿼리가 사라져도 유지.
@@ -196,6 +206,7 @@ export default function TasksListClient({
         setFImportance(saved.fImportance)
         setFCategory(saved.fCategory)
         setFProject(saved.fProject)
+        setQ(saved.q)
         setSortKey(saved.sortKey)
         setAsc(saved.asc)
       }
@@ -209,7 +220,7 @@ export default function TasksListClient({
     if (!restored) return
     saveTaskFilter(currentFilter)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restored, hideDone, fStatus, fImportance, fCategory, fProject, sortKey, asc])
+  }, [restored, hideDone, fStatus, fImportance, fCategory, fProject, q, sortKey, asc])
 
   // 데이터에 실제로 존재하는 값만 칩으로 노출
   const importanceOpts = useMemo(
@@ -241,7 +252,7 @@ export default function TasksListClient({
   // 필터/정렬을 lib 순수함수에 위임 → 상세(tasks/[id]) ◀▶ 와 동일 정렬 공유.
   const filtered = useMemo(
     () => applyTaskFilter(tasks, currentFilter),
-    [tasks, hideDone, fStatus, fImportance, fCategory, fProject, sortKey, asc],
+    [tasks, hideDone, fStatus, fImportance, fCategory, fProject, q, sortKey, asc],
   )
 
   // 넓은 화면: 선택이 비었거나 목록에서 사라지면 첫 항목 자동선택. 좁은 화면: 선택 해제.
@@ -264,8 +275,9 @@ export default function TasksListClient({
   const activeCount =
     (hideDone ? 0 : 1) + fStatus.length + fImportance.length + fCategory.length + fProject.length
   const hasFilter = activeCount > 0
+  const hasQuery = q.trim().length > 0
   const sortChanged = sortKey !== 'due' || !asc
-  const canReset = hasFilter || sortChanged
+  const canReset = hasFilter || sortChanged || hasQuery
 
   function resetAll() {
     setHideDone(true)
@@ -273,6 +285,7 @@ export default function TasksListClient({
     setFImportance([])
     setFCategory([])
     setFProject([])
+    setQ('')
     setSortKey('due')
     setAsc(true)
     clearTaskFilter()
@@ -329,11 +342,42 @@ export default function TasksListClient({
 
   return (
     <>
-      {/* 컨트롤 바: 필터 토글 / 정렬 토글 / 선택 토글 / 모두 초기화 (sticky) */}
+      {/* 컨트롤 바: 검색 + (필터 / 정렬 / 선택 / 모두 초기화) (sticky) */}
       <div
-        className="sticky top-[64px] z-20 -mx-5 mb-3 flex flex-wrap items-center gap-2 px-5 py-2"
+        className="sticky top-[64px] z-20 -mx-5 mb-3 space-y-2 px-5 py-2"
         style={{ background: 'var(--paper)' }}
       >
+        {/* 검색 — 제목·설명·장소 부분일치 */}
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </span>
+          <input
+            type="text"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="제목·설명·장소 검색"
+            className="w-full rounded-xl border border-line bg-surface py-2 pl-9 pr-9 text-sm text-ink outline-none focus:border-primary"
+          />
+          {hasQuery && (
+            <button
+              type="button"
+              onClick={() => setQ('')}
+              aria-label="검색 지우기"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-faint transition hover:text-ink"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* 토글 바 */}
+        <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => setFilterOpen((v) => !v)}
@@ -411,6 +455,7 @@ export default function TasksListClient({
             모두 초기화
           </button>
         )}
+        </div>
       </div>
 
       {/* 필터 칩바 (접이식) */}

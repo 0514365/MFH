@@ -1,4 +1,4 @@
-// MFH-TASK-FILTER-V3
+// MFH-TASK-FILTER-V4
 // 할 일 목록 필터/정렬 순수함수. 목록(TasksListClient)과 상세(tasks/[id]) 가 공유한다.
 // URL 쿼리 <-> 필터 상태 직렬화 + 결정적 정렬 + (기본정렬일 때) 기한그룹 평탄화를 한곳에 둔다.
 import { normalizeStatus, type StatusValue } from '@/lib/constants'
@@ -12,6 +12,7 @@ export type TaskFilter = {
   fImportance: number[]
   fCategory: string[]
   fProject: string[]
+  q: string
   sortKey: TaskSortKey
   asc: boolean
 }
@@ -22,6 +23,7 @@ export const EMPTY_TASK_FILTER: TaskFilter = {
   fImportance: [],
   fCategory: [],
   fProject: [],
+  q: '',
   sortKey: 'due',
   asc: true,
 }
@@ -55,13 +57,15 @@ export function parseTaskFilter(sp: ParamsLike): TaskFilter {
   const fCategory = splitCsv(sp.get('cat'))
   const fProject = splitCsv(sp.get('proj'))
 
+  const q = (sp.get('q') ?? '').trim()
+
   const sortRaw = sp.get('sort')
   const sortKey: TaskSortKey = sortRaw === 'importance' ? 'importance' : 'due'
 
   const dirRaw = sp.get('dir')
   const asc = dirRaw === 'desc' ? false : true
 
-  return { hideDone, fStatus, fImportance, fCategory, fProject, sortKey, asc }
+  return { hideDone, fStatus, fImportance, fCategory, fProject, q, sortKey, asc }
 }
 
 // 필터를 쿼리스트링으로. 기본값이면 빈 문자열.
@@ -72,6 +76,7 @@ export function buildTaskQuery(f: TaskFilter): string {
   if (f.fImportance.length) params.set('imp', f.fImportance.join(','))
   if (f.fCategory.length) params.set('cat', f.fCategory.join(','))
   if (f.fProject.length) params.set('proj', f.fProject.join(','))
+  if (f.q.trim()) params.set('q', f.q.trim())
   if (f.sortKey !== 'due') params.set('sort', f.sortKey)
   if (!f.asc) params.set('dir', 'desc')
   return params.toString()
@@ -84,6 +89,7 @@ export function isDefaultTaskFilter(f: TaskFilter): boolean {
     f.fImportance.length === 0 &&
     f.fCategory.length === 0 &&
     f.fProject.length === 0 &&
+    f.q.trim() === '' &&
     f.sortKey === 'due' &&
     f.asc
   )
@@ -100,17 +106,27 @@ type FilterableTask = {
   due_date: string | null
   due_time: string | null
   created_at?: string | null
+  // 키워드 검색 대상(옵셔널 — nav 등 최소조회에서 없으면 검색 미적용).
+  title?: string | null
+  description?: string | null
+  place_name?: string | null
 }
 
 // 결정적 정렬 + 필터. TasksListClient 의 기존 filtered 로직과 동일하되,
 // due/importance 동률 시 created_at desc tie-break 로 prev/next 흔들림 방지.
 export function applyTaskFilter<T extends FilterableTask>(tasks: T[], f: TaskFilter): T[] {
+  // 키워드: 제목·설명·장소 부분일치(대소문자 무시). 공백으로 나눠 모두 포함(AND).
+  const terms = f.q.trim().toLowerCase().split(/\s+/).filter(Boolean)
   let list = tasks.filter((t) => {
     if (f.hideDone && t.done) return false
     if (f.fStatus.length && !f.fStatus.includes(normalizeStatus(t.status))) return false
     if (f.fImportance.length && !f.fImportance.includes(t.importance)) return false
     if (f.fCategory.length && !(t.category && f.fCategory.includes(t.category))) return false
     if (f.fProject.length && !(t.project_id && f.fProject.includes(t.project_id))) return false
+    if (terms.length) {
+      const hay = `${t.title ?? ''} ${t.description ?? ''} ${t.place_name ?? ''}`.toLowerCase()
+      if (!terms.every((term) => hay.includes(term))) return false
+    }
     return true
   })
 

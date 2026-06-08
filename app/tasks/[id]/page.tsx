@@ -79,7 +79,7 @@ export default async function TaskDetailPage(props: {
   const { data: navRows } = await supabase
     .from('tasks')
     .select(
-      'id, done, status, importance, category, project_id, due_date, due_time, created_at',
+      'id, done, status, importance, category, project_id, due_date, due_time, created_at, title, description, place_name',
     )
   const orderedIds = orderTaskIds((navRows ?? []) as any[], filter)
   const nav = computeListNav(orderedIds, params.id)
@@ -167,19 +167,28 @@ export default async function TaskDetailPage(props: {
         </section>
       )}
 
-      {canEdit ? (
-        <div className="mt-10 flex items-center gap-4">
-          <Link
-            href={`/tasks/${task.id}/edit`}
-            className="text-xs font-semibold text-accent underline"
-          >
-            수정
-          </Link>
-          <DeleteButton id={task.id} />
-        </div>
-      ) : (
-        <p className="mt-10 text-xs text-faint">
-          {membersMap[task.user_id] ?? '다른 멤버'}님의 할 일입니다. 보기만 가능합니다.
+      <div className="mt-10 flex items-center gap-4">
+        <Link
+          href={`/tasks/new?from=${task.id}`}
+          className="text-xs font-semibold text-primary underline"
+        >
+          복제
+        </Link>
+        {canEdit && (
+          <>
+            <Link
+              href={`/tasks/${task.id}/edit`}
+              className="text-xs font-semibold text-accent underline"
+            >
+              수정
+            </Link>
+            <DeleteButton id={task.id} />
+          </>
+        )}
+      </div>
+      {!canEdit && (
+        <p className="mt-3 text-xs text-faint">
+          {membersMap[task.user_id] ?? '다른 멤버'}님의 할 일입니다. 보기·복제만 가능합니다.
         </p>
       )}
     </main>

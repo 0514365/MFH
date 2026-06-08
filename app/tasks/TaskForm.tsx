@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-TASK-FORM-V2
+// MFH-TASK-FORM-V3
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -22,6 +22,36 @@ type Props = {
   presetProjectId?: string | null
 }
 
+// ── 반복 등록(새 할 일 한정) ───────────────────────────────
+type RepeatFreq = 'none' | 'daily' | 'weekly' | 'monthly'
+// 한 번에 만들 최대 개수(무한 방지). 매일 ≈ 1년.
+const MAX_OCCURRENCES = 366
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+function fmtLocalDate(dt: Date): string {
+  return `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`
+}
+// dateStr(YYYY-MM-DD) 에서 빈도만큼 다음 날짜. 매월은 같은 일(day) 유지, 말일 초과 시 그 달 말일로 클램프.
+function nextDate(dateStr: string, freq: 'daily' | 'weekly' | 'monthly'): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  if (freq === 'daily') return fmtLocalDate(new Date(y, m - 1, d + 1))
+  if (freq === 'weekly') return fmtLocalDate(new Date(y, m - 1, d + 7))
+  const nm = m === 12 ? 1 : m + 1
+  const ny = m === 12 ? y + 1 : y
+  const lastDay = new Date(ny, nm, 0).getDate() // nm월의 말일
+  return `${ny}-${pad2(nm)}-${pad2(Math.min(d, lastDay))}`
+}
+// start~until(포함) 사이 발생일 목록. 문자열 비교(YYYY-MM-DD 제로패딩)로 안전.
+function buildOccurrences(start: string, until: string, freq: 'daily' | 'weekly' | 'monthly'): string[] {
+  const dates: string[] = []
+  let cur = start
+  while (cur <= until && dates.length < MAX_OCCURRENCES) {
+    dates.push(cur)
+    cur = nextDate(cur, freq)
+  }
+  return dates
+}
+
 export default function TaskForm({ mode, initial, presetProjectId }: Props) {
   const router = useRouter()
   const [title, setTitle] = useState(initial?.title ?? '')
@@ -36,6 +66,9 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
     initial ? normalizeStatus(initial.status) : TASK_DEFAULT_STATUS,
   )
   const [done, setDone] = useState(initial?.done ?? false)
+  // 반복 등록(새 할 일 한정). 마감일을 첫 날짜로, 종료일까지 같은 할 일을 일괄 생성.
+  const [repeatFreq, setRepeatFreq] = useState<RepeatFreq>('none')
+  const [repeatUntil, setRepeatUntil] = useState('')
   const [projects, setProjects] = useState<{ id: string; title: string }[]>([])
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -82,6 +115,35 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
       setMsg('할 일 제목을 입력해 주세요.')
       return
     }
+
+    // 반복 등록(새 할 일 한정) 검증 + 발생일 산출.
+    const recurring = mode === 'new' && repeatFreq !== 'none'
+    let recurDates: string[] = []
+    if (recurring) {
+      if (!dueDate) {
+        setMsg('반복하려면 먼저 마감일(첫 날짜)을 정해 주세요.')
+        return
+      }
+      if (!repeatUntil) {
+        setMsg('반복 종료일을 정해 주세요.')
+        return
+      }
+      if (repeatUntil < dueDate) {
+        setMsg('종료일은 시작일(마감일) 이후여야 합니다.')
+        return
+      }
+      recurDates = buildOccurrences(dueDate, repeatUntil, repeatFreq as 'daily' | 'weekly' | 'monthly')
+      if (recurDates.length === 0) {
+        setMsg('생성할 날짜가 없습니다. 종료일을 확인해 주세요.')
+        return
+      }
+      const capped = recurDates.length >= MAX_OCCURRENCES
+      const ok = confirm(
+        `${recurDates.length}개의 반복 할 일을 만듭니다${capped ? ` (최대 ${MAX_OCCURRENCES}개까지)` : ''}. 진행할까요?`,
+      )
+      if (!ok) return
+    }
+
     setSaving(true)
     setMsg(null)
     const supabase = createClient()
@@ -93,7 +155,8 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
       return
     }
     const isDone = done || status === 'done'
-    const payload = {
+    // 마감일 외 공통 필드. 반복 시 due_date 만 발생일별로 교체.
+    const base = {
       user_id: user.id,
       title: title.trim(),
       description: description.trim() || null,
@@ -103,21 +166,31 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
       priority,
       importance,
       status,
-      due_date: dueDate || null,
       // 마감일이 없으면 시간만 단독 저장하지 않음(캘린더 표시 기준이 날짜이므로)
       due_time: dueDate && dueTime ? dueTime : null,
       done: isDone,
       completed_at: isDone ? (initial?.completed_at ?? new Date().toISOString()) : null,
     }
     if (mode === 'edit' && initial) {
-      const { error } = await supabase.from('tasks').update(payload).eq('id', initial.id)
+      const { error } = await supabase
+        .from('tasks')
+        .update({ ...base, due_date: dueDate || null })
+        .eq('id', initial.id)
+      if (error) {
+        setSaving(false)
+        setMsg('저장 실패: ' + error.message)
+        return
+      }
+    } else if (recurring) {
+      const rows = recurDates.map((d) => ({ ...base, due_date: d }))
+      const { error } = await supabase.from('tasks').insert(rows)
       if (error) {
         setSaving(false)
         setMsg('저장 실패: ' + error.message)
         return
       }
     } else {
-      const { error } = await supabase.from('tasks').insert(payload)
+      const { error } = await supabase.from('tasks').insert({ ...base, due_date: dueDate || null })
       if (error) {
         setSaving(false)
         setMsg('저장 실패: ' + error.message)
@@ -257,6 +330,43 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
       </div>
       {!dueDate && <p className="mt-1 text-[11px] text-faint">마감일을 먼저 정하면 시간을 추가할 수 있어요.</p>}
 
+      {/* 반복 등록 — 새 할 일에서만. 마감일을 첫 날짜로, 종료일까지 일괄 생성. */}
+      {mode === 'new' && (
+        <div className="mt-5 rounded-xl border border-line bg-surface-subtle p-3">
+          <div className="text-xs font-semibold text-muted">반복 (선택)</div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="min-w-0">
+              <label className={cellLabel}>주기</label>
+              <select
+                value={repeatFreq}
+                onChange={(e) => setRepeatFreq(e.target.value as RepeatFreq)}
+                className={input}
+              >
+                <option value="none">반복 안 함</option>
+                <option value="daily">매일</option>
+                <option value="weekly">매주</option>
+                <option value="monthly">매월</option>
+              </select>
+            </div>
+            {repeatFreq !== 'none' && (
+              <div className="min-w-0">
+                <label className={cellLabel}>종료일</label>
+                <DateField value={repeatUntil} onChange={setRepeatUntil} placeholder="반복 종료일" />
+              </div>
+            )}
+          </div>
+          {repeatFreq !== 'none' && (
+            <p className="mt-2 text-[11px] text-faint">
+              {!dueDate
+                ? '먼저 위에서 마감일(첫 날짜)을 정해 주세요.'
+                : `마감일(${dueDate})부터 종료일까지 ${
+                    repeatFreq === 'daily' ? '매일' : repeatFreq === 'weekly' ? '매주' : '매월'
+                  } 같은 할 일을 만듭니다.`}
+            </p>
+          )}
+        </div>
+      )}
+
       <label className="mt-4 flex items-center gap-2 text-sm text-muted">
         <input type="checkbox" checked={done} onChange={(e) => onToggleDone(e.target.checked)} />
         완료됨
@@ -269,7 +379,13 @@ export default function TaskForm({ mode, initial, presetProjectId }: Props) {
         disabled={saving}
         className="mt-6 w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
       >
-        {saving ? '저장 중…' : mode === 'edit' ? '수정 저장' : '저장'}
+        {saving
+          ? '저장 중…'
+          : mode === 'edit'
+            ? '수정 저장'
+            : repeatFreq !== 'none'
+              ? '반복 만들기'
+              : '저장'}
       </button>
 
       {mode === 'edit' && (
