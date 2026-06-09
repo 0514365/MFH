@@ -1,6 +1,6 @@
 // MFH-INSIGHT-PUSH-V1
 // Claude Code 가 생성한 ===MFH-INSIGHT=== 양식 텍스트를 받아 insights 테이블에 upsert + repo 아카이브.
-// upsert 는 content·period·created_at·model 만 갱신, rating·feedback_note·in_letter 는 보존(핸드오프 3-2).
+// upsert 는 content·period·created_at·model 갱신. 내용이 실제 바뀐 도메인은 rating·feedback_note 초기화(옛 평가가 새 내용에 따라붙지 않도록), in_letter 는 보존.
 //   → insights 는 (user_id,domain) unique(patch81). onConflict 시 payload 에 없는 컬럼은 그대로 유지된다.
 // 사용:  npx tsx scripts/insight-push.ts insights-archive/_result.md
 //        cat result.md | npx tsx scripts/insight-push.ts
@@ -72,12 +72,23 @@ async function main() {
   const results: string[] = []
   let ok = 0
 
+  // 기존 도메인별 content — 내용이 실제 바뀐 도메인만 별점·메모를 초기화하기 위한 비교 기준(옵션 A).
+  const { data: existingRows } = await sb
+    .from('insights')
+    .select('domain,content')
+    .eq('user_id', USER_ID)
+  const prevContent = new Map<string, string>(
+    (existingRows ?? []).map((r) => [r.domain as string, r.content as string]),
+  )
+
   for (const p of parsed) {
     if (!isValidDomain(p.domain)) {
       results.push(`· skip (알 수 없는 도메인: ${p.domain})`)
       continue
     }
-    // upsert payload — rating/feedback_note/in_letter 는 의도적으로 제외(보존).
+    // 내용이 실제로 바뀐 도메인은 rating·feedback_note 초기화(옛 평가가 새 내용에 따라붙지 않도록). in_letter 는 보존.
+    // 내용이 동일하면 두 필드를 payload 에서 제외 → upsert onConflict 로 기존 값 유지.
+    const contentChanged = prevContent.get(p.domain) !== p.content
     const row = {
       user_id: USER_ID,
       domain: p.domain,
@@ -86,6 +97,7 @@ async function main() {
       period_end: p.periodEnd,
       model: 'claude-code',
       created_at: nowIso, // updated_at 컬럼이 없어 '최신'은 created_at 기준 → 명시 갱신.
+      ...(contentChanged ? { rating: null, feedback_note: null } : {}),
     }
     const { error } = await sb.from('insights').upsert(row, { onConflict: 'user_id,domain' })
     if (error) {
