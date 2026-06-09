@@ -1,8 +1,10 @@
-// MFH-HONDURAS-BRIEFING-VIEW-V1
+// MFH-HONDURAS-BRIEFING-VIEW-V2
 // 온두라스 동향 1일치 본문 렌더(날짜 헤더 + 하이라이트 + 4섹션 + 선교 인사이트·기도 포인트 + 푸터).
-// /honduras(최신)·/honduras/[date](지난)가 공유한다. 서버 컴포넌트(표시 전용).
+// /honduras(최신)·/honduras/[id](지난)가 공유한다. 서버 컴포넌트(표시 전용).
 // ⚠ 내부 동향 파악용 — 정당·인물 실명 그대로. 외부 발신물(편지·FB)엔 정치중립 규칙을 따로 적용.
 // 폰트: 모바일 가독성 우선 — 본문 16px(text-base) 기준, 제목·헤더는 한 단계씩 위.
+// dateSuffix: 같은 날 여러 동향이면 " (N)" 넘버링. headerAction: 날짜 행 우측 끝 링크(지난 동향 등).
+import type { ReactNode } from 'react'
 
 export type SectionItem = { title?: string | null; body?: string | null; source?: string | null }
 export type Sections = {
@@ -13,6 +15,7 @@ export type Sections = {
 }
 export type Highlight = { tag?: string | null; title?: string | null; body?: string | null; source?: string | null }
 export type NewsRow = {
+  id: string
   news_date: string
   sections: Sections | null
   highlights: Highlight[] | null
@@ -21,8 +24,8 @@ export type NewsRow = {
   created_at: string
 }
 
-// 조회 컬럼(세 페이지 공유) — 오타·누락 방지.
-export const NEWS_SELECT = 'news_date,sections,highlights,insight,prayer_points,created_at'
+// 조회 컬럼(세 페이지 공유) — 오타·누락 방지. id 포함(상세 라우팅·넘버링).
+export const NEWS_SELECT = 'id,news_date,sections,highlights,insight,prayer_points,created_at'
 
 // 분야 메타 — 라벨 + 은은한 구분색(채도 낮은 차분 톤).
 export const SECTION_META: { key: keyof Sections; label: string; dot: string }[] = [
@@ -57,7 +60,17 @@ function ItemBlock({ item }: { item: SectionItem }) {
   )
 }
 
-export default function BriefingView({ row, latest = false }: { row: NewsRow; latest?: boolean }) {
+export default function BriefingView({
+  row,
+  latest = false,
+  dateSuffix = '',
+  headerAction,
+}: {
+  row: NewsRow
+  latest?: boolean
+  dateSuffix?: string
+  headerAction?: ReactNode
+}) {
   const sections = row.sections ?? {}
   const highlights = (Array.isArray(row.highlights) ? row.highlights : []).filter(
     (h): h is Highlight => !!h && (!!(h.title ?? '').trim() || !!(h.body ?? '').trim()),
@@ -68,12 +81,18 @@ export default function BriefingView({ row, latest = false }: { row: NewsRow; la
 
   return (
     <div className="space-y-6">
-      {/* 날짜 헤더 */}
+      {/* 날짜 헤더 — 우측 끝에 headerAction(지난 동향 보기 등) */}
       <header>
         <p className="text-sm font-semibold tracking-wide text-muted">{latest ? '오늘의 온두라스' : '지난 동향'}</p>
-        <div className="mt-0.5 flex items-baseline gap-2">
-          <span className="font-display text-2xl font-bold text-primary">{row.news_date}</span>
-          <span className="text-xs text-faint">정치·경제·사회·문화</span>
+        <div className="mt-0.5 flex items-end justify-between gap-3">
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-2xl font-bold text-primary">
+              {row.news_date}
+              {dateSuffix}
+            </span>
+            <span className="text-xs text-faint">정치·경제·사회·문화</span>
+          </div>
+          {headerAction && <div className="shrink-0 pb-0.5">{headerAction}</div>}
         </div>
       </header>
 

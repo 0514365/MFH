@@ -1,6 +1,6 @@
 // MFH-NEWS-PUSH-V1
 // Claude Code 가 만든 result.json(온두라스 동향 브리핑)을 읽어 honduras_news 테이블에 upsert + repo 아카이브.
-//   · upsert onConflict (user_id, news_date) → 같은 날 재실행은 덮어쓰기(하루 1행).
+//   · insert — 같은 날도 매번 새 행으로 누적(아침/저녁·반복 수동 생성 보관). 앱은 "날짜 (N)" 넘버링으로 구분.
 //   · 저장 귀속 user_id = .env.local 의 MFH_USER_ID(분석은 WebSearch 공개정보, 저장은 1명 귀속).
 // 사용:  npx tsx scripts/news-push.ts                       (기본 insights-archive/_news/result.json)
 //        npx tsx scripts/news-push.ts path/to/result.json
@@ -137,9 +137,9 @@ async function main() {
     insight,
     prayer_points: prayerPoints,
     model: 'claude-code',
-    created_at: nowIso, // 재생성 시 '최신'으로 끌어올림.
+    created_at: nowIso, // 각 행의 생성 시각(같은 날 여러 행이면 순번 기준).
   }
-  const { error } = await sb.from('honduras_news').upsert(row, { onConflict: 'user_id,news_date' })
+  const { error } = await sb.from('honduras_news').insert(row)
   if (error) {
     console.error(`[news-push] 저장 실패: ${error.message}`)
     process.exit(1)

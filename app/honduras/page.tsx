@@ -1,12 +1,13 @@
-// MFH-HONDURAS-PAGE-V2
-// 온두라스 동향 — 최신 일일 브리핑 + "지난 동향 보기"(목록) 링크.
+// MFH-HONDURAS-PAGE-V3
+// 온두라스 동향 — 최신 일일 브리핑(가장 최근 생성분). 날짜 행 우측에 "지난 동향" 링크.
 // 데이터 생성 = Claude Code /news-update (honduras_news 저장, 매일 06:00 자동 또는 수동). 이 페이지는 읽기 전용.
-// 렌더 본문은 BriefingView 공유(지난 동향 상세 /honduras/[date] 와 동일 형식).
+// 같은 날 여러 동향이면 날짜 뒤 (N) 넘버링. 렌더 본문은 BriefingView 공유(상세 /honduras/[id] 와 동일).
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import BriefingView, { hasBriefingContent, NEWS_SELECT, type NewsRow } from './BriefingView'
+import { seqSuffix } from '@/lib/honduras'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,36 +18,38 @@ export default async function HondurasPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // 최신 1일치(멤버 RLS 통과). 없으면 null → 빈 상태.
+  // 최신 = 가장 최근 날짜의 가장 최근 생성분.
   const { data } = await supabase
     .from('honduras_news')
     .select(NEWS_SELECT)
     .order('news_date', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
   const row = data as NewsRow | null
+
+  const dateSuffix = row ? await seqSuffix(supabase, row.news_date, row.id) : ''
+
+  // 날짜 행 우측 끝 — 지난 동향(목록)으로.
+  const archiveLink = (
+    <Link
+      href="/honduras/archive"
+      className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition hover:underline"
+    >
+      지난 동향
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 12h14" />
+        <path d="M12 5l7 7-7 7" />
+      </svg>
+    </Link>
+  )
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-8">
       <PageHeader title="온두라스 동향" />
 
       {hasBriefingContent(row) ? (
-        <>
-          <BriefingView row={row} latest />
-          {/* 지난 동향 보기 → 목록 */}
-          <div className="mt-6">
-            <Link
-              href="/honduras/archive"
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-primary transition hover:border-primary"
-            >
-              지난 동향 보기
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14" />
-                <path d="M12 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-        </>
+        <BriefingView row={row} latest dateSuffix={dateSuffix} headerAction={archiveLink} />
       ) : (
         <div className="rounded-2xl border border-line bg-surface p-6 text-center">
           <p className="text-base font-semibold text-primary">아직 오늘 브리핑이 없습니다</p>
