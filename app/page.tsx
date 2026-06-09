@@ -83,6 +83,27 @@ export default async function Home() {
 
         <section className="space-y-3">
           <Link
+            href="/honduras"
+            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-bold text-primary">온두라스 동향</div>
+              <div className="mt-0.5 text-xs text-muted">Today in Honduras</div>
+              <div className="mt-1 text-[11px] leading-snug text-faint">
+                <span className="truncate">매일 아침 정치·경제·사회·문화 뉴스 브리핑</span>
+              </div>
+            </div>
+            <svg
+              width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className="shrink-0 text-primary"
+            >
+              <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+              <path d="M18 14h-8" />
+              <path d="M15 18h-5" />
+              <path d="M10 6h8v4h-8z" />
+            </svg>
+          </Link>
+          <Link
             href="/journal"
             className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
           >
