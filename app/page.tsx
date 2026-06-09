@@ -161,6 +161,25 @@ export default async function Home() {
             <ModuleIcon name="photos" size={32} className="shrink-0 text-primary" />
           </Link>
           <Link
+            href="/facebook"
+            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-bold text-primary">Facebook</div>
+              <div className="mt-0.5 text-xs text-muted">This week&apos;s story</div>
+              <div className="mt-1 text-[11px] leading-snug text-faint">
+                <span className="truncate">이번 주 게시 추천 (AI)</span>
+              </div>
+            </div>
+            <svg
+              width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className="shrink-0 text-primary"
+            >
+              <path d="M3 11l18-5v12L3 14z" />
+              <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+            </svg>
+          </Link>
+          <Link
             href="/portfolio"
             className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
           >
