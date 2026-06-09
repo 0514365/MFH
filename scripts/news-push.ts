@@ -18,7 +18,13 @@ type Sections = {
   culture?: SectionItem[]
 }
 type Highlight = { tag: string; title: string; body: string; source: string | null }
-type Result = { news_date?: string; sections?: Sections; highlights?: Highlight[]; insight?: string }
+type Result = {
+  news_date?: string
+  sections?: Sections
+  highlights?: Highlight[]
+  insight?: string
+  prayer_points?: unknown
+}
 
 const SECTION_KEYS = ['politics', 'economy', 'society', 'culture'] as const
 
@@ -117,6 +123,11 @@ async function main() {
 
   const insight = typeof parsed.insight === 'string' && parsed.insight.trim() ? parsed.insight.trim() : null
 
+  // 기도 포인트 — 문자열 배열로 정규화(빈 항목 제거). 앱에서 별도 박스로 표시.
+  const prayerPoints = Array.isArray(parsed.prayer_points)
+    ? parsed.prayer_points.map((p) => String(p ?? '').trim()).filter(Boolean)
+    : []
+
   const nowIso = new Date().toISOString()
   const row = {
     user_id: USER_ID,
@@ -124,6 +135,7 @@ async function main() {
     sections,
     highlights,
     insight,
+    prayer_points: prayerPoints,
     model: 'claude-code',
     created_at: nowIso, // 재생성 시 '최신'으로 끌어올림.
   }
@@ -143,7 +155,7 @@ async function main() {
 
   const counts = SECTION_KEYS.map((k) => `${k} ${sections[k]?.length ?? 0}`).join(' · ')
   console.log(
-    `[news-push] 저장 ✓ ${parsed.news_date} · ${counts} · 하이라이트 ${highlights.length} · 인사이트 ${insight ? '있음' : '없음'} (user_id=${USER_ID.slice(0, 8)}…)`,
+    `[news-push] 저장 ✓ ${parsed.news_date} · ${counts} · 하이라이트 ${highlights.length} · 인사이트 ${insight ? '있음' : '없음'} · 기도포인트 ${prayerPoints.length} (user_id=${USER_ID.slice(0, 8)}…)`,
   )
 }
 

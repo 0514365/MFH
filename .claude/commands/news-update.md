@@ -18,7 +18,8 @@ allowed-tools: Bash, Read, Write, WebSearch
    - 분야별 2~3건, 각 항목 title(한국어 한 줄) + body(2~4문장 한국어) + source(매체/URL).
    - San Pedro Sula·한인 뉴스는 highlights 에 tag 로 한 번 더 강조.
    - 최근 저장된 헤드라인과 같은 사안은 새 전개가 있을 때만(반복 금지).
-   - insight(선교 인사이트): 오늘 동향의 선교·사역·기도 함의 2~4문장 + 기도/관심 포인트 1~2개. 건설적·중립 톤(정파 편들기 금지).
+   - insight(선교 인사이트): 오늘 동향의 선교·사역·기도 함의 2~4문장. 건설적·중립 톤(정파 편들기 금지).
+   - prayer_points(기도 포인트): 인사이트에서 도출한 기도제목 1~2개를 짧은 문장 배열로 분리(앱에서 별도 박스로 표시).
 
 4. **결과 저장 파일 쓰기** — 작업지시서의 `[result.json 형식]` 그대로 `insights-archive/_news/result.json` 에 Write 한다(폴더 없으면 만든다. gitignore).
 

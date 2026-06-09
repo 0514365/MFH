@@ -22,6 +22,7 @@ type NewsRow = {
   sections: Sections | null
   highlights: Highlight[] | null
   insight: string | null
+  prayer_points: string[] | null
   created_at: string
 }
 
@@ -57,7 +58,7 @@ export default async function HondurasPage() {
   // 최신 1일치(멤버 RLS 통과). 없으면 null → 빈 상태.
   const { data } = await supabase
     .from('honduras_news')
-    .select('news_date,sections,highlights,insight,created_at')
+    .select('news_date,sections,highlights,insight,prayer_points,created_at')
     .order('news_date', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -68,6 +69,9 @@ export default async function HondurasPage() {
     (h): h is Highlight => !!h && (!!(h.title ?? '').trim() || !!(h.body ?? '').trim()),
   )
   const hasAnySection = SECTION_META.some((m) => (sections[m.key]?.length ?? 0) > 0)
+  const prayerPoints = (Array.isArray(row?.prayer_points) ? row?.prayer_points : [])
+    .map((p) => String(p ?? '').trim())
+    .filter(Boolean)
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-8">
@@ -139,11 +143,34 @@ export default async function HondurasPage() {
             )
           })}
 
-          {/* 선교 인사이트 */}
-          {(row.insight ?? '').trim() && (
+          {/* 선교 인사이트 + 기도 포인트(별도 박스) */}
+          {((row.insight ?? '').trim() || prayerPoints.length > 0) && (
             <section className="rounded-2xl border-l-4 border-primary bg-primarySoft p-5">
-              <p className="mb-2 text-sm font-bold tracking-wide text-primary">선교 인사이트</p>
-              <p className="whitespace-pre-wrap text-[17px] leading-relaxed text-ink">{row.insight!.trim()}</p>
+              <p className="mb-3 font-display text-2xl font-extrabold tracking-tight text-primary">선교 인사이트</p>
+              {(row.insight ?? '').trim() && (
+                <p className="whitespace-pre-wrap text-[17px] leading-relaxed text-ink">{row.insight!.trim()}</p>
+              )}
+              {prayerPoints.length > 0 && (
+                <div className="mt-4 rounded-xl border border-primary/15 bg-surface p-4">
+                  <div className="mb-2.5 flex items-center gap-2">
+                    <svg
+                      width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      className="text-primary"
+                    >
+                      <path d="M12 21s-7-4.35-9.5-8.5C.5 9 2 5.5 5.5 5.5c2 0 3.5 1.5 4.5 3 1-1.5 2.5-3 4.5-3C18 5.5 19.5 9 21.5 12.5 19 16.65 12 21 12 21z" />
+                    </svg>
+                    <p className="text-base font-bold text-primary">기도 포인트</p>
+                  </div>
+                  <ul className="space-y-2">
+                    {prayerPoints.map((p, i) => (
+                      <li key={i} className="flex gap-2.5 text-[15px] leading-relaxed text-ink">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                        <span>{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </section>
           )}
 
