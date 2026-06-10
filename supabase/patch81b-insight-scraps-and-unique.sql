@@ -1,4 +1,4 @@
--- MFH patch81: 인사이트 저장구조 재설계 (Phase 3a)
+-- MFH patch81b: 인사이트 저장구조 재설계 (Phase 3a) (구 patch81 — 번호 중복으로 81b 재명명)
 --  · insights 를 (user_id, domain)별 최신 1행만 유지 → Local 루틴이 도메인별 upsert(최신 교체).
 --    별점/메모/in_letter 는 루틴이 update 로 보존(덮어쓰지 않음).
 --  · insight_scraps : 앱에서 "보관"한 인사이트의 생성 시점 복사본(영구). 최신 교체와 무관하게 유지.

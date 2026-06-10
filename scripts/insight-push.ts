@@ -1,7 +1,7 @@
 // MFH-INSIGHT-PUSH-V1
 // Claude Code 가 생성한 ===MFH-INSIGHT=== 양식 텍스트를 받아 insights 테이블에 upsert + repo 아카이브.
 // upsert 는 content·period·created_at·model 갱신. 내용이 실제 바뀐 도메인은 rating·feedback_note 초기화(옛 평가가 새 내용에 따라붙지 않도록), in_letter 는 보존.
-//   → insights 는 (user_id,domain) unique(patch81). onConflict 시 payload 에 없는 컬럼은 그대로 유지된다.
+//   → insights 는 (user_id,domain) unique(patch81b). onConflict 시 payload 에 없는 컬럼은 그대로 유지된다.
 // 사용:  npx tsx scripts/insight-push.ts insights-archive/_result.md
 //        cat result.md | npx tsx scripts/insight-push.ts
 // ⚠ repo 루트에서 실행(.env.local·insights-archive 경로가 process.cwd() 기준).
