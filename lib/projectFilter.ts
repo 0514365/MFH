@@ -2,6 +2,13 @@
 // 프로젝트 목록 필터/정렬 순수함수. 목록(ProjectsList)과 상세(projects/[id]) 가 공유한다.
 // URL 쿼리 <-> 필터 상태 직렬화 + 결정적(deterministic) 정렬을 한곳에 둔다.
 import { normalizeStatus, type StatusValue } from '@/lib/constants'
+import {
+  splitCsv,
+  parseStatusCsv,
+  parseImportanceCsv,
+  compareCreatedDesc,
+  type ParamsLike,
+} from '@/lib/filterUtils'
 
 export type ProjectSortKey = 'due' | 'importance'
 
@@ -23,33 +30,12 @@ export const EMPTY_PROJECT_FILTER: ProjectFilter = {
   asc: true,
 }
 
-const STATUS_SET: StatusValue[] = ['upcoming', 'in_progress', 'done']
-
-// URLSearchParams 또는 Next 의 ReadonlyURLSearchParams / 평범한 객체 모두 지원하는 최소 인터페이스.
-type ParamsLike = { get(key: string): string | null }
-
-// "a,b,c" -> ['a','b','c'] (빈값 제거)
-function splitCsv(v: string | null): string[] {
-  if (!v) return []
-  return v
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-}
-
 export function parseProjectFilter(sp: ParamsLike): ProjectFilter {
   // 완료숨김 기본 true → 쿼리에 done=0 이 있을 때만 완료 표시(hideDone=false). (Tasks 와 동일 규칙)
   const hideDone = sp.get('done') === '0' ? false : true
 
-  const statusRaw = splitCsv(sp.get('status'))
-  const fStatus = statusRaw.filter((s): s is StatusValue =>
-    (STATUS_SET as string[]).includes(s),
-  )
-
-  const fImportance = splitCsv(sp.get('imp'))
-    .map((s) => Number(s))
-    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 5)
-
+  const fStatus = parseStatusCsv(sp.get('status'))
+  const fImportance = parseImportanceCsv(sp.get('imp'))
   const fCategory = splitCsv(sp.get('cat'))
 
   const sortRaw = sp.get('sort')
@@ -107,27 +93,20 @@ export function applyProjectFilter<T extends FilterableProject>(projects: T[], f
   })
 
   const dir = f.asc ? 1 : -1
-  const createdDesc = (a: T, b: T) => {
-    const ac = a.created_at ?? ''
-    const bc = b.created_at ?? ''
-    if (ac === bc) return 0
-    return ac < bc ? 1 : -1 // created_at 내림차순(최신 먼저)
-  }
-
   list = [...list].sort((a, b) => {
     if (f.sortKey === 'due') {
       const av = a.due_date ?? ''
       const bv = b.due_date ?? ''
-      if (!av && !bv) return createdDesc(a, b)
+      if (!av && !bv) return compareCreatedDesc(a, b)
       if (!av) return 1
       if (!bv) return -1
       if (av < bv) return -1 * dir
       if (av > bv) return 1 * dir
-      return createdDesc(a, b)
+      return compareCreatedDesc(a, b)
     }
     const diff = ((a.importance ?? 0) - (b.importance ?? 0)) * dir
     if (diff !== 0) return diff
-    return createdDesc(a, b)
+    return compareCreatedDesc(a, b)
   })
 
   return list

@@ -3,6 +3,7 @@
 // URL 쿼리 <-> 필터 상태 직렬화 + 결정적(deterministic) 정렬을 한곳에 둔다.
 // 일지는 status 가 없으므로 축 = 분류(category) · 기도후보(prayer) · 텍스트(q) · 날짜범위(df/dt) · 정렬(날짜).
 // 날짜 범위는 entry_date(일지 작성일) 기준. 둘 다 inclusive. created_at(레코드 생성시각) 과 무관.
+import { splitCsv, sanitizeDate, compareCreatedDesc, type ParamsLike } from '@/lib/filterUtils'
 
 export type JournalSortKey = 'date'
 
@@ -22,23 +23,6 @@ export const EMPTY_JOURNAL_FILTER: JournalFilter = {
   dateFrom: '',
   dateTo: '',
   asc: false,
-}
-
-type ParamsLike = { get(key: string): string | null }
-
-function splitCsv(v: string | null): string[] {
-  if (!v) return []
-  return v
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-}
-
-// YYYY-MM-DD 형태만 허용. 그 외는 빈 문자열로 무시.
-function sanitizeDate(v: string | null): string {
-  if (!v) return ''
-  const s = v.trim()
-  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''
 }
 
 export function parseJournalFilter(sp: ParamsLike): JournalFilter {
@@ -110,19 +94,12 @@ export function applyJournalFilter<T extends FilterableEntry>(entries: T[], f: J
   })
 
   const dir = f.asc ? 1 : -1
-  const createdDesc = (a: T, b: T) => {
-    const ac = a.created_at ?? ''
-    const bc = b.created_at ?? ''
-    if (ac === bc) return 0
-    return ac < bc ? 1 : -1 // created_at 내림차순(최신 먼저)
-  }
-
   list = [...list].sort((a, b) => {
     const av = a.entry_date ?? ''
     const bv = b.entry_date ?? ''
     if (av < bv) return -1 * dir
     if (av > bv) return 1 * dir
-    return createdDesc(a, b) // 같은 날짜는 created_at 최신 먼저(서버 기본 정렬과 일치)
+    return compareCreatedDesc(a, b) // 같은 날짜는 created_at 최신 먼저(서버 기본 정렬과 일치)
   })
 
   return list

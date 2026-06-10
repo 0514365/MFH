@@ -3,6 +3,13 @@
 // URL 쿼리 <-> 필터 상태 직렬화 + 결정적 정렬 + (기본정렬일 때) 기한그룹 평탄화를 한곳에 둔다.
 import { normalizeStatus, type StatusValue } from '@/lib/constants'
 import { taskGroupOf, TASK_GROUP_ORDER, type TaskGroupKey } from '@/lib/taskGroups'
+import {
+  splitCsv,
+  parseStatusCsv,
+  parseImportanceCsv,
+  compareCreatedDesc,
+  type ParamsLike,
+} from '@/lib/filterUtils'
 
 export type TaskSortKey = 'due' | 'importance'
 
@@ -28,32 +35,14 @@ export const EMPTY_TASK_FILTER: TaskFilter = {
   asc: true,
 }
 
-const STATUS_SET: StatusValue[] = ['upcoming', 'in_progress', 'done']
-
-type ParamsLike = { get(key: string): string | null }
-
-function splitCsv(v: string | null): string[] {
-  if (!v) return []
-  return v
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-}
-
 // URL 쿼리 -> 필터. 쿼리키: done(=0 이면 완료표시), status, imp, cat, proj, sort, dir.
 // 완료숨김 기본 true → 쿼리에 done=0 이 있을 때만 완료 표시(hideDone=false).
 export function parseTaskFilter(sp: ParamsLike): TaskFilter {
   const doneRaw = sp.get('done')
   const hideDone = doneRaw === '0' ? false : true
 
-  const fStatus = splitCsv(sp.get('status')).filter((s): s is StatusValue =>
-    (STATUS_SET as string[]).includes(s),
-  )
-
-  const fImportance = splitCsv(sp.get('imp'))
-    .map((s) => Number(s))
-    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 5)
-
+  const fStatus = parseStatusCsv(sp.get('status'))
+  const fImportance = parseImportanceCsv(sp.get('imp'))
   const fCategory = splitCsv(sp.get('cat'))
   const fProject = splitCsv(sp.get('proj'))
 
@@ -131,33 +120,26 @@ export function applyTaskFilter<T extends FilterableTask>(tasks: T[], f: TaskFil
   })
 
   const dir = f.asc ? 1 : -1
-  const createdDesc = (a: T, b: T) => {
-    const ac = a.created_at ?? ''
-    const bc = b.created_at ?? ''
-    if (ac === bc) return 0
-    return ac < bc ? 1 : -1
-  }
-
   list = [...list].sort((a, b) => {
     if (f.sortKey === 'due') {
       const av = a.due_date ?? ''
       const bv = b.due_date ?? ''
-      if (!av && !bv) return createdDesc(a, b)
+      if (!av && !bv) return compareCreatedDesc(a, b)
       if (!av) return 1
       if (!bv) return -1
       if (av !== bv) return av < bv ? -1 * dir : 1 * dir
       // 같은 날짜면 시간 보조정렬(시간 없는 건 뒤로)
       const at = a.due_time ?? ''
       const bt = b.due_time ?? ''
-      if (!at && !bt) return createdDesc(a, b)
+      if (!at && !bt) return compareCreatedDesc(a, b)
       if (!at) return 1
       if (!bt) return -1
       if (at !== bt) return at < bt ? -1 * dir : 1 * dir
-      return createdDesc(a, b)
+      return compareCreatedDesc(a, b)
     }
     const diff = ((a.importance ?? 0) - (b.importance ?? 0)) * dir
     if (diff !== 0) return diff
-    return createdDesc(a, b)
+    return compareCreatedDesc(a, b)
   })
 
   return list
