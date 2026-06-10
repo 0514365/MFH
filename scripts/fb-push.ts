@@ -5,56 +5,27 @@
 // 사용:  npx tsx scripts/fb-push.ts                       (기본 insights-archive/_fb/result.json)
 //        npx tsx scripts/fb-push.ts path/to/result.json
 // ⚠ repo 루트에서 실행(.env.local·insights-archive 경로가 process.cwd() 기준).
-import { createClient } from '@supabase/supabase-js'
-import { readFileSync, appendFileSync, mkdirSync, existsSync } from 'fs'
 import { join } from 'path'
+import {
+  loadEnv,
+  createServiceClient,
+  requireUserId,
+  isDate,
+  readJsonFile,
+  appendArchiveJsonl,
+} from './_shared'
 
 type Photo = { path: string; caption?: string | null }
 type Post = { text: string; photos?: Photo[]; hashtags?: string[]; rationale?: string | null }
 type Result = { week_start?: string; week_end?: string; posts?: Post[] }
 
-function loadEnv(): Record<string, string> {
-  const text = readFileSync(join(process.cwd(), '.env.local'), 'utf8')
-  return Object.fromEntries(
-    text
-      .split('\n')
-      .filter((l) => l.includes('=') && !l.trim().startsWith('#'))
-      .map((l) => {
-        const i = l.indexOf('=')
-        return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, '')]
-      }),
-  )
-}
-
-// 날짜 형식(YYYY-MM-DD) 최소 검증.
-const isDate = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
-
 async function main() {
   const env = loadEnv()
-  const URL_ = env.NEXT_PUBLIC_SUPABASE_URL
-  const KEY = env.SUPABASE_SERVICE_ROLE_KEY
-  const USER_ID = env.MFH_USER_ID
-  if (!URL_ || !KEY) {
-    console.error('환경변수 누락: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
-    process.exit(1)
-  }
-  if (!USER_ID) {
-    console.error(
-      'MFH_USER_ID 누락 — .env.local 에 저장 귀속 user_id 를 추가하세요.\n' +
-        '  (Supabase 콘솔 Authentication > Users 의 honduras0691@gmail.com ID)',
-    )
-    process.exit(1)
-  }
-  const sb = createClient(URL_, KEY, { auth: { persistSession: false } })
+  const sb = createServiceClient(env)
+  const USER_ID = requireUserId(env)
 
   const fileArg = process.argv[2] || join(process.cwd(), 'insights-archive', '_fb', 'result.json')
-  let parsed: Result
-  try {
-    parsed = JSON.parse(readFileSync(fileArg, 'utf8')) as Result
-  } catch (e) {
-    console.error(`입력(result.json)을 읽지 못했습니다: ${fileArg}\n  ${(e as Error).message}`)
-    process.exit(1)
-  }
+  const parsed = readJsonFile<Result>(fileArg)
 
   if (!isDate(parsed.week_start) || !isDate(parsed.week_end)) {
     console.error('week_start / week_end 가 YYYY-MM-DD 형식이 아닙니다.')
@@ -104,12 +75,7 @@ async function main() {
   }
 
   // 영구 아카이브 — JSONL 누적(개인 사역내용이라 gitignore).
-  const archiveDir = join(process.cwd(), 'insights-archive', '_fb')
-  if (!existsSync(archiveDir)) mkdirSync(archiveDir, { recursive: true })
-  appendFileSync(
-    join(archiveDir, 'weekly_fb.jsonl'),
-    JSON.stringify({ ...row, generated_at: nowIso }) + '\n',
-  )
+  appendArchiveJsonl('_fb', 'weekly_fb.jsonl', { ...row, generated_at: nowIso })
 
   const photoTotal = posts.reduce((n, p) => n + p.photos.length, 0)
   console.log(

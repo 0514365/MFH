@@ -6,11 +6,9 @@
 // 사용:  npx tsx scripts/fb-pull.ts            (기본 최근 7일)
 //        npx tsx scripts/fb-pull.ts --days 14
 // ⚠ repo 루트에서 실행(.env.local 경로가 process.cwd() 기준). 분석 입력은 부부 공동(user_id 필터 없음).
-import { createClient } from '@supabase/supabase-js'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 import { periodStart, todayStr } from '@/lib/insightExport'
 import type { JournalPhoto } from '@/lib/types'
+import { loadEnv, createServiceClient } from './_shared'
 
 type JRow = {
   id: string
@@ -25,31 +23,10 @@ type JRow = {
   photos: JournalPhoto[] | null
 }
 
-// .env.local 파싱(따옴표 제거). insight-pull / caption-pull 과 동일 규칙.
-function loadEnv(): Record<string, string> {
-  const text = readFileSync(join(process.cwd(), '.env.local'), 'utf8')
-  return Object.fromEntries(
-    text
-      .split('\n')
-      .filter((l) => l.includes('=') && !l.trim().startsWith('#'))
-      .map((l) => {
-        const i = l.indexOf('=')
-        return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, '')]
-      }),
-  )
-}
-
 const dash = (s: string | null | undefined) => (s && s.trim() ? s.trim() : '')
 
 async function main() {
-  const env = loadEnv()
-  const URL_ = env.NEXT_PUBLIC_SUPABASE_URL
-  const KEY = env.SUPABASE_SERVICE_ROLE_KEY
-  if (!URL_ || !KEY) {
-    console.error('환경변수 누락: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
-    process.exit(1)
-  }
-  const sb = createClient(URL_, KEY, { auth: { persistSession: false } })
+  const sb = createServiceClient(loadEnv())
 
   // 인자: --days N (기본 7 = 이번 주).
   const daysIdx = process.argv.indexOf('--days')

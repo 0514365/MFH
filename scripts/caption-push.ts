@@ -5,36 +5,16 @@
 // 사용:  npx tsx scripts/caption-push.ts                         (기본 insights-archive/_captions/result.json)
 //        npx tsx scripts/caption-push.ts path/to/result.json
 // ⚠ repo 루트에서 실행. caption-pull 이 만든 manifest.json 과 짝으로 동작.
-import { createClient } from '@supabase/supabase-js'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import type { JournalPhoto } from '@/lib/types'
+import { loadEnv, createServiceClient } from './_shared'
 
 type ManifestItem = { path: string; entry_id: string }
 type ResultItem = { path: string; caption: string }
 
-function loadEnv(): Record<string, string> {
-  const text = readFileSync(join(process.cwd(), '.env.local'), 'utf8')
-  return Object.fromEntries(
-    text
-      .split('\n')
-      .filter((l) => l.includes('=') && !l.trim().startsWith('#'))
-      .map((l) => {
-        const i = l.indexOf('=')
-        return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, '')]
-      }),
-  )
-}
-
 async function main() {
-  const env = loadEnv()
-  const URL_ = env.NEXT_PUBLIC_SUPABASE_URL
-  const KEY = env.SUPABASE_SERVICE_ROLE_KEY
-  if (!URL_ || !KEY) {
-    console.error('환경변수 누락: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
-    process.exit(1)
-  }
-  const sb = createClient(URL_, KEY, { auth: { persistSession: false } })
+  const sb = createServiceClient(loadEnv())
 
   const captionsDir = join(process.cwd(), 'insights-archive', '_captions')
   const resultPath = process.argv[2] || join(captionsDir, 'result.json')

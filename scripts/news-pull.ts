@@ -5,27 +5,11 @@
 //   · 흐름: news-pull(이 스크립트) → Claude Code(WebSearch + 정리, 가드레일 내장) → news-push(honduras_news 저장)
 // 사용:  npx tsx scripts/news-pull.ts            (오늘 = 로컬 타임존 기준)
 // ⚠ repo 루트에서 실행(.env.local 경로가 process.cwd() 기준).
-import { createClient } from '@supabase/supabase-js'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { loadEnv, createServiceClient } from './_shared'
 
 type SectionItem = { title?: string | null }
 type Sections = { politics?: SectionItem[]; economy?: SectionItem[]; society?: SectionItem[]; culture?: SectionItem[] }
 type NewsRow = { news_date: string | null; sections: Sections | null }
-
-// .env.local 파싱(따옴표 제거). fb-pull / insight-pull 과 동일 규칙.
-function loadEnv(): Record<string, string> {
-  const text = readFileSync(join(process.cwd(), '.env.local'), 'utf8')
-  return Object.fromEntries(
-    text
-      .split('\n')
-      .filter((l) => l.includes('=') && !l.trim().startsWith('#'))
-      .map((l) => {
-        const i = l.indexOf('=')
-        return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, '')]
-      }),
-  )
-}
 
 // 로컬(맥북 타임존) 기준 오늘 — 온두라스/한국 현지 날짜. toISOString(UTC)은 새벽 실행 시 하루 어긋나 회피.
 function localToday(): string {
@@ -34,14 +18,7 @@ function localToday(): string {
 }
 
 async function main() {
-  const env = loadEnv()
-  const URL_ = env.NEXT_PUBLIC_SUPABASE_URL
-  const KEY = env.SUPABASE_SERVICE_ROLE_KEY
-  if (!URL_ || !KEY) {
-    console.error('환경변수 누락: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
-    process.exit(1)
-  }
-  const sb = createClient(URL_, KEY, { auth: { persistSession: false } })
+  const sb = createServiceClient(loadEnv())
 
   const today = localToday()
 

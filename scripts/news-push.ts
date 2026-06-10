@@ -5,9 +5,15 @@
 // 사용:  npx tsx scripts/news-push.ts                       (기본 insights-archive/_news/result.json)
 //        npx tsx scripts/news-push.ts path/to/result.json
 // ⚠ repo 루트에서 실행(.env.local·insights-archive 경로가 process.cwd() 기준).
-import { createClient } from '@supabase/supabase-js'
-import { readFileSync, appendFileSync, mkdirSync, existsSync } from 'fs'
 import { join } from 'path'
+import {
+  loadEnv,
+  createServiceClient,
+  requireUserId,
+  isDate,
+  readJsonFile,
+  appendArchiveJsonl,
+} from './_shared'
 
 // 정규화 후 타입(source 는 항상 string|null 로 채움). 입력 파싱은 normItems 가 unknown 으로 받아 처리.
 type SectionItem = { title: string; body: string; source: string | null }
@@ -28,22 +34,6 @@ type Result = {
 
 const SECTION_KEYS = ['politics', 'economy', 'society', 'culture'] as const
 
-function loadEnv(): Record<string, string> {
-  const text = readFileSync(join(process.cwd(), '.env.local'), 'utf8')
-  return Object.fromEntries(
-    text
-      .split('\n')
-      .filter((l) => l.includes('=') && !l.trim().startsWith('#'))
-      .map((l) => {
-        const i = l.indexOf('=')
-        return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, '')]
-      }),
-  )
-}
-
-// 날짜 형식(YYYY-MM-DD) 최소 검증.
-const isDate = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
-
 // 섹션 항목 정규화 — title·body 필수, source 선택.
 function normItems(arr: unknown): SectionItem[] {
   if (!Array.isArray(arr)) return []
@@ -61,30 +51,11 @@ function normItems(arr: unknown): SectionItem[] {
 
 async function main() {
   const env = loadEnv()
-  const URL_ = env.NEXT_PUBLIC_SUPABASE_URL
-  const KEY = env.SUPABASE_SERVICE_ROLE_KEY
-  const USER_ID = env.MFH_USER_ID
-  if (!URL_ || !KEY) {
-    console.error('환경변수 누락: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
-    process.exit(1)
-  }
-  if (!USER_ID) {
-    console.error(
-      'MFH_USER_ID 누락 — .env.local 에 저장 귀속 user_id 를 추가하세요.\n' +
-        '  (Supabase 콘솔 Authentication > Users 의 honduras0691@gmail.com ID)',
-    )
-    process.exit(1)
-  }
-  const sb = createClient(URL_, KEY, { auth: { persistSession: false } })
+  const sb = createServiceClient(env)
+  const USER_ID = requireUserId(env)
 
   const fileArg = process.argv[2] || join(process.cwd(), 'insights-archive', '_news', 'result.json')
-  let parsed: Result
-  try {
-    parsed = JSON.parse(readFileSync(fileArg, 'utf8')) as Result
-  } catch (e) {
-    console.error(`입력(result.json)을 읽지 못했습니다: ${fileArg}\n  ${(e as Error).message}`)
-    process.exit(1)
-  }
+  const parsed = readJsonFile<Result>(fileArg)
 
   if (!isDate(parsed.news_date)) {
     console.error('news_date 가 YYYY-MM-DD 형식이 아닙니다.')
@@ -146,12 +117,7 @@ async function main() {
   }
 
   // 영구 아카이브 — JSONL 누적(gitignore).
-  const archiveDir = join(process.cwd(), 'insights-archive', '_news')
-  if (!existsSync(archiveDir)) mkdirSync(archiveDir, { recursive: true })
-  appendFileSync(
-    join(archiveDir, 'honduras_news.jsonl'),
-    JSON.stringify({ ...row, generated_at: nowIso }) + '\n',
-  )
+  appendArchiveJsonl('_news', 'honduras_news.jsonl', { ...row, generated_at: nowIso })
 
   const counts = SECTION_KEYS.map((k) => `${k} ${sections[k]?.length ?? 0}`).join(' · ')
   console.log(

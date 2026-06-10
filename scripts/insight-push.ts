@@ -6,43 +6,15 @@
 //        cat result.md | npx tsx scripts/insight-push.ts
 // ⚠ repo 루트에서 실행(.env.local·insights-archive 경로가 process.cwd() 기준).
 // user_id = .env.local 의 MFH_USER_ID(저장 귀속 = 우진 1명). 분석 입력은 부부 공동이나 저장은 1명에게 귀속.
-import { createClient } from '@supabase/supabase-js'
-import { readFileSync, appendFileSync, mkdirSync, existsSync } from 'fs'
-import { join } from 'path'
+import { readFileSync } from 'fs'
 import { parseInsightBundle } from '@/lib/insightImport'
 import { isValidDomain } from '@/lib/insightExport'
-
-// .env.local 파싱(따옴표 제거).
-function loadEnv(): Record<string, string> {
-  const text = readFileSync(join(process.cwd(), '.env.local'), 'utf8')
-  return Object.fromEntries(
-    text
-      .split('\n')
-      .filter((l) => l.includes('=') && !l.trim().startsWith('#'))
-      .map((l) => {
-        const i = l.indexOf('=')
-        return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, '')]
-      }),
-  )
-}
+import { loadEnv, createServiceClient, requireUserId, appendArchiveJsonl } from './_shared'
 
 async function main() {
   const env = loadEnv()
-  const URL_ = env.NEXT_PUBLIC_SUPABASE_URL
-  const KEY = env.SUPABASE_SERVICE_ROLE_KEY
-  const USER_ID = env.MFH_USER_ID
-  if (!URL_ || !KEY) {
-    console.error('환경변수 누락: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
-    process.exit(1)
-  }
-  if (!USER_ID) {
-    console.error(
-      'MFH_USER_ID 누락 — .env.local 에 저장 귀속 user_id 를 추가하세요.\n' +
-        '  (Supabase 콘솔 Authentication > Users 의 honduras0691@gmail.com ID)',
-    )
-    process.exit(1)
-  }
-  const sb = createClient(URL_, KEY, { auth: { persistSession: false } })
+  const sb = createServiceClient(env)
+  const USER_ID = requireUserId(env)
 
   // 입력: 파일 인자 우선, 없으면 stdin(fd 0).
   const fileArg = process.argv[2]
@@ -63,10 +35,6 @@ async function main() {
     console.error('파싱된 인사이트가 없습니다. 회수 양식(===MFH-INSIGHT=== … ===END===)을 확인하세요.')
     process.exit(1)
   }
-
-  // 아카이브 폴더 보장(gitignore 대상).
-  const archiveDir = join(process.cwd(), 'insights-archive')
-  if (!existsSync(archiveDir)) mkdirSync(archiveDir, { recursive: true })
 
   const nowIso = new Date().toISOString()
   const results: string[] = []
@@ -105,7 +73,7 @@ async function main() {
       continue
     }
     // 영구 아카이브 — 도메인별 JSONL 누적(코드 참고용, 개인 사역내용이라 gitignore).
-    const line = JSON.stringify({
+    appendArchiveJsonl('', `${p.domain}.jsonl`, {
       domain: p.domain,
       content: p.content,
       period_start: p.periodStart,
@@ -113,7 +81,6 @@ async function main() {
       model: 'claude-code',
       generated_at: nowIso,
     })
-    appendFileSync(join(archiveDir, `${p.domain}.jsonl`), line + '\n')
     results.push(`✓ ${p.domain} (${p.content.length}자)`)
     ok++
   }

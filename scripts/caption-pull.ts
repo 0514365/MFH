@@ -4,10 +4,10 @@
 // 사용:  npx tsx scripts/caption-pull.ts          (증분 — 캡션 없는 사진만)
 //        npx tsx scripts/caption-pull.ts --all     (전체 재생성)
 // ⚠ repo 루트에서 실행. 분석 입력은 부부 공동(user_id 필터 없음). 이미지·manifest 는 insights-archive/_captions/(gitignore).
-import { createClient } from '@supabase/supabase-js'
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'fs'
+import { writeFileSync, mkdirSync, existsSync, rmSync } from 'fs'
 import { join } from 'path'
 import type { JournalPhoto } from '@/lib/types'
+import { loadEnv, createServiceClient } from './_shared'
 
 type JRow = {
   id: string
@@ -30,28 +30,8 @@ type ManifestItem = {
   taken_at: string | null
 }
 
-function loadEnv(): Record<string, string> {
-  const text = readFileSync(join(process.cwd(), '.env.local'), 'utf8')
-  return Object.fromEntries(
-    text
-      .split('\n')
-      .filter((l) => l.includes('=') && !l.trim().startsWith('#'))
-      .map((l) => {
-        const i = l.indexOf('=')
-        return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, '')]
-      }),
-  )
-}
-
 async function main() {
-  const env = loadEnv()
-  const URL_ = env.NEXT_PUBLIC_SUPABASE_URL
-  const KEY = env.SUPABASE_SERVICE_ROLE_KEY
-  if (!URL_ || !KEY) {
-    console.error('환경변수 누락: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
-    process.exit(1)
-  }
-  const sb = createClient(URL_, KEY, { auth: { persistSession: false } })
+  const sb = createServiceClient(loadEnv())
   const all = process.argv.includes('--all')
 
   // photos jsonb 가 있는 일지(부부 공동). 레거시 단일 컬럼은 patch82 로 이미 photos 로 이전됨.

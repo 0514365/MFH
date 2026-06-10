@@ -6,9 +6,6 @@
 //        npx tsx scripts/insight-pull.ts --days 30
 // ⚠ repo 루트에서 실행(.env.local·insights-archive 경로가 process.cwd() 기준).
 // 키는 .env.local 의 SUPABASE_SERVICE_ROLE_KEY(RLS 우회). 분석 입력은 부부 멤버 공동 데이터(user_id 필터 없음).
-import { createClient } from '@supabase/supabase-js'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 import {
   buildDataMarkdown,
   buildLetterDigest,
@@ -25,33 +22,13 @@ import {
 } from '@/lib/insightExport'
 import { buildBundleInstruction, buildFewShot, type FewShotExample } from '@/lib/insightPrompt'
 import { IMPORT_FORMAT_GUIDE } from '@/lib/insightImport'
+import { loadEnv, createServiceClient } from './_shared'
 
 // 기본 생성 도메인(7) — balance(순수집계·무료)·비서 제외. --domains 로 덮어쓸 수 있다.
 const GEN_DOMAINS: InsightDomain[] = ['overall', 'journal', 'project', 'task', 'prayer', 'fruit', 'letter']
 
-// .env.local 파싱(따옴표 제거). fetch-letter-materials.mjs 와 동일 규칙.
-function loadEnv(): Record<string, string> {
-  const text = readFileSync(join(process.cwd(), '.env.local'), 'utf8')
-  return Object.fromEntries(
-    text
-      .split('\n')
-      .filter((l) => l.includes('=') && !l.trim().startsWith('#'))
-      .map((l) => {
-        const i = l.indexOf('=')
-        return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, '')]
-      }),
-  )
-}
-
 async function main() {
-  const env = loadEnv()
-  const URL_ = env.NEXT_PUBLIC_SUPABASE_URL
-  const KEY = env.SUPABASE_SERVICE_ROLE_KEY
-  if (!URL_ || !KEY) {
-    console.error('환경변수 누락: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
-    process.exit(1)
-  }
-  const sb = createClient(URL_, KEY, { auth: { persistSession: false } })
+  const sb = createServiceClient(loadEnv())
 
   // 인자: --days N (7/30/90 중 하나, 기본 90).
   const daysIdx = process.argv.indexOf('--days')
