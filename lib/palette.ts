@@ -1,9 +1,6 @@
 // lib/palette.ts
-// MFH 2026 Brand Kit — 팔레트 토큰 (라이트 / 다크)
-// 기본 테마: 시스템 자동(prefers-color-scheme). 수동 전환은 <html data-theme="light|dark">.
-// 토큰 이름은 두 테마 공통이며, CSS 변수(--kebab-case)로 주입해 사용한다.
-
-export type ThemeName = "light" | "dark";
+// MFH 2026 Brand Kit — 팔레트 토큰 (라이트)
+// CSS 변수(--kebab-case)로 주입해 사용한다. (app/layout.tsx)
 
 export type PaletteTokens = {
   // Brand
@@ -64,35 +61,6 @@ export const light: PaletteTokens = {
   onStatusDone: "#0F6E56",
 };
 
-export const dark: PaletteTokens = {
-  primary: "#6E2425",
-  primaryHover: "#5A1C1D",
-  accent: "#E0474F",
-  accentHover: "#C93840",
-  danger: "#E0474F",
-  primarySoft: "#3A2627",
-  accentSoft: "#3C2122",
-  onPrimarySoft: "#E6B7B8",
-  onAccentSoft: "#F4A6AA",
-  paper: "#161110",
-  surface: "#1F1817",
-  surfaceSubtle: "#2A2120",
-  line: "#382E2C",
-  text: "#F1EBE9",
-  textMuted: "#A6A2A0",
-  textFaint: "#726D6B",
-  onPrimary: "#FFFFFF",
-  onAccent: "#FFFFFF",
-  statusUpcoming: "#2C2C2A",
-  onStatusUpcoming: "#D3D1C7",
-  statusProgress: "#0C447C",
-  onStatusProgress: "#B5D4F4",
-  statusDone: "#085041",
-  onStatusDone: "#9FE1CB",
-};
-
-export const themes: Record<ThemeName, PaletteTokens> = { light, dark };
-
 // camelCase 토큰 키 → --kebab-case CSS 변수명
 const toCssVar = (key: string): string =>
   "--" + key.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
@@ -102,17 +70,4 @@ export function tokensToCssVars(tokens: PaletteTokens): string {
   return (Object.keys(tokens) as (keyof PaletteTokens)[])
     .map((k) => `${toCssVar(k as string)}: ${tokens[k]};`)
     .join(" ");
-}
-
-// 전체 테마 CSS — 시스템 자동 기본 + data-theme 수동 오버라이드.
-// app/globals.css 에 붙이거나, 루트 레이아웃의 <style>로 주입한다.
-export function paletteCss(): string {
-  const lightVars = tokensToCssVars(light);
-  const darkVars = tokensToCssVars(dark);
-  return [
-    `:root{${lightVars}}`,
-    `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${darkVars}}}`,
-    `[data-theme="dark"]{${darkVars}}`,
-    `[data-theme="light"]{${lightVars}}`,
-  ].join("\n");
 }

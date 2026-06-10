@@ -16,18 +16,10 @@ export const PRIORITIES = [
   { value: 'low', label: '낮음' },
 ] as const
 
-export const PROJECT_STATUSES = [
-  { value: 'active', label: '진행' },
-  { value: 'onhold', label: '보류' },
-  { value: 'done', label: '완료' },
-] as const
-
 export const IMPORTANCE_MAX = 3
 
 export const priorityLabel = (v: string): string =>
   PRIORITIES.find((p) => p.value === v)?.label ?? v
-export const statusLabel = (v: string): string =>
-  PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v
 
 // ── Status 체계 (2026 개편: upcoming / in_progress / done) ──────────
 // projects·tasks 공통. NOTION 식 색 배지(soft 채움) — palette.ts 의 status* 토큰과 짝.
