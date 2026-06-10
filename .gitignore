@@ -14,6 +14,10 @@ News Letter/
 letter-templates/issues/
 letter-templates/mfh-2605-letter.html
 
+# 백업 파일 (편집기/수동 백업 잔재)
+*.bak
+*.bak[0-9]*
+
 # 빌드 부산물 · 개인 작업 자료
 tsconfig.tsbuildinfo
 2026 Brand Kit/
