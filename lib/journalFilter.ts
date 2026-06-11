@@ -10,6 +10,7 @@ export type JournalSortKey = 'date'
 export type JournalFilter = {
   q: string // 통합 텍스트 검색어
   fCategory: string[]
+  fAuthor: string[] // 작성자(user_id) 필터
   prayerOnly: boolean // 기도후보만
   dateFrom: string // YYYY-MM-DD, '' = 미지정
   dateTo: string // YYYY-MM-DD, '' = 미지정
@@ -19,6 +20,7 @@ export type JournalFilter = {
 export const EMPTY_JOURNAL_FILTER: JournalFilter = {
   q: '',
   fCategory: [],
+  fAuthor: [],
   prayerOnly: false,
   dateFrom: '',
   dateTo: '',
@@ -28,11 +30,12 @@ export const EMPTY_JOURNAL_FILTER: JournalFilter = {
 export function parseJournalFilter(sp: ParamsLike): JournalFilter {
   const q = (sp.get('q') ?? '').trim()
   const fCategory = splitCsv(sp.get('cat'))
+  const fAuthor = splitCsv(sp.get('author'))
   const prayerOnly = sp.get('pray') === '1'
   const dateFrom = sanitizeDate(sp.get('df'))
   const dateTo = sanitizeDate(sp.get('dt'))
   const asc = sp.get('dir') === 'asc'
-  return { q, fCategory, prayerOnly, dateFrom, dateTo, asc }
+  return { q, fCategory, fAuthor, prayerOnly, dateFrom, dateTo, asc }
 }
 
 // 필터를 쿼리스트링으로. 기본값이면 빈 문자열 → URL 깔끔하게 유지.
@@ -40,6 +43,7 @@ export function buildJournalQuery(f: JournalFilter): string {
   const params = new URLSearchParams()
   if (f.q) params.set('q', f.q)
   if (f.fCategory.length) params.set('cat', f.fCategory.join(','))
+  if (f.fAuthor.length) params.set('author', f.fAuthor.join(','))
   if (f.prayerOnly) params.set('pray', '1')
   if (f.dateFrom) params.set('df', f.dateFrom)
   if (f.dateTo) params.set('dt', f.dateTo)
@@ -51,6 +55,7 @@ export function isDefaultJournalFilter(f: JournalFilter): boolean {
   return (
     f.q === '' &&
     f.fCategory.length === 0 &&
+    f.fAuthor.length === 0 &&
     !f.prayerOnly &&
     f.dateFrom === '' &&
     f.dateTo === '' &&
@@ -63,6 +68,7 @@ export function isDefaultJournalFilter(f: JournalFilter): boolean {
 type FilterableEntry = {
   entry_date: string
   category: string | null
+  user_id?: string | null
   prayer_candidate: boolean | null
   headline: string | null
   today: string | null
@@ -86,6 +92,7 @@ export function applyJournalFilter<T extends FilterableEntry>(entries: T[], f: J
   // 잘못 입력된 역순(from > to) 은 결과 0 으로 자연 처리(별도 swap 하지 않음).
   let list = entries.filter((e) => {
     if (f.fCategory.length && !(e.category && f.fCategory.includes(e.category))) return false
+    if (f.fAuthor.length && !(e.user_id && f.fAuthor.includes(e.user_id))) return false
     if (f.prayerOnly && !e.prayer_candidate) return false
     if (f.dateFrom && e.entry_date < f.dateFrom) return false
     if (f.dateTo && e.entry_date > f.dateTo) return false

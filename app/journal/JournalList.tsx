@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import type { JournalEntry, Project, Task } from '@/lib/types'
-import { canEditEntry, type MembersMap } from '@/lib/members'
+import { canEditEntry, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
 import AuthorBadge from '@/components/AuthorBadge'
 import { chip, chipOn, toggle } from '@/lib/statusChip'
 import {
@@ -148,6 +148,7 @@ export default function JournalList({
 
   const [q, setQ] = useState(initial.q)
   const [fCategory, setFCategory] = useState<string[]>(initial.fCategory)
+  const [fAuthor, setFAuthor] = useState<string[]>(initial.fAuthor)
   const [prayerOnly, setPrayerOnly] = useState(initial.prayerOnly)
   const [dateFrom, setDateFrom] = useState(initial.dateFrom)
   const [dateTo, setDateTo] = useState(initial.dateTo)
@@ -161,12 +162,12 @@ export default function JournalList({
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    const f: JournalFilter = { q, fCategory, prayerOnly, dateFrom, dateTo, asc }
+    const f: JournalFilter = { q, fCategory, fAuthor, prayerOnly, dateFrom, dateTo, asc }
     const qs = buildJournalQuery(f)
     const current = searchParams.toString()
     if (qs === current) return
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [q, fCategory, prayerOnly, dateFrom, dateTo, asc, pathname, router, searchParams])
+  }, [q, fCategory, fAuthor, prayerOnly, dateFrom, dateTo, asc, pathname, router, searchParams])
 
   const categoryOpts = useMemo(
     () =>
@@ -175,6 +176,18 @@ export default function JournalList({
       ).sort(),
     [entries],
   )
+
+  // 작성자 옵션: 목록에 실제 글이 있는 작성자만(분류 칩과 동일 방식). 이름은 membersMap, 마스터(김우진) 먼저.
+  const authorOpts = useMemo(() => {
+    const ids = Array.from(
+      new Set(entries.map((e) => e.user_id).filter((id): id is string => !!id)),
+    )
+    return ids
+      .map((id) => ({ id, name: membersMap[id] ?? '알 수 없음' }))
+      .sort((a, b) =>
+        a.id === PORTFOLIO_OWNER_ID ? -1 : b.id === PORTFOLIO_OWNER_ID ? 1 : a.name.localeCompare(b.name),
+      )
+  }, [entries, membersMap])
 
   // 일괄변경용: 연계 프로젝트 (모두) / 연계 할일 (미완료만, 노이즈 축소). 알파벳 정렬.
   const projectOpts = useMemo(
@@ -194,13 +207,13 @@ export default function JournalList({
   )
 
   const filtered = useMemo(
-    () => applyJournalFilter(entries, { q, fCategory, prayerOnly, dateFrom, dateTo, asc }),
-    [entries, q, fCategory, prayerOnly, dateFrom, dateTo, asc],
+    () => applyJournalFilter(entries, { q, fCategory, fAuthor, prayerOnly, dateFrom, dateTo, asc }),
+    [entries, q, fCategory, fAuthor, prayerOnly, dateFrom, dateTo, asc],
   )
 
   const detailQuery = useMemo(
-    () => buildJournalQuery({ q, fCategory, prayerOnly, dateFrom, dateTo, asc }),
-    [q, fCategory, prayerOnly, dateFrom, dateTo, asc],
+    () => buildJournalQuery({ q, fCategory, fAuthor, prayerOnly, dateFrom, dateTo, asc }),
+    [q, fCategory, fAuthor, prayerOnly, dateFrom, dateTo, asc],
   )
   const detailSuffix = detailQuery ? `?${detailQuery}` : ''
 
@@ -223,6 +236,7 @@ export default function JournalList({
   const activeCount =
     (q ? 1 : 0) +
     fCategory.length +
+    fAuthor.length +
     (prayerOnly ? 1 : 0) +
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0)
@@ -232,6 +246,7 @@ export default function JournalList({
   function resetAll() {
     setQ('')
     setFCategory([])
+    setFAuthor([])
     setPrayerOnly(false)
     setDateFrom('')
     setDateTo('')
@@ -381,7 +396,7 @@ export default function JournalList({
           type="button"
           onClick={() => setFilterOpen((v) => !v)}
           className={`flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
-            filterOpen || fCategory.length > 0 || prayerOnly || dateFrom || dateTo
+            filterOpen || fCategory.length > 0 || fAuthor.length > 0 || prayerOnly || dateFrom || dateTo
               ? 'border-primary text-primary'
               : 'border-line text-muted hover:border-primary'
           }`}
@@ -481,6 +496,21 @@ export default function JournalList({
               기도후보만
             </button>
           </div>
+          {authorOpts.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[11px] font-semibold text-faint">작성자</span>
+              {authorOpts.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setFAuthor((arr) => toggle(arr, a.id))}
+                  className={`${chip} ${fAuthor.includes(a.id) ? chipOn : ''}`}
+                >
+                  {a.name}
+                </button>
+              ))}
+            </div>
+          )}
           {categoryOpts.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="mr-1 text-[11px] font-semibold text-faint">분류</span>

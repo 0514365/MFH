@@ -64,7 +64,7 @@ export default async function JournalDetail(props: {
   } })
   const { data: navRows } = await supabase
     .from('journal_entries')
-    .select('id, entry_date, category, prayer_candidate, headline, today, thanks, meditation, prayer, place_name, created_at')
+    .select('id, user_id, entry_date, category, prayer_candidate, headline, today, thanks, meditation, prayer, place_name, created_at')
   const orderedIds = applyJournalFilter((navRows ?? []) as any[], filter).map(
     (e) => e.id as string,
   )
