@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { getMembersMap } from '@/lib/members'
+import { getMembersMap, canEditEntry } from '@/lib/members'
 import type { JournalEntry } from '@/lib/types'
 import { applyJournalFilter, parseJournalFilter } from '@/lib/journalFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
@@ -45,7 +45,7 @@ export default async function JournalDetail(props: {
   if (!entry) notFound()
 
   const membersMap = await getMembersMap(supabase)
-  const canEdit = entry.user_id === user.id
+  const canEdit = canEditEntry(entry.user_id, user.id)
 
   let linkedIntercession: { visitor_name: string; message: string } | null = null
   if (entry.intercession_id) {

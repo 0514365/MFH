@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { getMembersMap } from '@/lib/members'
+import { getMembersMap, canEditEntry } from '@/lib/members'
 import type { Project } from '@/lib/types'
 import { applyProjectFilter, parseProjectFilter } from '@/lib/projectFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
@@ -34,7 +34,7 @@ export default async function ProjectDetail(props: {
   if (!project) notFound()
 
   const membersMap = await getMembersMap(supabase)
-  const canEdit = project.user_id === user.id
+  const canEdit = canEditEntry(project.user_id, user.id)
 
   // 목록과 동일한 필터+정렬로 전체를 재계산 → 현재 항목의 이전/다음.
   const filter = parseProjectFilter({ get: (k) => {

@@ -17,7 +17,7 @@ import {
 } from '@/lib/taskFilter'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import { fmtTime } from '@/lib/calendar'
-import type { MembersMap } from '@/lib/members'
+import { canEditEntry, type MembersMap } from '@/lib/members'
 import AuthorBadge from '@/components/AuthorBadge'
 import { StatusBadge, CategoryBadge, ImportanceStars } from '../projects/badges'
 import { useWideScreen } from '@/lib/useWideScreen'
@@ -893,7 +893,7 @@ export default function TasksListClient({
                     <TaskSummary
                       t={selectedTask}
                       authorName={membersMap[selectedTask.user_id]}
-                      canEdit={selectedTask.user_id === currentUserId}
+                      canEdit={canEditEntry(selectedTask.user_id, currentUserId)}
                       editSuffix={detailSuffix}
                     />
                   ) : (

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import type { JournalEntry, Project, Task } from '@/lib/types'
-import type { MembersMap } from '@/lib/members'
+import { canEditEntry, type MembersMap } from '@/lib/members'
 import AuthorBadge from '@/components/AuthorBadge'
 import { chip, chipOn, toggle } from '@/lib/statusChip'
 import {
@@ -589,7 +589,7 @@ export default function JournalList({
                 e={selectedEntry}
                 detailSuffix={detailSuffix}
                 authorName={membersMap[selectedEntry.user_id]}
-                canEdit={selectedEntry.user_id === currentUserId}
+                canEdit={canEditEntry(selectedEntry.user_id, currentUserId)}
               />
             ) : (
               <p className="py-10 text-center text-sm text-faint">왼쪽에서 일지를 선택하세요.</p>

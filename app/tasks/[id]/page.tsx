@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { getMembersMap } from '@/lib/members'
+import { getMembersMap, canEditEntry } from '@/lib/members'
 import { parseTaskFilter, orderTaskIds } from '@/lib/taskFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import { StatusBadge, CategoryBadge, ImportanceStars, fmtDate } from '../../projects/badges'
@@ -70,7 +70,7 @@ export default async function TaskDetailPage(props: {
   if (!task) notFound()
 
   const membersMap = await getMembersMap(supabase)
-  const canEdit = task.user_id === user.id
+  const canEdit = canEditEntry(task.user_id, user.id)
 
   // 목록과 동일한 필터+정렬+그룹평탄화로 전체를 재계산 → 현재 항목의 이전/다음.
   const filter = parseTaskFilter({

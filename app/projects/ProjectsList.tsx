@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import type { Project } from '@/lib/types'
-import type { MembersMap } from '@/lib/members'
+import { canEditEntry, type MembersMap } from '@/lib/members'
 import AuthorBadge from '@/components/AuthorBadge'
 import { STATUSES, type StatusValue } from '@/lib/constants'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
@@ -608,7 +608,7 @@ export default function ProjectsList({
                       counts={selCounts}
                       detailSuffix={detailSuffix}
                       authorName={membersMap[selectedProject.user_id]}
-                      canEdit={selectedProject.user_id === currentUserId}
+                      canEdit={canEditEntry(selectedProject.user_id, currentUserId)}
                     />
                   ) : (
                     <p className="py-10 text-center text-sm text-faint">
