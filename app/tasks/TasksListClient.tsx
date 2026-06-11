@@ -17,7 +17,7 @@ import {
 } from '@/lib/taskFilter'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import { fmtTime } from '@/lib/calendar'
-import { canEditEntry, type MembersMap } from '@/lib/members'
+import { canEditEntry, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
 import AuthorBadge from '@/components/AuthorBadge'
 import { StatusBadge, CategoryBadge, ImportanceStars } from '../projects/badges'
 import { useWideScreen } from '@/lib/useWideScreen'
@@ -203,6 +203,7 @@ export default function TasksListClient({
   const [fStatus, setFStatus] = useState<StatusValue[]>(init.fStatus)
   const [fImportance, setFImportance] = useState<number[]>(init.fImportance)
   const [fCategory, setFCategory] = useState<string[]>(init.fCategory)
+  const [fAuthor, setFAuthor] = useState<string[]>(init.fAuthor)
   const [fProject, setFProject] = useState<string[]>(init.fProject)
   const [q, setQ] = useState(init.q)
   const [sortKey, setSortKey] = useState<SortKey>(init.sortKey)
@@ -224,6 +225,7 @@ export default function TasksListClient({
     fStatus,
     fImportance,
     fCategory,
+    fAuthor,
     fProject,
     q,
     sortKey,
@@ -237,7 +239,7 @@ export default function TasksListClient({
     const query = buildTaskQuery(currentFilter)
     router.replace(query ? `/tasks?${query}` : '/tasks', { scroll: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hideDone, fStatus, fImportance, fCategory, fProject, q, sortKey, asc])
+  }, [hideDone, fStatus, fImportance, fCategory, fAuthor, fProject, q, sortKey, asc])
 
   // 마운트 시 1회: URL 에 필터가 없으면(기본값) 세션에 저장된 필터를 복원.
   // (URL 쿼리가 있으면 공유 링크 우선 → 복원 건너뜀.) 편집 왕복 등으로 쿼리가 사라져도 유지.
@@ -249,6 +251,7 @@ export default function TasksListClient({
         setFStatus(saved.fStatus)
         setFImportance(saved.fImportance)
         setFCategory(saved.fCategory)
+        setFAuthor(saved.fAuthor)
         setFProject(saved.fProject)
         setQ(saved.q)
         setSortKey(saved.sortKey)
@@ -264,7 +267,7 @@ export default function TasksListClient({
     if (!restored) return
     saveTaskFilter(currentFilter)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restored, hideDone, fStatus, fImportance, fCategory, fProject, q, sortKey, asc])
+  }, [restored, hideDone, fStatus, fImportance, fCategory, fAuthor, fProject, q, sortKey, asc])
 
   // 데이터에 실제로 존재하는 값만 칩으로 노출
   const importanceOpts = useMemo(
@@ -278,6 +281,15 @@ export default function TasksListClient({
     () => Array.from(new Set(tasks.map((t) => t.category).filter((c): c is string => !!c))).sort(),
     [tasks],
   )
+  // 작성자 옵션: 목록에 실제 글이 있는 작성자만(분류 칩과 동일 방식). 이름은 membersMap, 마스터(김우진) 먼저.
+  const authorOpts = useMemo(() => {
+    const ids = Array.from(new Set(tasks.map((t) => t.user_id).filter((id): id is string => !!id)))
+    return ids
+      .map((id) => ({ id, name: membersMap[id] ?? '알 수 없음' }))
+      .sort((a, b) =>
+        a.id === PORTFOLIO_OWNER_ID ? -1 : b.id === PORTFOLIO_OWNER_ID ? 1 : a.name.localeCompare(b.name),
+      )
+  }, [tasks, membersMap])
   const projectOpts = useMemo(() => {
     const map = new Map<string, string>()
     for (const t of tasks) {
@@ -296,7 +308,7 @@ export default function TasksListClient({
   // 필터/정렬을 lib 순수함수에 위임 → 상세(tasks/[id]) ◀▶ 와 동일 정렬 공유.
   const filtered = useMemo(
     () => applyTaskFilter(tasks, currentFilter),
-    [tasks, hideDone, fStatus, fImportance, fCategory, fProject, q, sortKey, asc],
+    [tasks, hideDone, fStatus, fImportance, fCategory, fAuthor, fProject, q, sortKey, asc],
   )
 
   // 넓은 화면: 선택이 비었거나 목록에서 사라지면 첫 항목 자동선택. 좁은 화면: 선택 해제.
@@ -317,7 +329,7 @@ export default function TasksListClient({
   )
 
   const activeCount =
-    (hideDone ? 0 : 1) + fStatus.length + fImportance.length + fCategory.length + fProject.length
+    (hideDone ? 0 : 1) + fStatus.length + fImportance.length + fCategory.length + fAuthor.length + fProject.length
   const hasFilter = activeCount > 0
   const hasQuery = q.trim().length > 0
   const sortChanged = sortKey !== 'due' || !asc
@@ -328,6 +340,7 @@ export default function TasksListClient({
     setFStatus([])
     setFImportance([])
     setFCategory([])
+    setFAuthor([])
     setFProject([])
     setQ('')
     setSortKey('due')
@@ -589,6 +602,21 @@ export default function TasksListClient({
             </div>
           )}
 
+          {authorOpts.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[11px] font-semibold text-faint">작성자</span>
+              {authorOpts.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setFAuthor((arr) => toggle(arr, a.id))}
+                  className={`${chip} ${fAuthor.includes(a.id) ? chipOn : ''}`}
+                >
+                  {a.name}
+                </button>
+              ))}
+            </div>
+          )}
           {categoryOpts.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="mr-1 text-[11px] font-semibold text-faint">분류</span>

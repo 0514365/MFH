@@ -18,6 +18,7 @@ export type TaskFilter = {
   fStatus: StatusValue[]
   fImportance: number[]
   fCategory: string[]
+  fAuthor: string[] // 작성자(user_id) 필터
   fProject: string[]
   q: string
   sortKey: TaskSortKey
@@ -29,6 +30,7 @@ export const EMPTY_TASK_FILTER: TaskFilter = {
   fStatus: [],
   fImportance: [],
   fCategory: [],
+  fAuthor: [],
   fProject: [],
   q: '',
   sortKey: 'due',
@@ -44,6 +46,7 @@ export function parseTaskFilter(sp: ParamsLike): TaskFilter {
   const fStatus = parseStatusCsv(sp.get('status'))
   const fImportance = parseImportanceCsv(sp.get('imp'))
   const fCategory = splitCsv(sp.get('cat'))
+  const fAuthor = splitCsv(sp.get('author'))
   const fProject = splitCsv(sp.get('proj'))
 
   const q = (sp.get('q') ?? '').trim()
@@ -54,7 +57,7 @@ export function parseTaskFilter(sp: ParamsLike): TaskFilter {
   const dirRaw = sp.get('dir')
   const asc = dirRaw === 'desc' ? false : true
 
-  return { hideDone, fStatus, fImportance, fCategory, fProject, q, sortKey, asc }
+  return { hideDone, fStatus, fImportance, fCategory, fAuthor, fProject, q, sortKey, asc }
 }
 
 // 필터를 쿼리스트링으로. 기본값이면 빈 문자열.
@@ -64,6 +67,7 @@ export function buildTaskQuery(f: TaskFilter): string {
   if (f.fStatus.length) params.set('status', f.fStatus.join(','))
   if (f.fImportance.length) params.set('imp', f.fImportance.join(','))
   if (f.fCategory.length) params.set('cat', f.fCategory.join(','))
+  if (f.fAuthor.length) params.set('author', f.fAuthor.join(','))
   if (f.fProject.length) params.set('proj', f.fProject.join(','))
   if (f.q.trim()) params.set('q', f.q.trim())
   if (f.sortKey !== 'due') params.set('sort', f.sortKey)
@@ -77,6 +81,7 @@ export function isDefaultTaskFilter(f: TaskFilter): boolean {
     f.fStatus.length === 0 &&
     f.fImportance.length === 0 &&
     f.fCategory.length === 0 &&
+    f.fAuthor.length === 0 &&
     f.fProject.length === 0 &&
     f.q.trim() === '' &&
     f.sortKey === 'due' &&
@@ -91,6 +96,7 @@ type FilterableTask = {
   status: string | null
   importance: number
   category: string | null
+  user_id?: string | null
   project_id: string | null
   due_date: string | null
   due_time: string | null
@@ -111,6 +117,7 @@ export function applyTaskFilter<T extends FilterableTask>(tasks: T[], f: TaskFil
     if (f.fStatus.length && !f.fStatus.includes(normalizeStatus(t.status))) return false
     if (f.fImportance.length && !f.fImportance.includes(t.importance)) return false
     if (f.fCategory.length && !(t.category && f.fCategory.includes(t.category))) return false
+    if (f.fAuthor.length && !(t.user_id && f.fAuthor.includes(t.user_id))) return false
     if (f.fProject.length && !(t.project_id && f.fProject.includes(t.project_id))) return false
     if (terms.length) {
       const hay = `${t.title ?? ''} ${t.description ?? ''} ${t.place_name ?? ''}`.toLowerCase()

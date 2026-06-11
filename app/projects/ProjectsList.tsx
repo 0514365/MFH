@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import type { Project } from '@/lib/types'
-import { canEditEntry, type MembersMap } from '@/lib/members'
+import { canEditEntry, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
 import AuthorBadge from '@/components/AuthorBadge'
 import { STATUSES, type StatusValue } from '@/lib/constants'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
@@ -140,6 +140,7 @@ export default function ProjectsList({
   const [fStatus, setFStatus] = useState<StatusValue[]>(initial.fStatus)
   const [fImportance, setFImportance] = useState<number[]>(initial.fImportance)
   const [fCategory, setFCategory] = useState<string[]>(initial.fCategory)
+  const [fAuthor, setFAuthor] = useState<string[]>(initial.fAuthor)
   const [sortKey, setSortKey] = useState<SortKey>(initial.sortKey)
   const [asc, setAsc] = useState(initial.asc)
   const [filterOpen, setFilterOpen] = useState(false)
@@ -153,12 +154,12 @@ export default function ProjectsList({
 
   // 필터/정렬 → URL 쿼리 동기화
   useEffect(() => {
-    const f: ProjectFilter = { hideDone, fStatus, fImportance, fCategory, sortKey, asc }
+    const f: ProjectFilter = { hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc }
     const qs = buildProjectQuery(f)
     const current = searchParams.toString()
     if (qs === current) return
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [hideDone, fStatus, fImportance, fCategory, sortKey, asc, pathname, router, searchParams])
+  }, [hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc, pathname, router, searchParams])
 
   const importanceOpts = useMemo(
     () =>
@@ -175,14 +176,26 @@ export default function ProjectsList({
     [projects],
   )
 
+  // 작성자 옵션: 목록에 실제 글이 있는 작성자만(분류 칩과 동일 방식). 이름은 membersMap, 마스터(김우진) 먼저.
+  const authorOpts = useMemo(() => {
+    const ids = Array.from(
+      new Set(projects.map((p) => p.user_id).filter((id): id is string => !!id)),
+    )
+    return ids
+      .map((id) => ({ id, name: membersMap[id] ?? '알 수 없음' }))
+      .sort((a, b) =>
+        a.id === PORTFOLIO_OWNER_ID ? -1 : b.id === PORTFOLIO_OWNER_ID ? 1 : a.name.localeCompare(b.name),
+      )
+  }, [projects, membersMap])
+
   const filtered = useMemo(
-    () => applyProjectFilter(projects, { hideDone, fStatus, fImportance, fCategory, sortKey, asc }),
-    [projects, hideDone, fStatus, fImportance, fCategory, sortKey, asc],
+    () => applyProjectFilter(projects, { hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc }),
+    [projects, hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc],
   )
 
   const detailQuery = useMemo(
-    () => buildProjectQuery({ hideDone, fStatus, fImportance, fCategory, sortKey, asc }),
-    [hideDone, fStatus, fImportance, fCategory, sortKey, asc],
+    () => buildProjectQuery({ hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc }),
+    [hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc],
   )
   const detailSuffix = detailQuery ? `?${detailQuery}` : ''
 
@@ -203,7 +216,7 @@ export default function ProjectsList({
   )
 
   const activeCount =
-    (hideDone ? 0 : 1) + fStatus.length + fImportance.length + fCategory.length
+    (hideDone ? 0 : 1) + fStatus.length + fImportance.length + fCategory.length + fAuthor.length
   const hasFilter = activeCount > 0
   const sortChanged = sortKey !== 'due' || !asc
   const canReset = hasFilter || sortChanged
@@ -213,6 +226,7 @@ export default function ProjectsList({
     setFStatus([])
     setFImportance([])
     setFCategory([])
+    setFAuthor([])
     setSortKey('due')
     setAsc(true)
   }
@@ -398,6 +412,21 @@ export default function ProjectsList({
             </div>
           )}
 
+          {authorOpts.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[11px] font-semibold text-faint">작성자</span>
+              {authorOpts.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setFAuthor((arr) => toggle(arr, a.id))}
+                  className={`${chip} ${fAuthor.includes(a.id) ? chipOn : ''}`}
+                >
+                  {a.name}
+                </button>
+              ))}
+            </div>
+          )}
           {categoryOpts.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="mr-1 text-[11px] font-semibold text-faint">분류</span>

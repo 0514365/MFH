@@ -82,7 +82,7 @@ export default async function TaskDetailPage(props: {
   const { data: navRows } = await supabase
     .from('tasks')
     .select(
-      'id, done, status, importance, category, project_id, due_date, due_time, created_at, title, description, place_name',
+      'id, user_id, done, status, importance, category, project_id, due_date, due_time, created_at, title, description, place_name',
     )
   const orderedIds = orderTaskIds((navRows ?? []) as any[], filter)
   const nav = computeListNav(orderedIds, params.id)

@@ -43,7 +43,7 @@ export default async function ProjectDetail(props: {
   } })
   const { data: navRows } = await supabase
     .from('projects')
-    .select('id, status, importance, category, due_date, created_at')
+    .select('id, user_id, status, importance, category, due_date, created_at')
   const orderedIds = applyProjectFilter((navRows ?? []) as any[], filter).map((p) => p.id as string)
   const nav = computeListNav(orderedIds, params.id)
   const navQuery = searchParamsToQuery(searchParams)
