@@ -130,8 +130,8 @@ export default function InsightContent({
       continue
     }
 
-    // 4) 【…부…】 제목 줄 → 볼드
-    if (/^【.*】$/.test(trimmed)) {
+    // 4) 【…부…】 / "기도제목" 제목 줄 → 볼드
+    if (/^【.*】$/.test(trimmed) || /^기도제목:?$/.test(trimmed)) {
       blocks.push(
         <p key={key++} className="font-semibold text-ink">
           {trimmed}
