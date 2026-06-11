@@ -281,15 +281,17 @@ export default function TasksListClient({
     () => Array.from(new Set(tasks.map((t) => t.category).filter((c): c is string => !!c))).sort(),
     [tasks],
   )
-  // 작성자 옵션: 목록에 실제 글이 있는 작성자만(분류 칩과 동일 방식). 이름은 membersMap, 마스터(김우진) 먼저.
-  const authorOpts = useMemo(() => {
-    const ids = Array.from(new Set(tasks.map((t) => t.user_id).filter((id): id is string => !!id)))
-    return ids
-      .map((id) => ({ id, name: membersMap[id] ?? '알 수 없음' }))
-      .sort((a, b) =>
-        a.id === PORTFOLIO_OWNER_ID ? -1 : b.id === PORTFOLIO_OWNER_ID ? 1 : a.name.localeCompare(b.name),
-      )
-  }, [tasks, membersMap])
+  // 작성자 옵션: 멤버 전원(고정 2명). 데이터에 글이 없는 작성자도 칩으로 노출 —
+  // 멤버 공유 앱이라 작성자=멤버. 마스터(김우진) 먼저.
+  const authorOpts = useMemo(
+    () =>
+      Object.entries(membersMap)
+        .map(([id, name]) => ({ id, name }))
+        .sort((a, b) =>
+          a.id === PORTFOLIO_OWNER_ID ? -1 : b.id === PORTFOLIO_OWNER_ID ? 1 : a.name.localeCompare(b.name),
+        ),
+    [membersMap],
+  )
   const projectOpts = useMemo(() => {
     const map = new Map<string, string>()
     for (const t of tasks) {
