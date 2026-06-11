@@ -4,6 +4,7 @@
 // 인사이트는 도메인별 최신 1행만 유지되므로, 남기고 싶은 건 보관함에 모인다.
 import { useEffect, useState } from 'react'
 import { DOMAIN_LABEL, type InsightDomain } from '@/lib/insightExport'
+import InsightContent from '../InsightContent'
 
 export type ScrapRow = {
   id: string
@@ -57,9 +58,11 @@ export default function SavedClient({ initial }: { initial: ScrapRow[] }) {
           <div className="mt-1 text-[11px] text-faint">
             {row.period_start} ~ {row.period_end}
           </div>
-          <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink">
-            {row.content}
-          </div>
+          <InsightContent
+            domain={row.domain}
+            content={row.content}
+            className="mt-3 text-sm leading-relaxed text-ink"
+          />
           {row.feedback_note && (
             <div className="mt-2 rounded-lg bg-surface-subtle p-2 text-xs text-muted">
               메모: {row.feedback_note}

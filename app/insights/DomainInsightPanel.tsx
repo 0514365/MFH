@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { DOMAIN_LABEL, type InsightDomain } from '@/lib/insightExport'
+import InsightContent from './InsightContent'
 
 type LatestRow = {
   period_start: string | null
@@ -76,9 +77,11 @@ export default function DomainInsightPanel({ domain }: { domain: InsightDomain }
               <div className="text-[11px] text-faint">
                 {row.period_start} ~ {row.period_end} · {row.model === 'manual' ? '수동' : 'AI'} · {fmtAt(row.created_at)}
               </div>
-              <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">
-                {row.content}
-              </div>
+              <InsightContent
+                domain={domain}
+                content={row.content}
+                className="mt-2 text-sm leading-relaxed text-ink"
+              />
             </>
           )}
         </div>

@@ -27,6 +27,7 @@ import {
 } from '@/lib/insightExport'
 import { createClient } from '@/lib/supabase-browser'
 import { getMembersMap, PORTFOLIO_OWNER_ID } from '@/lib/members'
+import InsightContent from './InsightContent'
 
 export type InsightRow = {
   id: string
@@ -746,7 +747,11 @@ function InsightCard({
         </div>
       </div>
 
-      <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink">{row.content}</div>
+      <InsightContent
+        domain={row.domain}
+        content={row.content}
+        className="mt-3 text-sm leading-relaxed text-ink"
+      />
 
       <div className="mt-4 flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((n) => {
