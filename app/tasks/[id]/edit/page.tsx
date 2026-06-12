@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase-server'
 import type { Task } from '@/lib/types'
 import { parseTaskFilter, orderTaskIds } from '@/lib/taskFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
+import { canEditEntry } from '@/lib/members'
 import TaskForm from '../../TaskForm'
 
 export const dynamic = 'force-dynamic'
@@ -22,8 +23,8 @@ export default async function EditTask(props: {
   const { data } = await supabase.from('tasks').select('*').eq('id', params.id).maybeSingle()
   const task = data as Task | null
   if (!task) notFound()
-  // 본인 할 일만 편집 — 남의 것은 상세로.
-  if (task.user_id !== user.id) redirect(`/tasks/${params.id}`)
+  // 본인 또는 마스터만 편집 — 그 외엔 상세로.
+  if (!canEditEntry(task.user_id, user.id)) redirect(`/tasks/${params.id}`)
 
   // 목록과 동일한 필터+정렬+그룹평탄화로 전체를 재계산 → 현재 항목의 이전/다음(편집 순회).
   const filter = parseTaskFilter({

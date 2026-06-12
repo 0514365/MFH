@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { Project } from '@/lib/types'
+import { canEditEntry } from '@/lib/members'
 import ProjectForm from '../../ProjectForm'
 
 export const dynamic = 'force-dynamic'
@@ -16,8 +17,8 @@ export default async function EditProject(props: { params: Promise<{ id: string 
   const { data } = await supabase.from('projects').select('*').eq('id', params.id).maybeSingle()
   const project = data as Project | null
   if (!project) notFound()
-  // 본인 프로젝트만 편집 — 남의 것은 상세로.
-  if (project.user_id !== user.id) redirect(`/projects/${params.id}`)
+  // 본인 또는 마스터만 편집 — 그 외엔 상세로.
+  if (!canEditEntry(project.user_id, user.id)) redirect(`/projects/${params.id}`)
 
   return <ProjectForm mode="edit" initial={project} />
 }
