@@ -16,6 +16,7 @@ import DateField from '../journal/DateField'
 import CategorySelect from '@/components/CategorySelect'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
+import AuthorSelect from '@/components/AuthorSelect'
 import RecurrenceBadge from '@/components/RecurrenceBadge'
 import RecurrenceScopeModal from '@/components/RecurrenceScopeModal'
 import {
@@ -25,6 +26,7 @@ import {
   type RecurrenceScope,
 } from '@/lib/recurrence'
 import type { ListNav } from '@/lib/listNav'
+import { resolveOwnerId } from '@/lib/members'
 
 type Props = {
   mode: 'new' | 'edit'
@@ -79,6 +81,8 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     initial ? normalizeStatus(initial.status) : TASK_DEFAULT_STATUS,
   )
   const [done, setDone] = useState(initial?.done ?? false)
+  // 작성자(user_id) — 마스터만 AuthorSelect 로 변경 가능. 신규는 컴포넌트가 본인으로 채움.
+  const [authorId, setAuthorId] = useState(initial?.user_id ?? '')
   // 반복 등록(새 할 일 한정). 마감일을 첫 날짜로, 종료일까지 같은 할 일을 일괄 생성.
   const [repeatFreq, setRepeatFreq] = useState<RepeatFreq>('none')
   const [repeatUntil, setRepeatUntil] = useState('')
@@ -211,11 +215,12 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     // 새 항목
     setSaving(true)
     setMsg(null)
+    const ownerId = resolveOwnerId({ chosen: authorId, existingOwnerId: initial?.user_id, viewerId: user.id })
     if (recurring) {
       const rid = crypto.randomUUID()
       const rows = recurDates.map((d) => ({
         ...buildBase(),
-        user_id: user.id,
+        user_id: ownerId,
         due_date: d,
         recurrence_id: rid,
         recurrence_freq: repeatFreq,
@@ -229,7 +234,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     } else {
       const { error } = await supabase
         .from('tasks')
-        .insert({ ...buildBase(), user_id: user.id, due_date: dueDate || null })
+        .insert({ ...buildBase(), user_id: ownerId, due_date: dueDate || null })
       if (error) {
         setSaving(false)
         setMsg('저장 실패: ' + error.message)
@@ -249,9 +254,17 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     setSaving(true)
     setMsg(null)
     const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      router.replace('/login')
+      return
+    }
+    const ownerId = resolveOwnerId({ chosen: authorId, existingOwnerId: initial.user_id, viewerId: user.id })
     const { error } = await supabase
       .from('tasks')
-      .update({ ...buildBase(), due_date: dueDate || null })
+      .update({ ...buildBase(), user_id: ownerId, due_date: dueDate || null })
       .eq('id', initial.id)
     if (error) {
       setSaving(false)
@@ -353,6 +366,10 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
         <p className="mb-4 -mt-2 text-xs text-muted">
           이 할 일은 반복 시리즈의 한 항목입니다. 저장·삭제 시 “이 항목만 / 이후 모두”를 물어봅니다.
         </p>
+      )}
+
+      {mode === 'edit' && (
+        <AuthorSelect value={authorId} onChange={setAuthorId} className={input} />
       )}
 
       {/* 데스크탑 2열: 왼쪽 제목·설명·프로젝트 / 오른쪽 메타 */}

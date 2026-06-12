@@ -12,7 +12,9 @@ import { STATUSES, normalizeStatus, IMPORTANCE_MAX } from '@/lib/constants'
 import type { Project } from '@/lib/types'
 import DateField from '../journal/DateField'
 import CategorySelect from '@/components/CategorySelect'
+import AuthorSelect from '@/components/AuthorSelect'
 import BackButton from '@/components/BackButton'
+import { resolveOwnerId } from '@/lib/members'
 
 type Props = {
   mode: 'new' | 'edit'
@@ -29,6 +31,8 @@ export default function ProjectForm({ mode, initial }: Props) {
   const [importance, setImportance] = useState<number>(initial?.importance ?? 0)
   const [startDate, setStartDate] = useState(initial?.start_date ?? '')
   const [dueDate, setDueDate] = useState(initial?.due_date ?? '')
+  // 작성자(user_id) — 마스터만 AuthorSelect 로 변경 가능. 신규는 컴포넌트가 본인으로 채움.
+  const [authorId, setAuthorId] = useState(initial?.user_id ?? '')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
@@ -48,7 +52,7 @@ export default function ProjectForm({ mode, initial }: Props) {
       return
     }
     const payload = {
-      user_id: user.id,
+      user_id: resolveOwnerId({ chosen: authorId, existingOwnerId: initial?.user_id, viewerId: user.id }),
       title: title.trim(),
       description: description.trim() || null,
       category: category || null,
@@ -95,6 +99,10 @@ export default function ProjectForm({ mode, initial }: Props) {
       <h1 className="mb-4 mt-2 font-display text-2xl font-extrabold text-primary">
         {mode === 'edit' ? 'Edit Project' : 'New Project'}
       </h1>
+
+      {mode === 'edit' && (
+        <AuthorSelect value={authorId} onChange={setAuthorId} className={input} />
+      )}
 
       <label className="mb-1 block text-xs text-muted">제목</label>
       <input

@@ -16,6 +16,19 @@ export function canEditEntry(ownerId?: string | null, viewerId?: string | null):
   return !!viewerId && (ownerId === viewerId || isMaster(viewerId))
 }
 
+// 저장 시 기록할 작성자(user_id) 결정 — 폼 공통.
+// - chosen: AuthorSelect 에서 고른 값(마스터만 채워지고, 일반 멤버는 빈 값).
+// - 마스터: chosen 을 그대로 사용(작성자 재지정 가능).
+// - 일반 멤버: 편집이면 기존 작성자(existingOwnerId) 유지, 신규면 본인(viewerId).
+//   → 마스터 아닌 사람이 남의 글을 편집해도 작성자가 바뀌지 않도록 보장.
+export function resolveOwnerId(opts: {
+  chosen?: string | null
+  existingOwnerId?: string | null
+  viewerId: string
+}): string {
+  return opts.chosen || opts.existingOwnerId || opts.viewerId
+}
+
 export type MembersMap = Record<string, string> // user_id → display_name
 
 export async function getMembersMap(supabase: SupabaseClient): Promise<MembersMap> {
