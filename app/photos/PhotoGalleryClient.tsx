@@ -3,14 +3,15 @@
 // 월 선택 → 사역 분류별 사진 그리드.
 //  · 기본: 사진을 탭하면 라이트박스로 크게 보기. '선택' 모드에서만 다중선택 → ZIP 내보내기.
 //  · ZIP: 선택 사진의 Signed URL 을 브라우저에서 fetch → 분류 폴더로 묶어 다운로드(서버 부하 0).
-//  · 캡션: 표시 = 수동(caption) 우선 → AI(ai_caption). 라이트박스에서 본인 사진은 수동 캡션 직접 입력/수정.
-//    수동 캡션은 그 일지의 photos jsonb 배열에 저장(RLS 본인만). AI 재스캔이 수동을 덮지 않음(표시 우선).
+//  · 캡션: 표시 = 수동(caption) 우선 → AI(ai_caption). 라이트박스에서 본인(또는 마스터) 사진은 수동 캡션 직접 입력/수정.
+//    수동 캡션은 그 일지의 photos jsonb 배열에 저장(RLS 본인·마스터). AI 재스캔이 수동을 덮지 않음(표시 우선).
 //  · 헤더(홈 로고·Calendar·Insights·Photos)는 page.tsx 의 PageHeader 가 담당.
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import JSZip from 'jszip'
 import { JOURNAL_CATEGORIES } from '@/lib/constants'
 import { createClient } from '@/lib/supabase-browser'
+import { canEditEntry } from '@/lib/members'
 import type { JournalPhoto } from '@/lib/types'
 
 export type PhotoItem = {
@@ -346,7 +347,7 @@ export default function PhotoGalleryClient({
         )}
       </section>
 
-      {/* 라이트박스 — 사진 크게 보기 + 캡션 보기/편집(본인 사진) */}
+      {/* 라이트박스 — 사진 크게 보기 + 캡션 보기/편집(본인·마스터) */}
       {lightbox && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
@@ -384,7 +385,7 @@ export default function PhotoGalleryClient({
                       : ''}
                     {lightbox.category ? ` · ${lightbox.category}` : ''}
                   </p>
-                  {currentUserId === lightbox.ownerId && (
+                  {canEditEntry(lightbox.ownerId, currentUserId) && (
                     <button
                       onClick={startEditCaption}
                       className="mt-2 text-xs font-semibold text-primary underline"
