@@ -1,0 +1,179 @@
+<!doctype html>
+<!-- MFH-CARDNEWS-MASTER-V3 -->
+<!-- 선교편지 카드뉴스 마스터 — 표지/내지/마무리. 파스텔 톤 + 월별 베리에이션. 4:5(1080x1350). -->
+<!-- 로고: 표지헤더·마무리푸터=Brand kit(logo-primary) / 마무리상단=지도(온두라스로고4) / CTA=MFH아이콘. -->
+<!-- 매월 색 변경: 아래 :root 의 --cool / --accent 두 줄만 교체. -->
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MFH 선교편지 · 카드뉴스 마스터(파스텔)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.min.css" />
+<style>
+  :root{
+    /* ▼▼▼ 첫 버전 기본 테마 — 브랜드킷(마룬·레드) 파스텔: 더스티 로즈 + 살구코랄 ▼▼▼ */
+    --cool:#DCC2C3; --accent:#EFC8B8;
+    /* (월별 베리에이션을 원하면 위 두 색만 교체 — 예: 7월 민트+버터 #BFE0D2 / #F3D9A8) */
+
+    --cool-2: color-mix(in srgb, var(--cool) 42%, #fff);
+    --cool-3: color-mix(in srgb, var(--cool) 22%, #fff);
+    --cool-line: color-mix(in srgb, var(--cool) 50%, #661F20);
+    --accent-d: color-mix(in srgb, var(--accent) 56%, #7A3520);
+
+    --navy:#5E2A2B; --ink:#3E2C2D; --sub:#8C7B7C;
+    --cream:#F7F0EC; --paper:#FCF8F5; --line:#ECDED9;
+    --myeong:"Nanum Myeongjo",serif;
+    --sans:"Montserrat","Pretendard",sans-serif;
+    --body:"Pretendard",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{background:#cbc7c2;}
+  body{display:flex;flex-direction:column;align-items:center;gap:30px;padding:26px 0 60px;-webkit-font-smoothing:antialiased;}
+  .top-note{font-family:var(--sans);font-size:12.5px;color:var(--navy);background:var(--cool-2);padding:8px 16px;border-radius:999px;border:1px solid var(--cool);}
+  .top-note b{font-weight:700;}
+  .label{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--navy);text-transform:uppercase;margin-bottom:-16px;}
+
+  .stage{width:459px;height:573px;}
+  .card{width:1080px;height:1350px;transform:scale(.425);transform-origin:top left;
+    position:relative;overflow:hidden;font-family:var(--body);color:var(--ink);display:flex;flex-direction:column;}
+
+  /* ===== 1) 표지 ===== */
+  .head{height:122px;flex:none;background:#fff;display:flex;align-items:center;justify-content:space-between;
+    padding:0 56px;border-bottom:3px solid var(--cool);}
+  .head img{height:80px;width:auto;display:block;}
+  .head .no{font-family:var(--sans);font-weight:700;font-size:21px;letter-spacing:.06em;color:var(--navy);
+    border:2px solid var(--cool-line);border-radius:999px;padding:8px 20px;background:var(--cool-2);}
+  .photo{height:556px;flex:none;position:relative;background:#3a3a3a;}
+  .photo img{width:100%;height:100%;object-fit:cover;object-position:center 38%;display:block;}
+  .photo::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(43,64,102,.10) 0%,transparent 22%,transparent 74%,rgba(43,64,102,.22) 100%);}
+  .photo .hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-family:var(--sans);
+    font-size:13px;letter-spacing:.06em;color:rgba(255,255,255,.85);background:rgba(43,64,102,.40);padding:5px 14px;border-radius:999px;}
+  .cbody{flex:1;background:linear-gradient(180deg,var(--cool-3) 0%,var(--cream) 34%,var(--paper) 70%);padding:34px 56px 0;position:relative;}
+  .theme{display:inline-block;font-family:var(--sans);font-size:16px;font-weight:600;letter-spacing:.04em;color:var(--navy);background:var(--accent);padding:7px 18px;border-radius:999px;}
+  .kicker{font-family:var(--sans);font-size:20px;font-weight:700;letter-spacing:.16em;color:var(--navy);text-transform:uppercase;margin-top:24px;display:flex;align-items:center;gap:14px;}
+  .kicker::before{content:"";width:34px;height:3px;background:var(--cool-line);border-radius:2px;}
+  .cbody h1{font-family:var(--myeong);font-weight:800;font-size:76px;line-height:1.12;color:var(--ink);margin-top:14px;}
+  .cbody .sub{font-family:var(--myeong);font-weight:700;font-size:31px;color:var(--accent-d);margin-top:14px;}
+  .verse{margin-top:26px;padding-left:22px;border-left:4px solid var(--cool-line);}
+  .verse p{font-family:var(--myeong);font-style:italic;font-size:28px;line-height:1.5;color:var(--navy);}
+  .verse span{font-family:var(--sans);font-size:16px;letter-spacing:.05em;color:var(--sub);display:block;margin-top:8px;}
+  .cfoot{position:absolute;left:56px;right:56px;bottom:44px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid var(--line);padding-top:20px;}
+  .cfoot .who{font-family:var(--sans);font-size:21px;font-weight:600;color:var(--navy);}
+  .cfoot .pg{font-family:var(--sans);font-size:19px;color:var(--sub);}
+  .bar{position:absolute;left:0;right:0;bottom:0;height:14px;background:linear-gradient(90deg,var(--cool-line) 0%,var(--cool) 50%,var(--accent) 100%);}
+
+  /* ===== 2) 내지 ===== */
+  .inner{background:var(--cream);}
+  .in-head{position:absolute;top:0;left:0;right:0;height:92px;padding:0 64px;display:flex;justify-content:space-between;align-items:center;font-family:var(--sans);background:var(--cool-2);border-bottom:2px solid var(--cool);}
+  .in-head .sec{font-size:18px;font-weight:700;letter-spacing:.12em;color:var(--navy);text-transform:uppercase;display:flex;align-items:center;gap:12px;}
+  .in-head .sec::before{content:"";width:30px;height:4px;background:var(--cool-line);border-radius:2px;}
+  .in-head .no{font-size:16px;color:var(--navy);opacity:.75;}
+  .in-title{position:absolute;top:134px;left:64px;right:64px;}
+  .in-title .en{font-family:var(--sans);font-size:18px;font-weight:600;letter-spacing:.24em;color:var(--accent-d);text-transform:uppercase;}
+  .in-title h2{font-family:var(--myeong);font-weight:800;font-size:70px;color:var(--navy);line-height:1.1;margin-top:12px;}
+  .chip{display:inline-block;font-family:var(--sans);font-size:19px;font-weight:700;color:var(--navy);background:var(--accent);padding:8px 20px;border-radius:8px;margin-top:24px;}
+  .in-photos{position:absolute;top:402px;left:64px;right:64px;display:flex;gap:18px;height:344px;}
+  .in-photos .ph{flex:1;border-radius:14px;border:2px dashed var(--cool-line);background:linear-gradient(140deg,var(--cool-3),var(--cool-2));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;}
+  .in-photos .ph .ic{font-size:44px;opacity:.6;}
+  .in-photos .ph .tx{font-family:var(--sans);font-size:17px;letter-spacing:.06em;color:var(--navy);opacity:.7;}
+  .in-body{position:absolute;top:788px;left:64px;right:64px;}
+  .in-body p{font-size:29px;line-height:1.68;color:#3c3a40;}
+  .in-body ul{list-style:none;margin-top:18px;}
+  .in-body li{position:relative;padding-left:32px;font-size:27px;line-height:1.55;color:#46434b;margin-bottom:12px;}
+  .in-body li::before{content:"";position:absolute;left:0;top:14px;width:14px;height:14px;border-radius:50%;background:var(--cool-line);}
+  .in-foot{position:absolute;left:64px;right:64px;bottom:52px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:20px;font-family:var(--sans);}
+  .in-foot .bn{font-size:15px;font-weight:700;letter-spacing:.14em;color:var(--navy);text-transform:uppercase;}
+  .in-foot .pg{font-size:18px;color:var(--sub);}
+
+  /* ===== 3) 마무리 ===== */
+  .closing{background:var(--cream);}
+  .cl-logo{position:absolute;top:56px;left:50%;transform:translateX(-50%);height:120px;width:auto;}
+  .cl-head{position:absolute;top:198px;left:64px;right:64px;text-align:center;}
+  .cl-head .en{font-family:var(--sans);font-size:18px;font-weight:700;letter-spacing:.3em;color:var(--accent-d);text-transform:uppercase;}
+  .cl-head h2{font-family:var(--myeong);font-weight:800;font-size:62px;line-height:1.3;margin-top:18px;color:var(--navy);}
+  .cl-pray{position:absolute;top:418px;left:64px;right:64px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:34px 40px;box-shadow:0 8px 28px rgba(43,64,102,.07);}
+  /* 기도제목 그룹 타이틀 = 뱃지(알약) 강조 */
+  .cl-pray .grp{display:inline-block;font-family:var(--sans);font-size:22px;font-weight:800;letter-spacing:.06em;color:var(--navy);background:var(--accent);padding:7px 22px;border-radius:999px;margin-bottom:12px;}
+  .cl-pray .grp:not(:first-child){margin-top:18px;}
+  .cl-pray li{list-style:none;position:relative;padding-left:30px;font-size:28px;line-height:1.5;color:#46434b;margin-bottom:9px;}
+  .cl-pray li::before{content:"";position:absolute;left:3px;top:14px;width:12px;height:12px;border-radius:50%;background:var(--cool-line);}
+  .cl-cta{position:absolute;left:64px;right:64px;bottom:214px;display:flex;align-items:center;gap:24px;background:var(--navy);border-radius:18px;padding:24px 28px;}
+  .cl-cta .qr{width:104px;height:104px;border-radius:16px;flex:none;object-fit:cover;display:block;}
+  .cl-cta .tx b{display:block;font-family:var(--myeong);font-weight:800;font-size:31px;color:#fff;}
+  .cl-cta .tx span{display:block;font-family:var(--body);font-size:20px;color:rgba(255,255,255,.82);margin-top:5px;}
+  .cl-cta .go{margin-left:auto;font-family:var(--sans);font-weight:700;font-size:30px;color:var(--accent);}
+  .cl-foot{position:absolute;left:64px;right:64px;bottom:74px;text-align:center;font-family:var(--sans);}
+  .cl-foot img{height:60px;margin-bottom:14px;}
+  .cl-foot .acc{font-size:19px;color:var(--ink);}
+  .cl-foot .acc b{color:var(--navy);font-weight:700;}
+  .cl-foot .sns{font-size:16px;color:var(--sub);margin-top:8px;letter-spacing:.06em;}
+  .cl-bar{position:absolute;left:0;right:0;bottom:0;height:14px;background:linear-gradient(90deg,var(--accent) 0%,var(--cool) 50%,var(--cool-line) 100%);}
+
+  .ph-txt{color:var(--accent-d);background:color-mix(in srgb,var(--accent) 40%,#fff);padding:0 6px;border-radius:5px;}
+
+  @media print{
+    html,body{background:#fff;}
+    body{padding:0;gap:0;}
+    .top-note,.label{display:none;}
+    .stage{width:auto;height:auto;page-break-after:always;}
+    .card{transform:none;}
+    @page{size:1080px 1350px;margin:0;}
+  }
+</style>
+</head>
+<body>
+  <div class="top-note">카드뉴스 마스터 V3 · <b>로고·별·폰트·헤더색 수정 반영</b> · --cool/--accent 두 색만 바꾸면 그달 톤</div>
+
+  <!-- 1) 표지 -->
+  <div class="label">① 표지</div>
+  <div class="stage"><div class="card">
+    <div class="head"><img src="assets/logo-primary.png" alt="Mission for Honduras" /><div class="no">MFH&nbsp;#2606</div></div>
+    <div class="photo"><img src="assets/cover.jpg" alt="" /><div class="hint">이달의 대표 사진</div></div>
+    <div class="cbody">
+      <span class="theme">2026년 주제 · 주님은 길을 내십니다</span>
+      <div class="kicker">2026년 6월 · 선교편지</div>
+      <h1>비를 기다리는 땅에서</h1>
+      <div class="sub">메마른 땅에 다시 흐르는 은혜</div>
+      <div class="verse"><p>“내가 광야에 길을, 사막에 강을 내리니”</p><span>이사야 43:19</span></div>
+      <div class="cfoot"><div class="who">김우진 · 서진아 선교사</div><div class="pg">01 / 09</div></div>
+    </div>
+    <div class="bar"></div>
+  </div></div>
+
+  <!-- 2) 내지 -->
+  <div class="label">② 내지 (사진 + 본문)</div>
+  <div class="stage"><div class="card inner">
+    <div class="in-head"><div class="sec">사역 소식</div><div class="no">MFH #2606 · 2026.06</div></div>
+    <div class="in-title"><div class="en">Ministry</div><h2>청소년 사역의<br />작은 기적</h2><span class="chip"># 청소년 모임</span></div>
+    <div class="in-photos"><div class="ph"><div class="ic">📷</div><div class="tx">사진 1</div></div><div class="ph"><div class="ic">📷</div><div class="tx">사진 2</div></div></div>
+    <div class="in-body">
+      <p>이번 달에는 지역 청소년들과의 모임이 한 걸음 더 깊어졌습니다. 처음엔 낯설어하던 친구들이 이제 스스로 찾아와 마음을 나누기 시작했습니다.</p>
+      <ul><li>주말 공부방에 <span class="ph-txt">[새 가정]</span>의 아이들이 합류했습니다.</li><li>예배 후 남아 기도하는 친구들이 늘고 있습니다.</li></ul>
+    </div>
+    <div class="in-foot"><div class="bn">Mission for Honduras</div><div class="pg">04 / 09</div></div>
+  </div></div>
+
+  <!-- 3) 마무리 -->
+  <div class="label">③ 마무리 (기도제목 · 후원 · 앱 링크)</div>
+  <div class="stage"><div class="card closing">
+    <img class="cl-logo" src="assets/온두라스로고4.png" alt="Mission for Honduras" />
+    <div class="cl-head"><div class="en">Prayer &amp; Thanks</div><h2>함께 기도해<br />주셔서 감사합니다</h2></div>
+    <div class="cl-pray">
+      <div class="grp">온두라스</div><ul><li>온두라스가 평안 가운데 회복되도록.</li></ul>
+      <div class="grp">사역</div><ul><li>청소년 친구들이 신앙 안에 깊이 뿌리내리도록.</li></ul>
+      <div class="grp">가정</div><ul><li>온 가족의 건강과 평강, 자녀의 학교 적응.</li></ul>
+    </div>
+    <div class="cl-cta"><img class="qr" src="assets/mfh-icon.png" alt="MFH" /><div class="tx"><b>MFH 앱에서 더 보기</b><span>일지 · 사역 현황 · 지난 편지 전체</span></div><div class="go">→</div></div>
+    <div class="cl-foot">
+      <img src="assets/logo-primary.png" alt="Mission for Honduras" />
+      <div class="acc"><b>후원</b> · <span class="ph-txt">[은행 / 예금주 / 계좌번호]</span></div>
+      <div class="sns">@missionforhonduras · <span class="ph-txt">[이메일]</span></div>
+    </div>
+    <div class="cl-bar"></div>
+  </div></div>
+</body>
+</html>

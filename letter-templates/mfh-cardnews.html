@@ -1,177 +1,321 @@
 <!doctype html>
-<!-- MFH-CARDNEWS-MASTER-V3 -->
-<!-- 선교편지 카드뉴스 마스터 — 표지/내지/마무리. 파스텔 톤 + 월별 베리에이션. 4:5(1080x1350). -->
-<!-- 로고: 표지헤더·마무리푸터=Brand kit(logo-primary) / 마무리상단=지도(온두라스로고4) / CTA=MFH아이콘. -->
-<!-- 매월 색 변경: 아래 :root 의 --cool / --accent 두 줄만 교체. -->
+<!-- MFH-CARDNEWS-MASTER-V4 · 에디토리얼 전면(표지 hero + 사진내지 풀블리드·제목분리 + 본문중심 + saga) · 9장 -->
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MFH 선교편지 · 카드뉴스 마스터(파스텔)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<title>MFH 선교편지 · 2026년 6월 · 시안 E (에디토리얼)</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.min.css" />
 <style>
   :root{
-    /* ▼▼▼ 첫 버전 기본 테마 — 브랜드킷(마룬·레드) 파스텔: 더스티 로즈 + 살구코랄 ▼▼▼ */
-    --cool:#DCC2C3; --accent:#EFC8B8;
-    /* (월별 베리에이션을 원하면 위 두 색만 교체 — 예: 7월 민트+버터 #BFE0D2 / #F3D9A8) */
-
-    --cool-2: color-mix(in srgb, var(--cool) 42%, #fff);
-    --cool-3: color-mix(in srgb, var(--cool) 22%, #fff);
-    --cool-line: color-mix(in srgb, var(--cool) 50%, #661F20);
-    --accent-d: color-mix(in srgb, var(--accent) 56%, #7A3520);
-
-    --navy:#5E2A2B; --ink:#3E2C2D; --sub:#8C7B7C;
-    --cream:#F7F0EC; --paper:#FCF8F5; --line:#ECDED9;
-    --myeong:"Nanum Myeongjo",serif;
-    --sans:"Montserrat","Pretendard",sans-serif;
-    --body:"Pretendard",sans-serif;
+    --char:#17171C; --hdr:#45454F; --red:#C5283D; --red-d:#9E1F30; --red-l:#E2697A;
+    --navy:#5E2A2B; --ink:#2C2A2C; --sub:#8C8A8C; --paper:#FBFBFC; --line:#E2E2E4;
+    --myeong:"Nanum Myeongjo",serif; --sans:"Montserrat","Pretendard",sans-serif; --body:"Pretendard",sans-serif;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{background:#cbc7c2;}
   body{display:flex;flex-direction:column;align-items:center;gap:30px;padding:26px 0 60px;-webkit-font-smoothing:antialiased;}
-  .top-note{font-family:var(--sans);font-size:12.5px;color:var(--navy);background:var(--cool-2);padding:8px 16px;border-radius:999px;border:1px solid var(--cool);}
-  .top-note b{font-weight:700;}
-  .label{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--navy);text-transform:uppercase;margin-bottom:-16px;}
-
+  .top-note{font-family:var(--sans);font-size:12.5px;color:#fff;background:var(--char);padding:8px 16px;border-radius:999px;}
+  .top-note b{font-weight:700;color:var(--red-l);}
+  .label{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--char);text-transform:uppercase;margin-bottom:-16px;}
   .stage{width:459px;height:573px;}
-  .card{width:1080px;height:1350px;transform:scale(.425);transform-origin:top left;
-    position:relative;overflow:hidden;font-family:var(--body);color:var(--ink);display:flex;flex-direction:column;}
+  .card{width:1080px;height:1350px;transform:scale(.425);transform-origin:top left;position:relative;overflow:hidden;font-family:var(--body);color:var(--ink);background:var(--paper);}
 
-  /* ===== 1) 표지 ===== */
-  .head{height:122px;flex:none;background:#fff;display:flex;align-items:center;justify-content:space-between;
-    padding:0 56px;border-bottom:3px solid var(--cool);}
-  .head img{height:80px;width:auto;display:block;}
-  .head .no{font-family:var(--sans);font-weight:700;font-size:21px;letter-spacing:.06em;color:var(--navy);
-    border:2px solid var(--cool-line);border-radius:999px;padding:8px 20px;background:var(--cool-2);}
-  .photo{height:556px;flex:none;position:relative;background:#3a3a3a;}
-  .photo img{width:100%;height:100%;object-fit:cover;object-position:center 38%;display:block;}
-  .photo::after{content:"";position:absolute;inset:0;
-    background:linear-gradient(180deg,rgba(43,64,102,.10) 0%,transparent 22%,transparent 74%,rgba(43,64,102,.22) 100%);}
-  .photo .hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-family:var(--sans);
-    font-size:13px;letter-spacing:.06em;color:rgba(255,255,255,.85);background:rgba(43,64,102,.40);padding:5px 14px;border-radius:999px;}
-  .cbody{flex:1;background:linear-gradient(180deg,var(--cool-3) 0%,var(--cream) 34%,var(--paper) 70%);padding:34px 56px 0;position:relative;}
-  .theme{display:inline-block;font-family:var(--sans);font-size:16px;font-weight:600;letter-spacing:.04em;color:var(--navy);background:var(--accent);padding:7px 18px;border-radius:999px;}
-  .kicker{font-family:var(--sans);font-size:20px;font-weight:700;letter-spacing:.16em;color:var(--navy);text-transform:uppercase;margin-top:24px;display:flex;align-items:center;gap:14px;}
-  .kicker::before{content:"";width:34px;height:3px;background:var(--cool-line);border-radius:2px;}
-  .cbody h1{font-family:var(--myeong);font-weight:800;font-size:76px;line-height:1.12;color:var(--ink);margin-top:14px;}
-  .cbody .sub{font-family:var(--myeong);font-weight:700;font-size:31px;color:var(--accent-d);margin-top:14px;}
-  .verse{margin-top:26px;padding-left:22px;border-left:4px solid var(--cool-line);}
-  .verse p{font-family:var(--myeong);font-style:italic;font-size:28px;line-height:1.5;color:var(--navy);}
-  .verse span{font-family:var(--sans);font-size:16px;letter-spacing:.05em;color:var(--sub);display:block;margin-top:8px;}
-  .cfoot{position:absolute;left:56px;right:56px;bottom:44px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid var(--line);padding-top:20px;}
-  .cfoot .who{font-family:var(--sans);font-size:21px;font-weight:600;color:var(--navy);}
+  /* ===== 표지 (에디토리얼 hero) ===== */
+  .card.cover{background:#1c1c20;}
+  .ephoto{position:absolute;top:0;left:0;right:0;height:946px;overflow:hidden;background:#1c1c20;}
+  .ephoto img{width:100%;height:100%;object-fit:cover;object-position:center 40%;display:block;}
+  .ephoto::before{content:"";position:absolute;top:0;left:0;right:0;height:250px;background:linear-gradient(180deg,rgba(18,18,23,.55),transparent);}
+  .ephoto::after{content:"";position:absolute;left:0;right:0;bottom:0;height:580px;background:linear-gradient(180deg,transparent,rgba(30,30,35,.26) 40%,rgba(22,22,27,.88));}
+  .ehead{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:46px 60px;}
+  .ehead img{height:64px;width:auto;display:block;}
+  .ehead .no{font-family:var(--sans);font-weight:700;font-size:20px;letter-spacing:.08em;color:#fff;border:1.5px solid rgba(255,255,255,.72);border-radius:999px;padding:8px 20px;}
+  .etitle{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:0 60px 56px;}
+  .gline{width:64px;height:4px;background:var(--red-l);border-radius:2px;margin-bottom:22px;}
+  .theme{display:inline-block;font-family:var(--sans);font-size:16px;font-weight:600;letter-spacing:.06em;color:#fff;border:1px solid rgba(226,105,122,.9);padding:8px 18px;border-radius:999px;margin-bottom:22px;}
+  .etitle h1{font-family:var(--myeong);font-weight:800;font-size:90px;line-height:1.08;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.45);}
+  .einfo{position:absolute;top:946px;left:0;right:0;bottom:0;background:#ECECEE;padding:44px 60px 0;}
+  .einfo::before{content:"";position:absolute;top:0;left:60px;right:60px;height:2px;background:linear-gradient(90deg,var(--red) 0%,var(--red-l) 40%,transparent 100%);}
+  .cover .kicker{font-family:var(--sans);font-size:19px;font-weight:700;letter-spacing:.2em;color:var(--red-d);text-transform:uppercase;}
+  .esub{font-family:var(--myeong);font-weight:700;font-size:31px;line-height:1.46;color:var(--navy);margin-top:18px;}
+  .cfoot{position:absolute;left:60px;right:60px;bottom:48px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #d6d6d8;padding-top:20px;}
+  .cfoot .who{font-family:var(--sans);font-size:22px;font-weight:600;color:var(--navy);}
   .cfoot .pg{font-family:var(--sans);font-size:19px;color:var(--sub);}
-  .bar{position:absolute;left:0;right:0;bottom:0;height:14px;background:linear-gradient(90deg,var(--cool-line) 0%,var(--cool) 50%,var(--accent) 100%);}
+  .ebar{position:absolute;left:0;right:0;bottom:0;height:12px;z-index:4;background:linear-gradient(90deg,var(--red-d) 0%,var(--red-l) 50%,var(--red-d) 100%);}
 
-  /* ===== 2) 내지 ===== */
-  .inner{background:var(--cream);}
-  .in-head{position:absolute;top:0;left:0;right:0;height:92px;padding:0 64px;display:flex;justify-content:space-between;align-items:center;font-family:var(--sans);background:var(--cool-2);border-bottom:2px solid var(--cool);}
-  .in-head .sec{font-size:18px;font-weight:700;letter-spacing:.12em;color:var(--navy);text-transform:uppercase;display:flex;align-items:center;gap:12px;}
-  .in-head .sec::before{content:"";width:30px;height:4px;background:var(--cool-line);border-radius:2px;}
-  .in-head .no{font-size:16px;color:var(--navy);opacity:.75;}
-  .in-title{position:absolute;top:134px;left:64px;right:64px;}
-  .in-title .en{font-family:var(--sans);font-size:18px;font-weight:600;letter-spacing:.24em;color:var(--accent-d);text-transform:uppercase;}
-  .in-title h2{font-family:var(--myeong);font-weight:800;font-size:70px;color:var(--navy);line-height:1.1;margin-top:12px;}
-  .chip{display:inline-block;font-family:var(--sans);font-size:19px;font-weight:700;color:var(--navy);background:var(--accent);padding:8px 20px;border-radius:8px;margin-top:24px;}
-  .in-photos{position:absolute;top:402px;left:64px;right:64px;display:flex;gap:18px;height:344px;}
-  .in-photos .ph{flex:1;border-radius:14px;border:2px dashed var(--cool-line);background:linear-gradient(140deg,var(--cool-3),var(--cool-2));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;}
-  .in-photos .ph .ic{font-size:44px;opacity:.6;}
-  .in-photos .ph .tx{font-family:var(--sans);font-size:17px;letter-spacing:.06em;color:var(--navy);opacity:.7;}
-  .in-body{position:absolute;top:788px;left:64px;right:64px;}
-  .in-body p{font-size:29px;line-height:1.68;color:#3c3a40;}
-  .in-body ul{list-style:none;margin-top:18px;}
-  .in-body li{position:relative;padding-left:32px;font-size:27px;line-height:1.55;color:#46434b;margin-bottom:12px;}
-  .in-body li::before{content:"";position:absolute;left:0;top:14px;width:14px;height:14px;border-radius:50%;background:var(--cool-line);}
-  .in-foot{position:absolute;left:64px;right:64px;bottom:52px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:20px;font-family:var(--sans);}
-  .in-foot .bn{font-size:15px;font-weight:700;letter-spacing:.14em;color:var(--navy);text-transform:uppercase;}
+  /* ===== 내지 공통 (슬림 미드그레이 헤더) ===== */
+  .card.inner{background:var(--paper);}
+  .in-head{position:absolute;top:0;left:0;right:0;height:70px;padding:0 64px;display:flex;justify-content:space-between;align-items:center;font-family:var(--sans);background:var(--hdr);z-index:2;}
+  .in-head .sec{font-size:19px;font-weight:700;letter-spacing:.12em;color:#fff;text-transform:uppercase;display:flex;align-items:center;gap:14px;}
+  .in-head .sec::before{content:"";width:30px;height:4px;background:var(--red);border-radius:2px;}
+  .in-head .no{font-size:15px;color:rgba(255,255,255,.66);letter-spacing:.04em;}
+
+  /* 풀블리드 사진(온전, 가리지 않음) */
+  .ph-full{position:absolute;top:70px;left:0;right:0;height:498px;overflow:hidden;background:#1c1c20;}
+  .ph-full img{width:100%;height:100%;object-fit:cover;object-position:center 38%;display:block;}
+  .ph-full .cap{position:absolute;left:0;right:0;bottom:0;font-family:var(--sans);font-size:15px;color:rgba(255,255,255,.95);background:linear-gradient(180deg,transparent,rgba(12,12,15,.6));padding:34px 24px 13px;}
+
+  .in-title{position:absolute;top:602px;left:64px;right:64px;}
+  .in-title .en{font-family:var(--sans);font-size:18px;font-weight:700;letter-spacing:.24em;color:var(--red);text-transform:uppercase;}
+  .in-title h2{font-family:var(--myeong);font-weight:800;font-size:64px;color:var(--navy);line-height:1.12;margin-top:10px;}
+  .chip{display:inline-block;font-family:var(--sans);font-size:19px;font-weight:700;color:#fff;background:var(--red);padding:9px 22px;border-radius:8px;margin-top:20px;}
+
+  .in-body{position:absolute;top:858px;left:64px;right:64px;}
+  .in-body p{font-size:27px;line-height:1.62;color:#3a383a;}
+  .in-body p+p{margin-top:14px;}
+  .pray-label{display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:19px;font-weight:800;letter-spacing:.04em;color:#fff;background:var(--red);padding:8px 18px;border-radius:999px;margin:20px 0 8px;}
+  .in-body ul{list-style:none;margin-top:8px;}
+  .in-body li{position:relative;padding-left:32px;font-size:25px;line-height:1.5;color:#454345;margin-bottom:11px;}
+  .in-body li::before{content:"";position:absolute;left:0;top:12px;width:14px;height:14px;border-radius:50%;background:var(--red);}
+
+  /* 도입: 사진 작게(본문 많음) */
+  .inner.intro .ph-full{height:372px;}
+  .inner.intro .in-title{top:476px;}
+  .inner.intro .in-body{top:632px;}
+  .inner.intro .in-body .lead{font-family:var(--myeong);font-weight:700;font-size:32px;line-height:1.5;color:var(--navy);margin-bottom:18px;}
+  .inner.intro .in-body p{font-size:26px;line-height:1.66;}
+
+  /* 본문 중심(사진 없음): 큰 타이포 */
+  .inner.text .in-title{top:128px;}
+  .inner.text .in-title h2{font-size:74px;}
+  .inner.text .in-body{top:430px;}
+  .inner.text .in-body p{font-size:30px;line-height:1.74;}
+  .inner.text .in-body li{font-size:27px;}
+
+  .in-foot{position:absolute;left:64px;right:64px;bottom:50px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:18px;font-family:var(--sans);}
+  .in-foot .bn{font-size:15px;font-weight:700;letter-spacing:.14em;color:var(--char);text-transform:uppercase;}
   .in-foot .pg{font-size:18px;color:var(--sub);}
+  .in-bar{position:absolute;left:0;right:0;bottom:0;height:12px;background:linear-gradient(90deg,var(--red-d) 0%,var(--red-l) 50%,var(--red-d) 100%);}
 
-  /* ===== 3) 마무리 ===== */
-  .closing{background:var(--cream);}
-  .cl-logo{position:absolute;top:56px;left:50%;transform:translateX(-50%);height:120px;width:auto;}
-  .cl-head{position:absolute;top:198px;left:64px;right:64px;text-align:center;}
-  .cl-head .en{font-family:var(--sans);font-size:18px;font-weight:700;letter-spacing:.3em;color:var(--accent-d);text-transform:uppercase;}
-  .cl-head h2{font-family:var(--myeong);font-weight:800;font-size:62px;line-height:1.3;margin-top:18px;color:var(--navy);}
-  .cl-pray{position:absolute;top:418px;left:64px;right:64px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:34px 40px;box-shadow:0 8px 28px rgba(43,64,102,.07);}
-  /* 기도제목 그룹 타이틀 = 뱃지(알약) 강조 */
-  .cl-pray .grp{display:inline-block;font-family:var(--sans);font-size:22px;font-weight:800;letter-spacing:.06em;color:var(--navy);background:var(--accent);padding:7px 22px;border-radius:999px;margin-bottom:12px;}
-  .cl-pray .grp:not(:first-child){margin-top:18px;}
-  .cl-pray li{list-style:none;position:relative;padding-left:30px;font-size:28px;line-height:1.5;color:#46434b;margin-bottom:9px;}
-  .cl-pray li::before{content:"";position:absolute;left:3px;top:14px;width:12px;height:12px;border-radius:50%;background:var(--cool-line);}
-  .cl-cta{position:absolute;left:64px;right:64px;bottom:214px;display:flex;align-items:center;gap:24px;background:var(--navy);border-radius:18px;padding:24px 28px;}
-  .cl-cta .qr{width:104px;height:104px;border-radius:16px;flex:none;object-fit:cover;display:block;}
+  /* ===== 사역① saga ===== */
+  .inner.saga .in-title{position:absolute;top:108px;left:64px;right:64px;}
+  .saga-strip{position:absolute;top:372px;left:64px;right:64px;display:flex;gap:14px;align-items:stretch;}
+  .saga-strip .step{flex:1;display:flex;flex-direction:column;}
+  .saga-strip .step .frame{position:relative;height:300px;border-radius:14px;overflow:hidden;border:2px solid var(--red);background:#fff;box-shadow:0 8px 20px rgba(0,0,0,.08);}
+  .saga-strip .step .frame img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
+  .saga-strip .step .frame .badge{position:absolute;top:10px;left:10px;font-family:var(--sans);font-size:14px;font-weight:800;letter-spacing:.04em;color:#fff;background:var(--red);padding:5px 12px;border-radius:999px;}
+  .saga-strip .step.goal .frame{border-color:var(--red-d);}
+  .saga-strip .step.goal .frame .badge{background:var(--red-d);}
+  .saga-strip .step .cap{font-family:var(--sans);font-size:17px;font-weight:700;color:var(--navy);text-align:center;margin-top:14px;line-height:1.35;}
+  .saga-strip .step .cap small{display:block;font-weight:500;font-size:14px;color:var(--sub);margin-top:3px;}
+  .saga-strip .arrow{flex:none;width:30px;display:flex;align-items:center;justify-content:center;align-self:flex-start;height:300px;font-family:var(--sans);font-size:34px;font-weight:800;color:var(--red);}
+  .saga-body{position:absolute;top:740px;left:64px;right:64px;}
+  .saga-body p{font-size:26px;line-height:1.62;color:#3a383a;}
+  .saga-body .pray-inline{margin-top:20px;}
+  .saga-body .pray-inline .pl{font-family:var(--sans);font-size:19px;font-weight:800;letter-spacing:.05em;color:#fff;display:inline-flex;align-items:center;gap:8px;background:var(--red);padding:7px 18px;border-radius:999px;margin-bottom:12px;}
+  .saga-body .pray-inline ul{list-style:none;}
+  .saga-body .pray-inline li{position:relative;padding-left:30px;font-size:25px;line-height:1.5;color:#454345;margin-bottom:10px;}
+  .saga-body .pray-inline li::before{content:"";position:absolute;left:0;top:12px;width:13px;height:13px;border-radius:50%;background:var(--red);}
+
+  /* ===== 마무리 ===== */
+  .card.closing{background:var(--paper);}
+  .cl-logo{position:absolute;top:50px;left:50%;transform:translateX(-50%);height:94px;width:auto;}
+  .cl-head{position:absolute;top:168px;left:64px;right:64px;text-align:center;}
+  .cl-head .en{font-family:var(--sans);font-size:18px;font-weight:700;letter-spacing:.3em;color:var(--red);text-transform:uppercase;}
+  .cl-head h2{font-family:var(--myeong);font-weight:800;font-size:54px;line-height:1.3;margin-top:14px;color:var(--navy);}
+  .cl-pray{position:absolute;top:352px;left:64px;right:64px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:30px 38px;box-shadow:0 10px 30px rgba(0,0,0,.06);}
+  .cl-pray .grp{display:inline-block;font-family:var(--sans);font-size:21px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--red);padding:7px 22px;border-radius:999px;margin-bottom:12px;}
+  .cl-pray .grp:not(:first-child){margin-top:16px;}
+  .cl-pray li{list-style:none;position:relative;padding-left:30px;font-size:25px;line-height:1.46;color:#454345;margin-bottom:9px;}
+  .cl-pray li::before{content:"";position:absolute;left:3px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--red);}
+  .cl-cta{position:absolute;left:64px;right:64px;bottom:214px;display:flex;align-items:center;gap:24px;background:var(--char);border-radius:18px;padding:24px 28px;}
+  .cl-cta .qr{width:104px;height:104px;border-radius:16px;flex:none;object-fit:cover;display:block;background:#fff;}
   .cl-cta .tx b{display:block;font-family:var(--myeong);font-weight:800;font-size:31px;color:#fff;}
   .cl-cta .tx span{display:block;font-family:var(--body);font-size:20px;color:rgba(255,255,255,.82);margin-top:5px;}
-  .cl-cta .go{margin-left:auto;font-family:var(--sans);font-weight:700;font-size:30px;color:var(--accent);}
-  .cl-foot{position:absolute;left:64px;right:64px;bottom:74px;text-align:center;font-family:var(--sans);}
-  .cl-foot img{height:60px;margin-bottom:14px;}
+  .cl-cta .go{margin-left:auto;font-family:var(--sans);font-weight:700;font-size:30px;color:var(--red-l);}
+  .cl-foot{position:absolute;left:64px;right:64px;bottom:70px;text-align:center;font-family:var(--sans);}
+  .cl-foot img{height:54px;margin-bottom:12px;}
   .cl-foot .acc{font-size:19px;color:var(--ink);}
   .cl-foot .acc b{color:var(--navy);font-weight:700;}
   .cl-foot .sns{font-size:16px;color:var(--sub);margin-top:8px;letter-spacing:.06em;}
-  .cl-bar{position:absolute;left:0;right:0;bottom:0;height:14px;background:linear-gradient(90deg,var(--accent) 0%,var(--cool) 50%,var(--cool-line) 100%);}
-
-  .ph-txt{color:var(--accent-d);background:color-mix(in srgb,var(--accent) 40%,#fff);padding:0 6px;border-radius:5px;}
+  .cl-bar{position:absolute;left:0;right:0;bottom:0;height:12px;background:linear-gradient(90deg,var(--red-d) 0%,var(--red-l) 50%,var(--red-d) 100%);}
 
   @media print{
     html,body{background:#fff;}
     body{padding:0;gap:0;}
     .top-note,.label{display:none;}
-    .stage{width:auto;height:auto;page-break-after:always;}
-    .card{transform:none;}
+    .card{transform:none !important;}
     @page{size:1080px 1350px;margin:0;}
+    .stage{display:block !important;width:1080px !important;height:1350px !important;margin:0 !important;overflow:hidden;page-break-after:always;break-after:page;}
+    .stage:last-of-type{page-break-after:auto;break-after:auto;}
   }
 </style>
 </head>
 <body>
-  <div class="top-note">카드뉴스 마스터 V3 · <b>로고·별·폰트·헤더색 수정 반영</b> · --cool/--accent 두 색만 바꾸면 그달 톤</div>
+  <div class="top-note">6월호 시안 <b>E · 에디토리얼 전면</b> · 사진 풀블리드(가리지 않음) · 9장</div>
 
-  <!-- 1) 표지 -->
+  <!-- 01 표지 -->
   <div class="label">① 표지</div>
-  <div class="stage"><div class="card">
-    <div class="head"><img src="assets/logo-primary.png" alt="Mission for Honduras" /><div class="no">MFH&nbsp;#2606</div></div>
-    <div class="photo"><img src="assets/cover.jpg" alt="" /><div class="hint">이달의 대표 사진</div></div>
-    <div class="cbody">
-      <span class="theme">2026년 주제 · 주님은 길을 내십니다</span>
+  <div class="stage"><div class="card cover">
+    <div class="ephoto">
+      <img src="issues/2026-06/photos/2026-06-05-07.jpeg" alt="Zapotal 교회" />
+      <div class="etitle">
+        <div class="gline"></div>
+        <span class="theme">2026년 주제 · 주님은 길을 내십니다</span>
+        <h1>막힌 자리에<br />길을 내시고</h1>
+      </div>
+    </div>
+    <div class="ehead"><img src="assets/logo-white.png" alt="Mission for Honduras" /><div class="no">MFH&nbsp;#2606</div></div>
+    <div class="einfo">
       <div class="kicker">2026년 6월 · 선교편지</div>
-      <h1>비를 기다리는 땅에서</h1>
-      <div class="sub">메마른 땅에 다시 흐르는 은혜</div>
-      <div class="verse"><p>“내가 광야에 길을, 사막에 강을 내리니”</p><span>이사야 43:19</span></div>
+      <div class="esub">막혔던 건축 도면에도, 전환점에 선 우리 삶에도,<br />주님은 한 걸음씩 길을 내고 계십니다.</div>
       <div class="cfoot"><div class="who">김우진 · 서진아 선교사</div><div class="pg">01 / 09</div></div>
     </div>
-    <div class="bar"></div>
+    <div class="ebar"></div>
   </div></div>
 
-  <!-- 2) 내지 -->
-  <div class="label">② 내지 (사진 + 본문)</div>
-  <div class="stage"><div class="card inner">
-    <div class="in-head"><div class="sec">사역 소식</div><div class="no">MFH #2606 · 2026.06</div></div>
-    <div class="in-title"><div class="en">Ministry</div><h2>청소년 사역의<br />작은 기적</h2><span class="chip"># 청소년 모임</span></div>
-    <div class="in-photos"><div class="ph"><div class="ic">📷</div><div class="tx">사진 1</div></div><div class="ph"><div class="ic">📷</div><div class="tx">사진 2</div></div></div>
+  <!-- 02 도입 (참고사진) -->
+  <div class="label">② 도입</div>
+  <div class="stage"><div class="card inner intro">
+    <div class="in-head"><div class="sec">여는 글</div><div class="no">MFH #2606 · 2026.06</div></div>
+    <div class="ph-full"><img src="issues/2026-06/photos/ref-intro.jpg" alt="비 내리는 산" /></div>
+    <div class="in-title"><div class="en">Greeting</div><h2>주님이 내신 길</h2></div>
     <div class="in-body">
-      <p>이번 달에는 지역 청소년들과의 모임이 한 걸음 더 깊어졌습니다. 처음엔 낯설어하던 친구들이 이제 스스로 찾아와 마음을 나누기 시작했습니다.</p>
-      <ul><li>주말 공부방에 <span class="ph-txt">[새 가정]</span>의 아이들이 합류했습니다.</li><li>예배 후 남아 기도하는 친구들이 늘고 있습니다.</li></ul>
+      <p class="lead">사랑하는 동역자 여러분, 평안하신지요.</p>
+      <p>지난 한 달, 책상 위에는 좀처럼 풀리지 않는 도면 한 장이 놓여 있었습니다. 건축 규정에 막히고, 교회를 어디에 둘지 부부의 마음마저 모이지 않아 한동안 답답했습니다. 그런데 막힌 자리를 혼자 붙들지 않고 전문가에게 물었더니 더 좋은 길이 열렸고, 마침내 교회의 조감도가 손에 들어왔습니다.</p>
+      <p>생각해 보니 막혔던 것은 도면만이 아니었습니다. 전환점 앞에 선 저희의 삶에도 보이지 않던 길이 있었습니다. 올해 붙든 주제 그대로, 주님은 막힌 자리마다 한 걸음씩 길을 내고 계셨습니다. 그 한 달의 이야기를 함께 나눕니다.</p>
+    </div>
+    <div class="in-foot"><div class="bn">Mission for Honduras</div><div class="pg">02 / 09</div></div>
+    <div class="in-bar"></div>
+  </div></div>
+
+  <!-- 03 온두라스 (참고사진) -->
+  <div class="label">③ 온두라스</div>
+  <div class="stage"><div class="card inner">
+    <div class="in-head"><div class="sec">온두라스를 위한 기도</div><div class="no">MFH #2606 · 2026.06</div></div>
+    <div class="ph-full"><img src="issues/2026-06/photos/ref-honduras.jpg" alt="우기의 하늘" /></div>
+    <div class="in-title"><div class="en">For Honduras</div><h2>우기를 지나는 이 땅</h2><span class="chip"># 평안과 안전</span></div>
+    <div class="in-body">
+      <p>6월의 온두라스는 우기가 본격적으로 시작되는 계절입니다. 폭우와 천둥·번개가 잦아 맑은 날이 드물고, 높은 습도로 하루하루가 무겁게 느껴지기도 합니다. 올해 허리케인 시즌은 평년 이하로 전망되지만, 비가 많은 만큼 야외 사역과 건축 일정도 날씨를 살펴 지혜롭게 잡아야 하는 때입니다.</p>
+      <div class="pray-label">🙏 기도제목</div>
+      <ul>
+        <li>잦은 비와 더위 속에서도 온두라스 땅에 평안과 안정이 머물고, 이웃들의 일상이 안전하게 지켜지기를.</li>
+        <li>큰 재해 없이 우기가 무사히 지나가, 이 땅의 사람들이 평온한 일상을 누리기를.</li>
+      </ul>
+    </div>
+    <div class="in-foot"><div class="bn">Mission for Honduras</div><div class="pg">03 / 09</div></div>
+    <div class="in-bar"></div>
+  </div></div>
+
+  <!-- 04 사역① Zapotal (saga) -->
+  <div class="label">④ 사역 ① Zapotal</div>
+  <div class="stage"><div class="card inner saga">
+    <div class="in-head"><div class="sec">사역을 위한 기도</div><div class="no">MFH #2606 · 2026.06</div></div>
+    <div class="in-title"><div class="en">Ministry · 01</div><h2>막힘에서 조감도까지</h2><span class="chip"># Zapotal 교회 건축</span></div>
+    <div class="saga-strip">
+      <div class="step"><div class="frame"><span class="badge">막힘</span><img src="issues/2026-06/photos/2026-05-29-02.jpeg" alt="설계 초안" /></div><div class="cap">초안<small>못 쓰는 면적이 컸던 시작</small></div></div>
+      <div class="arrow">›</div>
+      <div class="step"><div class="frame"><span class="badge">길 냄</span><img src="issues/2026-06/photos/2026-05-31-03.png" alt="정돈 설계안" /></div><div class="cap">정돈안<small>전문가에게 물어 찾은 답</small></div></div>
+      <div class="arrow">›</div>
+      <div class="step goal"><div class="frame"><span class="badge">응답</span><img src="issues/2026-06/photos/2026-06-05-07.jpeg" alt="완성 조감도" /></div><div class="cap">조감도<small>비로소 보이는 교회</small></div></div>
+    </div>
+    <div class="saga-body">
+      <p>설계 초안에서는 건축 규정으로 쓸 수 없는 면적이 커 실망이 컸고, 교회를 1층에 둘지 2층에 둘지 의견도 쉬 모이지 않았습니다. 그런데 막힌 자리를 혼자 붙들지 않고 설계자에게 묻자, "사람이 많이 모이는 교회는 1층이 하중에도 유리하다"는 더 나은 안이 돌아왔습니다. 그 길을 따라 6월 5일, 1층 교회당과 2층 교실 3개의 조감도가 나왔습니다. 아직 결정할 일이 많지만, 교회의 모습을 그려 볼 수 있게 하심에 감사가 차올랐습니다.</p>
+      <div class="pray-inline">
+        <div class="pl">기도제목</div>
+        <ul>
+          <li>남은 결정(건축 소재·예상 비용·업자 계약)에 하나님의 지혜를 더하셔서, 옳은 길로 한 걸음씩 매듭지어지기를.</li>
+          <li>어린이가 소망을, 청소년이 열정을, 어른이 위로를 얻는 — 사람을 세우는 교회로 지어지기를.</li>
+        </ul>
+      </div>
     </div>
     <div class="in-foot"><div class="bn">Mission for Honduras</div><div class="pg">04 / 09</div></div>
+    <div class="in-bar"></div>
   </div></div>
 
-  <!-- 3) 마무리 -->
-  <div class="label">③ 마무리 (기도제목 · 후원 · 앱 링크)</div>
+  <!-- 05 사역② 성경공부 -->
+  <div class="label">⑤ 사역 ② 성경공부</div>
+  <div class="stage"><div class="card inner">
+    <div class="in-head"><div class="sec">사역을 위한 기도</div><div class="no">MFH #2606 · 2026.06</div></div>
+    <div class="ph-full"><img src="issues/2026-06/photos/2026-06-04-04.png" alt="성경공부 교재" /><div class="cap">사복음서 성경공부 교재 · 12주 24회 (한글·스페인어판)</div></div>
+    <div class="in-title"><div class="en">Ministry · 02</div><h2>말씀을 세우는 일</h2><span class="chip"># 성경공부 교재 · 성경의 날</span></div>
+    <div class="in-body">
+      <p>"행사를 위해 기도하는 것이 아니라, 성도들이 말씀 안에서 하나님을 만나기를." 이 마음으로 성경의 날을 준비하며 사복음서를 함께 읽는 성경공부 교재(12주·24회)를 한글과 스페인어로 마련했습니다. 가르치자고 말하는 순간 저희 마음이 먼저 뜨거워졌습니다.</p>
+      <div class="pray-label">🙏 기도제목</div>
+      <ul>
+        <li>성경공부를 통해 성도들이 말씀 안에서 하나님을 더 깊이 만나고, 신앙이 한 뼘씩 자라기를.</li>
+        <li>가르치는 저희가 먼저 말씀을 사랑하는 제자로 서기를.</li>
+      </ul>
+    </div>
+    <div class="in-foot"><div class="bn">Mission for Honduras</div><div class="pg">05 / 09</div></div>
+    <div class="in-bar"></div>
+  </div></div>
+
+  <!-- 06 사역③ Las Brisas -->
+  <div class="label">⑥ 사역 ③ Las Brisas</div>
+  <div class="stage"><div class="card inner">
+    <div class="in-head"><div class="sec">사역을 위한 기도</div><div class="no">MFH #2606 · 2026.06</div></div>
+    <div class="ph-full"><img src="issues/2026-06/photos/2026-05-24-01.jpeg" alt="Las Brisas 교제" /><div class="cap">Las Brisas 리더들과의 저녁 교제 · 5/24</div></div>
+    <div class="in-title"><div class="en">Ministry · 03</div><h2>이미 허락하신 동역자들</h2><span class="chip"># Las Brisas 교제</span></div>
+    <div class="in-body">
+      <p>어머니의 날 전도 주일부터 함께 애써 온 Las Brisas 리더들과 오랜만에 저녁 식사 자리에 둘러앉았습니다. 오래 마음 쓰던 Pastora Dunia의 회복을 함께 기뻐할 수 있어 감사했고, 한결같은 Pastor Juan과 Julio, 그리고 Rigo를 비롯한 동역자들을 보며 "이미 허락하신 동역자가 이렇게 많구나" 새삼 고백하게 된 시간이었습니다.</p>
+      <div class="pray-label">🙏 기도제목</div>
+      <ul>
+        <li>Las Brisas 리더들이 말씀으로 무장한 거룩한 주의 제자로 성장하기를.</li>
+        <li>회복된 동역자 위에 동역의 든든함이 오래 이어지기를.</li>
+      </ul>
+    </div>
+    <div class="in-foot"><div class="bn">Mission for Honduras</div><div class="pg">06 / 09</div></div>
+    <div class="in-bar"></div>
+  </div></div>
+
+  <!-- 07 사역④ 단기팀 (본문 중심) -->
+  <div class="label">⑦ 사역 ④ 단기팀</div>
+  <div class="stage"><div class="card inner text">
+    <div class="in-head"><div class="sec">사역을 위한 기도</div><div class="no">MFH #2606 · 2026.06</div></div>
+    <div class="in-title"><div class="en">Ministry · 04</div><h2>곧 만날<br />손님을 기다리며</h2><span class="chip"># 단기선교팀</span></div>
+    <div class="in-body">
+      <p>곧 저희 선교지를 방문할 단기선교팀을 위해, 리더들과 합심하여 기도로 준비하고 있습니다. "예배 시간에 다 함께, 또 시간을 정해 따로 모여 함께 기도하자"고 마음을 모았습니다. 귀한 만남을 연결해 주신 손길에 감사하며, 성도들과 마음을 합해 기도할 일이 있다는 것 자체가 기쁨입니다.</p>
+      <div class="pray-label">🙏 기도제목</div>
+      <ul>
+        <li>온두라스를 향한 마음으로 준비 중인 단기팀 위에 하나님의 더 큰 은혜와 보호하심이 있기를.</li>
+        <li>이곳 성도들이 그 손길과 함께 하나님의 은혜와 성령의 보호하심을 체험하기를.</li>
+      </ul>
+    </div>
+    <div class="in-foot"><div class="bn">Mission for Honduras</div><div class="pg">07 / 09</div></div>
+    <div class="in-bar"></div>
+  </div></div>
+
+  <!-- 08 선교사 가정 -->
+  <div class="label">⑧ 선교사 가정</div>
+  <div class="stage"><div class="card inner">
+    <div class="in-head"><div class="sec">선교사 가정을 위한 기도</div><div class="no">MFH #2606 · 2026.06</div></div>
+    <div class="ph-full"><img src="issues/2026-06/photos/2026-06-04-06.jpeg" alt="ICAS 수료식 전시벽" /><div class="cap">ICAS 한글학교 수료식 전시벽 · 학생들의 한글 캘리그라피 · 6/4</div></div>
+    <div class="in-title"><div class="en">Our Family</div><h2>전환점 앞에서, 다시 '제자'로</h2><span class="chip"># ICAS 수료식 · 삶의 전환점</span></div>
+    <div class="in-body">
+      <p>서진아 선교사가 손이 많이 가는 ICAS 한글학교 수료식을 혼자서도 정성껏 준비해 잘 마쳤습니다. 작은 규모라도 최선을 다하는 그 마음이 큰 감사가 되었습니다. 한편 교재를 준비하며 "역할로서의 선교사"를 넘어 "존재 자체로 선교하는 삶"을 깊이 묵상하게 되었고, 7월의 한국 방문과 한 시기의 마무리를 전환점으로 받아들이며 "제자 되는 것에서 다시 출발하겠다"는 다짐을 품게 되었습니다.</p>
+      <div class="pray-label">🙏 기도제목</div>
+      <ul>
+        <li>전환점에 선 부부의 마음이 한 방향으로 모이고, 가정에 평강과 건강이 먼저 채워지기를.</li>
+        <li>떠남과 만남의 모든 길이 미리 지켜지고, '존재로 선교하는' 제자로 거듭나기를.</li>
+      </ul>
+    </div>
+    <div class="in-foot"><div class="bn">Mission for Honduras</div><div class="pg">08 / 09</div></div>
+    <div class="in-bar"></div>
+  </div></div>
+
+  <!-- 09 마무리 -->
+  <div class="label">⑨ 마무리</div>
   <div class="stage"><div class="card closing">
     <img class="cl-logo" src="assets/온두라스로고4.png" alt="Mission for Honduras" />
     <div class="cl-head"><div class="en">Prayer &amp; Thanks</div><h2>함께 기도해<br />주셔서 감사합니다</h2></div>
     <div class="cl-pray">
-      <div class="grp">온두라스</div><ul><li>온두라스가 평안 가운데 회복되도록.</li></ul>
-      <div class="grp">사역</div><ul><li>청소년 친구들이 신앙 안에 깊이 뿌리내리도록.</li></ul>
-      <div class="grp">가정</div><ul><li>온 가족의 건강과 평강, 자녀의 학교 적응.</li></ul>
+      <div class="grp">온두라스</div>
+      <ul><li>우기와 더위의 계절, 온두라스 땅에 평안과 안정이 머물고 이웃들의 일상이 안전하게 지켜지기를.</li></ul>
+      <div class="grp">사역</div>
+      <ul>
+        <li>Zapotal 건축의 남은 결정이 하나님의 지혜 위에서 매듭지어지고, '사람을 세우는 교회'로 지어지기를.</li>
+        <li>성경공부를 통해 성도들이 말씀 안에서 하나님을 더 깊이 만나고 신앙이 자라기를.</li>
+      </ul>
+      <div class="grp">가정</div>
+      <ul><li>전환점에 선 부부의 마음이 한 방향으로 모이고, 가정에 평강과 건강이 채워지며, 떠남과 만남의 길이 지켜지고 '존재로 선교하는' 제자로 거듭나기를.</li></ul>
     </div>
     <div class="cl-cta"><img class="qr" src="assets/mfh-icon.png" alt="MFH" /><div class="tx"><b>MFH 앱에서 더 보기</b><span>일지 · 사역 현황 · 지난 편지 전체</span></div><div class="go">→</div></div>
     <div class="cl-foot">
       <img src="assets/logo-primary.png" alt="Mission for Honduras" />
-      <div class="acc"><b>후원</b> · <span class="ph-txt">[은행 / 예금주 / 계좌번호]</span></div>
-      <div class="sns">@missionforhonduras · <span class="ph-txt">[이메일]</span></div>
+      <div class="acc"><b>후원</b> · 우리은행 1002-349-524757 · 예금주 김우진</div>
+      <div class="sns">@missionforhonduras · honduras0691@gmail.com</div>
     </div>
     <div class="cl-bar"></div>
   </div></div>
