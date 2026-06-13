@@ -23,7 +23,7 @@ export default function DeleteButton({ id }: { id: string }) {
   }
 
   return (
-    <button onClick={del} disabled={busy} className="ml-auto text-xs text-danger underline disabled:opacity-50">
+    <button onClick={del} disabled={busy} className="text-xs text-danger underline disabled:opacity-50">
       {busy ? '삭제 중…' : '삭제'}
     </button>
   )
