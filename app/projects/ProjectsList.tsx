@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Project } from '@/lib/types'
 import { canEditEntry, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
 import AuthorBadge from '@/components/AuthorBadge'
-import { STATUSES, type StatusValue } from '@/lib/constants'
+import { STATUSES, normalizeStatus, type StatusValue } from '@/lib/constants'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import {
   applyProjectFilter,
@@ -31,6 +31,12 @@ import {
 
 type Counts = Record<string, { total: number; done: number }>
 type SortKey = 'due' | 'importance'
+
+// 카드 우측 상태 컬러 밴드 — 진행=파랑 / 완료=초록 / 예정=옅은 회색.
+function bandColor(status: string): string {
+  const v = normalizeStatus(status)
+  return v === 'done' ? '#0F6E56' : v === 'in_progress' ? '#0C447C' : '#C9C4BE'
+}
 
 // 요약 패널(읽기전용). 넓은 화면 우측. '편집' → /projects/[id]/edit, '상세' → /projects/[id].
 function ProjectSummary({
@@ -488,9 +494,6 @@ export default function ProjectsList({
                   <StatusBadge value={p.status} />
                   <CategoryBadge value={p.category} />
                   <ImportanceStars value={p.importance} />
-                  {p.due_date && (
-                    <span className="text-[11px] text-muted">~ {fmtDate(p.due_date)}</span>
-                  )}
                   <AuthorBadge name={authorName} />
                 </div>
                 <div className="mt-1.5 font-bold text-ink">{p.title}</div>
@@ -510,7 +513,7 @@ export default function ProjectsList({
             return (
               <li key={p.id}>
                 <div
-                  className={`relative flex items-center gap-3 rounded-2xl border bg-surface p-4 ${
+                  className={`relative overflow-hidden rounded-2xl border bg-surface p-4 ${
                     inSelectMode && checked
                       ? 'border-primary border-2'
                       : isSel
@@ -518,45 +521,59 @@ export default function ProjectsList({
                         : 'border-line'
                   }`}
                 >
-                  {/* 좌측: selectMode 일 때만 선택 체크박스 */}
-                  {inSelectMode && <SelectionCheckbox checked={checked} />}
+                  {/* 우측 세로 상태 컬러 밴드 */}
+                  <span
+                    className="absolute inset-y-0 right-0 w-1.5"
+                    style={{ background: bandColor(p.status) }}
+                    aria-hidden="true"
+                  />
 
-                  {/* 본문 wrapper: selectMode 면 button(토글), 넓은화면 button(요약선택), 좁은화면 Link(상세).
-                      우측 상단 완료영역 자리 확보를 위해 pr-16. */}
-                  {inSelectMode ? (
-                    <button
-                      type="button"
-                      onClick={() => sel.toggleId(p.id)}
-                      className="min-w-0 flex-1 pr-16 text-left"
-                    >
-                      <ProjectBody p={p} authorName={membersMap[p.user_id]} />
-                    </button>
-                  ) : wide ? (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(p.id)}
-                      className="min-w-0 flex-1 pr-16 text-left"
-                    >
-                      <ProjectBody p={p} authorName={membersMap[p.user_id]} />
-                    </button>
-                  ) : (
-                    <Link
-                      href={`/projects/${p.id}${detailSuffix}`}
-                      className="min-w-0 flex-1 pr-16"
-                    >
-                      <ProjectBody p={p} authorName={membersMap[p.user_id]} />
-                    </Link>
-                  )}
-
-                  {/* ProgressRing — 본문 우측 column (기존 위치 유지, 하단 정렬) */}
-                  <div className="shrink-0 self-end">
-                    <ProgressRing done={c.done} total={c.total} />
+                  {/* 상단 본문 행(기존 그대로). 우측 완료 토글 자리 확보 pr-16. */}
+                  <div className="flex items-start gap-3 pr-16">
+                    {inSelectMode && <SelectionCheckbox checked={checked} />}
+                    {inSelectMode ? (
+                      <button
+                        type="button"
+                        onClick={() => sel.toggleId(p.id)}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <ProjectBody p={p} authorName={membersMap[p.user_id]} />
+                      </button>
+                    ) : wide ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(p.id)}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <ProjectBody p={p} authorName={membersMap[p.user_id]} />
+                      </button>
+                    ) : (
+                      <Link href={`/projects/${p.id}${detailSuffix}`} className="min-w-0 flex-1">
+                        <ProjectBody p={p} authorName={membersMap[p.user_id]} />
+                      </Link>
+                    )}
                   </div>
 
-                  {/* 우측 상단: "완료" 라벨 + ProjectStatusToggle (단건, button 중첩 회피 위해 직속 absolute) */}
+                  {/* 우측 상단: "완료" 라벨 + ProjectStatusToggle (밴드 안쪽, button 중첩 회피 위해 직속 absolute) */}
                   <div className="absolute right-4 top-3 flex shrink-0 items-center gap-1.5">
                     <span className="text-[11px] font-semibold text-faint">완료</span>
                     <ProjectStatusToggle id={p.id} status={p.status} />
+                  </div>
+
+                  {/* 하단: Due Date + 남은 할 일(숫자 표기) */}
+                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-2.5">
+                    <span className="flex items-center gap-1.5 text-xs text-muted">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                      </svg>
+                      {p.due_date ? fmtDate(p.due_date) : '마감 없음'}
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-muted">
+                      할 일 {c.done}/{c.total}
+                    </span>
                   </div>
                 </div>
               </li>
