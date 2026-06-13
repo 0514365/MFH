@@ -393,7 +393,6 @@ export default function InsightsClient({
   // 보관 일치 키(도메인+내용) 집합. id 가 아니라 내용 기준이라 재생성돼도 정확.
   const [scrapped, setScrapped] = useState<Set<string>>(new Set(scrappedKeys))
   const homeBalance = useBalance(30, view === 'home')
-  const homeFruit = useFruit(30, view === 'home')
 
   const patchRow = (id: string, patch: Partial<InsightRow>) =>
     setRows((r) => r.map((x) => (x.id === id ? { ...x, ...patch } : x)))
@@ -458,7 +457,6 @@ export default function InsightsClient({
             m.key === 'balance' && homeBalance.data && homeBalance.data.all.total > 0
               ? homeBalance.data.all
               : null
-          const fruitN = m.key === 'fruit' && homeFruit.items ? homeFruit.items.length : 0
           return (
             <button
               key={m.key}
@@ -475,11 +473,6 @@ export default function InsightsClient({
               {mini && (
                 <span className="mt-3 block">
                   <BalanceBar data={mini} height={6} />
-                </span>
-              )}
-              {fruitN > 0 && (
-                <span className="mt-3 inline-flex w-max rounded-lg bg-accent-soft px-2 py-1 text-[10px] font-bold text-accent">
-                  최근 감사·응답 {fruitN}건
                 </span>
               )}
               <span className="mt-auto block pt-2">
