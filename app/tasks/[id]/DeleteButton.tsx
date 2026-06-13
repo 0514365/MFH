@@ -63,7 +63,7 @@ export default function DeleteButton({
         disabled={busy}
         className="text-xs text-danger underline disabled:opacity-50"
       >
-        {busy ? '삭제 중…' : '할 일 삭제'}
+        {busy ? '삭제 중…' : '삭제'}
       </button>
       {modal && (
         <RecurrenceScopeModal
