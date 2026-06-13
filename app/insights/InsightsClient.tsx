@@ -6,6 +6,7 @@
 //  · Balance/Fruit 는 클라에서 직접 집계(무료, Anthropic 미사용).
 //  · 색: palette var 매핑 → 색-슬래시 opacity 금지(요소 opacity-* 만). 동적 클래스 금지(정적 분기).
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import {
@@ -96,6 +97,29 @@ function LensIcon({ name, size = 20 }: { name: LensKey; size?: number }) {
       aria-hidden="true"
     >
       {paths[name] ?? null}
+    </svg>
+  )
+}
+
+// 분야별(일지/프로젝트/할일) 아이콘 — 홈 '분야별 분석' 카드용.
+function DomainIcon({ domain }: { domain: InsightDomain }) {
+  if (domain === 'journal')
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      </svg>
+    )
+  if (domain === 'project')
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+      </svg>
+    )
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="9 11 12 14 22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
     </svg>
   )
 }
@@ -415,15 +439,19 @@ export default function InsightsClient({
   }
 
   return (
-    <div className="space-y-5">
-      {/* 연 주제 strip */}
+    <div className="space-y-6">
+      {/* 연 주제 칩 */}
       {themeName && (
-        <div className="rounded-xl border border-line bg-surface-subtle px-4 py-2 text-xs text-muted">
-          {year} · {themeName}
+        <div className="flex justify-center">
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary-soft px-5 py-2">
+            <span className="font-display text-[13px] font-semibold tracking-wider text-primary">{year}</span>
+            <span className="h-[3px] w-[3px] rounded-full bg-primary opacity-30" />
+            <span className="text-[14px] font-medium text-primary">{themeName}</span>
+          </div>
         </div>
       )}
 
-      {/* 렌즈 + 종합 — 2열 그리드(모바일·데스크탑 공통) */}
+      {/* 렌즈 + 종합 — 2열 그리드 */}
       <div className="grid grid-cols-2 gap-3">
         {LENS_META.map((m) => {
           const mini =
@@ -435,87 +463,106 @@ export default function InsightsClient({
             <button
               key={m.key}
               onClick={() => setView(m.key)}
-              className="block w-full rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary"
+              className="flex h-[172px] flex-col rounded-3xl border border-line bg-surface p-4 text-left shadow-sm transition hover:border-primary"
             >
-              <span className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-                  <LensIcon name={m.key} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-display text-base font-bold text-primary">
-                    {LENS_LABEL[m.key]}
-                  </span>
-                  <span className="block text-xs text-muted">{m.desc}</span>
-                </span>
+              <span className="mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-primary-soft text-primary">
+                <LensIcon name={m.key} size={22} />
               </span>
-              {updatedOf(m.key) && (
-                <span className="mt-2 block text-[11px] text-faint">업데이트 {updatedOf(m.key)}</span>
-              )}
+              <span className="mb-1.5 font-display text-[11px] font-bold uppercase tracking-[0.15em] text-primary">
+                {LENS_LABEL[m.key]}
+              </span>
+              <span className="text-[13px] font-medium leading-snug text-ink">{m.desc}</span>
               {mini && (
                 <span className="mt-3 block">
                   <BalanceBar data={mini} height={6} />
                 </span>
               )}
               {fruitN > 0 && (
-                <span className="mt-2 block text-xs text-muted">최근 감사·응답 {fruitN}건</span>
+                <span className="mt-3 inline-flex w-max rounded-lg bg-accent-soft px-2 py-1 text-[10px] font-bold text-accent">
+                  최근 감사·응답 {fruitN}건
+                </span>
               )}
+              <span className="mt-auto block pt-2">
+                {updatedOf(m.key) && (
+                  <span className="font-display text-[9px] uppercase tracking-[0.05em] text-faint">
+                    업데이트 {updatedOf(m.key)}
+                  </span>
+                )}
+              </span>
             </button>
           )
         })}
 
-        {/* 종합(overall) */}
+        {/* 종합(overall) — 가로 카드 */}
         <button
           onClick={() => setView('overall')}
-          className="block w-full rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary"
+          className="col-span-2 flex items-center gap-4 rounded-3xl bg-primary-soft p-4 text-left shadow-sm transition hover:opacity-90"
         >
-          <span className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M3 12h18" />
-                <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18" />
-              </svg>
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-display text-base font-bold text-primary">Overall</span>
-              <span className="block text-xs text-muted">일지·프로젝트·할일 종합</span>
-            </span>
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-surface text-primary shadow-sm">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3 12h18" />
+              <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18" />
+            </svg>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-[11px] font-bold uppercase tracking-[0.15em] text-primary">Overall</span>
+            <span className="block text-[14px] font-semibold text-primary">일지·프로젝트·할일 종합</span>
           </span>
           {updatedOf('overall') && (
-            <span className="mt-2 block text-[11px] text-faint">업데이트 {updatedOf('overall')}</span>
+            <span className="shrink-0 text-right">
+              <span className="block font-display text-[9px] uppercase tracking-[0.05em] text-primary opacity-70">업데이트</span>
+              <span className="mt-0.5 block font-display text-[10px] font-bold uppercase tracking-[0.05em] text-primary">
+                {updatedOf('overall')}
+              </span>
+            </span>
           )}
         </button>
       </div>
 
-      {/* 분야별 분석 — 2열 그리드(전체 히스토리) */}
+      {/* 분야별 분석 */}
       <div>
-        <div className="px-1 pb-2 text-xs font-semibold text-muted">분야별 분석</div>
+        <div className="mb-4 flex items-center gap-2">
+          <span className="h-3.5 w-1.5 rounded-full bg-line" />
+          <h3 className="text-[12px] font-bold text-muted">분야별 분석</h3>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           {(['journal', 'project', 'task'] as InsightDomain[]).map((d) => (
             <button
               key={d}
               onClick={() => setView(d)}
-              className="block w-full rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-primary"
+              className={`flex items-center gap-3 rounded-[20px] border border-line bg-surface p-4 text-left shadow-sm transition hover:border-primary ${
+                d === 'task' ? 'col-span-2' : ''
+              }`}
             >
-              <span className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-subtle text-muted">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 6h16M4 12h16M4 18h10" />
-                </svg>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-subtle text-muted">
+                <DomainIcon domain={d} />
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-display text-base font-bold text-primary">
-                  {DOMAIN_LABEL[d]}
-                </span>
+              <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                <span className="truncate text-[12px] font-semibold text-ink">{DOMAIN_LABEL[d]}</span>
+                {updatedOf(d) && (
+                  <span className="shrink-0 font-display text-[9px] uppercase tracking-[0.05em] text-faint">
+                    Upd {updatedOf(d)}
+                  </span>
+                )}
               </span>
-              </span>
-              {updatedOf(d) && (
-                <span className="mt-2 block text-[11px] text-faint">업데이트 {updatedOf(d)}</span>
-              )}
             </button>
           ))}
         </div>
       </div>
+
+      {/* 보관함 — 최하단 별도 메뉴 */}
+      <Link
+        href="/insights/saved"
+        className="flex items-center justify-center gap-2 rounded-[20px] border border-line bg-surface px-4 py-3.5 text-[14px] font-medium text-ink shadow-sm transition hover:border-primary"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="4" rx="1" />
+          <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+          <path d="M10 12h4" />
+        </svg>
+        보관함
+      </Link>
     </div>
   )
 }
