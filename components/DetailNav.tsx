@@ -12,6 +12,7 @@ type Props = {
   total: number
   query?: string // 목록 필터 유지용 쿼리스트링(없으면 '')
   suffix?: string // id 뒤에 붙일 경로(예: '/edit'). 없으면 상세로.
+  variant?: 'box' | 'minimal' // minimal: 테두리 없는 캐럿 + n/total(상세 상단바용)
 }
 
 function withQuery(href: string, query?: string) {
@@ -31,9 +32,38 @@ function Arrow({ dir }: { dir: 'prev' | 'next' }) {
   )
 }
 
-export default function DetailNav({ basePath, prevId, nextId, index, total, query, suffix = '' }: Props) {
+export default function DetailNav({ basePath, prevId, nextId, index, total, query, suffix = '', variant = 'box' }: Props) {
   // 목록에 현재 항목이 없거나(필터 불일치) 항목이 1개뿐이면 표시 의미 없음.
   if (total <= 1 || index === 0) return null
+
+  // minimal: 상세 상단바용 — 테두리 없는 캐럿 + n/total.
+  if (variant === 'minimal') {
+    return (
+      <div className="flex items-center gap-3 text-muted">
+        {prevId ? (
+          <Link href={withQuery(`${basePath}/${prevId}${suffix}`, query)} replace aria-label="이전" className="transition hover:text-ink">
+            <Arrow dir="prev" />
+          </Link>
+        ) : (
+          <span aria-disabled className="opacity-30">
+            <Arrow dir="prev" />
+          </span>
+        )}
+        <span className="font-display text-[10px] font-bold tracking-[0.15em] text-muted">
+          {index} / {total}
+        </span>
+        {nextId ? (
+          <Link href={withQuery(`${basePath}/${nextId}${suffix}`, query)} replace aria-label="다음" className="transition hover:text-ink">
+            <Arrow dir="next" />
+          </Link>
+        ) : (
+          <span aria-disabled className="opacity-30">
+            <Arrow dir="next" />
+          </span>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="mb-2 flex items-center gap-2">
