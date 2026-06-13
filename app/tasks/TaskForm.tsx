@@ -1,6 +1,8 @@
 'use client'
 
-// MFH-TASK-FORM-V4
+// MFH-TASK-FORM-V5
+// 할 일 입력 폼 (Variant Var5 — 2카드: 내용 / 속성·일정). 일지·프로젝트 폼과 톤 통일.
+// 저장·검증·완료↔상태연동·반복 생성/편집(범위 모달)·복제·삭제·작성자·이전/다음 편집순회 로직은 V4 그대로 보존, 비주얼만 교체.
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -65,6 +67,17 @@ function buildOccurrences(start: string, until: string, freq: 'daily' | 'weekly'
     cur = nextDate(cur, freq)
   }
   return dates
+}
+
+// 필드 라벨: 한글 + 작은 영문 캡스(프로젝트 폼과 동일)
+function FieldLabel({ ko, en, required }: { ko: string; en: string; required?: boolean }) {
+  return (
+    <label className="mb-1.5 block text-[13px] font-medium text-muted">
+      {ko}
+      {required && <span className="ml-0.5 text-accent">*</span>}
+      <span className="ml-1.5 font-display text-[9px] uppercase tracking-[0.15em] text-faint">{en}</span>
+    </label>
+  )
 }
 
 export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery }: Props) {
@@ -338,13 +351,17 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
 
   const input =
     'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
-  const cellLabel = 'mb-1 block text-xs text-muted'
+  const card = 'rounded-3xl border border-line bg-surface p-5 shadow-sm'
 
   return (
-    <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
-      <div className="flex items-center justify-between gap-2">
-        <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label="To-Do" />
-        {mode === 'edit' && nav && (
+    <main className="mx-auto max-w-md px-4 pb-10">
+      {/* 상단바(미니멀) — 프로젝트 폼과 통일: 캐럿 + 중앙 제목 + (편집)이전/다음 */}
+      <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
+        <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label="" variant="text" />
+        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-lg font-extrabold uppercase tracking-[0.15em] text-primary">
+          {mode === 'edit' ? 'Edit To-Do' : 'New To-Do'}
+        </h1>
+        {mode === 'edit' && nav ? (
           <DetailNav
             basePath="/tasks"
             suffix="/edit"
@@ -353,230 +370,261 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
             index={nav.index}
             total={nav.total}
             query={navQuery}
+            variant="minimal"
           />
+        ) : (
+          <span className="w-10" aria-hidden="true" />
         )}
-      </div>
-      <div className="mb-4 mt-2 flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-2xl font-extrabold text-primary">
-          {mode === 'edit' ? 'Edit To-Do' : 'New To-Do'}
-        </h1>
-        {isRecurring && <RecurrenceBadge freq={initial?.recurrence_freq} />}
-      </div>
+      </header>
+
+      {/* 반복 시리즈 배너(편집 + 반복 항목) */}
       {isRecurring && (
-        <p className="mb-4 -mt-2 text-xs text-muted">
-          이 할 일은 반복 시리즈의 한 항목입니다. 저장·삭제 시 “이 항목만 / 이후 모두”를 물어봅니다.
-        </p>
+        <div className="-mx-4 mb-5 flex flex-col items-center gap-1.5 border-b border-line bg-primary-soft px-4 py-3">
+          <RecurrenceBadge freq={initial?.recurrence_freq} />
+          <p className="text-center text-[11px] font-medium text-primary">
+            저장·삭제 시 “이 항목만” 또는 “이후 모두”를 묻습니다.
+          </p>
+        </div>
       )}
 
-      {mode === 'edit' && (
-        <AuthorSelect value={authorId} onChange={setAuthorId} className={input} />
-      )}
+      {/* 작성자 (편집·마스터만) */}
+      {mode === 'edit' && <AuthorSelect value={authorId} onChange={setAuthorId} className={input} />}
 
-      {/* 데스크탑 2열: 왼쪽 제목·설명·프로젝트 / 오른쪽 메타 */}
-      <div className="grid grid-cols-1 gap-x-8 gap-y-4 min-[740px]:grid-cols-2">
-        {/* 왼쪽 */}
-        <div className="space-y-4 min-w-0">
-          <div>
-            <label className={cellLabel}>제목</label>
+      {/* 카드1: 내용 */}
+      <div className={`${card} mb-4 flex flex-col gap-5`}>
+        <div>
+          <FieldLabel ko="제목" en="Title" required />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className={input}
+            placeholder="예: 건축 설계 도면 검토"
+          />
+        </div>
+        <div>
+          <FieldLabel ko="설명" en="Desc" />
+          <textarea
+            ref={descRef}
+            value={description}
+            onChange={(e) => {
+              setDescription(e.target.value)
+              syncDescHeight()
+            }}
+            rows={2}
+            className={`${input} resize-none overflow-hidden`}
+            placeholder="간단한 메모"
+          />
+        </div>
+        <div>
+          <FieldLabel ko="관련 프로젝트" en="Project" />
+          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={input}>
+            <option value="">없음 (단독 할 일)</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* 카드2: 속성 · 일정 */}
+      <div className={`${card} flex flex-col gap-5`}>
+        {/* 사역분류 · 장소 */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="min-w-0">
+            <FieldLabel ko="사역분류" en="Category" />
+            <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="분류 없음" />
+          </div>
+          <div className="min-w-0">
+            <FieldLabel ko="장소" en="Place" />
             <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={placeName}
+              onChange={(e) => setPlaceName(e.target.value)}
               className={input}
-              placeholder="예: 건축 설계 도면 검토"
+              placeholder="예: 자포탈 더좋은교회"
             />
           </div>
+        </div>
 
-          <div>
-            <label className={cellLabel}>설명 (선택)</label>
-            <textarea
-              ref={descRef}
-              value={description}
-              onChange={(e) => {
-                setDescription(e.target.value)
-                syncDescHeight()
-              }}
-              rows={2}
-              className={`${input} resize-none overflow-hidden`}
-              placeholder="간단한 메모"
-            />
-          </div>
-
-          <div>
-            <label className={cellLabel}>관련 프로젝트 (선택)</label>
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={input}>
-              <option value="">없음 (단독 할 일)</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
+        {/* 상태 · 중요도 */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="min-w-0">
+            <FieldLabel ko="상태" en="Status" />
+            <select
+              value={status}
+              onChange={(e) => onChangeStatus(e.target.value as StatusValue)}
+              className={input}
+            >
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
                 </option>
               ))}
             </select>
           </div>
+          <div className="min-w-0">
+            <FieldLabel ko="중요도" en="Stars" />
+            <div className="flex h-[46px] items-center gap-1.5">
+              {Array.from({ length: IMPORTANCE_MAX }).map((_, i) => {
+                const n = i + 1
+                const filled = n <= importance
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setImportance(importance === n ? n - 1 : n)}
+                    aria-label={`중요도 ${n}`}
+                    className={filled ? 'text-[#D4AF37]' : 'text-line transition-colors hover:text-[#D4AF37]'}
+                  >
+                    <svg
+                      width="26"
+                      height="26"
+                      viewBox="0 0 24 24"
+                      fill={filled ? 'currentColor' : 'none'}
+                      stroke={filled ? 'none' : 'currentColor'}
+                      strokeWidth="1.5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d={
+                          filled
+                            ? 'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'
+                            : 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z'
+                        }
+                      />
+                    </svg>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
 
-        {/* 오른쪽 */}
-        <div className="space-y-4 min-w-0">
-          {/* 사역분류 · 장소 */}
+        {/* 마감일 · 마감 시간 */}
+        <div>
           <div className="grid grid-cols-2 gap-3">
             <div className="min-w-0">
-              <label className={cellLabel}>사역분류 (선택)</label>
-              <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="분류 없음" />
+              <FieldLabel ko="마감일" en="Due" />
+              <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
             </div>
             <div className="min-w-0">
-              <label className={cellLabel}>장소 (선택)</label>
+              <FieldLabel ko="마감 시간" en="Time" />
               <input
-                value={placeName}
-                onChange={(e) => setPlaceName(e.target.value)}
-                className={input}
-                placeholder="예: 자포탈 더좋은교회"
+                type="time"
+                value={dueTime}
+                onChange={(e) => setDueTime(e.target.value)}
+                disabled={!dueDate}
+                className={`${input} disabled:opacity-50`}
               />
             </div>
           </div>
+          {!dueDate && (
+            <p className="mt-1 text-[11px] text-faint">마감일을 먼저 정하면 시간을 추가할 수 있어요.</p>
+          )}
+        </div>
 
-          {/* 상태 · 중요도 */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="min-w-0">
-              <label className={cellLabel}>상태</label>
-              <select
-                value={status}
-                onChange={(e) => onChangeStatus(e.target.value as StatusValue)}
-                className={input}
-              >
-                {STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="min-w-0">
-              <label className={cellLabel}>중요도</label>
-              <div className="flex h-[46px] items-center gap-1.5">
-                {Array.from({ length: IMPORTANCE_MAX }).map((_, i) => {
-                  const n = i + 1
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setImportance(importance === n ? n - 1 : n)}
-                      className={`text-2xl leading-none ${n <= importance ? 'text-yellow-400' : 'text-faint'}`}
-                      aria-label={`중요도 ${n}`}
-                    >
-                      ★
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* 마감일 · 마감 시간 */}
-          <div>
-            <div className="grid grid-cols-2 gap-3">
+        {/* 반복 등록 — 새 할 일에서만. 마감일을 첫 날짜로, 종료일까지 일괄 생성. */}
+        {mode === 'new' && (
+          <div className="rounded-2xl bg-surface-subtle p-4">
+            <div className="text-xs font-semibold text-muted">반복 (선택)</div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
               <div className="min-w-0">
-                <label className={cellLabel}>마감일</label>
-                <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
-              </div>
-              <div className="min-w-0">
-                <label className={cellLabel}>마감 시간 (선택)</label>
-                <input
-                  type="time"
-                  value={dueTime}
-                  onChange={(e) => setDueTime(e.target.value)}
-                  disabled={!dueDate}
-                  className={`${input} disabled:opacity-50`}
-                />
-              </div>
-            </div>
-            {!dueDate && (
-              <p className="mt-1 text-[11px] text-faint">마감일을 먼저 정하면 시간을 추가할 수 있어요.</p>
-            )}
-          </div>
-
-          {/* 반복 등록 — 새 할 일에서만. 마감일을 첫 날짜로, 종료일까지 일괄 생성. */}
-          {mode === 'new' && (
-            <div className="rounded-xl border border-line bg-surface-subtle p-3">
-              <div className="text-xs font-semibold text-muted">반복 (선택)</div>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="min-w-0">
-                  <label className={cellLabel}>주기</label>
-                  <select
-                    value={repeatFreq}
-                    onChange={(e) => setRepeatFreq(e.target.value as RepeatFreq)}
-                    className={input}
-                  >
-                    <option value="none">반복 안 함</option>
-                    <option value="daily">매일</option>
-                    <option value="weekly">매주</option>
-                    <option value="monthly">매월</option>
-                  </select>
-                </div>
-                {repeatFreq !== 'none' && (
-                  <div className="min-w-0">
-                    <label className={cellLabel}>종료일 (필수)</label>
-                    <DateField value={repeatUntil} onChange={setRepeatUntil} placeholder="반복 종료일" />
-                  </div>
-                )}
+                <FieldLabel ko="주기" en="Repeat" />
+                <select
+                  value={repeatFreq}
+                  onChange={(e) => setRepeatFreq(e.target.value as RepeatFreq)}
+                  className={input}
+                >
+                  <option value="none">반복 안 함</option>
+                  <option value="daily">매일</option>
+                  <option value="weekly">매주</option>
+                  <option value="monthly">매월</option>
+                </select>
               </div>
               {repeatFreq !== 'none' && (
-                <p className={`mt-2 text-[11px] ${!dueDate || !repeatUntil ? 'text-danger' : 'text-faint'}`}>
-                  {!dueDate
-                    ? '먼저 위에서 마감일(첫 날짜)을 정해 주세요.'
-                    : !repeatUntil
-                      ? '종료일을 정해야 저장됩니다 — 종료일까지만 생성되고 그 뒤로는 만들지 않습니다.'
-                      : `마감일(${dueDate})부터 종료일(${repeatUntil})까지 ${
-                          repeatFreq === 'daily' ? '매일' : repeatFreq === 'weekly' ? '매주' : '매월'
-                        } 같은 할 일을 만듭니다.`}
-                </p>
+                <div className="min-w-0">
+                  <FieldLabel ko="종료일" en="Until" />
+                  <DateField value={repeatUntil} onChange={setRepeatUntil} placeholder="반복 종료일" />
+                </div>
               )}
             </div>
-          )}
+            {repeatFreq !== 'none' && (
+              <p className={`mt-2 text-[11px] ${!dueDate || !repeatUntil ? 'text-danger' : 'text-faint'}`}>
+                {!dueDate
+                  ? '먼저 위에서 마감일(첫 날짜)을 정해 주세요.'
+                  : !repeatUntil
+                    ? '종료일을 정해야 저장됩니다 — 종료일까지만 생성되고 그 뒤로는 만들지 않습니다.'
+                    : `마감일(${dueDate})부터 종료일(${repeatUntil})까지 ${
+                        repeatFreq === 'daily' ? '매일' : repeatFreq === 'weekly' ? '매주' : '매월'
+                      } 같은 할 일을 만듭니다.`}
+              </p>
+            )}
+          </div>
+        )}
 
-          <label className="flex items-center gap-2 text-sm text-muted">
-            <input type="checkbox" checked={done} onChange={(e) => onToggleDone(e.target.checked)} />
-            완료됨
-          </label>
+        {/* 완료됨 토글 */}
+        <div className="flex items-center justify-between border-t border-line pt-4">
+          <div className="flex items-end gap-1.5">
+            <span className="text-[14px] font-semibold text-ink">완료됨</span>
+            <span className="mb-0.5 font-display text-[9px] uppercase tracking-[0.15em] text-faint">Completed</span>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={done}
+            aria-label="완료됨"
+            onClick={() => onToggleDone(!done)}
+            className={`relative inline-flex h-[26px] w-[44px] shrink-0 items-center rounded-full transition-colors ${
+              done ? 'bg-[#0F6E56]' : 'bg-line'
+            }`}
+          >
+            <span
+              className={`inline-block h-[22px] w-[22px] transform rounded-full bg-white shadow-sm transition ${
+                done ? 'translate-x-[20px]' : 'translate-x-[2px]'
+              }`}
+            />
+          </button>
         </div>
       </div>
 
-      {msg && <p className="mt-6 text-sm text-danger">{msg}</p>}
+      {msg && <p className="mt-4 text-center text-sm text-danger">{msg}</p>}
 
-      {/* 푸터: 저장 + (편집 시) 복제·삭제 */}
-      <div className="mt-8 flex flex-col gap-3 min-[740px]:flex-row min-[740px]:items-center">
-        <button
-          onClick={save}
-          disabled={saving}
-          className="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 min-[740px]:w-auto min-[740px]:px-12"
-        >
-          {saving
-            ? '저장 중…'
-            : mode === 'edit'
-              ? '수정 저장'
-              : repeatFreq !== 'none'
-                ? '반복 만들기'
-                : '저장'}
-        </button>
-        {mode === 'edit' && initial && (
-          <div className="flex items-center gap-4 min-[740px]:ml-2">
-            <button
-              type="button"
-              onClick={() => router.push(`/tasks/new?from=${initial.id}`)}
-              disabled={saving}
-              className="text-xs font-semibold text-primary underline disabled:opacity-50"
-            >
-              복제
-            </button>
-            <button
-              type="button"
-              onClick={del}
-              disabled={saving}
-              className="text-xs text-danger underline disabled:opacity-50"
-            >
-              삭제
-            </button>
-          </div>
-        )}
-      </div>
+      {/* 저장 + (편집) 복제·삭제 */}
+      <button
+        onClick={save}
+        disabled={saving}
+        className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary disabled:opacity-50"
+      >
+        {saving
+          ? '저장 중…'
+          : mode === 'edit'
+            ? 'Update To-Do'
+            : repeatFreq !== 'none'
+              ? '반복 만들기'
+              : 'Save To-Do'}
+      </button>
+      {mode === 'edit' && initial && (
+        <div className="mt-6 flex items-center justify-center gap-8 text-[13px] font-medium text-muted">
+          <button
+            type="button"
+            onClick={() => router.push(`/tasks/new?from=${initial.id}`)}
+            disabled={saving}
+            className="transition hover:text-ink disabled:opacity-50"
+          >
+            복제
+          </button>
+          <button
+            type="button"
+            onClick={del}
+            disabled={saving}
+            className="transition hover:text-accent disabled:opacity-50"
+          >
+            삭제
+          </button>
+        </div>
+      )}
 
       {scopeModal === 'save' && (
         <RecurrenceScopeModal
