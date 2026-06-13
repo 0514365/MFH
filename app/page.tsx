@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
@@ -5,8 +6,81 @@ import ModuleIcon from '@/components/ModuleIcon'
 import SplashGate from './SplashGate'
 import SignOutButton from '@/components/SignOutButton'
 import type { YearTheme } from '@/lib/types'
+import type { Highlight } from './honduras/BriefingView'
+import { projectSignals, taskSignals, type Signal, type SignalKind } from '@/lib/signals'
 
 export const dynamic = 'force-dynamic'
+
+// Facebook 은 ModuleIcon 에 없어 인라인 유지(페이퍼 비행기).
+const FacebookIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 11l18-5v12L3 14z" />
+    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+  </svg>
+)
+
+const HeartIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 21s-7-4.35-9.5-8.5C.5 9 2 5.5 5.5 5.5c2 0 3.5 1.5 4.5 3 1-1.5 2.5-3 4.5-3C18 5.5 19.5 9 21.5 12.5 19 16.65 12 21 12 21z" />
+  </svg>
+)
+
+// 홈 타일용 신호 칩(SignalChips 와 동색, 더 작게). 시급순 정렬은 signals.ts 가 보장 → 앞 2개만.
+const SIG_CLS: Record<SignalKind, string> = {
+  overdue: 'bg-red-50 text-red-700',
+  soon: 'bg-orange-50 text-orange-700',
+  stalled: 'bg-slate-100 text-slate-600',
+  important: 'bg-yellow-50 text-yellow-700',
+}
+function SignalBadges({ signals }: { signals: Signal[] }) {
+  if (signals.length === 0) return null
+  return (
+    <div className="flex flex-wrap justify-end gap-1">
+      {signals.slice(0, 2).map((s) => (
+        <span key={s.kind} className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${SIG_CLS[s.kind]}`}>
+          {s.label} {s.count}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+// 벤토 모듈 타일 — 옅은 칩 아이콘(마룬 단색) + 영문 타이틀/서브타이틀(기존 유지). topRight=배지/시각.
+function ModuleTile({
+  href,
+  icon,
+  title,
+  sub,
+  topRight,
+  tint,
+  className = '',
+}: {
+  href: string
+  icon: ReactNode
+  title: string
+  sub: string
+  topRight?: ReactNode
+  tint?: 'red'
+  className?: string
+}) {
+  const surface = tint === 'red' ? 'bg-accent-soft' : 'border border-line bg-surface hover:border-primary'
+  const chip = tint === 'red' ? 'bg-white/60 text-accent' : 'bg-surface-subtle text-primary'
+  return (
+    <Link
+      href={href}
+      className={`relative flex flex-col justify-between overflow-hidden rounded-3xl p-4 transition active:scale-[0.99] ${surface} ${className}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${chip}`}>{icon}</div>
+        {topRight}
+      </div>
+      <div className="mt-3">
+        <div className="font-display text-[15px] font-bold leading-tight text-primary">{title}</div>
+        <div className="mt-0.5 text-[11px] text-muted">{sub}</div>
+      </div>
+    </Link>
+  )
+}
 
 export default async function Home() {
   const hasEnv =
@@ -29,222 +103,230 @@ export default async function Home() {
   if (!user) redirect('/login')
 
   const year = new Date().getFullYear()
-  const { data: themeRow } = await supabase
-    .from('year_themes')
-    .select('*')
-    .eq('year', year)
-    .maybeSingle()
-  const theme = themeRow as YearTheme | null
-  const goals: string[] = theme && Array.isArray(theme.goals) ? (theme.goals as string[]) : []
+  // 신호 계산 기준일 — 온두라스 현지(다른 페이지와 동일 기준).
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
 
-  // 안 읽은 중보기도 수(멤버만 RLS 통과). 홈 카드 배지.
-  const { count: unreadPrayers } = await supabase
-    .from('intercessions')
-    .select('id', { count: 'exact', head: true })
-    .eq('is_read', false)
+  const [themeQ, prayerQ, newsQ, projQ, taskQ, insightQ] = await Promise.all([
+    supabase.from('year_themes').select('*').eq('year', year).maybeSingle(),
+    supabase.from('intercessions').select('id', { count: 'exact', head: true }).eq('is_read', false),
+    supabase
+      .from('honduras_news')
+      .select('news_date,highlights,created_at')
+      .order('news_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from('projects').select('status, due_date, importance, updated_at'),
+    supabase.from('tasks').select('done, due_date, importance'),
+    supabase
+      .from('insights')
+      .select('created_at')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
+
+  const theme = themeQ.data as YearTheme | null
+  const goals: string[] = theme && Array.isArray(theme.goals) ? (theme.goals as string[]) : []
+  const unreadPrayers = prayerQ.count ?? 0
+
+  const newsRow = newsQ.data as { highlights?: Highlight[] | null; created_at?: string } | null
+  const topHl = ((newsRow?.highlights as Highlight[] | null) ?? [])[0] ?? null
+  const newsTitle = (topHl?.title ?? '').trim() || '주요 뉴스 브리핑'
+  const newsBody =
+    (topHl?.body ?? '').trim() || '매일 아침 정치·경제·사회·문화 동향을 정리합니다.'
+  const newsAt = newsRow?.created_at ?? null
+  const newsTime = newsAt
+    ? new Date(newsAt).toLocaleString('ko-KR', {
+        timeZone: 'America/Tegucigalpa',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    : null
+
+  const projSignals = projectSignals(
+    (projQ.data ?? []) as { status: string; due_date: string | null; importance: number; updated_at: string }[],
+    today,
+  )
+  const tSignals = taskSignals(
+    (taskQ.data ?? []) as { done: boolean; due_date: string | null; importance: number }[],
+    today,
+  )
+
+  const insightAt = (insightQ.data as { created_at?: string } | null)?.created_at ?? null
+  const insightTime = insightAt
+    ? new Date(insightAt).toLocaleString('ko-KR', {
+        timeZone: 'America/Tegucigalpa',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    : null
 
   return (
     <SplashGate>
-      <main className="mx-auto max-w-md px-5 py-8">
-        <header className="mb-6">
+      <main className="mx-auto max-w-md px-4 pb-10 pt-6">
+        <header className="mb-4 flex items-center justify-between px-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-primary.svg"
-            alt="MFH — Mission for Honduras"
-            className="h-14 w-auto"
-          />
-          <p className="mt-2 text-xs text-faint">{user.email}</p>
+          <img src="/logo-primary.svg" alt="MFH — Mission for Honduras" className="h-9 w-auto" />
+          <p className="text-[11px] text-faint">{user.email}</p>
         </header>
 
-        <section className="mb-7 rounded-2xl bg-primary p-5 text-white">
-          <div className="text-[11px] font-semibold tracking-widest text-white/70">{year} 주제</div>
-          {theme?.theme ? (
-            <>
-              <div className="mt-1 text-xl font-bold">{theme.theme}</div>
-              {goals.length > 0 && (
-                <ul className="mt-3 space-y-1">
-                  {goals.map((g, i) => (
-                    <li key={i} className="text-sm text-white/90">
-                      &ndash; {g}
-                    </li>
-                  ))}
-                </ul>
+        <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)]">
+          {/* 2026 주제 — hero */}
+          <section className="col-span-2 flex flex-col justify-between overflow-hidden rounded-3xl bg-primary p-6 text-white">
+            <div>
+              <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">
+                {year} 주제
+              </div>
+              {theme?.theme ? (
+                <h1 className="mt-2 text-[22px] font-bold leading-snug">{theme.theme}</h1>
+              ) : (
+                <Link href="/theme" className="mt-2 inline-block text-base font-semibold underline">
+                  올해의 주제·목표 설정하기
+                </Link>
               )}
-              <Link href="/theme" className="mt-3 inline-block text-xs text-white/70 underline">
+            </div>
+            {goals.length > 0 && (
+              <ul className="mt-4 space-y-1.5">
+                {goals.map((g, i) => (
+                  <li key={i} className="text-sm text-white/90">&ndash; {g}</li>
+                ))}
+              </ul>
+            )}
+            {theme?.theme && (
+              <Link href="/theme" className="mt-3 inline-block text-xs text-white/60 underline">
                 수정
               </Link>
-            </>
-          ) : (
-            <Link href="/theme" className="mt-2 inline-block text-sm font-semibold text-white underline">
-              올해의 주제·목표 설정하기
-            </Link>
-          )}
-        </section>
+            )}
+          </section>
 
-        <section className="space-y-3">
+          {/* 온두라스 동향 — wide + 최신 브리핑 미리보기 */}
           <Link
             href="/honduras"
-            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
+            className="col-span-2 flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99]"
           >
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-bold text-primary">온두라스 동향</div>
-              <div className="mt-0.5 text-xs text-muted">Today in Honduras</div>
-              <div className="mt-1 text-[11px] leading-snug text-faint">
-                <span className="truncate">매일 아침 정치·경제·사회·문화 뉴스 브리핑</span>
+            <div className="flex items-center justify-between">
+              <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
+                온두라스 동향 · Today in Honduras
               </div>
+              {newsTime ? (
+                <span className="shrink-0 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  {newsTime}
+                </span>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-primary opacity-60">
+                  <path d="M5 12h14" />
+                  <path d="M12 5l7 7-7 7" />
+                </svg>
+              )}
             </div>
-            <svg
-              width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              className="shrink-0 text-primary"
-            >
-              <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
-              <path d="M18 14h-8" />
-              <path d="M15 18h-5" />
-              <path d="M10 6h8v4h-8z" />
-            </svg>
+            <div className="mt-2 text-[15px] font-bold leading-tight text-ink">{newsTitle}</div>
+            <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">{newsBody}</p>
           </Link>
-          <Link
+
+          {/* Log — tall (좌) */}
+          <ModuleTile
             href="/journal"
-            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-bold text-primary">Log</div>
-              <div className="mt-0.5 text-xs text-muted">Today&apos;s grace</div>
-              <div className="mt-1 text-[11px] leading-snug text-faint">
-                <span className="truncate">&ldquo;이 날은 여호와의 정하신 것&rdquo;</span> 시 118:24
-              </div>
-            </div>
-            <ModuleIcon name="log" size={32} className="shrink-0 text-primary" />
-          </Link>
-          <Link
-            href="/projects"
-            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-bold text-primary">Projects</div>
-              <div className="mt-0.5 text-xs text-muted">The calling&apos;s path</div>
-              <div className="mt-1 text-[11px] leading-snug text-faint">
-                <span className="truncate">&ldquo;여호와께서 집을 세우지 아니하시면&rdquo;</span> 시 127:1
-              </div>
-            </div>
-            <ModuleIcon name="projects" size={32} className="shrink-0 text-primary" />
-          </Link>
-          <Link
-            href="/tasks"
-            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-bold text-primary">To-Do</div>
-              <div className="mt-0.5 text-xs text-muted">Entrusted work</div>
-              <div className="mt-1 text-[11px] leading-snug text-faint">
-                <span className="truncate">&ldquo;작은 것에 충성된 자&rdquo;</span> 눅 16:10
-              </div>
-            </div>
-            <ModuleIcon name="todo" size={32} className="shrink-0 text-primary" />
-          </Link>
-          <Link
-            href="/calendar"
-            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-bold text-primary">Calendar</div>
-              <div className="mt-0.5 text-xs text-muted">Times &amp; seasons</div>
-              <div className="mt-1 text-[11px] leading-snug text-faint">
-                <span className="truncate">&ldquo;내 시간이 주의 손에 있사오니&rdquo;</span> 시 31:15
-              </div>
-            </div>
-            <ModuleIcon name="calendar" size={32} className="shrink-0 text-primary" />
-          </Link>
-          <Link
+            icon={<ModuleIcon name="log" size={20} />}
+            title="Log"
+            sub="Today's grace"
+            className="row-span-2"
+          />
+
+          {/* Insights — 우(상). 최종 업데이트 시각 */}
+          <ModuleTile
             href="/insights"
-            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-bold text-primary">Insights</div>
-              <div className="mt-0.5 text-xs text-muted">Light on the path</div>
-              <div className="mt-1 text-[11px] leading-snug text-faint">
-                <span className="truncate">&ldquo;주의 말씀은 내 발의 등&rdquo;</span> 시 119:105
-              </div>
-            </div>
-            <ModuleIcon name="insights" size={32} className="shrink-0 text-primary" />
-          </Link>
-          <Link
-            href="/photos"
-            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-bold text-primary">Photos</div>
-              <div className="mt-0.5 text-xs text-muted">Moments of grace</div>
-              <div className="mt-1 text-[11px] leading-snug text-faint">
-                <span className="truncate">월·사역별 사진 모아보기</span>
-              </div>
-            </div>
-            <ModuleIcon name="photos" size={32} className="shrink-0 text-primary" />
-          </Link>
-          <Link
-            href="/facebook"
-            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-bold text-primary">Facebook</div>
-              <div className="mt-0.5 text-xs text-muted">This week&apos;s story</div>
-              <div className="mt-1 text-[11px] leading-snug text-faint">
-                <span className="truncate">이번 주 게시 추천 (AI)</span>
-              </div>
-            </div>
-            <svg
-              width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              className="shrink-0 text-primary"
-            >
-              <path d="M3 11l18-5v12L3 14z" />
-              <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-            </svg>
-          </Link>
-          <Link
-            href="/portfolio"
-            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-bold text-primary">Portfolio</div>
-              <div className="mt-0.5 text-xs text-muted">Sharing our journey</div>
-              <div className="mt-1 text-[11px] leading-snug text-faint">
-                <span className="truncate">&ldquo;땅끝까지 이르러 내 증인이 되리라&rdquo;</span> 행 1:8
-              </div>
-            </div>
-            <ModuleIcon name="portfolio" size={32} className="shrink-0 text-primary" />
-          </Link>
-          <Link
+            icon={<ModuleIcon name="insights" size={18} />}
+            title="Insights"
+            sub="Light on the path"
+            topRight={
+              insightTime ? (
+                <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-medium text-muted">
+                  {insightTime}
+                </span>
+              ) : null
+            }
+          />
+
+          {/* Calendar — 우(하) */}
+          <ModuleTile
+            href="/calendar"
+            icon={<ModuleIcon name="calendar" size={18} />}
+            title="Calendar"
+            sub="Times & seasons"
+          />
+
+          {/* Projects — 좌. 임박·정체 등 신호 배지 */}
+          <ModuleTile
+            href="/projects"
+            icon={<ModuleIcon name="projects" size={18} />}
+            title="Projects"
+            sub="The calling's path"
+            topRight={<SignalBadges signals={projSignals} />}
+          />
+
+          {/* To-Do — 우. 지남·임박 등 신호 배지 */}
+          <ModuleTile
+            href="/tasks"
+            icon={<ModuleIcon name="todo" size={18} />}
+            title="To-Do"
+            sub="Entrusted work"
+            topRight={<SignalBadges signals={tSignals} />}
+          />
+
+          {/* 중보기도 — 좌. 레드틴트 + 안 읽은 수 */}
+          <ModuleTile
             href="/intercessions"
-            className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-primary"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <div className="text-lg font-bold text-primary">중보기도</div>
-                {!!unreadPrayers && unreadPrayers > 0 && (
-                  <span className="rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
-                    {unreadPrayers}
-                  </span>
-                )}
-              </div>
-              <div className="mt-0.5 text-xs text-muted">Prayers &amp; blessings</div>
-              <div className="mt-1 text-[11px] leading-snug text-faint">
-                <span className="truncate">&ldquo;서로를 위하여 기도하라&rdquo;</span> 약 5:16
-              </div>
-            </div>
-            <svg
-              width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              className="shrink-0 text-primary"
-            >
-              <path d="M12 21s-7-4.35-9.5-8.5C.5 9 2 5.5 5.5 5.5c2 0 3.5 1.5 4.5 3 1-1.5 2.5-3 4.5-3C18 5.5 19.5 9 21.5 12.5 19 16.65 12 21 12 21z" />
-            </svg>
-          </Link>
-        </section>
+            icon={<HeartIcon />}
+            title="중보기도"
+            sub="Prayers & blessings"
+            tint="red"
+            topRight={
+              unreadPrayers > 0 ? (
+                <span className="rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">
+                  {unreadPrayers} NEW
+                </span>
+              ) : null
+            }
+          />
+
+          {/* Photos — 우 */}
+          <ModuleTile
+            href="/photos"
+            icon={<ModuleIcon name="photos" size={18} />}
+            title="Photos"
+            sub="Moments of grace"
+          />
+
+          {/* Facebook — 좌 */}
+          <ModuleTile
+            href="/facebook"
+            icon={<FacebookIcon />}
+            title="Facebook"
+            sub="This week's story"
+          />
+
+          {/* Portfolio — 우 */}
+          <ModuleTile
+            href="/portfolio"
+            icon={<ModuleIcon name="portfolio" size={18} />}
+            title="Portfolio"
+            sub="Sharing our journey"
+          />
+        </div>
 
         {/* 마일스톤 (자매앱 WorshipFlow·Brew Journal 형식).
-            v2.0 = 현재 버전. 2026.5.29 13:49 = "the First Chapter" — 우진이 이 앱을
-            가족에게 처음으로 공개 배포한 날·시각(최초 공개 배포 마일스톤). */}
-        <footer className="mt-10 text-center">
-          <p className="font-mono text-[11px] tracking-[0.2em] text-faint">v 2.0 · 2026. 6. 6</p>
+            v2.0 = 현재 버전. 2026.5.29 13:49 = "the First Chapter" — 최초 공개 배포 마일스톤. */}
+        <footer className="mt-8 text-center">
+          <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-faint">
+            v 2.0 · 2026
+          </p>
           <p className="mt-1 text-[11px] italic tracking-wide text-faint">
             the First Chapter · 2026. 5. 29. 13:49
           </p>
