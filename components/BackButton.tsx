@@ -33,13 +33,15 @@ export default function BackButton({
       <button
         type="button"
         onClick={goBack}
-        aria-label={label}
+        aria-label={label || '뒤로'}
         className="-ml-1 flex items-center gap-1 px-1 py-1.5 text-ink transition hover:opacity-70"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
         </svg>
-        <span className="font-display text-[17px] font-extrabold uppercase tracking-[0.1em]">{label}</span>
+        {label ? (
+          <span className="font-display text-[17px] font-extrabold uppercase tracking-[0.1em]">{label}</span>
+        ) : null}
       </button>
     )
   }
