@@ -14,6 +14,14 @@ import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
 
+const MONTHS_EN = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER']
+// 'YYYY-MM-DD' → 'OCTOBER 15, 2026' (이미지형 영문 날짜). 잘못된 값이면 원문.
+function fmtDateEn(d: string): string {
+  const [y, m, day] = d.split('-').map(Number)
+  if (!y || !m || !day) return d
+  return `${MONTHS_EN[m - 1]} ${day}, ${y}`
+}
+
 function Section({
   emoji,
   enLabel,
@@ -128,19 +136,18 @@ export default async function JournalDetail(props: {
         />
       </header>
 
-      {/* 헤더: 날짜 · 메타 · 제목 */}
-      <section className="flex flex-col gap-4 px-5 pb-6 pt-4">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-          <span className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-muted">
-            {entry.entry_date}
-          </span>
+      {/* 헤더: (1행) 날짜 / (2행) 메타 / (3행) 제목 — 행 분리 */}
+      <section className="flex flex-col gap-3 px-5 pb-6 pt-5">
+        {/* 날짜 행 */}
+        <span className="font-display text-[12px] font-bold uppercase tracking-[0.15em] text-muted">
+          {fmtDateEn(entry.entry_date)}
+        </span>
+        {/* 메타 행 */}
+        <div className="flex flex-wrap items-center gap-2">
           {entry.category && (
-            <>
-              <span className="h-1 w-1 rounded-full bg-line" />
-              <span className="rounded-md bg-surface-subtle px-2 py-1 text-[11px] font-semibold leading-none text-ink">
-                {entry.category}
-              </span>
-            </>
+            <span className="rounded-md bg-surface-subtle px-2 py-1 text-[11px] font-semibold leading-none text-ink">
+              {entry.category}
+            </span>
           )}
           {entry.place_name && (
             <span className="flex items-center gap-1 text-xs text-muted">📍 {entry.place_name}</span>
@@ -152,6 +159,7 @@ export default async function JournalDetail(props: {
             </span>
           )}
         </div>
+        {/* 제목 */}
         {entry.headline && (
           <h1 className="break-keep text-[26px] font-bold leading-[1.3] tracking-tight text-ink">
             {entry.headline}
