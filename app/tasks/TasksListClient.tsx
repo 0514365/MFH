@@ -729,14 +729,23 @@ export default function TasksListClient({
             const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
             const soon = !!t.due_date && !t.done && !overdue && isSoon(t.due_date)
             const dueRed = overdue || soon
-            const hasMeta = t.importance > 0 || !!t.projects?.title || !!t.category || !!t.place_name
+            // 우측 열(사역분류 중심) — 분류·장소·중요. 프로젝트는 상단 우측으로 분리.
+            const hasRightMeta = t.importance > 0 || !!t.category || !!t.place_name
             return (
               <>
-                {/* 상단: 작성자 + 상태 + 반복 */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <AuthorBadge name={authorName} />
-                  <StatusBadge value={t.status ?? 'upcoming'} />
-                  {t.recurrence_id && <RecurrenceBadge freq={t.recurrence_freq} />}
+                {/* 상단: (좌) 작성자·상태·반복 / (우) 관련 프로젝트 */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AuthorBadge name={authorName} />
+                    <StatusBadge value={t.status ?? 'upcoming'} />
+                    {t.recurrence_id && <RecurrenceBadge freq={t.recurrence_freq} />}
+                  </div>
+                  {t.projects?.title && (
+                    <span className="flex shrink-0 items-center gap-1 rounded-full border border-line bg-paper px-2.5 py-1 text-[11px] font-medium text-muted">
+                      <span className="shrink-0 text-faint">{taskMetaIcon.project}</span>
+                      <span className="max-w-[110px] truncate">{t.projects.title}</span>
+                    </span>
+                  )}
                 </div>
 
                 {/* 제목 */}
@@ -751,11 +760,11 @@ export default function TasksListClient({
                   </p>
                 )}
 
-                {/* 하단: Due Date(강조) + 메타칩(중요·프로젝트·분류·장소) */}
-                {(t.due_date || hasMeta) && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                {/* 하단: (좌 고정) Due Date 강조 | (우) 사역분류·장소·중요 */}
+                {(t.due_date || hasRightMeta) && (
+                  <div className="mt-3 flex items-stretch gap-3">
                     {t.due_date && (
-                      <div className="flex flex-col">
+                      <div className="flex shrink-0 flex-col justify-center">
                         <span className="font-display text-[8px] font-bold uppercase tracking-[0.15em] text-faint">Due date</span>
                         <span className={`font-display text-[13px] font-extrabold tracking-tight ${dueRed ? 'text-accent' : 'text-ink'}`}>
                           {fmtDueShort(t.due_date)}
@@ -763,11 +772,10 @@ export default function TasksListClient({
                         </span>
                       </div>
                     )}
-                    {t.due_date && hasMeta && <div className="h-7 w-px shrink-0 bg-line" />}
-                    {hasMeta && (
-                      <div className="flex flex-wrap items-center gap-2">
+                    {t.due_date && hasRightMeta && <div className="w-px shrink-0 self-stretch bg-line" />}
+                    {hasRightMeta && (
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                         {t.importance > 0 && <ImportanceStars value={t.importance} />}
-                        {t.projects?.title && <MetaChip icon={taskMetaIcon.project} label={t.projects.title} />}
                         {t.category && <MetaChip icon={taskMetaIcon.tag} label={t.category} />}
                         {t.place_name && <MetaChip icon={taskMetaIcon.place} label={t.place_name} />}
                       </div>
