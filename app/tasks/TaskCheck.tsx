@@ -41,8 +41,8 @@ export default function TaskCheck({ id, done }: { id: string; done: boolean }) {
       onClick={toggle}
       disabled={busy}
       aria-label="완료 토글"
-      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-xs font-bold ${
-        checked ? 'border-primary bg-primary text-white' : 'border-line bg-surface text-transparent'
+      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors ${
+        checked ? 'border-[#0F6E56] bg-[#0F6E56] text-white' : 'border-faint bg-transparent text-transparent hover:border-primary'
       }`}
     >
       ✓

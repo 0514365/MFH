@@ -76,6 +76,38 @@ function isOverdue(d: string): boolean {
   const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
   return d < today
 }
+// 마감일이 오늘~+2일 이내면 임박.
+function isSoon(d: string): boolean {
+  const now = new Date()
+  const base = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+  const today = base.toISOString().slice(0, 10)
+  base.setDate(base.getDate() + 2)
+  const soonMax = base.toISOString().slice(0, 10)
+  return d >= today && d <= soonMax
+}
+// 카드 좌측 긴급도 밴드 — 완료=초록 / 지남=red / 임박=orange / 그 외=옅은 회색.
+function bandColor(t: TaskListRow): string {
+  if (t.done) return '#0F6E56'
+  if (t.due_date) {
+    if (isOverdue(t.due_date)) return '#B61821'
+    if (isSoon(t.due_date)) return '#D97706'
+  }
+  return '#C9C4BE'
+}
+// 하단 메타 칩(프로젝트·분류·장소). 아이콘 + 라벨.
+function MetaChip({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <span className="flex items-center gap-1 rounded-full border border-line bg-paper px-2.5 py-1 text-[11px] font-medium text-muted">
+      <span className="shrink-0 text-faint">{icon}</span>
+      <span className="max-w-[120px] truncate">{label}</span>
+    </span>
+  )
+}
+const taskMetaIcon = {
+  project: (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>),
+  place: (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>),
+  tag: (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><circle cx="7" cy="7" r="1.5" /></svg>),
+}
 
 // ───── 복제 제목 자동번호 ─────
 // "원제목 (사본)" / "(사본 2)" 접미사를 떼어 원제목만. (중복 복제 시 접미사 누적 방지)
@@ -695,62 +727,50 @@ export default function TasksListClient({
           // 카드 내용(날짜·제목·설명·배지). TaskCheck 는 renderTask 의 li 직속 자식으로 분리(button 중첩 회피).
           function TaskBody({ t, authorName }: { t: TaskListRow; authorName?: string }) {
             const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
+            const soon = !!t.due_date && !t.done && !overdue && isSoon(t.due_date)
+            const dueRed = overdue || soon
+            const hasMeta = t.importance > 0 || !!t.projects?.title || !!t.category || !!t.place_name
             return (
               <>
-                {/* 1행: 작성자 + 날짜(작게) + 반복뱃지 + 프로젝트 칩 — 연체면 빨강. 우측 상단 완료영역 자리는 li 측에서 별도 배치(pr-* 로 겹침 방지). */}
-                {(t.due_date || t.projects?.title || authorName || t.recurrence_id) && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <AuthorBadge name={authorName} />
-                    {t.due_date && (
-                      <span
-                        className={`text-[11px] font-medium ${overdue ? 'text-danger' : 'text-faint'}`}
-                      >
-                        {fmtDueShort(t.due_date)}
-                        {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
-                        {overdue ? ' · 연체' : ''}
-                      </span>
-                    )}
-                    {t.recurrence_id && <RecurrenceBadge freq={t.recurrence_freq} />}
-                    {t.projects?.title && (
-                      <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
-                        {t.projects.title}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* 2행: 제목(굵게) */}
-                <div
-                  className={`mt-0.5 text-sm font-semibold ${
-                    t.done ? 'text-faint line-through' : 'text-ink'
-                  }`}
-                >
-                  {t.title}
-                </div>
-
-                {/* 설명: 좁은 화면은 3줄 제한, 넓은 화면(데스크탑/가로)은 전문 표시 */}
-                {t.description && (
-                  <div className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-muted min-[740px]:line-clamp-none">
-                    {t.description}
-                  </div>
-                )}
-
-                {/* 3행: Status | 중요도 — 모바일 세로모드 2열 */}
-                <div className="mt-2 grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+                {/* 상단: 작성자 + 상태 + 반복 */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <AuthorBadge name={authorName} />
                   <StatusBadge value={t.status ?? 'upcoming'} />
-                  {t.importance > 0 && (
-                    <div className="justify-self-end sm:justify-self-auto">
-                      <ImportanceStars value={t.importance} />
-                    </div>
-                  )}
+                  {t.recurrence_id && <RecurrenceBadge freq={t.recurrence_freq} />}
                 </div>
 
-                {/* 4행: 분류 · 장소 (프로젝트는 1행 날짜 옆으로 이동) */}
-                {(t.category || t.place_name) && (
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <CategoryBadge value={t.category} />
-                    {t.place_name && (
-                      <span className="text-[11px] text-muted">📍 {t.place_name}</span>
+                {/* 제목 */}
+                <h3 className={`mt-1.5 text-[15px] font-bold leading-snug ${t.done ? 'text-faint line-through' : 'text-ink'}`}>
+                  {t.title}
+                </h3>
+
+                {/* 노트(설명) */}
+                {t.description && (
+                  <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-[13px] leading-relaxed text-muted min-[740px]:line-clamp-none">
+                    {t.description}
+                  </p>
+                )}
+
+                {/* 하단: Due Date(강조) + 메타칩(중요·프로젝트·분류·장소) */}
+                {(t.due_date || hasMeta) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                    {t.due_date && (
+                      <div className="flex flex-col">
+                        <span className="font-display text-[8px] font-bold uppercase tracking-[0.15em] text-faint">Due date</span>
+                        <span className={`font-display text-[13px] font-extrabold tracking-tight ${dueRed ? 'text-accent' : 'text-ink'}`}>
+                          {fmtDueShort(t.due_date)}
+                          {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
+                        </span>
+                      </div>
+                    )}
+                    {t.due_date && hasMeta && <div className="h-7 w-px shrink-0 bg-line" />}
+                    {hasMeta && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {t.importance > 0 && <ImportanceStars value={t.importance} />}
+                        {t.projects?.title && <MetaChip icon={taskMetaIcon.project} label={t.projects.title} />}
+                        {t.category && <MetaChip icon={taskMetaIcon.tag} label={t.category} />}
+                        {t.place_name && <MetaChip icon={taskMetaIcon.place} label={t.place_name} />}
+                      </div>
                     )}
                   </div>
                 )}
@@ -766,53 +786,40 @@ export default function TasksListClient({
             return (
               <li
                 key={t.id}
-                className={`relative flex items-start gap-3 rounded-2xl border bg-surface px-4 py-3 ${
-                  inSelectMode && checked
-                    ? 'border-primary border-2'
-                    : isSel
-                      ? 'border-primary border-2'
-                      : 'border-line'
-                }`}
+                className={`relative flex items-start gap-3 overflow-hidden rounded-2xl border bg-surface p-4 ${
+                  (inSelectMode && checked) || isSel ? 'border-primary border-2' : 'border-line'
+                } ${t.done ? 'opacity-60' : ''}`}
               >
-                {/* 좌측: selectMode 일 때만 선택 체크박스(평소엔 자리 없음). */}
-                {inSelectMode && (
-                  <div className="pt-0.5">
-                    <SelectionCheckbox checked={checked} />
-                  </div>
-                )}
+                {/* 좌측 긴급도 밴드 */}
+                <span
+                  className="absolute inset-y-0 left-0 w-1.5"
+                  style={{ background: bandColor(t) }}
+                  aria-hidden="true"
+                />
 
-                {/* 본문 영역: selectMode 면 button(토글), 넓은화면 button(요약선택), 좁은화면 Link(상세).
-                    우측 완료 영역 자리 확보를 위해 pr-16 (≈4rem). */}
+                {/* 좌측 체크 — selectMode=선택 / 평소=완료 토글(본문과 형제라 button 중첩 회피). */}
+                <div className="shrink-0 self-start pl-1.5 pt-0.5">
+                  {inSelectMode ? (
+                    <SelectionCheckbox checked={checked} />
+                  ) : (
+                    <TaskCheck id={t.id} done={t.done} />
+                  )}
+                </div>
+
+                {/* 본문: selectMode=토글 / 넓은화면=요약선택 / 좁은화면=상세 Link. */}
                 {inSelectMode ? (
-                  <button
-                    type="button"
-                    onClick={() => sel.toggleId(t.id)}
-                    className="min-w-0 flex-1 pr-16 text-left"
-                  >
+                  <button type="button" onClick={() => sel.toggleId(t.id)} className="min-w-0 flex-1 text-left">
                     <TaskBody t={t} authorName={membersMap[t.user_id]} />
                   </button>
                 ) : wide ? (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(t.id)}
-                    className="min-w-0 flex-1 pr-16 text-left"
-                  >
+                  <button type="button" onClick={() => setSelectedId(t.id)} className="min-w-0 flex-1 text-left">
                     <TaskBody t={t} authorName={membersMap[t.user_id]} />
                   </button>
                 ) : (
-                  <Link
-                    href={`/tasks/${t.id}${detailSuffix}`}
-                    className="min-w-0 flex-1 pr-16"
-                  >
+                  <Link href={`/tasks/${t.id}${detailSuffix}`} className="min-w-0 flex-1">
                     <TaskBody t={t} authorName={membersMap[t.user_id]} />
                   </Link>
                 )}
-
-                {/* 우측 상단: "완료" 라벨 + TaskCheck (단건 완료 토글, button 중첩 회피 위해 li 직속) */}
-                <div className="absolute right-4 top-3 flex shrink-0 items-center gap-1.5">
-                  <span className="text-[11px] font-semibold text-faint">완료</span>
-                  <TaskCheck id={t.id} done={t.done} />
-                </div>
               </li>
             )
           }
