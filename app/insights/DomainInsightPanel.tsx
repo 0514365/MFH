@@ -54,16 +54,23 @@ export default function DomainInsightPanel({ domain }: { domain: InsightDomain }
   }, [open, row, domain])
 
   return (
-    <div className="mb-5 rounded-2xl border border-line bg-surface">
+    <div className="mb-5 overflow-hidden rounded-[20px] bg-primary-soft">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-primary"
+        className="flex w-full items-center justify-between gap-2 px-4 py-3.5 text-left"
       >
-        <span>{DOMAIN_LABEL[domain]}</span>
-        <span className="text-faint">{open ? '▾' : '▸'}</span>
+        <span className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/60 text-primary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6z" />
+            </svg>
+          </span>
+          <span className="text-sm font-bold text-primary">{DOMAIN_LABEL[domain]}</span>
+        </span>
+        <span className="text-xs text-primary opacity-50">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
-        <div className="border-t border-line px-4 py-4">
+        <div className="border-t border-white/50 px-4 py-4">
           {row === undefined ? (
             <p className="text-sm text-faint">불러오는 중…</p>
           ) : row === null ? (

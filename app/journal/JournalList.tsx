@@ -20,34 +20,54 @@ import SelectionCheckbox from '@/components/SelectionCheckbox'
 import SelectionBar from '@/components/SelectionBar'
 import JournalBulkPanel from './JournalBulkPanel'
 import PrayerCandidateToggle from './PrayerCandidateToggle'
+import PhotoCollage, { type CollagePhoto } from './PhotoCollage'
 import {
   bulkUpdateJournals,
   bulkDeleteJournals,
   type JournalBulkPatch,
 } from '@/lib/bulkUpdate'
 
-// 일지 카드 본문(날짜·배지·머리말·오늘).
-function EntryBody({ e, authorName }: { e: JournalEntry; authorName?: string }) {
+// 일지 카드 본문(날짜 + 카테고리 칩 + 제목 + 발췌). 사진·메타칩·기도후보는 renderItem 에서.
+function EntryBody({ e }: { e: JournalEntry }) {
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold text-muted">{e.entry_date}</span>
-        <AuthorBadge name={authorName} />
-        {e.place_name && (
-          <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
-            📍 {e.place_name}
-          </span>
-        )}
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-display text-sm font-bold tracking-tight text-muted">{e.entry_date}</span>
         {e.category && (
-          <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
+          <span className="shrink-0 rounded-lg bg-surface-subtle px-2.5 py-1 text-[11px] font-bold tracking-wide text-primary">
             {e.category}
           </span>
         )}
       </div>
-      <div className="mt-1 font-bold text-ink">{e.headline || '(제목 없음)'}</div>
-      {e.today && <div className="mt-1 line-clamp-2 text-sm text-muted">{e.today}</div>}
+      <h2 className="mt-3 text-[19px] font-bold leading-[1.3] text-ink">{e.headline || '(제목 없음)'}</h2>
+      {e.today && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted">{e.today}</p>}
     </>
   )
+}
+
+// 카드 하단 메타 칩(연계 프로젝트·할일·장소·작성자). 아이콘 + 라벨.
+function MetaChip({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
+      <span className="shrink-0 text-faint">{icon}</span>
+      <span className="max-w-[140px] truncate">{label}</span>
+    </span>
+  )
+}
+
+const metaIcon = {
+  project: (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+  ),
+  task: (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+  ),
+  place: (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+  ),
+  user: (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+  ),
 }
 
 // 요약 패널(읽기전용). 넓은 화면 우측. '상세' → /journal/[id], '편집' → /journal/[id]/edit.
@@ -128,6 +148,7 @@ export default function JournalList({
   tasks,
   membersMap = {},
   currentUserId,
+  photoMap = {},
 }: {
   entries: JournalEntry[]
   // 일괄변경의 '연계 프로젝트/할일' chip 옵션. page.tsx 가 함께 select 해서 주입.
@@ -135,6 +156,8 @@ export default function JournalList({
   tasks?: Pick<Task, 'id' | 'title' | 'done'>[]
   membersMap?: MembersMap
   currentUserId?: string
+  // 카드 사진 미리보기 — page.tsx 가 서명 URL 로 변환해 주입(일지 id → 사진 배열).
+  photoMap?: Record<string, CollagePhoto[]>
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -175,6 +198,16 @@ export default function JournalList({
         new Set(entries.map((e) => e.category).filter((c): c is string => !!c)),
       ).sort(),
     [entries],
+  )
+
+  // 카드 메타 칩용 id → 제목 매핑.
+  const projMap = useMemo(
+    () => Object.fromEntries((projects ?? []).map((p) => [p.id, p.title])),
+    [projects],
+  )
+  const taskMap = useMemo(
+    () => Object.fromEntries((tasks ?? []).map((t) => [t.id, t.title])),
+    [tasks],
   )
 
   // 작성자 옵션: 멤버 전원(고정 2명). 데이터에 글이 없는 작성자도 칩으로 노출 —
@@ -314,56 +347,60 @@ export default function JournalList({
     const isSel = wide && e.id === selectedId && !sel.selectMode
     const checked = sel.isSelected(e.id)
     const inSelectMode = sel.selectMode
+    const photos = photoMap[e.id] ?? []
+    const projTitle = e.project_id ? (projMap[e.project_id] ?? null) : null
+    const taskTitle = e.task_id ? (taskMap[e.task_id] ?? null) : null
+    const authorName = membersMap[e.user_id]
+    const emphasized = (inSelectMode && checked) || isSel
 
     return (
       <li
         key={e.id}
-        className={`relative flex items-start gap-3 rounded-2xl border bg-surface px-4 py-3 ${
-          inSelectMode && checked
-            ? 'border-primary border-2'
-            : isSel
-              ? 'border-primary border-2'
-              : 'border-line'
+        className={`relative flex flex-col rounded-[24px] border bg-surface p-5 shadow-sm shadow-ink/[0.02] ${
+          emphasized ? 'border-primary border-2' : 'border-line'
         }`}
       >
-        {/* 좌측: selectMode 일 때만 선택 체크박스(평소엔 자리 없음). */}
+        {/* selectMode 체크박스 — 좌상단 겹침(본문은 pl-8 로 자리 확보). */}
         {inSelectMode && (
-          <div className="pt-0.5">
+          <div className="absolute left-2.5 top-2.5 z-10">
             <SelectionCheckbox checked={checked} />
           </div>
         )}
 
-        {/* 본문 영역: selectMode 면 button(토글), 넓은화면 button(요약선택), 좁은화면 Link(상세).
-            우측 기도후보 영역 자리 확보를 위해 pr-20. */}
+        {/* 본문(날짜·카테고리·제목·발췌) = 클릭 영역. selectMode=토글 / 넓은화면=요약선택 / 좁은화면=상세 Link. */}
         {inSelectMode ? (
-          <button
-            type="button"
-            onClick={() => sel.toggleId(e.id)}
-            className="min-w-0 flex-1 pr-20 text-left"
-          >
-            <EntryBody e={e} authorName={membersMap[e.user_id]} />
+          <button type="button" onClick={() => sel.toggleId(e.id)} className="block w-full pl-8 text-left">
+            <EntryBody e={e} />
           </button>
         ) : wide ? (
-          <button
-            type="button"
-            onClick={() => setSelectedId(e.id)}
-            className="min-w-0 flex-1 pr-20 text-left"
-          >
-            <EntryBody e={e} authorName={membersMap[e.user_id]} />
+          <button type="button" onClick={() => setSelectedId(e.id)} className="block w-full text-left">
+            <EntryBody e={e} />
           </button>
         ) : (
-          <Link
-            href={`/journal/${e.id}${detailSuffix}`}
-            className="min-w-0 flex-1 pr-20"
-          >
-            <EntryBody e={e} authorName={membersMap[e.user_id]} />
+          <Link href={`/journal/${e.id}${detailSuffix}`} className="block">
+            <EntryBody e={e} />
           </Link>
         )}
 
-        {/* 우측 상단: "기도후보" 라벨 + 토글 (단건 즉시 update, button 중첩 회피 위해 li 직속 absolute) */}
-        <div className="absolute right-4 top-3 flex shrink-0 items-center gap-1.5">
-          <span className="text-[11px] font-semibold text-faint">기도후보</span>
-          <PrayerCandidateToggle id={e.id} candidate={e.prayer_candidate} />
+        {/* 사진 콜라주(있을 때) — 라이트박스 포함, 본문 클릭 영역과 분리. */}
+        {photos.length > 0 && (
+          <div className="mt-3.5">
+            <PhotoCollage photos={photos} />
+          </div>
+        )}
+
+        {/* 하단: 메타 칩(연계 프로젝트·할일·장소·작성자) + 기도후보 토글. */}
+        <div className="mt-3.5 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap gap-2">
+            {projTitle && <MetaChip icon={metaIcon.project} label={projTitle} />}
+            {taskTitle && <MetaChip icon={metaIcon.task} label={taskTitle} />}
+            {e.place_name && <MetaChip icon={metaIcon.place} label={e.place_name} />}
+            {authorName && <MetaChip icon={metaIcon.user} label={authorName} />}
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span className="text-[11px] font-semibold text-faint">기도후보</span>
+            <PrayerCandidateToggle id={e.id} candidate={e.prayer_candidate} />
+          </div>
         </div>
       </li>
     )
