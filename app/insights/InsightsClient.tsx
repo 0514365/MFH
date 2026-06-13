@@ -538,14 +538,25 @@ export default function InsightsClient({
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-subtle text-muted">
                 <DomainIcon domain={d} />
               </span>
-              <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                <span className="truncate text-[12px] font-semibold text-ink">{DOMAIN_LABEL[d]}</span>
-                {updatedOf(d) && (
-                  <span className="shrink-0 font-display text-[9px] uppercase tracking-[0.05em] text-faint">
-                    Upd {updatedOf(d)}
-                  </span>
-                )}
-              </span>
+              {d === 'task' ? (
+                <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                  <span className="text-[13px] font-semibold text-ink">{DOMAIN_LABEL[d]}</span>
+                  {updatedOf(d) && (
+                    <span className="shrink-0 font-display text-[9px] uppercase tracking-[0.05em] text-faint">
+                      Upd {updatedOf(d)}
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-[12px] font-semibold text-ink">{DOMAIN_LABEL[d]}</span>
+                  {updatedOf(d) && (
+                    <span className="mt-0.5 font-display text-[9px] uppercase tracking-[0.05em] text-faint">
+                      Upd {updatedOf(d)}
+                    </span>
+                  )}
+                </span>
+              )}
             </button>
           ))}
         </div>
