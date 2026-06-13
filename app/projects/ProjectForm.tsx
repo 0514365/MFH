@@ -1,9 +1,8 @@
 'use client'
 
-// MFH-PROJECT-FORM-V2
-// 프로젝트 입력 폼. 모바일에서 [상태 · 중요도] 한 행 + [시작일 · 마감일] 한 행 (grid-cols-2).
-// sm+ 이상에서도 같은 2열 유지(폼 자체가 max-w-md 안이므로 자연스러움).
-// 라벨은 셀 내부 첫 줄에서 mt 없이 시작하도록 small 의 mt-0 변형(smallTop)을 셀 첫 항목에만 사용.
+// MFH-PROJECT-FORM-V3
+// 프로젝트 입력 폼 (Variant V4 — 2카드: 내용 / 속성·일정). 일지 폼과 톤 통일.
+// 저장·검증·작성자·날짜·별점 로직은 V2 그대로 보존, 비주얼(헤더·카드·라벨·별·버튼)만 교체.
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -19,6 +18,16 @@ import { resolveOwnerId } from '@/lib/members'
 type Props = {
   mode: 'new' | 'edit'
   initial?: Project | null
+}
+
+// 필드 라벨: 한글 + 작은 영문 캡스(시안 패턴)
+function FieldLabel({ ko, en }: { ko: string; en: string }) {
+  return (
+    <label className="mb-1.5 block text-[13px] font-medium text-muted">
+      {ko}
+      <span className="ml-1.5 font-display text-[9px] uppercase tracking-[0.15em] text-faint">{en}</span>
+    </label>
+  )
 }
 
 export default function ProjectForm({ mode, initial }: Props) {
@@ -86,102 +95,127 @@ export default function ProjectForm({ mode, initial }: Props) {
 
   const input =
     'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
-  const small = 'mb-1 mt-4 block text-xs text-muted'
-  // 셀 안에서 첫 라벨용 — 위쪽 mt 제거(셀 자체가 row gap 으로 분리).
-  const smallCell = 'mb-1 block text-xs text-muted'
+  const card = 'rounded-3xl border border-line bg-surface p-5 shadow-sm'
 
   return (
-    <main className="mx-auto max-w-md px-5 py-8">
-      <BackButton
-        href={mode === 'edit' && initial ? `/projects/${initial.id}` : '/projects'}
-        label="Project"
-      />
-      <h1 className="mb-4 mt-2 font-display text-2xl font-extrabold text-primary">
-        {mode === 'edit' ? 'Edit Project' : 'New Project'}
-      </h1>
+    <main className="mx-auto max-w-md px-4 pb-10">
+      {/* 상단바(미니멀) — 일지 폼과 통일: ‹ Project + 중앙 제목 */}
+      <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
+        <BackButton
+          href={mode === 'edit' && initial ? `/projects/${initial.id}` : '/projects'}
+          label="Project"
+          variant="text"
+        />
+        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-lg font-extrabold uppercase tracking-[0.15em] text-primary">
+          {mode === 'edit' ? 'Edit Project' : 'New Project'}
+        </h1>
+        <span className="w-10" aria-hidden="true" />
+      </header>
 
-      {mode === 'edit' && (
-        <AuthorSelect value={authorId} onChange={setAuthorId} className={input} />
-      )}
+      {/* 작성자 (편집·마스터만) */}
+      {mode === 'edit' && <AuthorSelect value={authorId} onChange={setAuthorId} className={input} />}
 
-      <label className="mb-1 block text-xs text-muted">제목</label>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className={input}
-        placeholder="예: 자포탈 더좋은교회 건축"
-      />
-
-      <label className={small}>설명</label>
-      <textarea
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        rows={3}
-        className={input}
-      />
-
-      <label className={small}>사역 분류</label>
-      <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="선택 안 함" />
-
-      {/* 상태 · 중요도 — 한 행 (모바일/데스크탑 모두 2열) */}
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="min-w-0">
-          <label className={smallCell}>상태</label>
-          <select
-            value={status}
-            onChange={(e) => setStatus(normalizeStatus(e.target.value))}
+      {/* 카드1: 프로젝트 내용 */}
+      <div className={`${card} mb-4 flex flex-col gap-5`}>
+        <div>
+          <FieldLabel ko="제목" en="Title" />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             className={input}
-          >
-            {STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+            placeholder="예: 자포탈 더좋은교회 건축"
+          />
         </div>
-        <div className="min-w-0">
-          <label className={smallCell}>중요도</label>
-          <div className="flex h-[46px] items-center gap-1">
-            {Array.from({ length: IMPORTANCE_MAX }).map((_, i) => {
-              const n = i + 1
-              return (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setImportance(importance === n ? n - 1 : n)}
-                  className={`text-2xl leading-none ${
-                    n <= importance ? 'text-yellow-400' : 'text-faint'
-                  }`}
-                  aria-label={`중요도 ${n}`}
-                >
-                  ★
-                </button>
-              )
-            })}
+        <div>
+          <FieldLabel ko="설명" en="Desc" />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            className={`${input} resize-none leading-relaxed`}
+          />
+        </div>
+        <div>
+          <FieldLabel ko="사역 분류" en="Category" />
+          <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="선택 안 함" />
+        </div>
+      </div>
+
+      {/* 카드2: 속성 · 일정 */}
+      <div className={`${card} flex flex-col gap-5`}>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="min-w-0">
+            <FieldLabel ko="상태" en="Status" />
+            <select
+              value={status}
+              onChange={(e) => setStatus(normalizeStatus(e.target.value))}
+              className={input}
+            >
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="min-w-0">
+            <FieldLabel ko="중요도" en="Stars" />
+            <div className="flex h-[46px] items-center gap-1.5">
+              {Array.from({ length: IMPORTANCE_MAX }).map((_, i) => {
+                const n = i + 1
+                const filled = n <= importance
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setImportance(importance === n ? n - 1 : n)}
+                    aria-label={`중요도 ${n}`}
+                    className={filled ? 'text-[#D4AF37]' : 'text-line transition-colors hover:text-[#D4AF37]'}
+                  >
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill={filled ? 'currentColor' : 'none'}
+                      stroke={filled ? 'none' : 'currentColor'}
+                      strokeWidth="1.5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d={
+                          filled
+                            ? 'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'
+                            : 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z'
+                        }
+                      />
+                    </svg>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="min-w-0">
+            <FieldLabel ko="시작일" en="Start" />
+            <DateField value={startDate} onChange={setStartDate} placeholder="시작일 (선택)" />
+          </div>
+          <div className="min-w-0">
+            <FieldLabel ko="마감일" en="Due" />
+            <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
           </div>
         </div>
       </div>
 
-      {/* 시작일 · 마감일 — 한 행 (모바일/데스크탑 모두 2열) */}
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="min-w-0">
-          <label className={smallCell}>시작일</label>
-          <DateField value={startDate} onChange={setStartDate} placeholder="시작일 (선택)" />
-        </div>
-        <div className="min-w-0">
-          <label className={smallCell}>마감일</label>
-          <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
-        </div>
-      </div>
-
-      {msg && <p className="mt-4 text-sm text-danger">{msg}</p>}
+      {msg && <p className="mt-4 text-center text-sm text-danger">{msg}</p>}
 
       <button
         onClick={save}
         disabled={saving}
-        className="mt-6 w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
+        className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary disabled:opacity-50"
       >
-        {saving ? '저장 중…' : mode === 'edit' ? '수정 저장' : '저장'}
+        {saving ? '저장 중…' : mode === 'edit' ? 'Update Project' : 'Save Project'}
       </button>
     </main>
   )
