@@ -533,7 +533,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
           label="Log"
           variant="text"
         />
-        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-sm font-bold uppercase tracking-[0.15em] text-ink">
+        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-lg font-extrabold uppercase tracking-[0.15em] text-primary">
           {mode === 'edit' ? 'Edit Log' : 'New Log'}
         </h1>
         <span className="w-10" aria-hidden="true" />
