@@ -519,20 +519,25 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
   const subValue: Record<SubKey, string> = { thanks, meditation }
   const subSet: Record<SubKey, (v: string) => void> = { thanks: setThanks, meditation: setMeditation }
 
-  // 카드(기재구역): 흰 면 + 테두리 + 라운드. paper 배경 위에서 구역이 또렷해진다.
-  const card = 'rounded-2xl border border-line bg-surface p-4 sm:p-5'
-  // 카드 안의 하위 묶음(사진정보·기도제목): 한 단계 안쪽 톤.
-  const innerBox = 'rounded-2xl border border-line bg-surface-subtle p-4'
+  // 카드(기재구역): 흰 면 + 테두리 + 라운드(24px) + 옅은 그림자. paper 배경 위에서 또렷.
+  const card = 'rounded-3xl border border-line bg-surface p-5 shadow-sm'
+  // 카드 안의 하위 묶음(사진정보·기도제목): 한 단계 안쪽 톤(테두리 없이 채움).
+  const innerBox = 'rounded-2xl bg-surface-subtle p-4'
 
   return (
-    <main className="mx-auto max-w-md px-4 py-8 sm:max-w-3xl lg:max-w-6xl">
-      <BackButton
-        href={mode === 'edit' && initial ? `/journal/${initial.id}` : '/journal'}
-        label="Log"
-      />
-      <h1 className="mb-4 mt-2 font-display text-2xl font-extrabold text-primary">
-        {mode === 'edit' ? 'Edit Log' : 'New Log'}
-      </h1>
+    <main className="mx-auto max-w-md px-4 pb-10 sm:max-w-3xl lg:max-w-6xl">
+      {/* 상단바(미니멀): ‹ Log + 중앙 제목 */}
+      <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
+        <BackButton
+          href={mode === 'edit' && initial ? `/journal/${initial.id}` : '/journal'}
+          label="Log"
+          variant="text"
+        />
+        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-sm font-bold uppercase tracking-[0.15em] text-ink">
+          {mode === 'edit' ? 'Edit Log' : 'New Log'}
+        </h1>
+        <span className="w-10" aria-hidden="true" />
+      </header>
 
       {mode === 'edit' && (
         <AuthorSelect value={authorId} onChange={setAuthorId} className={input} />
@@ -613,8 +618,8 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
             ))}
           </div>
 
-          {/* 기도제목: 기본 펼침 + 편지후보 체크 — 강조 묶음 */}
-          <div className="mt-4 rounded-2xl border border-primary bg-surface-subtle p-4">
+          {/* 기도제목: 기본 펼침 + 편지후보 체크 — 마룬 틴트 강조 묶음 */}
+          <div className="mt-4 rounded-2xl bg-primary-soft p-4">
             <label className={sectionTitle}>📌 기도제목</label>
             <textarea
               value={prayer}
@@ -866,9 +871,9 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
           <button
             onClick={save}
             disabled={saving}
-            className="mt-6 w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
+            className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary disabled:opacity-50"
           >
-            {saving ? '저장 중…' : mode === 'edit' ? '수정 저장' : '저장'}
+            {saving ? '저장 중…' : 'Save Log'}
           </button>
         </div>
       </div>
