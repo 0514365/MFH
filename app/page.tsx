@@ -106,13 +106,20 @@ export default async function Home() {
   // 신호 계산 기준일 — 온두라스 현지(다른 페이지와 동일 기준).
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
 
-  const [themeQ, prayerQ, newsQ, projQ, taskQ, insightQ] = await Promise.all([
+  const [themeQ, prayerQ, newsQ, qtQ, projQ, taskQ, insightQ] = await Promise.all([
     supabase.from('year_themes').select('*').eq('year', year).maybeSingle(),
     supabase.from('intercessions').select('id', { count: 'exact', head: true }).eq('is_read', false),
     supabase
       .from('honduras_news')
       .select('news_date,highlights,created_at')
       .order('news_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('daily_qt')
+      .select('qt_date,passage,key_verse,created_at')
+      .order('qt_date', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -138,6 +145,27 @@ export default async function Home() {
   const newsAt = newsRow?.created_at ?? null
   const newsTime = newsAt
     ? new Date(newsAt).toLocaleString('ko-KR', {
+        timeZone: 'America/Tegucigalpa',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    : null
+
+  const qtRow = qtQ.data as {
+    passage?: { book?: string | null; range?: string | null } | null
+    key_verse?: { summary?: string | null } | null
+    created_at?: string
+  } | null
+  const qtBook = (qtRow?.passage?.book ?? '').trim()
+  const qtRange = (qtRow?.passage?.range ?? '').trim()
+  const qtTitle = qtBook && qtRange ? `${qtBook} ${qtRange}` : '오늘의 말씀 묵상'
+  const qtBody = (qtRow?.key_verse?.summary ?? '').trim() || '매일 새벽, 말씀으로 하루를 엽니다.'
+  const qtAt = qtRow?.created_at ?? null
+  const qtTime = qtAt
+    ? new Date(qtAt).toLocaleString('ko-KR', {
         timeZone: 'America/Tegucigalpa',
         month: 'numeric',
         day: 'numeric',
@@ -205,6 +233,30 @@ export default async function Home() {
               </Link>
             )}
           </section>
+
+          {/* 오늘의 QT — wide + 본문·핵심절 미리보기 (아침 묵상 → 주제 아래 최상단) */}
+          <Link
+            href="/qt"
+            className="col-span-2 flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
+                오늘의 QT · Daily Bread
+              </div>
+              {qtTime ? (
+                <span className="shrink-0 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  {qtTime}
+                </span>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-primary opacity-60">
+                  <path d="M5 12h14" />
+                  <path d="M12 5l7 7-7 7" />
+                </svg>
+              )}
+            </div>
+            <div className="mt-2 text-[15px] font-bold leading-tight text-ink">{qtTitle}</div>
+            <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">{qtBody}</p>
+          </Link>
 
           {/* 온두라스 동향 — wide + 최신 브리핑 미리보기 */}
           <Link
