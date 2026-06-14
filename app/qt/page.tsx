@@ -1,6 +1,7 @@
-// MFH-QT-PAGE-V1
-// 오늘의 QT — 최신(가장 최근 qt_date) 1행. 데이터 생성 = Claude Code /qt-update (daily_qt, 매일 05:00 자동 또는 수동).
-// 본문은 성서유니온 매일성경 메타 + 개역개정 핵심절, 묵상·적용·기도는 일지·사역 접목 자체 생성. 이 페이지는 읽기 전용.
+// MFH-QT-PAGE-V2
+// 오늘의 QT — 최신(가장 최근 qt_date) 1행 + 하단 "지난 QT" 아카이브 링크.
+// 데이터 생성 = Claude Code /qt-update (daily_qt, 매일 05시 자동 또는 수동). 이 페이지는 읽기 전용.
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
@@ -42,6 +43,20 @@ export default async function QtPage() {
           </p>
         </div>
       )}
+
+      {/* 지난 QT 아카이브 */}
+      <div className="mt-8 text-center">
+        <Link
+          href="/qt/archive"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition hover:underline"
+        >
+          지난 QT 보기
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14" />
+            <path d="M12 5l7 7-7 7" />
+          </svg>
+        </Link>
+      </div>
     </main>
   )
 }
