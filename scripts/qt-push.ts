@@ -16,7 +16,7 @@ import {
   appendArchiveJsonl,
 } from './_shared'
 
-type Passage = { book: string; book_en: string; range: string; hymn: string; source_url: string | null }
+type Passage = { book: string; book_en: string; range: string; title: string; source_url: string | null }
 type KeyVerse = { ref: string; text: string; summary: string }
 type Application = { point: string; basis: string }
 type Result = {
@@ -24,6 +24,7 @@ type Result = {
   passage?: Record<string, unknown>
   key_verse?: Record<string, unknown>
   meditation?: string
+  commentary?: unknown
   application?: unknown
   prayer_points?: unknown
 }
@@ -50,7 +51,7 @@ async function main() {
     book: str(p.book),
     book_en: str(p.book_en),
     range: str(p.range),
-    hymn: str(p.hymn),
+    title: str(p.title),
     source_url: strOrNull(p.source_url),
   }
   if (!passage.book || !passage.range) {
@@ -63,6 +64,18 @@ async function main() {
   const keyVerse: KeyVerse = { ref: str(k.ref), text: str(k.text), summary: str(k.summary) }
 
   const meditation = strOrNull(parsed.meditation)
+
+  // 본문 설명 — [{heading, body}] 정규화(접이식, 묵상 앞). 신학 가드레일 안에서 작성된 자체 해설.
+  const commentary: { heading: string; body: string }[] = Array.isArray(parsed.commentary)
+    ? parsed.commentary
+        .map((c) => {
+          const o = (c ?? {}) as Record<string, unknown>
+          const heading = str(o.heading)
+          const body = str(o.body)
+          return heading || body ? { heading, body } : null
+        })
+        .filter((x): x is { heading: string; body: string } => x !== null)
+    : []
 
   // 적용 — [{point, basis}] 정규화. point 필수, basis(접목 근거)는 선택.
   const application: Application[] = Array.isArray(parsed.application)
@@ -86,6 +99,7 @@ async function main() {
     qt_date: parsed.qt_date,
     passage,
     key_verse: keyVerse,
+    commentary,
     meditation,
     application,
     prayer_points: prayerPoints,
