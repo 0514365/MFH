@@ -155,14 +155,16 @@ export default async function Home() {
     : null
 
   const qtRow = qtQ.data as {
-    passage?: { book?: string | null; range?: string | null } | null
+    passage?: { book?: string | null; range?: string | null; title?: string | null } | null
     key_verse?: { summary?: string | null } | null
     created_at?: string
   } | null
   const qtBook = (qtRow?.passage?.book ?? '').trim()
   const qtRange = (qtRow?.passage?.range ?? '').trim()
-  const qtTitle = qtBook && qtRange ? `${qtBook} ${qtRange}` : '오늘의 말씀 묵상'
-  const qtBody = (qtRow?.key_verse?.summary ?? '').trim() || '매일 새벽, 말씀으로 하루를 엽니다.'
+  const qtRef = qtBook && qtRange ? `${qtBook} ${qtRange}` : ''
+  const qtSjTitle = (qtRow?.passage?.title ?? '').trim()
+  const qtMain = qtSjTitle || qtRef || '오늘의 말씀 묵상'
+  const qtSub = qtSjTitle ? qtRef : (qtRow?.key_verse?.summary ?? '').trim() || '매일 새벽, 말씀으로 하루를 엽니다.'
   const qtAt = qtRow?.created_at ?? null
   const qtTime = qtAt
     ? new Date(qtAt).toLocaleString('ko-KR', {
@@ -254,8 +256,8 @@ export default async function Home() {
                 </svg>
               )}
             </div>
-            <div className="mt-2 text-[15px] font-bold leading-tight text-ink">{qtTitle}</div>
-            <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">{qtBody}</p>
+            <div className="mt-2 text-[15px] font-bold leading-tight text-ink">{qtMain}</div>
+            <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">{qtSub}</p>
           </Link>
 
           {/* 온두라스 동향 — wide + 최신 브리핑 미리보기 */}

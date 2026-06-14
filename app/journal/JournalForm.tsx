@@ -37,6 +37,8 @@ type Props = {
   initial?: JournalEntry | null
   initialPhotos?: InitialPhoto[]
   initialIntercessionId?: string // new?intercession=<id> 로 연계 진입
+  initialCategory?: string // new?category=<name> — QT 묵상일지 등 분류 프리필
+  initialHeadline?: string // new?headline=<text> — QT 묵상일지 머릿말 프리필
 }
 
 // 폼 내부 사진 슬롯(미리보기 URL·새 파일·사진별 메타). 첫 슬롯 = 대표.
@@ -65,12 +67,12 @@ type PastPlace = { id: string; name: string; lat: number; lng: number }
 
 type SubKey = 'thanks' | 'meditation'
 
-export default function JournalForm({ mode, initial, initialPhotos, initialIntercessionId }: Props) {
+export default function JournalForm({ mode, initial, initialPhotos, initialIntercessionId, initialCategory, initialHeadline }: Props) {
   const router = useRouter()
 
   const [entryDate, setEntryDate] = useState(initial?.entry_date ?? todayStr())
-  const [category, setCategory] = useState(initial?.category ?? '')
-  const [headline, setHeadline] = useState(initial?.headline ?? '')
+  const [category, setCategory] = useState(initial?.category ?? initialCategory ?? '')
+  const [headline, setHeadline] = useState(initial?.headline ?? initialHeadline ?? '')
   const [todayText, setTodayText] = useState(initial?.today ?? '')
   const [thanks, setThanks] = useState(initial?.thanks ?? '')
   const [meditation, setMeditation] = useState(initial?.meditation ?? '')
