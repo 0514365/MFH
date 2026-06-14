@@ -24,13 +24,16 @@ self.addEventListener('push', (event) => {
       const title = data.title || 'MFH'
       const body = data.body || ''
       const count = typeof data.badge === 'number' ? data.badge : 0
+      // payload 가 url/tag 를 주면 사용(QT 알림=/qt, mfh-qt). 없으면 기존 할일 알림 기본값.
+      const url = typeof data.url === 'string' ? data.url : '/tasks'
+      const tag = typeof data.tag === 'string' ? data.tag : 'mfh-due'
 
       await self.registration.showNotification(title, {
         body,
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
-        tag: 'mfh-due',
-        data: { url: '/tasks' },
+        tag,
+        data: { url },
       })
 
       if ('setAppBadge' in self.navigator) {
