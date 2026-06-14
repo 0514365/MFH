@@ -27,6 +27,17 @@ export type JournalPhoto = {
 
 export const MAX_JOURNAL_PHOTOS = 5
 
+// 첨부파일 1개. tasks.attachments / projects.attachments jsonb 배열의 요소.
+// 이미지(image/*) 또는 PDF(application/pdf). 미리보기는 상세 페이지에서 signed URL 로.
+export type Attachment = {
+  path: string // attachments 버킷 내 경로 {userId}/{ts}-{rand}.{ext}
+  name: string // 원본 파일명(표시용)
+  mime: string // MIME 타입
+  size: number // 바이트
+}
+
+export const MAX_ATTACHMENTS = 10
+
 export type JournalEntry = {
   id: string
   user_id: string
@@ -64,6 +75,7 @@ export type Project = {
   importance: number
   start_date: string | null
   due_date: string | null
+  attachments: Attachment[] | null
   created_at: string
   updated_at: string
 }
@@ -86,5 +98,6 @@ export type Task = {
   // 반복 시리즈(patch85). 단건은 null. 같은 시리즈의 모든 발생 행이 같은 recurrence_id.
   recurrence_id: string | null
   recurrence_freq: string | null
+  attachments: Attachment[] | null
   created_at: string
 }

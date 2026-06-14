@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { getMembersMap, canEditEntry } from '@/lib/members'
-import type { Project } from '@/lib/types'
+import type { Project, Attachment } from '@/lib/types'
 import { applyProjectFilter, parseProjectFilter } from '@/lib/projectFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import { normalizeStatus, statusV2Label, priorityLabel, IMPORTANCE_MAX } from '@/lib/constants'
@@ -11,6 +11,7 @@ import { ProgressRing } from '../Progress'
 import TaskCheck from '../../tasks/TaskCheck'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
+import AttachmentList, { type AttItem } from '@/components/AttachmentList'
 import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
@@ -86,6 +87,21 @@ export default async function ProjectDetail(props: {
         ? 'bg-surface-subtle text-faint'
         : 'bg-surface-subtle text-muted'
   const author = membersMap[project.user_id]
+
+  // 첨부 signed URL(1시간) — 비공개 'attachments' 버킷.
+  const atts = (project.attachments ?? []) as Attachment[]
+  let attItems: AttItem[] = []
+  if (atts.length) {
+    const { data: signed } = await supabase.storage
+      .from('attachments')
+      .createSignedUrls(
+        atts.map((a) => a.path),
+        3600,
+      )
+    attItems = (signed ?? [])
+      .map((s, i) => (s.signedUrl ? { url: s.signedUrl, name: atts[i].name, mime: atts[i].mime } : null))
+      .filter(Boolean) as AttItem[]
+  }
 
   return (
     <main className="mx-auto max-w-md pb-10">
@@ -168,6 +184,19 @@ export default async function ProjectDetail(props: {
           <p className="whitespace-pre-wrap break-keep text-[15px] font-light leading-[1.75] text-ink">
             {project.description}
           </p>
+        </section>
+      )}
+
+      {/* 첨부파일 — 이미지 썸네일 + PDF 미리보기 */}
+      {attItems.length > 0 && (
+        <section className="border-t border-line px-5 py-7">
+          <div className="mb-3">
+            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-muted">
+              Files
+            </div>
+            <h2 className="text-[14px] font-bold tracking-tight text-ink">첨부파일</h2>
+          </div>
+          <AttachmentList items={attItems} />
         </section>
       )}
 

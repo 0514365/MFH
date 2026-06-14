@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { getMembersMap, canEditEntry } from '@/lib/members'
+import type { Attachment } from '@/lib/types'
 import { parseTaskFilter, orderTaskIds } from '@/lib/taskFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import { normalizeStatus, statusV2Label, IMPORTANCE_MAX } from '@/lib/constants'
@@ -9,6 +10,7 @@ import { fmtDate } from '../../projects/badges'
 import { fmtTime } from '@/lib/calendar'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
+import AttachmentList, { type AttItem } from '@/components/AttachmentList'
 import TaskCheck from '../TaskCheck'
 import DeleteButton from './DeleteButton'
 import RecurrenceBadge from '@/components/RecurrenceBadge'
@@ -32,6 +34,7 @@ type TaskDetail = {
   user_id: string
   recurrence_id: string | null
   recurrence_freq: string | null
+  attachments: Attachment[] | null
   projects: { id: string; title: string } | null
 }
 
@@ -62,7 +65,7 @@ export default async function TaskDetailPage(props: {
   const { data } = await supabase
     .from('tasks')
     .select(
-      'id, title, description, done, priority, importance, status, category, place_name, due_date, due_time, project_id, completed_at, user_id, recurrence_id, recurrence_freq, projects(id, title)',
+      'id, title, description, done, priority, importance, status, category, place_name, due_date, due_time, project_id, completed_at, user_id, recurrence_id, recurrence_freq, attachments, projects(id, title)',
     )
     .eq('id', params.id)
     .maybeSingle()
@@ -90,6 +93,21 @@ export default async function TaskDetailPage(props: {
 
   const overdue = !!task.due_date && !task.done && isOverdue(task.due_date)
   const author = membersMap[task.user_id]
+
+  // 첨부 signed URL(1시간) — 비공개 'attachments' 버킷.
+  const atts = (task.attachments ?? []) as Attachment[]
+  let attItems: AttItem[] = []
+  if (atts.length) {
+    const { data: signed } = await supabase.storage
+      .from('attachments')
+      .createSignedUrls(
+        atts.map((a) => a.path),
+        3600,
+      )
+    attItems = (signed ?? [])
+      .map((s, i) => (s.signedUrl ? { url: s.signedUrl, name: atts[i].name, mime: atts[i].mime } : null))
+      .filter(Boolean) as AttItem[]
+  }
 
   // 상태 칩 색 (목록 배지와 동일 토큰)
   const st = normalizeStatus(task.status ?? 'upcoming')
@@ -219,6 +237,17 @@ export default async function TaskDetailPage(props: {
             <h2 className="mt-2 text-[16px] font-bold leading-none text-ink">메모</h2>
           </div>
           <p className="whitespace-pre-wrap text-[15px] font-light leading-[1.75] text-ink">{task.description}</p>
+        </section>
+      )}
+
+      {/* 첨부파일 — 이미지 썸네일 + PDF 미리보기 */}
+      {attItems.length > 0 && (
+        <section className="border-t border-line px-5 py-7">
+          <div className="mb-4">
+            <p className="font-display text-[10px] uppercase leading-none tracking-[0.15em] text-muted">Files</p>
+            <h2 className="mt-2 text-[16px] font-bold leading-none text-ink">첨부파일</h2>
+          </div>
+          <AttachmentList items={attItems} />
         </section>
       )}
 

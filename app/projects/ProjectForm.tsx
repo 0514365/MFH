@@ -4,13 +4,14 @@
 // 프로젝트 입력 폼 (Variant V4 — 2카드: 내용 / 속성·일정). 일지 폼과 톤 통일.
 // 저장·검증·작성자·날짜·별점 로직은 V2 그대로 보존, 비주얼(헤더·카드·라벨·별·버튼)만 교체.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { STATUSES, normalizeStatus, IMPORTANCE_MAX } from '@/lib/constants'
-import type { Project } from '@/lib/types'
+import type { Project, Attachment } from '@/lib/types'
 import DateField from '../journal/DateField'
 import CategorySelect from '@/components/CategorySelect'
+import AttachmentUpload from '@/components/AttachmentUpload'
 import AuthorSelect from '@/components/AuthorSelect'
 import BackButton from '@/components/BackButton'
 import { resolveOwnerId } from '@/lib/members'
@@ -42,8 +43,16 @@ export default function ProjectForm({ mode, initial }: Props) {
   const [dueDate, setDueDate] = useState(initial?.due_date ?? '')
   // 작성자(user_id) — 마스터만 AuthorSelect 로 변경 가능. 신규는 컴포넌트가 본인으로 채움.
   const [authorId, setAuthorId] = useState(initial?.user_id ?? '')
+  const [attachments, setAttachments] = useState<Attachment[]>(initial?.attachments ?? [])
+  // 첨부 업로드용 현재 로그인 사용자 id(본인 폴더 정책). 마운트 시 채움.
+  const [viewerId, setViewerId] = useState('')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    void supabase.auth.getUser().then(({ data }) => setViewerId(data.user?.id ?? ''))
+  }, [])
 
   async function save() {
     if (!title.trim()) {
@@ -70,6 +79,7 @@ export default function ProjectForm({ mode, initial }: Props) {
       importance,
       start_date: startDate || null,
       due_date: dueDate || null,
+      attachments: attachments.length ? attachments : null,
     }
     let resultId = initial?.id ?? null
     if (mode === 'edit' && initial) {
@@ -138,6 +148,10 @@ export default function ProjectForm({ mode, initial }: Props) {
         <div>
           <FieldLabel ko="사역 분류" en="Category" />
           <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="선택 안 함" />
+        </div>
+        <div>
+          <FieldLabel ko="첨부파일" en="Files" />
+          <AttachmentUpload userId={viewerId} value={attachments} onChange={setAttachments} />
         </div>
       </div>
 

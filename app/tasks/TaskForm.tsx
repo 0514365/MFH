@@ -13,9 +13,10 @@ import {
   TASK_DEFAULT_STATUS,
   type StatusValue,
 } from '@/lib/constants'
-import type { Task } from '@/lib/types'
+import type { Task, Attachment } from '@/lib/types'
 import DateField from '../journal/DateField'
 import CategorySelect from '@/components/CategorySelect'
+import AttachmentUpload from '@/components/AttachmentUpload'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
 import AuthorSelect from '@/components/AuthorSelect'
@@ -94,6 +95,9 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     initial ? normalizeStatus(initial.status) : TASK_DEFAULT_STATUS,
   )
   const [done, setDone] = useState(initial?.done ?? false)
+  const [attachments, setAttachments] = useState<Attachment[]>(initial?.attachments ?? [])
+  // 첨부 업로드용 현재 로그인 사용자 id(본인 폴더 정책). 마운트 시 채움.
+  const [viewerId, setViewerId] = useState('')
   // 작성자(user_id) — 마스터만 AuthorSelect 로 변경 가능. 신규는 컴포넌트가 본인으로 채움.
   const [authorId, setAuthorId] = useState(initial?.user_id ?? '')
   // 반복 등록(새 할 일 한정). 마감일을 첫 날짜로, 종료일까지 같은 할 일을 일괄 생성.
@@ -123,6 +127,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
 
   useEffect(() => {
     const supabase = createClient()
+    void supabase.auth.getUser().then(({ data }) => setViewerId(data.user?.id ?? ''))
     void supabase
       .from('projects')
       .select('id, title')
@@ -159,6 +164,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
       due_time: dueDate && dueTime ? dueTime : null,
       done: isDone,
       completed_at: isDone ? (initial?.completed_at ?? new Date().toISOString()) : null,
+      attachments: attachments.length ? attachments : null,
     }
   }
 
@@ -425,6 +431,10 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <FieldLabel ko="첨부파일" en="Files" />
+          <AttachmentUpload userId={viewerId} value={attachments} onChange={setAttachments} />
         </div>
       </div>
 
