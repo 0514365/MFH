@@ -164,7 +164,7 @@ export default async function Home() {
   const qtRef = qtBook && qtRange ? `${qtBook} ${qtRange}` : ''
   const qtSjTitle = (qtRow?.passage?.title ?? '').trim()
   const qtMain = qtSjTitle || qtRef || '오늘의 말씀 묵상'
-  const qtSub = qtSjTitle ? qtRef : (qtRow?.key_verse?.summary ?? '').trim() || '매일 새벽, 말씀으로 하루를 엽니다.'
+  const qtRefRight = qtSjTitle ? qtRef : ''
   const qtAt = qtRow?.created_at ?? null
   const qtTime = qtAt
     ? new Date(qtAt).toLocaleString('ko-KR', {
@@ -256,8 +256,10 @@ export default async function Home() {
                 </svg>
               )}
             </div>
-            <div className="mt-2 text-[15px] font-bold leading-tight text-ink">{qtMain}</div>
-            <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">{qtSub}</p>
+            <div className="mt-2 flex items-baseline justify-between gap-3">
+              <div className="min-w-0 flex-1 truncate text-[19px] font-bold leading-tight text-ink">{qtMain}</div>
+              {qtRefRight && <div className="shrink-0 text-[13px] font-medium text-muted">{qtRefRight}</div>}
+            </div>
           </Link>
 
           {/* 온두라스 동향 — wide + 최신 브리핑 미리보기 */}
