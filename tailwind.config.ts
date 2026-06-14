@@ -33,6 +33,9 @@ const config: Config = {
         sans: ['Pretendard', 'var(--font-montserrat)', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         display: ['var(--font-montserrat)', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
+      boxShadow: {
+        soft: '0 2px 12px -4px rgba(34, 28, 28, 0.06)',
+      },
     },
   },
   plugins: [],

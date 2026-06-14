@@ -1,7 +1,7 @@
-// MFH-QT-VIEW-V3
-// 일일 QT 1일치 렌더. 날짜 헤더(우측 성서유니온) + 본문(제목·주소) + 접이식 본문읽기 + 핵심절 + 접이식 본문설명 + 묵상 + 적용 + 기도 + 묵상일지 버튼 + 출처.
-// 저작권: 성경 본문 전체·성서유니온 묵상 해설은 저장하지 않는다. 본문은 접이식에서 실시간 로드(/api/qt/passage).
-//   저장 대상 = 메타(책·장절·제목) + 핵심절(개역개정 짧은 인용) + 자체 본문설명·묵상·적용·기도(신학 가드레일 안에서).
+// MFH-QT-VIEW-V4
+// Variant 시안 기반 리스킨 + 재배치 순서(본문카드 → 핵심절 → 본문읽기 → 본문설명 → 묵상 → 적용 → 기도 → 버튼 → 푸터).
+// 기능 보존: 접이식 2개(client; 본문읽기=실시간 /api/qt/passage), 성서유니온 외부 링크, 묵상일지 버튼 라우팅, 데이터 바인딩.
+// 저작권: 성경 본문 전체·성서유니온 묵상 해설 미저장. 본문은 접이식에서 실시간 로드.
 import Link from 'next/link'
 import { shortRef } from '@/lib/bibleAbbr'
 import PassageAccordion from './PassageAccordion'
@@ -61,74 +61,104 @@ export default function QtView({ row }: { row: QtRow }) {
   const journalHref = `/journal/new?category=${encodeURIComponent('묵상')}&headline=${encodeURIComponent(journalHeadline)}`
 
   return (
-    <div className="space-y-6">
-      {/* 날짜 헤더 — 우측에 성서유니온 링크 */}
-      <header>
-        <p className="text-sm font-semibold tracking-wide text-muted">오늘의 양식</p>
-        <div className="mt-0.5 flex items-end justify-between gap-3">
-          <span className="font-display text-2xl font-bold text-primary">{row.qt_date}</span>
-          {sourceUrl && (
-            <a
-              href={sourceUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="inline-flex shrink-0 items-center gap-1 pb-0.5 text-sm font-semibold text-primary transition hover:underline"
-            >
-              성서유니온
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 17L17 7" />
-                <path d="M7 7h10v10" />
-              </svg>
-            </a>
-          )}
+    <div className="flex flex-col gap-9">
+      {/* 날짜 — 우측 성서유니온 외부 링크 */}
+      <section className="flex items-end justify-between">
+        <div className="flex flex-col gap-1">
+          <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-muted">오늘의 양식</div>
+          <div className="font-display text-[32px] font-extrabold leading-none tracking-tight text-primary">{row.qt_date}</div>
         </div>
-      </header>
-
-      {/* 본문 — 매일성경 제목 + 주소 (찬송 표기 없음, 원문 링크는 헤더로 이동) */}
-      <section className="rounded-2xl border border-primary/15 bg-primarySoft p-5">
-        <p className="text-sm font-bold tracking-wide text-primary">오늘의 본문</p>
-        {title && <p className="mt-2 font-display text-2xl font-extrabold leading-tight text-ink">{title}</p>}
-        <p className={title ? 'mt-1.5 text-base font-semibold text-primary' : 'mt-2 font-display text-2xl font-extrabold leading-tight text-ink'}>
-          {book} {range}
-          {bookEn && <span className="font-normal text-muted"> · {bookEn}</span>}
-        </p>
+        {sourceUrl && (
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="flex shrink-0 items-center gap-0.5 pb-1 text-[13px] font-bold text-primary transition active:opacity-60"
+          >
+            성서유니온
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 17L17 7" />
+              <path d="M7 7h10v10" />
+            </svg>
+          </a>
+        )}
       </section>
 
-      {/* 접이식 본문(개역개정) — 제목 영역과 핵심절 사이. 펼칠 때 실시간 로드. */}
-      <PassageAccordion date={row.qt_date} refLabel={refShort} />
-
-      {/* 핵심절 — 개역개정 짧은 인용 */}
-      {(verseText || verseRef) && (
-        <section className="rounded-2xl border-l-4 border-primary bg-surface p-5">
-          {verseText && (
-            <p className="font-display text-xl font-bold leading-relaxed text-ink">&ldquo;{verseText}&rdquo;</p>
+      {/* 본문 — 매일성경 제목 + 주소 */}
+      <section className="flex flex-col gap-2.5 rounded-[24px] border border-line bg-primary-soft p-6 shadow-soft">
+        <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-primary">오늘의 본문</div>
+        {title && <h2 className="mt-0.5 text-[24px] font-bold leading-tight tracking-tight text-ink">{title}</h2>}
+        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[14px] font-medium text-primary">
+          <span>
+            {book} {range}
+          </span>
+          {bookEn && (
+            <>
+              <span className="text-faint">·</span>
+              <span className="font-display text-[12px] font-bold text-muted">{bookEn}</span>
+            </>
           )}
-          {verseRef && <p className="mt-2 text-sm font-semibold text-primary">{verseRef} (개역개정)</p>}
-          {verseSummary && <p className="mt-3 text-base leading-relaxed text-muted">{verseSummary}</p>}
+        </div>
+      </section>
+
+      {/* 핵심절 — 좌측 마룬 바 + quote 장식 */}
+      {(verseText || verseRef) && (
+        <section className="relative overflow-hidden rounded-[24px] border border-line bg-surface py-6 pl-6 pr-5 shadow-soft">
+          <div className="absolute bottom-0 left-0 top-0 w-[4px] bg-primary" />
+          <svg
+            width="44" height="44" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+            className="absolute right-4 top-4 text-primary-soft opacity-60"
+          >
+            <path d="M10 11H6.5c0-2.5 1.3-3.8 3-4V5C6.4 5.3 4.5 7.7 4.5 11.5V17H10v-6zm9 0h-3.5c0-2.5 1.3-3.8 3-4V5c-3.1.3-5 2.7-5 6.5V17H19v-6z" />
+          </svg>
+          <div className="relative z-10 flex flex-col gap-3">
+            {verseText && (
+              <p className="pr-6 text-[17.5px] font-light italic leading-[1.7] tracking-tight text-ink">&ldquo;{verseText}&rdquo;</p>
+            )}
+            {verseRef && <div className="text-[13px] font-bold tracking-wide text-primary">{verseRef} (개역개정)</div>}
+            {verseSummary && (
+              <>
+                <div className="my-1 h-px w-full bg-surface-subtle" />
+                <p className="text-[14.5px] font-medium leading-[1.6] text-muted">{verseSummary}</p>
+              </>
+            )}
+          </div>
         </section>
       )}
 
-      {/* 접이식 본문 설명 — 묵상 위. 내용·맥락·역사(·문화), 신학 가드레일 안에서 자체 작성. */}
+      {/* 본문 읽기 (재배치: 핵심절 아래) */}
+      <PassageAccordion date={row.qt_date} refLabel={refShort} />
+
+      {/* 본문 설명 */}
       {commentary.length > 0 && <CommentaryAccordion items={commentary} />}
 
       {/* 묵상 */}
       {med && (
-        <section>
-          <h2 className="mb-2 font-display text-xl font-bold text-primary">묵상</h2>
-          <p className="whitespace-pre-wrap text-[17px] leading-relaxed text-ink">{med}</p>
+        <section className="flex flex-col gap-3 px-1">
+          <div className="flex flex-col gap-1.5">
+            <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-muted">Meditation</div>
+            <h3 className="text-[20px] font-bold tracking-tight text-ink">묵상</h3>
+          </div>
+          <p className="whitespace-pre-wrap text-[16.5px] leading-[1.8] text-ink">{med}</p>
         </section>
       )}
 
-      {/* 우리 사역에의 적용 — 일지·사역 접목 */}
+      {/* 우리 사역에의 적용 */}
       {apps.length > 0 && (
-        <section>
-          <h2 className="mb-2.5 font-display text-xl font-bold text-primary">우리 사역에의 적용</h2>
-          <div className="space-y-2.5">
+        <section className="flex flex-col gap-4 px-1">
+          <div className="flex flex-col gap-1.5">
+            <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-muted">Application</div>
+            <h3 className="text-[20px] font-bold tracking-tight text-ink">우리 사역에의 적용</h3>
+          </div>
+          <div className="mt-1 flex flex-col gap-3.5">
             {apps.map((a, i) => (
-              <div key={i} className="rounded-xl border border-line bg-surface p-4">
-                <p className="text-[17px] font-bold leading-snug text-ink">{(a.point ?? '').trim()}</p>
+              <div key={i} className="flex flex-col gap-3 rounded-[24px] border border-line bg-surface p-5 shadow-soft">
+                <p className="text-[16px] font-bold leading-[1.65] text-ink">{(a.point ?? '').trim()}</p>
                 {(a.basis ?? '').trim() && (
-                  <p className="mt-2 text-sm leading-relaxed text-muted">↳ {(a.basis ?? '').trim()}</p>
+                  <div className="flex items-center gap-1.5 self-start rounded-full border border-line bg-paper px-3 py-1.5 text-[13.5px] font-medium text-muted">
+                    <span className="text-primary">↳</span>
+                    <span>근거: {(a.basis ?? '').trim()}</span>
+                  </div>
                 )}
               </div>
             ))}
@@ -138,20 +168,17 @@ export default function QtView({ row }: { row: QtRow }) {
 
       {/* 오늘의 기도 */}
       {prayers.length > 0 && (
-        <section className="rounded-2xl border border-primary/15 bg-primarySoft p-5">
-          <div className="mb-2.5 flex items-center gap-2">
-            <svg
-              width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              className="text-primary"
-            >
+        <section className="flex flex-col gap-5 rounded-[24px] border border-line bg-primary-soft p-7 shadow-soft">
+          <div className="flex items-center gap-2.5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="text-primary">
               <path d="M12 21s-7-4.35-9.5-8.5C.5 9 2 5.5 5.5 5.5c2 0 3.5 1.5 4.5 3 1-1.5 2.5-3 4.5-3C18 5.5 19.5 9 21.5 12.5 19 16.65 12 21 12 21z" />
             </svg>
-            <p className="text-base font-bold text-primary">오늘의 기도</p>
+            <h3 className="text-[19px] font-bold tracking-tight text-primary">오늘의 기도</h3>
           </div>
-          <ul className="space-y-2">
+          <ul className="flex flex-col gap-4">
             {prayers.map((pr, i) => (
-              <li key={i} className="flex gap-2.5 text-[15px] leading-relaxed text-ink">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <li key={i} className="flex items-start gap-3 text-[16px] leading-[1.75] text-ink">
+                <span className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                 <span>{pr}</span>
               </li>
             ))}
@@ -162,21 +189,21 @@ export default function QtView({ row }: { row: QtRow }) {
       {/* 묵상일지 작성 — 분류=묵상 자동, 머릿말=본문축약+제목 자동 */}
       <Link
         href={journalHref}
-        className="flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-4 font-display text-sm font-bold uppercase tracking-wide text-white transition active:scale-[0.99]"
+        className="flex h-[56px] w-full items-center justify-center gap-2 rounded-[24px] bg-accent text-[17px] font-bold text-white shadow-[0_4px_14px_rgba(182,24,33,0.25)] transition-all active:scale-[0.98] active:bg-accent-hover"
       >
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 20h9" />
           <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
         </svg>
         묵상일지 작성
       </Link>
 
-      {/* 출처 푸터 — 저작권 표기 */}
-      <p className="pt-1 text-center text-xs leading-relaxed text-faint">
-        본문 출처 · 성서유니온 「매일성경」 · 생성 {row.created_at.slice(0, 10)}
-        <br />
-        본문 설명·묵상·적용·기도는 우리 일지·사역 기록을 바탕으로 작성되었습니다.
-      </p>
+      {/* 출처 푸터 */}
+      <footer className="flex justify-center">
+        <p className="text-[11px] font-medium tracking-wide text-faint">
+          본문 출처 · 성서유니온 「매일성경」 · 생성 {row.created_at.slice(0, 10)}
+        </p>
+      </footer>
     </div>
   )
 }

@@ -1,5 +1,5 @@
-// MFH-QT-PASSAGE-ACCORDION-V1
-// 접이식 본문(개역개정). 펼칠 때 /api/qt/passage 로 실시간 로드(저장 안 함). 제목 영역과 핵심절 사이에 위치.
+// MFH-QT-PASSAGE-ACCORDION-V2
+// 접이식 본문(개역개정). 펼칠 때 /api/qt/passage 로 실시간 로드(저장 안 함). Variant 시안 비주얼(원형 caret · 절 번호 컬럼).
 'use client'
 import { useState } from 'react'
 
@@ -31,37 +31,45 @@ export default function PassageAccordion({ date, refLabel }: { date: string; ref
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+    <div className="overflow-hidden rounded-[24px] border border-line bg-surface shadow-soft">
       <button
         type="button"
         onClick={toggle}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-2 px-5 py-4 text-left"
+        className="flex w-full items-center justify-between px-6 py-5 text-left transition-colors active:bg-paper"
       >
-        <span className="text-sm font-bold text-primary">
-          본문 읽기{refLabel ? <span className="font-medium text-muted"> · {refLabel}</span> : null}
+        <span className="flex items-center gap-2 text-[16px] font-bold tracking-tight text-ink">
+          본문 읽기
+          {refLabel && (
+            <>
+              <span className="text-[14px] font-normal text-faint">·</span>
+              <span className="font-semibold text-primary">{refLabel}</span>
+            </>
+          )}
         </span>
-        <svg
-          width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          className={`shrink-0 text-primary transition-transform ${open ? 'rotate-180' : ''}`}
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-surface-subtle bg-paper">
+          <svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            className={`text-muted transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </span>
       </button>
       {open && (
-        <div className="border-t border-line px-5 py-4">
+        <div className="border-t border-line px-6 pb-7 pt-3">
           {loading && <p className="text-sm text-muted">본문을 불러오는 중…</p>}
           {err && <p className="text-sm text-muted">본문을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>}
           {verses && verses.length > 0 && (
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-5">
               {verses.map((v, i) => {
                 const newChapter = i === 0 || v.chapter !== verses[i - 1].chapter
                 const num = newChapter && v.chapter != null ? `${v.chapter}:${v.verse}` : `${v.verse}`
                 return (
-                  <p key={i} className="text-[15px] leading-relaxed text-ink">
-                    <span className="mr-1.5 text-xs font-bold text-primary">{num}</span>
-                    {v.text}
-                  </p>
+                  <div key={i} className="flex items-start gap-3.5">
+                    <span className="mt-[3px] w-[30px] shrink-0 text-[13px] font-bold text-primary">{num}</span>
+                    <p className="text-[16.5px] leading-[1.8] text-ink">{v.text}</p>
+                  </div>
                 )
               })}
             </div>
