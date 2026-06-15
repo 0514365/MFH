@@ -92,24 +92,24 @@ export default function ProjectTaskList({
                   )}
                 </Link>
                 {canReorder && (
-                  <div className="flex shrink-0 flex-col">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => i > 0 && swap(t.id, group[i - 1].id)}
                       disabled={i === 0 || busy}
                       aria-label="위로 이동"
-                      className="flex h-4 w-6 items-center justify-center text-[10px] text-muted transition-colors hover:text-primary disabled:opacity-20"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-[13px] text-muted transition-colors hover:border-primary hover:text-primary disabled:opacity-20"
                     >
-                      ▲
+                      ↑
                     </button>
                     <button
                       type="button"
                       onClick={() => i < group.length - 1 && swap(t.id, group[i + 1].id)}
                       disabled={i === group.length - 1 || busy}
                       aria-label="아래로 이동"
-                      className="flex h-4 w-6 items-center justify-center text-[10px] text-muted transition-colors hover:text-primary disabled:opacity-20"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-[13px] text-muted transition-colors hover:border-primary hover:text-primary disabled:opacity-20"
                     >
-                      ▼
+                      ↓
                     </button>
                   </div>
                 )}
