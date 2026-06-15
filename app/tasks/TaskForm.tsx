@@ -360,7 +360,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
   const card = 'rounded-3xl border border-line bg-surface p-5 shadow-sm'
 
   return (
-    <main className="mx-auto max-w-md px-4 pb-10">
+    <main className="mx-auto max-w-md px-4 pb-10 md:max-w-5xl">
       {/* 상단바(미니멀) — 프로젝트 폼과 통일: 캐럿 + 중앙 제목 + (편집)이전/다음 */}
       <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
         <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label="" variant="text" />
@@ -396,8 +396,10 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
       {/* 작성자 (편집·마스터만) */}
       {mode === 'edit' && <AuthorSelect value={authorId} onChange={setAuthorId} className={input} />}
 
+      {/* 데스크탑·아이패드(≥md): 두 카드 좌우 2컬럼 / 모바일: 세로 스택 */}
+      <div className="md:grid md:grid-cols-2 md:items-start md:gap-6">
       {/* 카드1: 내용 */}
-      <div className={`${card} mb-4 flex flex-col gap-5`}>
+      <div className={`${card} mb-4 flex flex-col gap-5 md:mb-0`}>
         <div>
           <FieldLabel ko="제목" en="Title" required />
           <input
@@ -597,6 +599,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
             />
           </button>
         </div>
+      </div>
       </div>
 
       {msg && <p className="mt-4 text-center text-sm text-danger">{msg}</p>}
