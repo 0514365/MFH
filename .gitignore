@@ -25,3 +25,10 @@ Insight Data/
 
 # 인사이트 자동생성 아카이브·작업파일 (개인 사역내용 — Local 루틴 산출물)
 insights-archive/
+.env*
+
+# 전단 산출물·배경 이미지 (flyer HTML·md 템플릿만 추적, 큰 이미지/PDF는 Dropbox 보존)
+flyers/**/*.png
+flyers/**/*.jpg
+flyers/**/*.jpeg
+flyers/**/*.pdf
