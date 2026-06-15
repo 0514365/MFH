@@ -1,7 +1,9 @@
-// MFH-INSIGHT-CONTENT-V1
-// 인사이트 본문 표시 포매터 — 기존 raw whitespace-pre-wrap 출력을 대체.
+// MFH-INSIGHT-CONTENT-V2
+// 인사이트·비서 본문 표시 포매터 — 기존 raw whitespace-pre-wrap 출력을 대체.
 //  · 내용(텍스트)은 바꾸지 않고 "표시만" 정리한다 → 기존 저장분에도 즉시 적용.
 //  · 공통: **볼드** → 볼드(기호 제거), 【…부…】 줄 → 볼드 제목.
+//  · 줄 전체가 **…** 인 경우 → 소제목(타이틀 스타일: 살짝 큰 글씨·위 여백)으로 본문과 구분.
+//  · 비서(project_assist·task_assist) 마무리 줄(**라벨** · 본문) → 흰 박스 + accent 칩으로 한 번 더 강조.
 //  · 기도제목 라벨(사역/가정/나라) → '나라'는 '온두라스'로, 순서는 온두라스→사역→가정으로 재정렬.
 //    prayer 는 라벨 칩 + 본문 아래 줄, 그 외 도메인은 라벨 볼드(대시 불릿 흐름 유지).
 //  · fruit 는 '6월 9일,' 같은 앞머리 날짜를 볼드로 띄우고 내용은 다음 줄에.
@@ -51,6 +53,7 @@ export default function InsightContent({
   className?: string
 }) {
   const lines = (content ?? '').replace(/\r\n/g, '\n').split('\n')
+  const isAssist = domain === 'project_assist' || domain === 'task_assist'
   const blocks: ReactNode[] = []
   let i = 0
   let key = 0
@@ -141,7 +144,33 @@ export default function InsightContent({
       continue
     }
 
-    // 5) 일반 줄(인라인 **볼드** 처리)
+    // 5) (비서) 마무리 강조 줄: **라벨** · 본문 → 흰 박스 + accent 칩으로 한 번 더 강조
+    const assistPick = isAssist ? trimmed.match(/^\*\*(.+?)\*\*\s*[·:]\s*(.+)$/) : null
+    if (assistPick) {
+      blocks.push(
+        <div key={key++} className="mt-3 rounded-xl bg-white px-3.5 py-3">
+          <span className="inline-block rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-on-accent">
+            {assistPick[1]}
+          </span>
+          <p className="mt-1.5 text-ink">{renderInline(assistPick[2], key * 100)}</p>
+        </div>,
+      )
+      i++
+      continue
+    }
+
+    // 6) 소제목(줄 전체가 **…**) → 타이틀 스타일로 본문과 구분
+    if (/^\*\*.+\*\*$/.test(trimmed)) {
+      blocks.push(
+        <p key={key++} className="mt-3.5 text-[15px] font-bold leading-snug text-ink first:mt-0">
+          {trimmed.slice(2, -2)}
+        </p>,
+      )
+      i++
+      continue
+    }
+
+    // 7) 일반 줄(인라인 **볼드** 처리)
     blocks.push(<p key={key++}>{renderInline(line, key)}</p>)
     i++
   }
