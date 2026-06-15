@@ -99,5 +99,7 @@ export type Task = {
   recurrence_id: string | null
   recurrence_freq: string | null
   attachments: Attachment[] | null
+  // 프로젝트 내 수동 순서(patch95). 프로젝트 상세에서 ↑↓ 재배치. 단독 할 일은 null.
+  sort_order: number | null
   created_at: string
 }

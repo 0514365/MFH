@@ -70,6 +70,19 @@ function buildOccurrences(start: string, until: string, freq: 'daily' | 'weekly'
   return dates
 }
 
+// 프로젝트 내 맨 끝 순서값(max+10). 비어 있으면 10. ↑↓ 재배치(patch95)를 위한 10단위 간격.
+async function nextSortOrder(supabase: ReturnType<typeof createClient>, projId: string): Promise<number> {
+  const { data } = await supabase
+    .from('tasks')
+    .select('sort_order')
+    .eq('project_id', projId)
+    .order('sort_order', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle()
+  const max = (data?.sort_order as number | null) ?? 0
+  return max + 10
+}
+
 // 필드 라벨: 한글 + 작은 영문 캡스(프로젝트 폼과 동일)
 function FieldLabel({ ko, en, required }: { ko: string; en: string; required?: boolean }) {
   return (
@@ -235,14 +248,17 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     setSaving(true)
     setMsg(null)
     const ownerId = resolveOwnerId({ chosen: authorId, existingOwnerId: initial?.user_id, viewerId: user.id })
+    // 프로젝트에 연결되면 그 프로젝트 맨 끝(max+10)으로 배치(patch95). 단독 할 일은 null.
+    const baseSo = projectId ? await nextSortOrder(supabase, projectId) : null
     if (recurring) {
       const rid = crypto.randomUUID()
-      const rows = recurDates.map((d) => ({
+      const rows = recurDates.map((d, i) => ({
         ...buildBase(),
         user_id: ownerId,
         due_date: d,
         recurrence_id: rid,
         recurrence_freq: repeatFreq,
+        sort_order: baseSo == null ? null : baseSo + i * 10,
       }))
       const { error } = await supabase.from('tasks').insert(rows)
       if (error) {
@@ -253,7 +269,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     } else {
       const { error } = await supabase
         .from('tasks')
-        .insert({ ...buildBase(), user_id: ownerId, due_date: dueDate || null })
+        .insert({ ...buildBase(), user_id: ownerId, due_date: dueDate || null, sort_order: baseSo })
       if (error) {
         setSaving(false)
         setMsg('저장 실패: ' + error.message)
@@ -281,9 +297,14 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
       return
     }
     const ownerId = resolveOwnerId({ chosen: authorId, existingOwnerId: initial.user_id, viewerId: user.id })
+    // 프로젝트가 바뀌면 새 프로젝트 맨 끝으로 sort_order 재부여(안 바뀌면 기존 순서 보존).
+    const projectChanged = (initial.project_id ?? '') !== (projectId || '')
+    const sortPatch = projectChanged
+      ? { sort_order: projectId ? await nextSortOrder(supabase, projectId) : null }
+      : {}
     const { error } = await supabase
       .from('tasks')
-      .update({ ...buildBase(), user_id: ownerId, due_date: dueDate || null })
+      .update({ ...buildBase(), user_id: ownerId, due_date: dueDate || null, ...sortPatch })
       .eq('id', initial.id)
     if (error) {
       setSaving(false)
