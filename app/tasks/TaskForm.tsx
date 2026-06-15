@@ -83,6 +83,44 @@ async function nextSortOrder(supabase: ReturnType<typeof createClient>, projId: 
   return max + 10
 }
 
+// 선행/후속 선택 체크리스트(patch96) — 같은 프로젝트 할 일 목록에서 다중 토글.
+function RelationChecklist({
+  tasks,
+  selected,
+  onToggle,
+}: {
+  tasks: { id: string; title: string }[]
+  selected: string[]
+  onToggle: (id: string) => void
+}) {
+  return (
+    <div className="flex max-h-44 flex-col gap-1 overflow-y-auto rounded-xl border border-line bg-surface p-2">
+      {tasks.map((t) => {
+        const on = selected.includes(t.id)
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onToggle(t.id)}
+            className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors ${
+              on ? 'bg-primary-soft text-primary' : 'text-ink hover:bg-surface-subtle'
+            }`}
+          >
+            <span
+              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${
+                on ? 'border-primary bg-primary text-white' : 'border-line text-transparent'
+              }`}
+            >
+              ✓
+            </span>
+            <span className="min-w-0 truncate">{t.title}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // 필드 라벨: 한글 + 작은 영문 캡스(프로젝트 폼과 동일)
 function FieldLabel({ ko, en, required }: { ko: string; en: string; required?: boolean }) {
   return (
@@ -117,6 +155,10 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
   const [repeatFreq, setRepeatFreq] = useState<RepeatFreq>('none')
   const [repeatUntil, setRepeatUntil] = useState('')
   const [projects, setProjects] = useState<{ id: string; title: string }[]>([])
+  // 선행/후속 선택용: 현재 프로젝트의 할 일 목록(자기 자신 제외) + 선택된 id들.
+  const [projectTasks, setProjectTasks] = useState<{ id: string; title: string }[]>([])
+  const [predecessorIds, setPredecessorIds] = useState<string[]>(initial?.predecessor_ids ?? [])
+  const [successorIds, setSuccessorIds] = useState<string[]>(initial?.successor_ids ?? [])
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   // 반복 항목 편집/삭제 범위 모달.
@@ -148,6 +190,32 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
       .then(({ data }) => setProjects((data ?? []) as { id: string; title: string }[]))
   }, [])
 
+  // 관련 프로젝트가 바뀌면 그 프로젝트 할 일만 선행/후속 후보로 로드(자기 자신 제외).
+  // 후보에 없어진 기존 선택은 정리한다.
+  useEffect(() => {
+    if (!projectId) {
+      setProjectTasks([])
+      return
+    }
+    const supabase = createClient()
+    void supabase
+      .from('tasks')
+      .select('id, title')
+      .eq('project_id', projectId)
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
+      .then(({ data }) => {
+        const list = ((data ?? []) as { id: string; title: string }[]).filter(
+          (t) => t.id !== initial?.id,
+        )
+        setProjectTasks(list)
+        const valid = new Set(list.map((t) => t.id))
+        setPredecessorIds((prev) => prev.filter((x) => valid.has(x)))
+        setSuccessorIds((prev) => prev.filter((x) => valid.has(x)))
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId])
+
   // 완료 체크 ↔ Status 연동: 완료=done, 해제 시 done이면 upcoming으로 되돌림
   function onToggleDone(next: boolean) {
     setDone(next)
@@ -159,6 +227,13 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     setStatus(next)
     if (next === 'done') setDone(true)
     else if (done) setDone(false)
+  }
+
+  function togglePred(id: string) {
+    setPredecessorIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+  function toggleSucc(id: string) {
+    setSuccessorIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
   // 마감일 외 공통 필드(user_id·due_date·recurrence 제외). insert/update 공용.
@@ -178,6 +253,9 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
       done: isDone,
       completed_at: isDone ? (initial?.completed_at ?? new Date().toISOString()) : null,
       attachments: attachments.length ? attachments : null,
+      // 선행/후속(patch96). 프로젝트가 없으면 의미 없으므로 비움.
+      predecessor_ids: projectId && predecessorIds.length ? predecessorIds : null,
+      successor_ids: projectId && successorIds.length ? successorIds : null,
     }
   }
 
@@ -455,6 +533,20 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
             ))}
           </select>
         </div>
+        {projectId && projectTasks.length > 0 && (
+          <>
+            <div>
+              <FieldLabel ko="선행 작업" en="Depends on" />
+              <p className="-mt-0.5 mb-1.5 text-[11px] text-faint">이 할 일보다 먼저 끝낼 작업 (여러 개 선택 가능)</p>
+              <RelationChecklist tasks={projectTasks} selected={predecessorIds} onToggle={togglePred} />
+            </div>
+            <div>
+              <FieldLabel ko="후속 작업" en="Blocks" />
+              <p className="-mt-0.5 mb-1.5 text-[11px] text-faint">이 할 일 다음에 할 작업 (여러 개 선택 가능)</p>
+              <RelationChecklist tasks={projectTasks} selected={successorIds} onToggle={toggleSucc} />
+            </div>
+          </>
+        )}
         <div>
           <FieldLabel ko="첨부파일" en="Files" />
           <AttachmentUpload userId={viewerId} value={attachments} onChange={setAttachments} />

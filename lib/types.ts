@@ -101,5 +101,8 @@ export type Task = {
   attachments: Attachment[] | null
   // 프로젝트 내 수동 순서(patch95). 프로젝트 상세에서 ↑↓ 재배치. 단독 할 일은 null.
   sort_order: number | null
+  // 선행/후속 작업(patch96). 같은 프로젝트 할 일 id 배열. 순서와 독립 — 상세에 표시만.
+  predecessor_ids: string[] | null
+  successor_ids: string[] | null
   created_at: string
 }
