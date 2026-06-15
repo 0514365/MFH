@@ -1,10 +1,11 @@
 'use client'
 
-// MFH-PROJECT-TASK-LIST-V1
-// 프로젝트 상세 "진행 상황" 할 일 목록 + 순서 편집(patch95).
-// 평소: 체크 토글 + 제목 링크 + 마감일. 정렬은 서버에서 미완료(sort_order↑) → 완료(sort_order↑) 그룹.
-// "순서 편집"(소유자·마스터만): 각 항목 ↑↓ 로 같은 그룹 내 한 칸 이동
-//   → swap_task_sort_order RPC(권한·같은프로젝트 검증) → router.refresh() 로 재동기화.
+// MFH-PROJECT-TASK-LIST-V2
+// 프로젝트 상세 "진행 상황" 할 일 목록.
+// - 그룹 영역 분리: 미완료(To-do, 위) / 완료(Done, 아래·취소선). 각 그룹 내 sort_order 순(서버 정렬).
+// - 순서 변경(소유자·마스터): 각 항목 날짜 우측 ▲▼ 상시 노출 → 같은 그룹 내 인접 교환
+//   → swap_task_sort_order RPC(patch95) → router.refresh().
+// - 선행/후속(patch96): 같은 프로젝트 할 일 id 를 제목으로 바꿔 행 아래에 표시(순서와 독립).
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -17,6 +18,8 @@ export type ProjTaskItem = {
   done: boolean
   due_date: string | null
   sort_order: number | null
+  predecessor_ids: string[] | null
+  successor_ids: string[] | null
 }
 
 // 'YYYY-MM-DD' → 'MM.DD'
@@ -32,10 +35,17 @@ export default function ProjectTaskList({
   canReorder: boolean
 }) {
   const router = useRouter()
-  const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  // 인접 두 항목(같은 done 그룹)의 sort_order 교환.
+  // id → 제목 (선행/후속 표시용). 같은 프로젝트 할 일이라 items 안에 모두 있음.
+  const titleById = new Map(items.map((t) => [t.id, t.title]))
+  const names = (ids: string[] | null): string =>
+    (ids ?? []).map((id) => titleById.get(id) ?? '(삭제됨)').join(', ')
+
+  const todo = items.filter((t) => !t.done)
+  const doneList = items.filter((t) => t.done)
+
+  // 같은 그룹 내 인접 두 항목의 sort_order 교환.
   async function swap(aId: string, bId: string) {
     if (busy) return
     setBusy(true)
@@ -49,65 +59,20 @@ export default function ProjectTaskList({
     router.refresh()
   }
 
-  return (
-    <>
-      {canReorder && items.length > 1 && (
-        <div className="-mt-1 mb-3 flex justify-end">
-          <button
-            type="button"
-            onClick={() => setEditing((v) => !v)}
-            className="rounded-lg px-2 py-1 text-[12px] font-medium text-primary transition-colors hover:text-accent"
-          >
-            {editing ? '완료' : '순서 편집'}
-          </button>
-        </div>
-      )}
-      <ul className="flex flex-col gap-4">
-        {items.map((t, i) => {
-          // 같은 done 그룹 내 인접 항목과만 교환(미완료↔완료 경계는 넘지 않음).
-          const prev = items[i - 1]
-          const next = items[i + 1]
-          const canUp = editing && !!prev && prev.done === t.done
-          const canDown = editing && !!next && next.done === t.done
+  // 한 그룹(미완료/완료) 렌더 — group 배열 내 인접끼리만 ▲▼.
+  function renderGroup(group: ProjTaskItem[]) {
+    return (
+      <ul className="flex flex-col gap-3.5">
+        {group.map((t, i) => {
+          const pred = names(t.predecessor_ids)
+          const succ = names(t.successor_ids)
           return (
-            <li key={t.id} className="flex items-center gap-3.5">
-              {editing ? (
-                <div className="flex shrink-0 flex-col">
-                  <button
-                    type="button"
-                    onClick={() => canUp && swap(t.id, prev!.id)}
-                    disabled={!canUp || busy}
-                    aria-label="위로 이동"
-                    className="flex h-5 w-6 items-center justify-center text-[11px] text-muted transition-colors hover:text-primary disabled:opacity-20"
-                  >
-                    ▲
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => canDown && swap(t.id, next!.id)}
-                    disabled={!canDown || busy}
-                    aria-label="아래로 이동"
-                    className="flex h-5 w-6 items-center justify-center text-[11px] text-muted transition-colors hover:text-primary disabled:opacity-20"
-                  >
-                    ▼
-                  </button>
-                </div>
-              ) : (
+            <li key={t.id} className="flex flex-col gap-1">
+              <div className="flex items-center gap-3.5">
                 <TaskCheck id={t.id} done={t.done} />
-              )}
-
-              {editing ? (
-                <span
-                  className={`min-w-0 flex-1 truncate text-[15px] font-light tracking-tight ${
-                    t.done ? 'text-faint line-through' : 'text-ink'
-                  }`}
-                >
-                  {t.title}
-                </span>
-              ) : (
                 <Link
                   href={`/tasks/${t.id}/edit`}
-                  className="flex flex-1 items-center justify-between gap-4"
+                  className="flex min-w-0 flex-1 items-center justify-between gap-3"
                 >
                   <span
                     className={`min-w-0 truncate text-[15px] font-light tracking-tight ${
@@ -126,11 +91,79 @@ export default function ProjectTaskList({
                     </span>
                   )}
                 </Link>
+                {canReorder && (
+                  <div className="flex shrink-0 flex-col">
+                    <button
+                      type="button"
+                      onClick={() => i > 0 && swap(t.id, group[i - 1].id)}
+                      disabled={i === 0 || busy}
+                      aria-label="위로 이동"
+                      className="flex h-4 w-6 items-center justify-center text-[10px] text-muted transition-colors hover:text-primary disabled:opacity-20"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => i < group.length - 1 && swap(t.id, group[i + 1].id)}
+                      disabled={i === group.length - 1 || busy}
+                      aria-label="아래로 이동"
+                      className="flex h-4 w-6 items-center justify-center text-[10px] text-muted transition-colors hover:text-primary disabled:opacity-20"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                )}
+              </div>
+              {(pred || succ) && (
+                <div className="ml-9 flex flex-col gap-0.5 text-[11px] text-muted">
+                  {pred && (
+                    <span className="truncate">
+                      <span className="mr-1 font-display text-[9px] uppercase tracking-wider text-faint">선행</span>
+                      {pred}
+                    </span>
+                  )}
+                  {succ && (
+                    <span className="truncate">
+                      <span className="mr-1 font-display text-[9px] uppercase tracking-wider text-faint">후속</span>
+                      {succ}
+                    </span>
+                  )}
+                </div>
               )}
             </li>
           )
         })}
       </ul>
-    </>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* 미완료 그룹 */}
+      {todo.length > 0 && (
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
+              To-do
+            </span>
+            <span className="text-[11px] text-muted">남은 {todo.length}</span>
+          </div>
+          {renderGroup(todo)}
+        </div>
+      )}
+
+      {/* 완료 그룹 */}
+      {doneList.length > 0 && (
+        <div className={todo.length > 0 ? 'border-t border-line pt-5' : ''}>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-faint">
+              Done
+            </span>
+            <span className="text-[11px] text-faint">완료 {doneList.length}</span>
+          </div>
+          {renderGroup(doneList)}
+        </div>
+      )}
+    </div>
   )
 }

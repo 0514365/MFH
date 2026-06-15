@@ -22,6 +22,8 @@ type ProjTask = {
   done: boolean
   due_date: string | null
   sort_order: number | null
+  predecessor_ids: string[] | null
+  successor_ids: string[] | null
 }
 
 export default async function ProjectDetail(props: {
@@ -57,7 +59,7 @@ export default async function ProjectDetail(props: {
 
   const { data: taskRows } = await supabase
     .from('tasks')
-    .select('id, title, done, due_date, sort_order')
+    .select('id, title, done, due_date, sort_order, predecessor_ids, successor_ids')
     .eq('project_id', params.id)
     .order('done', { ascending: true })
     .order('sort_order', { ascending: true, nullsFirst: false })
