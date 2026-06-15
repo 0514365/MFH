@@ -4,7 +4,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { resolveJournalPhotos } from '@/lib/journalPhotos'
-import type { JournalPhoto } from '@/lib/types'
+import { isImageAttachment, taskAttachmentDate, projectAttachmentDate } from '@/lib/attachments'
+import type { JournalPhoto, Attachment } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import PhotoGalleryClient, { type PhotoItem } from './PhotoGalleryClient'
 
@@ -80,12 +81,76 @@ export default async function PhotosPage(props: {
           caption: ph.caption ?? ph.ai_caption,
           manualCaption: ph.caption,
           aiCaption: ph.ai_caption,
-          entryId: r.id,
+          source: 'journal',
+          rowId: r.id,
+          sourceTitle: null,
           ownerId: r.user_id,
         })
       }
     }
   }
+
+  // 할 일·프로젝트 첨부 이미지(PDF·기타 제외) — 같은 달에 귀속되는 것만 사진모음에 합류.
+  // 첨부엔 촬영일이 없어 출처 행의 날짜(taskAttachmentDate/projectAttachmentDate)로 월 귀속.
+  type AttRow = {
+    id: string
+    user_id: string
+    title: string | null
+    category: string | null
+    attachments: Attachment[] | null
+    due_date?: string | null
+    completed_at?: string | null
+    start_date?: string | null
+    created_at?: string | null
+  }
+  async function collectAttachmentPhotos(
+    table: 'tasks' | 'projects',
+    source: 'task' | 'project',
+    rowDate: (row: AttRow) => string | null,
+  ) {
+    const dateCols = table === 'tasks' ? 'due_date,completed_at,created_at' : 'due_date,start_date,created_at'
+    const { data: arows } = await supabase
+      .from(table)
+      .select(`id,user_id,title,category,attachments,${dateCols}`)
+      .not('attachments', 'is', null)
+    // (첨부, 행, 귀속날짜) 펼치기 — 이달 이미지 첨부만.
+    const flat: { att: Attachment; row: AttRow; date: string }[] = []
+    for (const row of (arows ?? []) as AttRow[]) {
+      const date = rowDate(row)
+      if (!date || date.slice(0, 7) !== month) continue
+      for (const a of row.attachments ?? []) {
+        if (a?.path && isImageAttachment(a)) flat.push({ att: a, row, date })
+      }
+    }
+    if (!flat.length) return
+    const { data: signed } = await supabase.storage
+      .from('attachments')
+      .createSignedUrls(
+        flat.map((f) => f.att.path),
+        3600,
+      )
+    ;(signed ?? []).forEach((s, i) => {
+      if (!s.signedUrl) return
+      const { att, row, date } = flat[i]
+      photos.push({
+        url: s.signedUrl,
+        path: att.path,
+        date,
+        category: row.category,
+        headline: row.title,
+        takenAt: null,
+        caption: att.caption ?? att.ai_caption ?? null,
+        manualCaption: att.caption ?? null,
+        aiCaption: att.ai_caption ?? null,
+        source,
+        rowId: row.id,
+        sourceTitle: row.title,
+        ownerId: row.user_id,
+      })
+    })
+  }
+  await collectAttachmentPhotos('tasks', 'task', taskAttachmentDate)
+  await collectAttachmentPhotos('projects', 'project', projectAttachmentDate)
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-8">

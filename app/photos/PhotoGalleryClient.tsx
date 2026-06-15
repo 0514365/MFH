@@ -12,7 +12,19 @@ import JSZip from 'jszip'
 import { JOURNAL_CATEGORIES } from '@/lib/constants'
 import { createClient } from '@/lib/supabase-browser'
 import { canEditEntry } from '@/lib/members'
-import type { JournalPhoto } from '@/lib/types'
+
+// 사진 출처 — 일지 / 할 일 / 프로젝트. 캡션 저장 시 갱신할 테이블·컬럼을 가른다.
+export type PhotoSource = 'journal' | 'task' | 'project'
+
+// 출처별 캡션 저장 대상(테이블·jsonb 컬럼). journal=photos, task/project=attachments.
+const SOURCE_CFG: Record<PhotoSource, { table: string; col: 'photos' | 'attachments'; label: string | null }> = {
+  journal: { table: 'journal_entries', col: 'photos', label: null },
+  task: { table: 'tasks', col: 'attachments', label: '할 일' },
+  project: { table: 'projects', col: 'attachments', label: '프로젝트' },
+}
+
+// 캡션을 가진 jsonb 요소(JournalPhoto·Attachment 공통 형태).
+type Captionable = { path?: string; caption?: string | null; ai_caption?: string | null }
 
 export type PhotoItem = {
   url: string
@@ -26,7 +38,11 @@ export type PhotoItem = {
   // 편집 대상(수동) + 참고용(AI).
   manualCaption: string | null
   aiCaption: string | null
-  entryId: string
+  // 출처 + 저장 대상 행 id(journal 일지 / task·project 행).
+  source: PhotoSource
+  rowId: string
+  // 출처 항목 제목(task/project — 라이트박스 맥락). journal 은 null.
+  sourceTitle: string | null
   ownerId: string
 }
 
@@ -111,26 +127,26 @@ export default function PhotoGalleryClient({
     setEditingCaption(true)
   }
 
-  // 수동 캡션 저장 — 그 일지의 photos 배열에서 path 매칭 사진의 caption 갱신(RLS 본인만).
+  // 수동 캡션 저장 — 출처(일지/할 일/프로젝트) 행의 jsonb 배열에서 path 매칭 요소의 caption 갱신(RLS 본인·마스터).
   async function saveCaption() {
     if (!lightbox) return
     setSavingCaption(true)
     setCaptionMsg('')
     const text = captionDraft.trim()
     const supabase = createClient()
+    const cfg = SOURCE_CFG[lightbox.source]
     const { data, error: selErr } = await supabase
-      .from('journal_entries')
-      .select('photos')
-      .eq('id', lightbox.entryId)
+      .from(cfg.table)
+      .select(cfg.col)
+      .eq('id', lightbox.rowId)
       .single()
     if (selErr || !data) {
       setSavingCaption(false)
-      setCaptionMsg('저장 실패: 일지를 찾지 못했습니다.')
+      setCaptionMsg('저장 실패: 항목을 찾지 못했습니다.')
       return
     }
-    const arr = Array.isArray((data as { photos: JournalPhoto[] | null }).photos)
-      ? (data as { photos: JournalPhoto[] }).photos
-      : []
+    const raw = (data as Record<string, unknown>)[cfg.col]
+    const arr = (Array.isArray(raw) ? raw : []) as Captionable[]
     if (!arr.some((p) => p?.path === lightbox.path)) {
       setSavingCaption(false)
       setCaptionMsg('이 사진은 캡션 저장을 지원하지 않습니다(레거시 단일 사진).')
@@ -139,21 +155,19 @@ export default function PhotoGalleryClient({
     const manual = text || null
     const next = arr.map((p) => (p?.path === lightbox.path ? { ...p, caption: manual } : p))
     const { error } = await supabase
-      .from('journal_entries')
-      .update({ photos: next })
-      .eq('id', lightbox.entryId)
+      .from(cfg.table)
+      .update({ [cfg.col]: next })
+      .eq('id', lightbox.rowId)
     if (error) {
       setSavingCaption(false)
       setCaptionMsg('저장 실패: ' + error.message)
       return
     }
     const eff = manual ?? lightbox.aiCaption
+    const same = (p: PhotoItem) =>
+      p.path === lightbox.path && p.rowId === lightbox.rowId && p.source === lightbox.source
     setItems((prev) =>
-      prev.map((p) =>
-        p.path === lightbox.path && p.entryId === lightbox.entryId
-          ? { ...p, caption: eff, manualCaption: manual }
-          : p,
-      ),
+      prev.map((p) => (same(p) ? { ...p, caption: eff, manualCaption: manual } : p)),
     )
     setLightbox((prev) => (prev ? { ...prev, caption: eff, manualCaption: manual } : prev))
     setSavingCaption(false)
@@ -303,9 +317,10 @@ export default function PhotoGalleryClient({
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {list.map((p) => {
                   const on = selected.has(p.path)
+                  const badge = SOURCE_CFG[p.source].label
                   return (
                     <button
-                      key={`${p.entryId}-${p.path}`}
+                      key={`${p.source}-${p.rowId}-${p.path}`}
                       onClick={() => onPhotoClick(p)}
                       className="group relative block text-left"
                       title={p.caption ?? p.headline ?? ''}
@@ -320,6 +335,11 @@ export default function PhotoGalleryClient({
                             : 'aspect-square w-full rounded-lg border border-line object-cover transition group-hover:opacity-80'
                         }
                       />
+                      {badge && (
+                        <span className="absolute left-1 top-1 rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                          {badge}
+                        </span>
+                      )}
                       {selecting && (
                         <span
                           className={
@@ -384,6 +404,9 @@ export default function PhotoGalleryClient({
                       ? ` · 촬영 ${lightbox.takenAt}`
                       : ''}
                     {lightbox.category ? ` · ${lightbox.category}` : ''}
+                    {lightbox.sourceTitle && SOURCE_CFG[lightbox.source].label
+                      ? ` · ${SOURCE_CFG[lightbox.source].label}: ${lightbox.sourceTitle}`
+                      : ''}
                   </p>
                   {canEditEntry(lightbox.ownerId, currentUserId) && (
                     <button

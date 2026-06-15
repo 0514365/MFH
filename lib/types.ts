@@ -34,6 +34,10 @@ export type Attachment = {
   name: string // 원본 파일명(표시용)
   mime: string // MIME 타입
   size: number // 바이트
+  // 캡션 — 이미지 첨부만(PDF 제외). 사진모음 표시·편지 재료에 사용. JournalPhoto 와 동일 패턴.
+  // ai_caption: 비전 루틴 생성 / caption: 사용자 수동 입력(표시·편지에서 우선, AI 재스캔이 덮지 않음).
+  ai_caption?: string | null
+  caption?: string | null
 }
 
 export const MAX_ATTACHMENTS = 10
