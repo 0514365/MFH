@@ -16,14 +16,14 @@ import {
 } from './_shared'
 
 // 정규화 후 타입(source 는 항상 string|null 로 채움). 입력 파싱은 normItems 가 unknown 으로 받아 처리.
-type SectionItem = { title: string; body: string; source: string | null }
+type SectionItem = { title: string; body: string; source: string | null; url: string | null }
 type Sections = {
   politics?: SectionItem[]
   economy?: SectionItem[]
   society?: SectionItem[]
   culture?: SectionItem[]
 }
-type Highlight = { tag: string; title: string; body: string; source: string | null }
+type Highlight = { tag: string; title: string; body: string; source: string | null; url: string | null }
 type Result = {
   news_date?: string
   sections?: Sections
@@ -44,7 +44,8 @@ function normItems(arr: unknown): SectionItem[] {
       const body = typeof o.body === 'string' ? o.body.trim() : ''
       if (!title && !body) return null
       const source = typeof o.source === 'string' && o.source.trim() ? o.source.trim() : null
-      return { title, body, source }
+      const url = typeof o.url === 'string' && o.url.trim() ? o.url.trim() : null
+      return { title, body, source, url }
     })
     .filter((x): x is SectionItem => x !== null)
 }
@@ -82,7 +83,8 @@ async function main() {
           const body = typeof o.body === 'string' ? o.body.trim() : ''
           if (!tag || (!title && !body)) return null
           const source = typeof o.source === 'string' && o.source.trim() ? o.source.trim() : null
-          return { tag, title, body, source }
+          const url = typeof o.url === 'string' && o.url.trim() ? o.url.trim() : null
+          return { tag, title, body, source, url }
         })
         .filter((x): x is Highlight => x !== null)
     : []

@@ -6,14 +6,14 @@
 // dateSuffix: 같은 날 여러 동향이면 " (N)" 넘버링. headerAction: 날짜 행 우측 끝 링크(지난 동향 등).
 import type { ReactNode } from 'react'
 
-export type SectionItem = { title?: string | null; body?: string | null; source?: string | null }
+export type SectionItem = { title?: string | null; body?: string | null; source?: string | null; url?: string | null }
 export type Sections = {
   politics?: SectionItem[]
   economy?: SectionItem[]
   society?: SectionItem[]
   culture?: SectionItem[]
 }
-export type Highlight = { tag?: string | null; title?: string | null; body?: string | null; source?: string | null }
+export type Highlight = { tag?: string | null; title?: string | null; body?: string | null; source?: string | null; url?: string | null }
 export type NewsRow = {
   id: string
   news_date: string
@@ -46,16 +46,57 @@ export function hasBriefingContent(row: NewsRow | null | undefined): row is News
   return hasSection || hasHighlight
 }
 
+// URL 에서 보기 좋은 도메인만(www. 제거). 파싱 실패 시 원문 반환.
+function hostOf(u: string): string {
+  try {
+    return new URL(u).hostname.replace(/^www\./, '')
+  } catch {
+    return u
+  }
+}
+
+// 출처 줄 — url(기사 링크)이 있거나 source 자체가 http 면 새 탭 링크, 아니면 텍스트.
+// 라벨: 사람이 읽는 매체명이면 그대로, URL 뿐이면 도메인으로 축약.
+function SourceLine({
+  source,
+  url,
+  className = 'mt-2',
+}: {
+  source?: string | null
+  url?: string | null
+  className?: string
+}) {
+  const s = (source ?? '').trim()
+  const u = (url ?? '').trim()
+  const href = u || (s.startsWith('http') ? s : '')
+  if (!s && !href) return null
+  const label = s && !s.startsWith('http') ? s : href ? hostOf(href) : s
+  if (href) {
+    return (
+      <p className={`${className} text-xs`}>
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-faint underline decoration-faint/40 underline-offset-2 transition-colors hover:text-primary"
+        >
+          출처 · {label} ↗
+        </a>
+      </p>
+    )
+  }
+  return <p className={`${className} text-xs text-faint`}>출처 · {s}</p>
+}
+
 function ItemBlock({ item }: { item: SectionItem }) {
   const title = (item.title ?? '').trim()
   const body = (item.body ?? '').trim()
-  const source = (item.source ?? '').trim()
   if (!title && !body) return null
   return (
     <div className="rounded-xl border border-line bg-surface p-4">
       {title && <p className="text-[17px] font-bold leading-snug text-ink">{title}</p>}
       {body && <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-muted">{body}</p>}
-      {source && <p className="mt-2 text-xs text-faint">출처 · {source}</p>}
+      <SourceLine source={item.source} url={item.url} />
     </div>
   )
 }
@@ -114,7 +155,7 @@ export default function BriefingView({
                 {(h.body ?? '').trim() && (
                   <p className="mt-1.5 whitespace-pre-wrap text-base leading-relaxed text-muted">{h.body!.trim()}</p>
                 )}
-                {(h.source ?? '').trim() && <p className="mt-1.5 text-xs text-faint">출처 · {h.source!.trim()}</p>}
+                <SourceLine source={h.source} url={h.url} className="mt-1.5" />
               </div>
             ))}
           </div>
