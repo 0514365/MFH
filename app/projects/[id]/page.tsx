@@ -8,7 +8,7 @@ import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import { normalizeStatus, statusV2Label, priorityLabel, IMPORTANCE_MAX } from '@/lib/constants'
 import { fmtDate } from '../badges'
 import { ProgressRing } from '../Progress'
-import TaskCheck from '../../tasks/TaskCheck'
+import ProjectTaskList from './ProjectTaskList'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
 import AttachmentList, { type AttItem } from '@/components/AttachmentList'
@@ -16,11 +16,12 @@ import DeleteButton from './DeleteButton'
 
 export const dynamic = 'force-dynamic'
 
-type ProjTask = { id: string; title: string; done: boolean; due_date: string | null }
-
-// 할 일 마감 짧은 표기: 'YYYY-MM-DD' → 'MM.DD'
-function fmtMD(d: string): string {
-  return d.slice(5).replace('-', '.')
+type ProjTask = {
+  id: string
+  title: string
+  done: boolean
+  due_date: string | null
+  sort_order: number | null
 }
 
 export default async function ProjectDetail(props: {
@@ -56,11 +57,11 @@ export default async function ProjectDetail(props: {
 
   const { data: taskRows } = await supabase
     .from('tasks')
-    .select('id, title, done, due_date')
+    .select('id, title, done, due_date, sort_order')
     .eq('project_id', params.id)
     .order('done', { ascending: true })
-    .order('due_date', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: false })
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
   const tlist = (taskRows ?? []) as ProjTask[]
   const total = tlist.length
   const done = tlist.filter((t) => t.done).length
@@ -243,31 +244,9 @@ export default async function ProjectDetail(props: {
           </div>
 
           {tlist.length > 0 ? (
-            <ul className="mt-5 flex flex-col gap-4">
-              {tlist.map((t) => (
-                <li key={t.id} className="flex items-center gap-3.5">
-                  <TaskCheck id={t.id} done={t.done} />
-                  <Link href={`/tasks/${t.id}/edit`} className="flex flex-1 items-center justify-between gap-4">
-                    <span
-                      className={`min-w-0 truncate text-[15px] font-light tracking-tight ${
-                        t.done ? 'text-faint line-through' : 'text-ink'
-                      }`}
-                    >
-                      {t.title}
-                    </span>
-                    {t.due_date && (
-                      <span
-                        className={`shrink-0 whitespace-nowrap font-display text-[11px] font-medium tracking-wide ${
-                          t.done ? 'text-faint' : 'text-muted'
-                        }`}
-                      >
-                        {fmtMD(t.due_date)}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-5">
+              <ProjectTaskList items={tlist} canReorder={canEdit} />
+            </div>
           ) : (
             <p className="mt-5 text-xs text-faint">‘+ 할 일 추가’로 이 프로젝트의 할 일을 만들어 보세요.</p>
           )}
