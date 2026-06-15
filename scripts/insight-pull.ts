@@ -1,5 +1,6 @@
-// MFH-INSIGHT-PULL-V1
+// MFH-INSIGHT-PULL-V2
 // Supabase(service role)에서 부부 공동 데이터를 읽어, Claude Code 가 분석할 "작업지시서"(Markdown)를 stdout 출력.
+// V2: 사진 캡션(일지 + 할 일·프로젝트 첨부 이미지, PDF 제외)을 "사진 기록(캡션)" 섹션으로 추가 — 텍스트 기반 인사이트에 시각 맥락 보탬.
 // 가드레일·도메인 관점·회수 양식은 lib(앱과 동일)에서 가져온다 → 중복 0.
 // 흐름:  insight-pull(이 스크립트) → Claude Code 분석(구독·가드레일 내장) → insight-push(DB upsert + 아카이브)
 // 사용:  npx tsx scripts/insight-pull.ts             (기본 90일, 6도메인)
@@ -22,6 +23,8 @@ import {
 } from '@/lib/insightExport'
 import { buildBundleInstruction, buildFewShot, type FewShotExample } from '@/lib/insightPrompt'
 import { IMPORT_FORMAT_GUIDE } from '@/lib/insightImport'
+import { isImageAttachment, taskAttachmentDate, projectAttachmentDate } from '@/lib/attachments'
+import type { Attachment, JournalPhoto } from '@/lib/types'
 import { loadEnv, createServiceClient } from './_shared'
 
 // 기본 생성 도메인(7) — balance(순수집계·무료)·비서 제외. --domains 로 덮어쓸 수 있다.
@@ -53,17 +56,17 @@ async function main() {
   // 데이터 조회(부부 공동). overall 한 장에 journal+project+task 모두 담겨 각 렌즈가 골라 본다.
   const { data: journals, error: jErr } = await sb
     .from('journal_entries')
-    .select('entry_date,category,headline,today,thanks,meditation,prayer,prayer_candidate,place_name')
+    .select('entry_date,category,headline,today,thanks,meditation,prayer,prayer_candidate,place_name,photos')
     .gte('entry_date', pStart)
     .lte('entry_date', pEnd)
     .order('entry_date', { ascending: true })
   const { data: projects, error: pErr } = await sb
     .from('projects')
-    .select('title,description,status,importance,start_date,due_date,category')
+    .select('title,description,status,importance,start_date,due_date,category,attachments,created_at')
     .order('due_date', { ascending: true })
   const { data: tasks, error: tErr } = await sb
     .from('tasks')
-    .select('title,description,status,done,importance,due_date,due_time,category')
+    .select('title,description,status,done,importance,due_date,due_time,category,attachments,completed_at,created_at')
     .order('due_date', { ascending: true })
 
   if (jErr || pErr || tErr) {
@@ -109,7 +112,45 @@ async function main() {
     )
   }
 
-  // 작업지시서 = 가드레일·도메인 관점·회수양식(lib) + few-shot + 분석 데이터 + 편지 재료 + 양식 가이드.
+  // 사진 캡션 모음 — 일지 + 할 일·프로젝트 첨부 이미지(PDF 제외). 같은 기간의 시각 기록 맥락.
+  type JPhotoRow = { entry_date: string | null; category: string | null; photos: JournalPhoto[] | null }
+  type AttRow = {
+    title: string | null
+    attachments: Attachment[] | null
+    due_date?: string | null
+    completed_at?: string | null
+    start_date?: string | null
+    created_at?: string | null
+  }
+  const captionLines: string[] = []
+  for (const j of (journals ?? []) as unknown as JPhotoRow[]) {
+    for (const ph of Array.isArray(j.photos) ? j.photos : []) {
+      const cap = (ph.caption ?? ph.ai_caption)?.trim()
+      if (cap) captionLines.push(`- (일지 ${j.entry_date ?? '?'}${j.category ? ` · ${j.category}` : ''}) ${cap}`)
+    }
+  }
+  const addAttCaptions = (rows: AttRow[], dateFn: (r: AttRow) => string | null, label: string) => {
+    for (const r of rows) {
+      const d = dateFn(r)
+      if (!d || d < pStart || d > pEnd) continue
+      for (const a of r.attachments ?? []) {
+        if (!isImageAttachment(a)) continue
+        const cap = (a.caption ?? a.ai_caption)?.trim()
+        if (cap) captionLines.push(`- (${label}${r.title ? ` · ${r.title}` : ''}) ${cap}`)
+      }
+    }
+  }
+  addAttCaptions((tasks ?? []) as unknown as AttRow[], taskAttachmentDate, '할 일 첨부')
+  addAttCaptions((projects ?? []) as unknown as AttRow[], projectAttachmentDate, '프로젝트 첨부')
+  const captionBlock = captionLines.length
+    ? [
+        '═══════════════════════ 사진 기록(캡션) ═══════════════════════',
+        '아래는 같은 기간 사진에 달린 캡션입니다(인물·개인정보 제외). 활동의 분위기·현장 맥락 참고용입니다.',
+        ...captionLines,
+      ].join('\n')
+    : ''
+
+  // 작업지시서 = 가드레일·도메인 관점·회수양식(lib) + few-shot + 분석 데이터 + 사진 캡션 + 편지 재료 + 양식 가이드.
   const out = [
     buildBundleInstruction(domains),
     fewShot,
@@ -119,6 +160,8 @@ async function main() {
     '═══════════════════════ 분석 데이터 ═══════════════════════',
     buildDataMarkdown(data),
     '',
+    captionBlock,
+    '',
     letterDigest,
     '',
     IMPORT_FORMAT_GUIDE,
@@ -126,7 +169,7 @@ async function main() {
 
   process.stdout.write(out + '\n')
   console.error(
-    `[insight-pull] ${pStart}~${pEnd} · 도메인 [${domains.join(', ')}] · 일지 ${journals?.length ?? 0} · 프로젝트 ${projects?.length ?? 0} · 할일 ${tasks?.length ?? 0} · few-shot ${liked?.length ?? 0} → stdout`,
+    `[insight-pull] ${pStart}~${pEnd} · 도메인 [${domains.join(', ')}] · 일지 ${journals?.length ?? 0} · 프로젝트 ${projects?.length ?? 0} · 할일 ${tasks?.length ?? 0} · 사진캡션 ${captionLines.length} · few-shot ${liked?.length ?? 0} → stdout`,
   )
 }
 

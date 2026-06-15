@@ -1,5 +1,6 @@
-// MFH-FETCH-LETTER-MATERIALS-V5
-// 그달(또는 기간) 일지(다중사진)+인사이트를 Supabase에서 직접 받아 letter-templates/issues/<발행호>/ 에 저장.
+// MFH-FETCH-LETTER-MATERIALS-V6
+// 그달(또는 기간) 일지(다중사진)+할 일·프로젝트 첨부 이미지+인사이트를 Supabase에서 직접 받아 letter-templates/issues/<발행호>/ 에 저장.
+// V6 변경: 할 일·프로젝트 첨부 이미지(PDF 제외)도 기간 귀속분을 다운로드 + 캡션 표기 → 편지 재료에 사역 외 첨부 사진 반영.
 // V5 변경: 사진 줄에 저장 캡션(수동 caption ?? AI ai_caption) 포함 → 우진이 손으로 단 캡션이 편지 재료에 반영.
 // V4 변경: 기간 범위 수집 — 시작월~종료월의 일지·인사이트를 한 호로 묶음. 출력 폴더 = 종료월(발행호).
 //          (지난달 활동을 이번 호에 담는 실운영 패턴 대응. 단일월 인자는 기존과 동일하게 동작.)
@@ -56,6 +57,16 @@ function photoItems(r) {
   }
   return r.photo_path ? [{ path: r.photo_path, caption: null }] : []
 }
+
+// 할 일·프로젝트 첨부 이미지 판별·월 귀속 — lib/attachments.ts 와 동일 규칙(.mjs 라 인라인 복제).
+function isImageAttachment(a) {
+  if (!a || a.mime === 'application/pdf') return false
+  return String(a.mime || '').startsWith('image/') || /\.(png|jpe?g|gif|webp|heic|heif|bmp)$/i.test(a.name || '')
+}
+const toDateStr = (v) => (v ? String(v).slice(0, 10) : null)
+// 첨부엔 촬영일이 없어 출처 행 날짜로 귀속: task=마감→완료→생성 / project=마감→시작→생성.
+const taskAttDate = (t) => toDateStr(t.due_date) ?? toDateStr(t.completed_at) ?? toDateStr(t.created_at)
+const projectAttDate = (p) => toDateStr(p.due_date) ?? toDateStr(p.start_date) ?? toDateStr(p.created_at)
 
 const arg = process.argv[2]
 
@@ -156,6 +167,41 @@ for (const r of rows) {
   md += '\n'
 }
 
+// ── 할 일·프로젝트 첨부 이미지(PDF 제외) — 기간 귀속분 다운로드 + 캡션 ──
+// 첨부엔 촬영일이 없어 출처 행 날짜로 귀속(일지 사진과 분리된 섹션으로 표기).
+let attCount = 0
+async function collectAttachments(table, dateFn, fnameLabel, dispLabel) {
+  const dateCols = table === 'tasks' ? 'due_date,completed_at,created_at' : 'due_date,start_date,created_at'
+  const { data, error: e } = await sb
+    .from(table)
+    .select(`id,title,category,attachments,${dateCols}`)
+    .not('attachments', 'is', null)
+  if (e || !data) return ''
+  let out = ''
+  for (const row of data) {
+    const d = dateFn(row)
+    if (!d || d < start || d > end) continue
+    for (const a of row.attachments ?? []) {
+      if (!a?.path || !isImageAttachment(a)) continue
+      const ext = (a.path.split('.').pop() || 'jpg').toLowerCase()
+      const fname = `${fnameLabel}-${d}-${String(++attCount).padStart(2, '0')}.${ext}`
+      const { data: blob, error: dlErr } = await sb.storage.from('attachments').download(a.path)
+      if (dlErr || !blob) continue
+      writeFileSync(new URL(`photos/${fname}`, outDir), Buffer.from(await blob.arrayBuffer()))
+      const capText = a.caption ?? a.ai_caption
+      const cap = capText ? ` — 캡션: ${String(capText).trim()}` : ''
+      out += `- 사진: photos/${fname} (${dispLabel}: ${dash(row.title)})${cap}\n`
+    }
+  }
+  return out
+}
+const taskAtt = await collectAttachments('tasks', taskAttDate, 'task', '할 일')
+const projAtt = await collectAttachments('projects', projectAttDate, 'project', '프로젝트')
+if (taskAtt || projAtt) {
+  md += '## 할 일·프로젝트 첨부 사진 (이미지만 · PDF 제외)\n'
+  md += taskAtt + projAtt + '\n'
+}
+
 // ── 인사이트 수집 — 피드백 신호(★별점·[메모]·[편지에담기]) 우선 ──
 // in_letter=true 전부 + rating>=4 전부(월 무관) + 대상 월 생성분.
 // letter 도메인(앱이 만든 편지 방향 추천)도 포함 — strategist 출발점이므로 제외하지 않는다.
@@ -217,5 +263,5 @@ writeFileSync(new URL('materials.md', outDir), md)
 const interCount = Object.keys(interMap).length
 const doneLabel = startMonth === endMonth ? month : `${startMonth}~${endMonth} → ${month}호`
 console.log(
-  `완료: ${doneLabel} · 일지 ${rows.length}건 · 사진 ${photoCount}장 · 인사이트 ${insCount}건${scrapCount ? ` · 보관 ${scrapCount}건` : ''}${interCount ? ` · 중보연계 ${interCount}건` : ''} → letter-templates/issues/${month}/ (materials.md + photos/)`,
+  `완료: ${doneLabel} · 일지 ${rows.length}건 · 사진 ${photoCount}장${attCount ? ` · 첨부사진 ${attCount}장` : ''} · 인사이트 ${insCount}건${scrapCount ? ` · 보관 ${scrapCount}건` : ''}${interCount ? ` · 중보연계 ${interCount}건` : ''} → letter-templates/issues/${month}/ (materials.md + photos/)`,
 )
