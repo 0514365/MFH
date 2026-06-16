@@ -1,11 +1,11 @@
-// MFH-INSIGHT-CONTENT-V2
+// MFH-INSIGHT-CONTENT-V3
 // 인사이트·비서 본문 표시 포매터 — 기존 raw whitespace-pre-wrap 출력을 대체.
 //  · 내용(텍스트)은 바꾸지 않고 "표시만" 정리한다 → 기존 저장분에도 즉시 적용.
 //  · 공통: **볼드** → 볼드(기호 제거), 【…부…】 줄 → 볼드 제목.
 //  · 줄 전체가 **…** 인 경우 → 소제목(타이틀 스타일: 살짝 큰 글씨·위 여백)으로 본문과 구분.
 //  · 비서(project_assist·task_assist) 마무리 줄(**라벨** · 본문) → 흰 박스 + accent 칩으로 한 번 더 강조.
 //  · 기도제목 라벨(사역/가정/나라) → '나라'는 '온두라스'로, 순서는 온두라스→사역→가정으로 재정렬.
-//    prayer 는 라벨 칩 + 본문 아래 줄, 그 외 도메인은 라벨 볼드(대시 불릿 흐름 유지).
+//    prayer 는 라벨 칩 + 본문 아래 줄, 그 외 도메인은 흰 박스 + accent '기도제목' 칩으로 음영 강조(비서 "이번 주 우선"과 동일 톤). 중복 "기도제목" 제목 줄은 생략.
 //  · fruit 는 '6월 9일,' 같은 앞머리 날짜를 볼드로 띄우고 내용은 다음 줄에.
 import type { ReactNode } from 'react'
 import type { InsightDomain } from '@/lib/insightExport'
@@ -87,16 +87,22 @@ export default function InsightContent({
           </div>,
         )
       } else {
+        // 비서 "이번 주 우선"과 동일 톤: 흰 박스 + accent 칩으로 기도제목을 음영 강조
         blocks.push(
-          <ul key={key++} className="space-y-1.5">
-            {ordered.map((it, j) => (
-              <li key={j}>
-                <strong className="font-semibold text-ink">{it.label}</strong>
-                <span className="text-faint"> · </span>
-                {renderInline(it.body, key * 100 + j)}
-              </li>
-            ))}
-          </ul>,
+          <div key={key++} className="mt-3 rounded-xl bg-white px-3.5 py-3">
+            <span className="inline-block rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-on-accent">
+              기도제목
+            </span>
+            <ul className="mt-2 space-y-1.5">
+              {ordered.map((it, j) => (
+                <li key={j}>
+                  <strong className="font-semibold text-ink">{it.label}</strong>
+                  <span className="text-faint"> · </span>
+                  {renderInline(it.body, key * 100 + j)}
+                </li>
+              ))}
+            </ul>
+          </div>,
         )
       }
       continue
@@ -133,8 +139,27 @@ export default function InsightContent({
       continue
     }
 
-    // 4) 【…부…】(부제가 뒤따라도) / "기도제목" 제목 줄 → 볼드
-    if (/^【[^】]*】/.test(trimmed) || /^기도제목:?$/.test(trimmed)) {
+    // 4a) "기도제목" 제목 줄 → 비-prayer 도메인은 아래 기도제목 박스의 칩이 대신 표시 → 제목 줄 생략
+    if (/^기도제목:?$/.test(trimmed)) {
+      if (domain !== 'prayer') {
+        let j = i + 1
+        while (j < lines.length && !lines[j].trim()) j++
+        if (j < lines.length && matchPrayer(lines[j])) {
+          i = j
+          continue
+        }
+      }
+      blocks.push(
+        <p key={key++} className="font-semibold text-ink">
+          {trimmed}
+        </p>,
+      )
+      i++
+      continue
+    }
+
+    // 4b) 【…부…】(부제가 뒤따라도) 제목 줄 → 볼드
+    if (/^【[^】]*】/.test(trimmed)) {
       blocks.push(
         <p key={key++} className="font-semibold text-ink">
           {trimmed}
