@@ -90,6 +90,21 @@ BRAND DIRECTION (a starting point — you MAY evolve it)
   language to create genuinely different design moods — as long as it stays warm, legible, on-brand
   in spirit, and Korean-first.
 
+MOBILE LAYOUT PRINCIPLES (read page-by-page on a phone)
+- ONE TOPIC PER SCREEN: each topic (greeting · Honduras · each ministry item · family) reads as its
+  own page — clear boundaries, not one long undifferentiated scroll. Think in "pages" even within a
+  vertical scroll (full-height sections / scroll-snap).
+- PHOTOS LEAD: photos are more prominent than text — large, full-bleed where it fits. The image
+  carries the page; text supports it. (Ministry photos still shown fully, never text over them.)
+- SPLIT WHEN PHOTO-HEAVY: a topic with many photos splits across TWO pages (photos on one, the
+  report + prayer on the next) rather than cramming one page.
+- NO EMPTY TOPICS: every topic gets at least one photo; a text-only topic is a cue to REQUEST an
+  additional photo, not to fill the page with type.
+- FONT SCALE (readability — KEEP this scale even when the visual design changes): Korean supporters
+  read on a phone, so err large. Body ~18px / line-height ~1.7; section heading 26–30px bold; subtitle
+  ~17px; prayer label 18–20px and prayer items ~17px; caption ~12.5px (one line); cover title 40px+.
+  (Confirmed on a real device, 2026-06.)
+
 DESIGN FREEDOM (this is yours)
 - Own the color system, type scale, spacing rhythm, section dividers, photo framing, decorative
   details, and overall mood. Make it feel designed, not templated.

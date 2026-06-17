@@ -9,8 +9,8 @@
     },
     {
       "name": "letter-static",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "letter-templates"],
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/wbook_m1/Library/CloudStorage/Dropbox-개인용/MFH/scripts/static-server.mjs"],
       "port": 8765
     }
   ]
