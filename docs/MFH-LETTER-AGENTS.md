@@ -143,14 +143,18 @@ letter-templates/issues/<YYYY-MM>/
 | 로고·표지 | `letter-templates/assets/` |
 | 자동 수집 스크립트 | `scripts/fetch-letter-materials.mjs` V3 — 다중사진+인사이트(피드백 4신호 ★별점·[편지에담기]·[메모])+보관([보관])+중보 (`.env.local` SERVICE_ROLE_KEY) |
 | 앱 수집(보조) | `/letter-materials` (insights 페이지 진입) |
-| 5월 시연물(품질 기준선) | `letter-templates/issues/2026-05/` |
+| 품질 기준선(모바일+카드뉴스) | `letter-templates/issues/2026-06/` — `letter-mobile.html`·`letter-cardnews.html`·`MFH-2606-cardnews.pdf` (2026-06 리허설 확정본, 참고용 보존) |
+| 모바일 Variant 프롬프트 | `letter-templates/mobile-variant-prompts.md` |
 
 ---
 
 ## 8. 매달 가동 절차 (런북)
 
 ```
-0. 대상 호수 + **자료 기준 기간** 확정 (예: 2026-06, MFH #2606 / 기간 미지시면 collector 가 직전 호 기준을 참고로 역질문해 확정)
+0. **가동 — 디자인 선행 · 수집 병행**: 우진이 "○월호 만들어줘"라고 하면, 팀장은 **두 갈래를 동시에** 연다 —
+   - ① **Variant 모바일 디자인 프롬프트를 먼저 제시.** 우진이 variant.ai 에서 **다양한 컬러·레이아웃의 모바일 편지 시안**을 탐색해 그달의 **큰 디자인 방향을 먼저 결정**하도록, 팀장이 그 프롬프트를 작성해 건넨다(구조·정신·폰트 스케일·도메인 규칙은 `mobile-variant-prompts.md` 기준, 컬러·레이아웃 다양성은 Variant 몫).
+   - ② **collector 착수(병행).** 우진이 디자인을 탐색하는 동안 팀장은 collector를 호출해 자료수집을 진행한다. 대상 호수·**자료 기준 기간**도 이때 확정(미지시면 collector 가 직전 호 기준으로 역질문).
+   - ※ 주제 선정(strategist)은 이 디자인 탐색·수집 **다음**이다. 디자인은 주제와 독립적으로 먼저 큰 틀을 잡아 둔다.
 1. collector  → materials·photos·photo-index         ▶ 검토 (누락자료 보완)
 2. strategist → **주제 후보 2~3** → **기조문**(도입·강조점) → **개요문**(사실 골자·사진·기도)  ▶ **주제 선정 → 기조문 승인 → 개요문 승인**
 3. writer     → manuscript·image-map (완성 초안)       ▶ **본문 전문(축약 없이) 한 문장씩 검토·수정 → 전체 확정 후 designer**
