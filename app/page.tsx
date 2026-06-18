@@ -8,6 +8,7 @@ import SignOutButton from '@/components/SignOutButton'
 import type { YearTheme } from '@/lib/types'
 import type { Highlight } from './honduras/BriefingView'
 import { projectSignals, taskSignals, type Signal, type SignalKind } from '@/lib/signals'
+import pkg from '../package.json'
 
 export const dynamic = 'force-dynamic'
 
@@ -378,10 +379,10 @@ export default async function Home() {
         </div>
 
         {/* 마일스톤 (자매앱 WorshipFlow·Brew Journal 형식).
-            v2.0 = 현재 버전. 2026.5.29 13:49 = "the First Chapter" — 최초 공개 배포 마일스톤. */}
+            버전 = package.json 의 version 을 그대로 자동 표기(SoT). 2026.5.29 13:49 = "the First Chapter" — 최초 공개 배포 마일스톤. */}
         <footer className="mt-8 text-center">
           <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-faint">
-            v 2.0 · 2026
+            v {pkg.version} · 2026
           </p>
           <p className="mt-1 text-[11px] italic tracking-wide text-faint">
             the First Chapter · 2026. 5. 29. 13:49
