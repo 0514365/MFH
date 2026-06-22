@@ -99,23 +99,35 @@ export default async function JournalDetail(props: {
   const nav = computeListNav(orderedIds, params.id)
   const navQuery = searchParamsToQuery(searchParams)
 
-  // photos(우선) 또는 레거시 단일 → 각 사진 서명 URL(1시간). 사진별 장소·좌표는 대표 상속.
+  // photos(우선) 또는 레거시 단일 → 원본+썸네일을 한 번에 서명(1시간). 사진별 장소·좌표는 대표 상속.
   const resolved = resolveJournalPhotos(entry)
-  const collage: CollagePhoto[] = []
-  for (const p of resolved) {
+  const detailPaths = Array.from(
+    new Set(resolved.flatMap((p) => (p.thumb_path ? [p.path, p.thumb_path] : [p.path]))),
+  )
+  const urlByPath: Record<string, string> = {}
+  if (detailPaths.length > 0) {
     const { data: signed } = await supabase.storage
       .from('journal-photos')
-      .createSignedUrl(p.path, 3600)
-    if (signed?.signedUrl) {
-      collage.push({
-        url: signed.signedUrl,
+      .createSignedUrls(detailPaths, 3600)
+    for (const s of signed ?? []) {
+      if (s.signedUrl && s.path) urlByPath[s.path] = s.signedUrl
+    }
+  }
+  const collage: CollagePhoto[] = resolved.flatMap((p) => {
+    const url = urlByPath[p.path]
+    if (!url) return []
+    const thumb_url = p.thumb_path ? (urlByPath[p.thumb_path] ?? url) : url
+    return [
+      {
+        url,
+        thumb_url,
         place_name: p.place_name,
         taken_at: p.taken_at ? p.taken_at.slice(0, 10) : null,
         lat: p.lat,
         lng: p.lng,
-      })
-    }
-  }
+      },
+    ]
+  })
 
   return (
     <main className="mx-auto max-w-md pb-10">

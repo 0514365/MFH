@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from 'react'
 
 export type CollagePhoto = {
   url: string
+  // 콜라주 셀·목록용 썸네일(없으면 url 폴백). 라이트박스(확대)는 항상 url=원본.
+  thumb_url?: string | null
   place_name: string | null
   taken_at: string | null
   lat: number | null
@@ -31,8 +33,10 @@ function Cell({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={p.url}
+        src={p.thumb_url || p.url}
         alt={p.place_name ?? ''}
+        loading="lazy"
+        decoding="async"
         className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
       />
       {p.place_name && (

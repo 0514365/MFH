@@ -38,7 +38,14 @@ export default async function JournalPage() {
 
   // 카드 사진 미리보기 — 모든 일지 사진 경로를 한 번에 서명 URL(1시간)로 변환.
   const resolvedByEntry = entries.map((e) => ({ id: e.id, list: resolveJournalPhotos(e) }))
-  const allPaths = Array.from(new Set(resolvedByEntry.flatMap((r) => r.list.map((p) => p.path))))
+  // 원본 + 썸네일 경로를 한 번에 서명. 목록 셀은 썸네일을, 라이트박스(클릭)는 원본을 로드.
+  const allPaths = Array.from(
+    new Set(
+      resolvedByEntry.flatMap((r) =>
+        r.list.flatMap((p) => (p.thumb_path ? [p.path, p.thumb_path] : [p.path])),
+      ),
+    ),
+  )
   const urlByPath: Record<string, string> = {}
   if (allPaths.length > 0) {
     const { data: signed } = await supabase.storage
@@ -52,9 +59,18 @@ export default async function JournalPage() {
   for (const r of resolvedByEntry) {
     const cs = r.list.flatMap((p) => {
       const url = urlByPath[p.path]
-      return url
-        ? [{ url, place_name: p.place_name, taken_at: p.taken_at ? p.taken_at.slice(0, 10) : null, lat: p.lat, lng: p.lng }]
-        : []
+      if (!url) return []
+      const thumb_url = p.thumb_path ? (urlByPath[p.thumb_path] ?? url) : url
+      return [
+        {
+          url,
+          thumb_url,
+          place_name: p.place_name,
+          taken_at: p.taken_at ? p.taken_at.slice(0, 10) : null,
+          lat: p.lat,
+          lng: p.lng,
+        },
+      ]
     })
     if (cs.length > 0) photoMap[r.id] = cs
   }

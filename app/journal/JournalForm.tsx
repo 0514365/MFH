@@ -24,6 +24,7 @@ function todayStr() {
 // 편집 진입 시 서버가 채워 주는 기존 사진(서명 URL 포함).
 export type InitialPhoto = {
   path: string
+  thumb_path?: string | null
   url: string
   place_name: string | null
   taken_at: string | null
@@ -45,6 +46,7 @@ type Props = {
 type PhotoSlot = {
   key: string
   path?: string // 기존 저장 경로(편집). 새 파일은 업로드 후 채워짐.
+  thumb_path?: string | null // 썸네일 경로(편집 시 보존 / 새 파일은 업로드 후 채워짐).
   url: string // 미리보기(서명 URL 또는 ObjectURL)
   isObjectUrl: boolean
   file?: File
@@ -90,6 +92,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
     (initialPhotos ?? []).map((p) => ({
       key: newSlotKey(),
       path: p.path,
+      thumb_path: p.thumb_path ?? null,
       url: p.url,
       isObjectUrl: false,
       placeName: p.place_name ?? '',
@@ -343,8 +346,8 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
       finalSlots = []
       for (const s of photos) {
         if (s.file && !s.path) {
-          const path = await uploadJournalPhoto(supabase, user.id, s.file)
-          finalSlots.push({ ...s, path })
+          const { path, thumb_path } = await uploadJournalPhoto(supabase, user.id, s.file)
+          finalSlots.push({ ...s, path, thumb_path })
         } else {
           finalSlots.push(s)
         }
@@ -359,6 +362,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
       .filter((s) => s.path)
       .map((s, i) => ({
         path: s.path as string,
+        thumb_path: s.thumb_path ?? null,
         // 첫 사진(대표)은 대표 장소칸을, 나머지는 사진별 입력값을 사용.
         place_name: (i === 0 ? placeName.trim() : s.placeName.trim()) || null,
         // 첫 사진은 대표 촬영일(일지 날짜 연동)을 우선 사용.
@@ -419,16 +423,29 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
       resultId = (data as { id: string }).id
     }
 
-    // 제거된 기존 사진 Storage 정리 — 최종 photos 에 없는 경로만.
+    // 제거된 기존 사진 Storage 정리 — 최종 photos 에 없는 경로만(원본 + 그 썸네일).
     const finalPaths = new Set(photosPayload.map((p) => p.path))
     const toRemove = removedPaths.filter((p) => !finalPaths.has(p))
     const legacyPath = initial?.photo_path
     if (legacyPath && !finalPaths.has(legacyPath) && !toRemove.includes(legacyPath)) {
       toRemove.push(legacyPath)
     }
-    if (toRemove.length) {
+    // 제거 대상 원본의 썸네일도 함께 삭제(편집 진입 시점의 initialPhotos 기준).
+    const thumbByOrig = new Map(
+      (initialPhotos ?? [])
+        .filter((ip) => ip.thumb_path)
+        .map((ip) => [ip.path, ip.thumb_path as string]),
+    )
+    const allToRemove = [
+      ...toRemove,
+      ...toRemove.flatMap((p) => {
+        const t = thumbByOrig.get(p)
+        return t ? [t] : []
+      }),
+    ]
+    if (allToRemove.length) {
       try {
-        await supabase.storage.from('journal-photos').remove(toRemove)
+        await supabase.storage.from('journal-photos').remove(allToRemove)
       } catch {
         // 이전 사진 삭제 실패는 무시
       }

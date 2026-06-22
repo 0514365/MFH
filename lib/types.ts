@@ -14,6 +14,9 @@ export type YearTheme = {
 // place_name 이 비면 일지 레벨 대표 place_name 을 상속(공통 기본).
 export type JournalPhoto = {
   path: string
+  // 목록·갤러리 표시용 축소 썸네일 경로. 있으면 목록은 이것을, 원본(path)은 클릭(라이트박스) 시 로드.
+  // 레거시 사진·썸네일 생성 전에는 없음(없으면 원본으로 폴백).
+  thumb_path?: string | null
   place_name?: string | null
   taken_at?: string | null
   lat?: number | null

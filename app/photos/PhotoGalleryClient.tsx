@@ -28,6 +28,8 @@ type Captionable = { path?: string; caption?: string | null; ai_caption?: string
 
 export type PhotoItem = {
   url: string
+  // 그리드용 썸네일(없으면 url). 라이트박스·ZIP 은 url=원본.
+  thumbUrl: string
   path: string
   date: string | null
   category: string | null
@@ -327,8 +329,10 @@ export default function PhotoGalleryClient({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={p.url}
+                        src={p.thumbUrl}
                         alt={p.caption ?? ''}
+                        loading="lazy"
+                        decoding="async"
                         className={
                           on
                             ? 'aspect-square w-full rounded-lg border-2 border-primary object-cover'

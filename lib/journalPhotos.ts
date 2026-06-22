@@ -8,6 +8,8 @@ type PhotoSource = Pick<
 
 export type ResolvedPhoto = {
   path: string
+  // 목록·갤러리용 축소 썸네일 경로(없으면 목록은 원본으로 폴백).
+  thumb_path: string | null
   place_name: string | null
   taken_at: string | null
   lat: number | null
@@ -25,6 +27,7 @@ function rawList(entry: PhotoSource): ResolvedPhoto[] {
       .filter((p): p is JournalPhoto => Boolean(p && p.path))
       .map((p) => ({
         path: p.path,
+        thumb_path: p.thumb_path ?? null,
         place_name: p.place_name ?? null,
         taken_at: p.taken_at ?? null,
         lat: p.lat ?? null,
@@ -38,6 +41,7 @@ function rawList(entry: PhotoSource): ResolvedPhoto[] {
     return [
       {
         path: entry.photo_path,
+        thumb_path: null,
         place_name: entry.place_name ?? null,
         taken_at: entry.photo_taken_at ?? null,
         lat: entry.photo_lat ?? null,
@@ -66,11 +70,14 @@ export function resolveJournalPhotos(entry: PhotoSource): ResolvedPhoto[] {
   }))
 }
 
-// 일지의 모든 사진 경로(중복 제거) — Storage 일괄 삭제용.
+// 일지의 모든 사진 경로(중복 제거) — Storage 일괄 삭제용. 원본 + 썸네일 둘 다 포함.
 export function collectPhotoPaths(entry: Pick<JournalEntry, 'photos' | 'photo_path'>): string[] {
   const set = new Set<string>()
   if (Array.isArray(entry.photos)) {
-    for (const p of entry.photos) if (p?.path) set.add(p.path)
+    for (const p of entry.photos) {
+      if (p?.path) set.add(p.path)
+      if (p?.thumb_path) set.add(p.thumb_path)
+    }
   }
   if (entry.photo_path) set.add(entry.photo_path)
   return Array.from(set)

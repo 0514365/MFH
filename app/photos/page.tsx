@@ -3,7 +3,7 @@
 // 캡션(ai_caption)은 Phase 3 Local 루틴이 비전 분석으로 생성. 텍스트·편지 재료 없음(Phase 1 폐기).
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { resolveJournalPhotos } from '@/lib/journalPhotos'
+import { resolveJournalPhotos, type ResolvedPhoto } from '@/lib/journalPhotos'
 import { isImageAttachment, taskAttachmentDate, projectAttachmentDate } from '@/lib/attachments'
 import type { JournalPhoto, Attachment } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
@@ -61,33 +61,46 @@ export default async function PhotosPage(props: {
     .order('entry_date', { ascending: true })
   const rows = (data ?? []) as JRow[]
 
-  // 사진 — 일지별 사진(다중) 각각 Signed URL 생성(1시간 만료). photos 우선·레거시 단일 fallback.
+  // 사진 — 일지별 사진(다중)의 원본+썸네일 경로를 한 번에 Signed URL(1시간). photos 우선·레거시 단일 fallback.
+  // 그리드는 thumbUrl(썸네일), 라이트박스·ZIP 은 url(원본)을 쓴다.
   const photos: PhotoItem[] = []
+  const flatJ: { ph: ResolvedPhoto; r: JRow }[] = []
   for (const r of rows) {
-    const resolved = resolveJournalPhotos(r)
-    for (const ph of resolved) {
-      const { data: signed } = await supabase.storage
-        .from('journal-photos')
-        .createSignedUrl(ph.path, 3600)
-      if (signed?.signedUrl) {
-        photos.push({
-          url: signed.signedUrl,
-          path: ph.path,
-          date: r.entry_date,
-          category: r.category,
-          headline: r.headline,
-          takenAt: ph.taken_at ? ph.taken_at.slice(0, 10) : null,
-          // 표시 캡션 = 수동 우선 → AI. 편집은 수동(manualCaption)만 다룬다.
-          caption: ph.caption ?? ph.ai_caption,
-          manualCaption: ph.caption,
-          aiCaption: ph.ai_caption,
-          source: 'journal',
-          rowId: r.id,
-          sourceTitle: null,
-          ownerId: r.user_id,
-        })
-      }
+    for (const ph of resolveJournalPhotos(r)) flatJ.push({ ph, r })
+  }
+  const jPaths = Array.from(
+    new Set(flatJ.flatMap(({ ph }) => (ph.thumb_path ? [ph.path, ph.thumb_path] : [ph.path]))),
+  )
+  const jUrl: Record<string, string> = {}
+  if (jPaths.length > 0) {
+    const { data: signed } = await supabase.storage
+      .from('journal-photos')
+      .createSignedUrls(jPaths, 3600)
+    for (const s of signed ?? []) {
+      if (s.signedUrl && s.path) jUrl[s.path] = s.signedUrl
     }
+  }
+  for (const { ph, r } of flatJ) {
+    const url = jUrl[ph.path]
+    if (!url) continue
+    const thumbUrl = ph.thumb_path ? (jUrl[ph.thumb_path] ?? url) : url
+    photos.push({
+      url,
+      thumbUrl,
+      path: ph.path,
+      date: r.entry_date,
+      category: r.category,
+      headline: r.headline,
+      takenAt: ph.taken_at ? ph.taken_at.slice(0, 10) : null,
+      // 표시 캡션 = 수동 우선 → AI. 편집은 수동(manualCaption)만 다룬다.
+      caption: ph.caption ?? ph.ai_caption,
+      manualCaption: ph.caption,
+      aiCaption: ph.ai_caption,
+      source: 'journal',
+      rowId: r.id,
+      sourceTitle: null,
+      ownerId: r.user_id,
+    })
   }
 
   // 할 일·프로젝트 첨부 이미지(PDF·기타 제외) — 같은 달에 귀속되는 것만 사진모음에 합류.
@@ -134,6 +147,7 @@ export default async function PhotosPage(props: {
       const { att, row, date } = flat[i]
       photos.push({
         url: s.signedUrl,
+        thumbUrl: s.signedUrl,
         path: att.path,
         date,
         category: row.category,
