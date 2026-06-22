@@ -12,6 +12,7 @@ import JSZip from 'jszip'
 import { JOURNAL_CATEGORIES } from '@/lib/constants'
 import { createClient } from '@/lib/supabase-browser'
 import { canEditEntry } from '@/lib/members'
+import { downloadFile, filenameFromPathOrUrl } from '@/lib/download'
 
 // 사진 출처 — 일지 / 할 일 / 프로젝트. 캡션 저장 시 갱신할 테이블·컬럼을 가른다.
 export type PhotoSource = 'journal' | 'task' | 'project'
@@ -63,6 +64,7 @@ export default function PhotoGalleryClient({
   const [selecting, setSelecting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [lightbox, setLightbox] = useState<PhotoItem | null>(null)
+  const [downloadingOrig, setDownloadingOrig] = useState(false)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   // 서버에서 받은 사진의 로컬 사본 — 캡션 편집을 즉시 반영(월 이동 시 prop 동기화).
@@ -114,6 +116,17 @@ export default function PhotoGalleryClient({
     setLightbox(null)
     setEditingCaption(false)
     setCaptionMsg('')
+  }
+
+  // 라이트박스의 원본을 기기에 저장(목록은 썸네일이라 원본 url 로 받는다).
+  async function onDownloadOriginal() {
+    if (!lightbox) return
+    setDownloadingOrig(true)
+    try {
+      await downloadFile(lightbox.url, filenameFromPathOrUrl(lightbox.path))
+    } finally {
+      setDownloadingOrig(false)
+    }
   }
 
   // 사진 탭 — 선택 모드면 토글, 아니면 라이트박스로 크게 보기.
@@ -386,6 +399,14 @@ export default function PhotoGalleryClient({
               alt={lightbox.caption ?? ''}
               className="mx-auto max-h-[70vh] w-auto rounded-lg object-contain"
             />
+            <button
+              onClick={onDownloadOriginal}
+              disabled={downloadingOrig}
+              className="absolute left-2 top-2 rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+              aria-label="원본 저장"
+            >
+              {downloadingOrig ? '저장 중…' : '원본 저장'}
+            </button>
             <button
               onClick={closeLightbox}
               className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white"

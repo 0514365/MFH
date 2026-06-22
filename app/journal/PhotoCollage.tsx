@@ -3,6 +3,7 @@
 // MFH-JOURNAL-PHOTO-COLLAGE-V1
 // 일지 사진 콜라주(1~5장) + 클릭 확대 라이트박스(좌우 이동·키보드·스와이프).
 import { useCallback, useEffect, useState } from 'react'
+import { downloadFile, filenameFromPathOrUrl } from '@/lib/download'
 
 export type CollagePhoto = {
   url: string
@@ -51,6 +52,7 @@ function Cell({
 export default function PhotoCollage({ photos }: { photos: CollagePhoto[] }) {
   const [open, setOpen] = useState<number | null>(null)
   const [touchX, setTouchX] = useState<number | null>(null)
+  const [downloading, setDownloading] = useState(false)
   const n = photos.length
 
   const close = useCallback(() => setOpen(null), [])
@@ -80,6 +82,16 @@ export default function PhotoCollage({ photos }: { photos: CollagePhoto[] }) {
   const onOpen = (i: number) => setOpen(i)
   const cellProps = (i: number, aspect: string) => ({ p: photos[i], i, aspect, onOpen })
   const cur = open != null ? photos[open] : null
+
+  async function onDownload() {
+    if (!cur) return
+    setDownloading(true)
+    try {
+      await downloadFile(cur.url, filenameFromPathOrUrl(cur.url))
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   return (
     <>
@@ -136,14 +148,25 @@ export default function PhotoCollage({ photos }: { photos: CollagePhoto[] }) {
             <span className="text-xs text-white/80">
               {open + 1} / {n}
             </span>
-            <button
-              type="button"
-              onClick={close}
-              aria-label="닫기"
-              className="rounded-full bg-white/10 px-3 py-1 text-sm font-semibold hover:bg-white/20"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onDownload}
+                disabled={downloading}
+                aria-label="원본 저장"
+                className="rounded-full bg-white/10 px-3 py-1 text-sm font-semibold hover:bg-white/20 disabled:opacity-50"
+              >
+                {downloading ? '저장 중…' : '원본 저장'}
+              </button>
+              <button
+                type="button"
+                onClick={close}
+                aria-label="닫기"
+                className="rounded-full bg-white/10 px-3 py-1 text-sm font-semibold hover:bg-white/20"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           <div
