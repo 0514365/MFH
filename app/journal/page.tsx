@@ -9,6 +9,8 @@ import JournalList from './JournalList'
 import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 import { resolveJournalPhotos } from '@/lib/journalPhotos'
 import type { CollagePhoto } from './PhotoCollage'
+import OfflineSync from '@/components/OfflineSync'
+import type { OfflineJournal } from '@/lib/offlineStore'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,6 +77,25 @@ export default async function JournalPage() {
     if (cs.length > 0) photoMap[r.id] = cs
   }
 
+  // 오프라인 스냅샷: 최근 30개 일지 + 대표 썸네일(첫 사진). OfflineSync 가 온라인일 때 IndexedDB 에 적재.
+  const offlineJournals: OfflineJournal[] = entries.slice(0, 30).map((e, i) => {
+    const first = resolvedByEntry[i]?.list[0]
+    const thumbPath = first ? first.thumb_path || first.path : null
+    return {
+      id: e.id,
+      entry_date: e.entry_date,
+      category: e.category,
+      headline: e.headline,
+      today: e.today,
+      place_name: e.place_name,
+      thumbPath,
+    }
+  })
+  const offlineThumbUrls: Record<string, string> = {}
+  for (const j of offlineJournals) {
+    if (j.thumbPath && urlByPath[j.thumbPath]) offlineThumbUrls[j.thumbPath] = urlByPath[j.thumbPath]
+  }
+
   return (
     <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
       <PageHeader
@@ -100,6 +121,8 @@ export default async function JournalPage() {
         currentUserId={user.id}
         photoMap={photoMap}
       />
+
+      <OfflineSync journals={offlineJournals} thumbUrls={offlineThumbUrls} />
     </main>
   )
 }
