@@ -1,14 +1,12 @@
-// MFH-PORTFOLIO-VIDEO-SECTION-V4
-// 공개 readonly 사역 영상 섹션. 카테고리별 그룹 + 반응형 그리드(1/2/3열).
+// MFH-PORTFOLIO-VIDEO-SECTION-V5
+// 공개 readonly 사역 영상 섹션 — 카테고리별 그룹 + Airbnb 카드 그리드(1/2/3/4열).
 // 클릭 시 새 탭 watch.
-// V2: 영상 전용 페이지(/p/[slug]/videos)에서 전체 표시. 폰트 전반 상향(가독성).
-//     showHeader=false 면 섹션 헤더 생략(전용 페이지에서 자체 타이틀 사용).
-// V3: 각 그룹에 앵커 id="cat-<카테고리id>" 부여 → 메인페이지 배너에서 점프(scroll-mt 여백).
-// V4: 그룹 타이틀을 브랜드 그라데이션 배너 바로 강조·구분(VIDEO_BANNER_RAMP 공유, 메인 배너와 동일색).
-//     썸네일 우선순위 = 커스텀 → YouTube → placeholder.
+// V5: Airbnb-Style 테마 — 그라데이션 배너 그룹 타이틀 → 잉크 소제목(.pf-group-title),
+//     영상 카드 = .pf-vcard(둥근 16:9 썸네일 + 중립 재생 오버레이 + 호버 그림자).
+//     showHeader=false 면 섹션 헤더 생략(전용 페이지 자체 타이틀 사용).
 
 import type { PortfolioVideo, PortfolioVideoCategory } from '@/lib/portfolio';
-import { youtubeWatchUrl, videoThumbnail, videoBannerStyle } from '@/lib/portfolio';
+import { youtubeWatchUrl, videoThumbnail } from '@/lib/portfolio';
 
 type Props = {
   categories: PortfolioVideoCategory[];
@@ -45,73 +43,49 @@ export default function VideoSection({ categories, videos, showHeader = true }: 
   return (
     <section className="mt-4 min-[740px]:mt-5">
       {showHeader && (
-        <h2 className="border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary min-[740px]:text-lg">
-          사역 영상
-        </h2>
+        <div className="pf-section-head">
+          <h2 className="pf-section-title">사역 영상</h2>
+          <p className="pf-section-sub">Ministry in action</p>
+        </div>
       )}
-      <div className={`${showHeader ? 'mt-4' : ''} space-y-8`}>
-        {groups.map((g, i) => {
-          const c = videoBannerStyle(i);
-          return (
-            <div key={g.key} id={`cat-${g.key}`} className="scroll-mt-6 min-[740px]:scroll-mt-8">
-              {/* 그룹 타이틀 = 브랜드 그라데이션 배너 바 */}
-              <h3
-                className="mb-3.5 rounded-lg px-4 py-2.5 text-sm font-bold leading-snug shadow-sm min-[740px]:text-base"
-                style={{ background: `linear-gradient(90deg, ${c.from}, ${c.to})`, color: c.text }}
-              >
-                {g.name}
-              </h3>
-              <ul className="grid grid-cols-1 gap-4 min-[560px]:grid-cols-2 min-[1100px]:grid-cols-3">
-                {g.items.map((v) => (
+      <div className={`${showHeader ? 'mt-4' : ''} space-y-9`}>
+        {groups.map((g) => (
+          <div key={g.key} id={`cat-${g.key}`} className="scroll-mt-6 min-[740px]:scroll-mt-8">
+            <h3 className="pf-group-title mb-3.5">{g.name}</h3>
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-6 min-[740px]:grid-cols-3 min-[1100px]:grid-cols-4">
+              {g.items.map((v) => {
+                const thumb = videoThumbnail(v);
+                return (
                   <li key={v.id}>
                     <a
                       href={youtubeWatchUrl(v.youtube_url) ?? '#'}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block overflow-hidden rounded-lg border border-line bg-surface transition hover:border-primary"
+                      className="pf-vcard"
                     >
-                      <VideoThumb thumb={videoThumbnail(v)} year={v.year} title={v.title} />
-                      <p className="px-3 py-2.5 text-sm leading-snug text-ink">{v.title}</p>
+                      <div className="pf-media">
+                        {thumb ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={thumb} alt={v.title} loading="lazy" />
+                        ) : null}
+                        <span className="pf-media__play" aria-hidden>
+                          <span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </span>
+                        </span>
+                        {v.year ? <span className="pf-media__badge">{v.year}</span> : null}
+                      </div>
+                      <div className="pf-card-title">{v.title}</div>
                     </a>
                   </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </div>
     </section>
-  );
-}
-
-function VideoThumb({
-  thumb,
-  year,
-  title,
-}: {
-  thumb: string | null;
-  year: number | null;
-  title: string;
-}) {
-  return (
-    <div className="relative aspect-video bg-[#221C1C]">
-      {thumb ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={thumb} alt={title} loading="lazy" className="h-full w-full object-cover" />
-      ) : null}
-      {/* play overlay */}
-      <span className="absolute inset-0 flex items-center justify-center" aria-hidden>
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="white" aria-hidden>
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </span>
-      </span>
-      {year ? (
-        <span className="absolute right-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-medium text-white">
-          {year}
-        </span>
-      ) : null}
-    </div>
   );
 }

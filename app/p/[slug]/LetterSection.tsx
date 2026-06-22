@@ -1,123 +1,75 @@
-'use client';
+// MFH-PORTFOLIO-LETTER-SECTION-V10
+// 공개 페이지 선교편지 섹션. ① 최신 선교편지(표지 + 요약 기도문) ② 년도별 카드 그리드.
+// V9: 년도 목록을 접이식 → 사역영상식 카드 그리드. 카드 클릭 → /p/[slug]/letters#year-YYYY.
+// V10: 타이틀을 다른 섹션과 동일 위상(pf-section-head + 영어 부제)으로 통일.
+//      "선교편지 목록"도 동급 제목 + "전체 편지 보기" 뱃지 버튼. 연도 썸네일 축소(최신편지보다 작게,
+//      동일 고정폭) + 캡션 "YYYY년 - N편" 한 행.
+//      편지 표지·링크 헬퍼는 lib/portfolio 공통화(LetterFullSection·letters page 와 공유).
 
-// MFH-PORTFOLIO-LETTER-SECTION-V8
-// 공개 페이지 선교편지 섹션. 사역 영상 위에 전체 폭.
-// 구성: ① 최신 선교편지(표지 + 요약 기도문) ② 년도별 목록(앰버 배너 + 접이식).
-// V3: 최신 선교편지 블록 신설 / 년도 배너 컬러(LETTER_BANNER_RAMP, 앰버·세피아) / 개수 표기 제거.
-// V5: 년도 그룹 박스 = 2열 그리드(모바일·데스크탑 공통), 박스 내부 편지는 항상 1열.
-//     단 최신 년도(index 0)는 모바일/태블릿(<1100)에서 전체폭(col-span-2), 데스크탑은 2열 유지.
-//     groupLettersByYear 가 최신 년도를 항상 index 0 으로 정렬 → 해가 바뀌면 자동 적용.
-// V6: 요약 "🙏 요약 기도문" 타이틀 제거. 모바일(<740)은 요약을 썸네일 행 아래 별도 구역으로 분리
-//     (≥740 는 표지 좌 + 우측 칼럼 유지).
-// V7: 최신 선교편지 표지(썸네일) 자체를 PDF 링크로 변경. 하단 "편지 전문 보기" 버튼 제거.
-//     표지 아래 짧은 "PDF 보기 →" 캡션으로 클릭 가능 표시.
-// V8: 영상 편지(video_url, patch81) 지원 — PDF 없이 YouTube 영상만인 편지.
-//     표지=YouTube 썸네일 자동(▶ 오버레이), 클릭=영상 watch, 캡션 "영상 보기 →". PDF 우선.
-// 디자인 사양: MFH-PORTFOLIO-DESIGN.md v4 §5-5
-
-import { useState } from 'react';
-import type { PortfolioLetter } from '@/lib/portfolio';
+import Link from 'next/link';
 import {
   groupLettersByYear,
   letterMonthLabel,
-  letterBannerStyle,
-  youtubeWatchUrl,
-  youtubeThumbnailUrl,
+  letterCoverSrc,
+  letterLink,
+  isVideoLetter,
+  type LetterWithUrls,
 } from '@/lib/portfolio';
 
-type LetterWithUrls = PortfolioLetter & {
-  pdf_url: string | null;
-  cover_url: string | null;
-};
+type Props = { letters: LetterWithUrls[]; slug: string };
 
-// 영상 편지 = PDF 없고 영상(YouTube)만 있는 편지.
-const isVideoLetter = (l: LetterWithUrls) => !l.pdf_url && !!l.video_url;
-
-// 편지 링크: PDF 우선, 없으면 영상(YouTube watch). 표지 아래 캡션 라벨 포함.
-function letterLink(l: LetterWithUrls): { href: string | null; label: string } {
-  if (l.pdf_url) return { href: l.pdf_url, label: 'PDF 보기 →' };
-  if (l.video_url) return { href: youtubeWatchUrl(l.video_url), label: '영상 보기 →' };
-  return { href: null, label: '' };
-}
-
-// 편지 표지: 업로드 표지 우선 → 영상 편지는 YouTube 썸네일 → 없으면 null(placeholder).
-function letterCoverSrc(l: LetterWithUrls): string | null {
-  if (l.cover_url) return l.cover_url;
-  if (l.video_url) return youtubeThumbnailUrl(l.video_url);
-  return null;
-}
-
-type Props = { letters: LetterWithUrls[] };
-
-export default function LetterSection({ letters }: Props) {
-  const groups = groupLettersByYear(letters);
-  // 년도 박스는 각자 접이식(2열 배치). 기본 = 최신 년도만 펼침.
-  const [openYears, setOpenYears] = useState<Set<string>>(
-    () => new Set(groups.length > 0 ? [groups[0].year] : [])
-  );
-
+export default function LetterSection({ letters, slug }: Props) {
   if (letters.length === 0) return null;
 
+  const groups = groupLettersByYear(letters);
   const latest = letters[0];
-
-  function toggleYear(year: string) {
-    setOpenYears((prev) => {
-      const next = new Set(prev);
-      if (next.has(year)) next.delete(year);
-      else next.add(year);
-      return next;
-    });
-  }
 
   return (
     <section className="mt-8 min-[740px]:mt-10">
-      <h2 className="border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary min-[740px]:text-lg">
-        선교편지
-      </h2>
-      <p className="mt-1 pl-2.5 text-sm text-faint">Monthly prayer letters</p>
+      <div className="pf-section-head">
+        <h2 className="pf-section-title">선교편지</h2>
+        <p className="pf-section-sub">Letters from Honduras</p>
+      </div>
 
       {/* ① 최신 선교편지 */}
       <LatestLetter letter={latest} />
 
-      {/* ② 년도별 목록 (데스크탑 2열 / 박스 내부 1열) */}
-      <h3 className="mt-7 border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary">
-        선교편지 목록
-      </h3>
-      <div className="mt-3 grid grid-cols-2 items-start gap-3.5">
-        {groups.map((g, i) => {
-          const c = letterBannerStyle(i);
-          const open = openYears.has(g.year);
-          // 최신 년도(index 0) = 모바일/태블릿 전체폭, 데스크탑(≥1100)은 2열. 이전 년도 = 항상 2열.
-          const boxSpan = i === 0 ? 'col-span-2 min-[1100px]:col-span-1' : 'col-span-1';
-          return (
-            <div key={g.year} className={`overflow-hidden rounded-lg shadow-sm ${boxSpan}`}>
-              <button
-                type="button"
-                onClick={() => toggleYear(g.year)}
-                className="flex w-full items-center justify-between px-4 py-3 text-left"
-                style={{ background: `linear-gradient(90deg, ${c.from}, ${c.to})`, color: c.text }}
-              >
-                <span className="text-base font-bold">{g.year}</span>
-                <span
-                  aria-hidden
-                  style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}
-                >
-                  ⌄
-                </span>
-              </button>
+      {/* ② 년도별 카드 그리드 → 전체 페이지의 해당 연도로 점프 */}
+      <div className="mt-7 flex items-center justify-between gap-3">
+        <div className="pf-section-head">
+          <h2 className="pf-section-title">선교편지 목록</h2>
+          <p className="pf-section-sub">Letter archive</p>
+        </div>
+        <Link
+          href={`/p/${slug}/letters`}
+          className="pf-btn pf-btn--outline pf-btn--pill flex-shrink-0"
+        >
+          전체 편지 보기 →
+        </Link>
+      </div>
 
-              {open && (
-                <div className="border border-t-0 border-line bg-surface p-3">
-                  <ul className="flex flex-col gap-2.5">
-                    {g.letters.map((l) => (
-                      <li key={l.id}>
-                        <LetterRow letter={l} />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+      {/* 작은 고정폭 썸네일(최신편지 표지보다 작게) + 한 행 캡션 */}
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-5">
+        {groups.map((g) => {
+          const rep = g.letters[0]; // 그 해 대표(최신) 편지 표지
+          const cover = letterCoverSrc(rep);
+          return (
+            <Link
+              key={g.year}
+              href={`/p/${slug}/letters#year-${g.year}`}
+              className="pf-vcard w-[92px] min-[740px]:w-[104px]"
+            >
+              <div
+                className="pf-media pf-media--portrait"
+                style={cover ? { backgroundImage: `url(${cover})` } : undefined}
+              >
+                {!cover && <span className="pf-media__ph">편지</span>}
+              </div>
+              <div className="mt-1.5 text-sm font-semibold text-ink">
+                {g.year}년
+                <span className="ml-1 text-xs font-normal text-muted">- {g.letters.length}편</span>
+              </div>
+            </Link>
           );
         })}
       </div>
@@ -125,7 +77,7 @@ export default function LetterSection({ letters }: Props) {
   );
 }
 
-// 최신 선교편지: 데스크탑·태블릿(≥740) = 표지 좌 + 우측 칼럼 / 모바일(<740) = 표지+제목 한 행 + 요약 별도 아래
+// 최신 선교편지: 데스크탑·태블릿(≥740) = 표지 좌 + 우측 칼럼 / 모바일(<740) = 표지+제목 한 행 + 요약 아래
 function LatestLetter({ letter: l }: { letter: LetterWithUrls }) {
   const month = letterMonthLabel(l.year_month);
   const year = l.year_month?.match(/^(\d{4})/)?.[1] ?? '';
@@ -193,40 +145,7 @@ function LatestLetter({ letter: l }: { letter: LetterWithUrls }) {
   );
 }
 
-// 목록 행: 작은 표지 + 호수·월 + 제목
-function LetterRow({ letter: l }: { letter: LetterWithUrls }) {
-  const month = letterMonthLabel(l.year_month);
-
-  const inner = (
-    <div className="flex items-center gap-3 rounded-lg border border-line bg-surface p-2 transition hover:border-primary">
-      <LetterCover letter={l} className="w-10 flex-shrink-0" small />
-      <div className="min-w-0">
-        <p className="text-xs text-muted">
-          {l.number && (
-            <span
-              className="mr-1.5 rounded px-1.5 py-0.5 text-[10px] font-bold"
-              style={{ background: 'var(--accent-soft)', color: 'var(--primary)' }}
-            >
-              No.{l.number}
-            </span>
-          )}
-          {month}
-        </p>
-        <p className="mt-0.5 truncate text-sm leading-snug text-ink">{l.title}</p>
-      </div>
-    </div>
-  );
-
-  const href = letterLink(l).href;
-  if (!href) return <div className="block">{inner}</div>;
-  return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="block">
-      {inner}
-    </a>
-  );
-}
-
-// 표지 이미지 또는 PDF placeholder (3:4)
+// 표지 이미지 또는 PDF/영상 placeholder (3:4)
 function LetterCover({
   letter: l,
   className,

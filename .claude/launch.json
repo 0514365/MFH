@@ -8,6 +8,12 @@
       "port": 3000
     },
     {
+      "name": "next-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start"],
+      "port": 3000
+    },
+    {
       "name": "letter-static",
       "runtimeExecutable": "node",
       "runtimeArgs": ["/Users/wbook_m1/Library/CloudStorage/Dropbox-개인용/MFH/scripts/static-server.mjs"],

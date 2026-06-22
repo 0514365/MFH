@@ -22,17 +22,22 @@ export default function HistoryAccordion({ history }: Props) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-center gap-2 border-l-[3px] border-accent pl-2.5 text-left text-base font-semibold text-primary min-[740px]:text-lg"
+        className="flex w-full items-center justify-between gap-3 text-left"
       >
-        <span>선교 연혁</span>
-        {count > 0 && (
-          <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-xs font-normal text-muted">
-            {count}
+        <span className="pf-section-head block min-w-0">
+          <span className="flex items-center gap-2">
+            <span className="pf-section-title">선교 연혁</span>
+            {count > 0 && (
+              <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-xs font-normal text-muted">
+                {count}
+              </span>
+            )}
           </span>
-        )}
+          <span className="pf-section-sub block">Our mission journey</span>
+        </span>
         <span
           aria-hidden
-          className={`ml-auto text-muted transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`text-muted transition-transform ${open ? 'rotate-180' : ''}`}
         >
           ▾
         </span>

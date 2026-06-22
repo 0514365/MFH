@@ -260,3 +260,29 @@ export const LETTER_BANNER_RAMP = [
 export function letterBannerStyle(index: number) {
   return LETTER_BANNER_RAMP[index % LETTER_BANNER_RAMP.length];
 }
+
+
+// ========== 공개 편지 표시 헬퍼 (LetterSection / LetterFullSection / letters page 공유) ==========
+
+// storage publicUrl 을 붙인 공개 편지 형태(공개 페이지가 PortfolioLetter 에 URL 을 확장).
+export type LetterWithUrls = PortfolioLetter & {
+  pdf_url: string | null;
+  cover_url: string | null;
+};
+
+// 영상 편지 = PDF 없고 영상(YouTube)만 있는 편지.
+export const isVideoLetter = (l: LetterWithUrls): boolean => !l.pdf_url && !!l.video_url;
+
+// 편지 링크: PDF 우선 → 영상(YouTube watch). 표지 아래 캡션 라벨 포함.
+export function letterLink(l: LetterWithUrls): { href: string | null; label: string } {
+  if (l.pdf_url) return { href: l.pdf_url, label: 'PDF 보기 →' };
+  if (l.video_url) return { href: youtubeWatchUrl(l.video_url), label: '영상 보기 →' };
+  return { href: null, label: '' };
+}
+
+// 편지 표지: 업로드 표지 우선 → 영상 편지는 YouTube 썸네일 → 없으면 null(placeholder).
+export function letterCoverSrc(l: LetterWithUrls): string | null {
+  if (l.cover_url) return l.cover_url;
+  if (l.video_url) return youtubeThumbnailUrl(l.video_url);
+  return null;
+}

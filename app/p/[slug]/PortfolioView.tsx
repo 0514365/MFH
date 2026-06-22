@@ -115,9 +115,10 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
           {/* 선교사 (모바일: 접이식 / 태블릿: MissionaryTablet / 데스크탑: MissionaryDesktop) */}
           <section>
             <div className="flex items-center justify-between gap-3">
-              <h2 className="border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary min-[740px]:text-lg">
-                선교사 소개
-              </h2>
+              <div className="pf-section-head">
+                <h2 className="pf-section-title">선교사 소개</h2>
+                <p className="pf-section-sub">Meet the missionaries</p>
+              </div>
               {p.intro_video_url && (
                 <a
                   href={youtubeWatchUrl(p.intro_video_url) ?? '#'}
@@ -175,7 +176,7 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
         </div>
 
         {/* 선교편지 (전체 폭) — 사역 영상 위 */}
-        <LetterSection letters={letters} />
+        <LetterSection letters={letters} slug={p.slug} />
 
         {/* 사역 영상 요약 (전체는 /p/[slug]/videos) */}
         <VideoSummary slug={p.slug} categories={videoCategories} videos={videos} />
@@ -185,9 +186,7 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
           {/* 후원방법 (donation_info 있을 때만) — 제목 + 계좌 한 행, 계좌는 볼드 */}
           {p.donation_info && p.donation_info.trim() && (
             <div className="mx-auto flex max-w-xl flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-xl border border-line bg-surface px-5 py-4">
-              <h2 className="flex-shrink-0 border-l-[3px] border-accent pl-2.5 text-base font-semibold text-primary">
-                후원방법
-              </h2>
+              <h2 className="flex-shrink-0 pf-section-title">후원방법</h2>
               <p className="whitespace-pre-line text-sm font-bold leading-relaxed text-ink">
                 {p.donation_info}
               </p>

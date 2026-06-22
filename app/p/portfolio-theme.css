@@ -1,0 +1,294 @@
+/* MFH-PORTFOLIO-THEME-V1
+   공개페이지(/p/*) 전용 Airbnb-Style 테마 — "Stayly Marketplace" 디자인 시스템 토큰 이식.
+   .portfolio-theme 스코프로 격리 → 앱 전역(lib/palette.ts)과 충돌 없음.
+   차후 전체 적용 시: 이 스코프를 :root 로 승격하거나 body 에 .portfolio-theme 부여.
+*/
+
+.portfolio-theme {
+  /* ===== Stayly DS 원본 토큰 ===== */
+
+  /* color */
+  --color-primary: #ff385c;
+  --color-primary-active: #e00b41;
+  --color-primary-disabled: #ffd1da;
+  --color-on-primary: #ffffff;
+  --color-ink: #222222;
+  --color-body: #3f3f3f;
+  --color-muted: #6a6a6a;
+  --color-muted-soft: #929292;
+  --color-canvas: #ffffff;
+  --color-surface-soft: #f7f7f7;
+  --color-surface-strong: #f2f2f2;
+  --color-hairline: #dddddd;
+  --color-hairline-soft: #ebebeb;
+  --color-border-strong: #c1c1c1;
+  --color-error: #c13515;
+  --color-error-hover: #b32505;
+  --color-star-rating: #222222;
+  --color-luxe: #460479;
+  --color-plus: #92174d;
+  --color-legal-link: #428bff;
+  --color-scrim: #000000;
+  --color-scrim-50: rgba(0, 0, 0, 0.5);
+
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+
+  /* space */
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-base: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+  --space-section: 64px;
+
+  /* shadow */
+  --shadow-card: rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0;
+  --shadow-flat: none;
+
+  /* container */
+  --container-listing: 1080px;
+  --container-editorial: 1280px;
+  --container-wide: 1440px;
+
+  /* weight */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* type scale */
+  --type-display-xl-size: 28px; --type-display-xl-weight: 700; --type-display-xl-lh: 1.43; --type-display-xl-ls: 0;
+  --type-display-lg-size: 22px; --type-display-lg-weight: 500; --type-display-lg-lh: 1.18; --type-display-lg-ls: -0.44px;
+  --type-display-md-size: 21px; --type-display-md-weight: 700; --type-display-md-lh: 1.43; --type-display-md-ls: 0;
+  --type-display-sm-size: 20px; --type-display-sm-weight: 600; --type-display-sm-lh: 1.20; --type-display-sm-ls: -0.18px;
+  --type-title-md-size: 16px; --type-title-md-weight: 600; --type-title-md-lh: 1.25; --type-title-md-ls: 0;
+  --type-title-sm-size: 16px; --type-title-sm-weight: 500; --type-title-sm-lh: 1.25; --type-title-sm-ls: 0;
+  --type-body-md-size: 16px; --type-body-md-weight: 400; --type-body-md-lh: 1.5; --type-body-md-ls: 0;
+  --type-body-sm-size: 14px; --type-body-sm-weight: 400; --type-body-sm-lh: 1.43; --type-body-sm-ls: 0;
+  --type-button-md-size: 16px; --type-button-md-weight: 500; --type-button-md-lh: 1.25; --type-button-md-ls: 0;
+  --type-button-sm-size: 14px; --type-button-sm-weight: 500; --type-button-sm-lh: 1.29; --type-button-sm-ls: 0;
+  --type-caption-size: 14px; --type-caption-weight: 500; --type-caption-lh: 1.29; --type-caption-ls: 0;
+  --type-caption-sm-size: 13px; --type-caption-sm-weight: 400; --type-caption-sm-lh: 1.23; --type-caption-sm-ls: 0;
+  --type-badge-size: 11px; --type-badge-weight: 600; --type-badge-lh: 1.18; --type-badge-ls: 0;
+  --type-micro-size: 12px; --type-micro-weight: 700; --type-micro-lh: 1.33; --type-micro-ls: 0;
+  --type-nav-size: 16px; --type-nav-weight: 600; --type-nav-lh: 1.25; --type-nav-ls: 0;
+  --type-link-size: 14px; --type-link-weight: 400; --type-link-lh: 1.43; --type-link-ls: 0;
+  --type-rating-size: 64px; --type-rating-weight: 700; --type-rating-lh: 1.1; --type-rating-ls: -1px;
+  --type-uppercase-size: 8px; --type-uppercase-weight: 700; --type-uppercase-lh: 1.25; --type-uppercase-ls: 0.32px;
+
+  /* font — 라틴: Inter(Cereal 대체) / 한글: Pretendard 폴백(글리프 단위) */
+  --font-sans: "Airbnb Cereal VF", "Circular", var(--font-inter), "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, "Helvetica Neue", sans-serif;
+
+  /* ===== MFH 토큰 브릿지 — 기존 컴포넌트(PortfolioView 등)를 코드 수정 없이 자동 전환 ===== */
+  --paper: var(--color-canvas);
+  --surface: #ffffff;
+  --surface-subtle: var(--color-surface-soft);
+  --line: var(--color-hairline);
+  --text: var(--color-ink);
+  --text-muted: var(--color-muted);
+  --text-faint: var(--color-muted-soft);
+  --primary: var(--color-ink);            /* 제목·주색 = Airbnb 잉크 검정 */
+  --primary-hover: #000000;
+  --primary-soft: var(--color-surface-soft);
+  --on-primary-soft: var(--color-ink);
+  --accent: var(--color-primary);          /* 강조·CTA·포인트 = 레드핑크 */
+  --accent-hover: var(--color-primary-active);
+  --accent-soft: var(--color-primary-disabled);
+  --on-accent-soft: var(--color-primary);
+  --danger: var(--color-error);
+  --on-primary: #ffffff;
+  --on-accent: #ffffff;
+
+  /* 베이스 적용 */
+  min-height: 100vh;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* 공개페이지에서는 전역 종이질감 노이즈 오버레이 제거 + body 배경 순백 (Airbnb 클린 룩) */
+body:has(.portfolio-theme) {
+  background: #ffffff;
+}
+body:has(.portfolio-theme)::before {
+  display: none;
+}
+
+/* ============================================================================
+   컴포넌트 클래스 (.pf-*) — Airbnb 카드/버튼 룩. 모두 토큰 기반.
+   .portfolio-theme 접두로 스코프 격리 + Tailwind preflight 위 특이도 확보.
+   ========================================================================= */
+
+/* 버튼 — radius-sm(8px), 라우시는 드물게(primary 만 채움) */
+.portfolio-theme .pf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-base);
+  font-size: var(--type-button-sm-size);
+  font-weight: var(--type-button-sm-weight);
+  line-height: var(--type-button-sm-lh);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.portfolio-theme .pf-btn--primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: 1px solid transparent;
+}
+.portfolio-theme .pf-btn--primary:hover {
+  background: var(--color-primary-active);
+}
+.portfolio-theme .pf-btn--outline {
+  background: transparent;
+  color: var(--color-ink);
+  border: 1px solid var(--color-hairline);
+}
+.portfolio-theme .pf-btn--outline:hover {
+  border-color: var(--color-ink);
+}
+/* 뱃지형(pill) 버튼 — "전체 보기" 류. 작고 둥근 알약. outline 과 조합 */
+.portfolio-theme .pf-btn--pill {
+  border-radius: var(--radius-full);
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--type-caption-sm-size);
+  gap: var(--space-xs);
+}
+
+/* 카드 미디어(둥근 썸네일 박스) — 깊이는 사진과 호버 그림자로만 */
+.portfolio-theme .pf-media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: var(--color-surface-strong);
+  background-size: cover;
+  background-position: center;
+  transition: box-shadow 0.2s ease;
+}
+.portfolio-theme .pf-vcard:hover .pf-media {
+  box-shadow: var(--shadow-card);
+}
+
+/* 재생 오버레이 — 중립(흰 원 + 잉크 삼각형), 호버 시 살짝 확대 */
+.portfolio-theme .pf-media__play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.portfolio-theme .pf-media__play > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s ease;
+}
+.portfolio-theme .pf-vcard:hover .pf-media__play > span {
+  transform: scale(1.08);
+}
+
+/* 카드 컨테이너 + 텍스트 */
+.portfolio-theme .pf-vcard {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.portfolio-theme .pf-card-title {
+  margin-top: var(--space-md);
+  font-size: var(--type-title-md-size);
+  font-weight: var(--type-title-md-weight);
+  line-height: var(--type-title-md-lh);
+  color: var(--color-ink);
+}
+.portfolio-theme .pf-card-meta {
+  margin-top: var(--space-xxs);
+  font-size: var(--type-caption-sm-size);
+  font-weight: var(--type-caption-sm-weight);
+  color: var(--color-muted);
+}
+
+/* 섹션 헤더 — 좌측 레드핑크 바가 한글 제목 + 영어 부제 '전체 높이'를 감싼다 */
+.portfolio-theme .pf-section-head {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 10px;
+}
+/* 섹션 제목 — 굵은 잉크 제목. display-sm(20px/600). 모든 섹션 동일 위상 */
+.portfolio-theme .pf-section-title {
+  font-size: var(--type-display-sm-size);
+  font-weight: var(--type-display-sm-weight);
+  line-height: var(--type-display-sm-lh);
+  letter-spacing: var(--type-display-sm-ls);
+  color: var(--color-ink);
+}
+/* 섹션 영어 부제 — 한글 제목 아래 작은 폰트 */
+.portfolio-theme .pf-section-sub {
+  margin-top: 1px;
+  font-size: var(--type-caption-sm-size);
+  font-weight: var(--weight-regular);
+  line-height: var(--type-caption-sm-lh);
+  color: var(--color-muted);
+}
+
+/* 그룹 소제목(섹션 내 카테고리·연도 등) — title-md(16/600) */
+.portfolio-theme .pf-group-title {
+  font-size: var(--type-title-md-size);
+  font-weight: var(--type-title-md-weight);
+  line-height: var(--type-title-md-lh);
+  color: var(--color-ink);
+}
+
+/* .pf-media 안의 <img> 채움 (VideoSection 등 img 기반 카드용) */
+.portfolio-theme .pf-media > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 미디어 우상단 배지(연도 등) */
+.portfolio-theme .pf-media__badge {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-scrim-50);
+  color: #fff;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 편지 표지(세로 3:4) — 영상(16:9)과 달리 표지 비율 유지 */
+.portfolio-theme .pf-media--portrait {
+  aspect-ratio: 3 / 4;
+}
+
+/* 미디어 placeholder 텍스트(표지 없는 PDF·영상 편지) */
+.portfolio-theme .pf-media__ph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted-soft);
+  font-size: var(--type-title-md-size);
+  font-weight: 600;
+}

@@ -4,12 +4,21 @@
 // Pretendard 는 구글폰트가 아니므로 app/layout.tsx 에서 CDN <link> 로 로드한다.
 // 폰트 스택은 tailwind.config 의 fontFamily / globals.css 에서 정의한다.
 
-import { Montserrat } from "next/font/google";
+import { Montserrat, Inter } from "next/font/google";
 
 export const montserrat = Montserrat({
   subsets: ["latin"],
   weight: ["500", "600", "700", "800"],
   variable: "--font-montserrat",
+  display: "swap",
+});
+
+// Inter — 공개페이지(/p/*) Airbnb-Style 테마의 라틴 본문 폰트.
+// Airbnb Cereal(라이선스 폰트) 대체. 한글은 Pretendard 로 폴백(portfolio-theme.css 의 --font-sans).
+export const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
   display: "swap",
 });
 
