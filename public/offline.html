@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="theme-color" content="#661F20" />
+<title>오프라인 · MFH</title>
+<!-- MFH-OFFLINE-HTML-V1 — 순수 정적 오프라인 폴백 (오프라인 2a 재설계).
+     Next 라우트(React)는 JS 청크 의존 때문에, 사용자가 온라인에서 그 경로를 방문한 적이
+     없으면 오프라인에서 청크를 못 받아 깨진다(이전 client-side exception 원인).
+     이 파일은 인라인 CSS/JS 로 자기완결 → 외부 청크/폰트/이미지 의존 0 →
+     SW 가 이 HTML 하나만 precache 하면 회선이 끊겨도 100% 뜬다.
+     데이터는 IndexedDB(mfh-offline, lib/offlineStore.ts 와 동일 스키마)를 직접 읽는다.
+     색은 lib/palette.ts 값을 하드코딩(정적 폴백이라 CSS 변수 주입 경로를 못 탐). -->
+<style>
+  :root{
+    --primary:#661F20; --accent:#B61821; --paper:#FAF8F7; --surface:#FFFFFF;
+    --line:#E5DFDC; --text:#221C1C; --muted:#80807F; --faint:#A8A6A4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--paper);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.5;}
+  .wrap{max-width:28rem;margin:0 auto;padding:2rem 1.25rem 6rem;}
+  .eyebrow{font-size:.7rem;font-weight:700;letter-spacing:.25em;color:var(--accent);}
+  h1{font-size:1.875rem;font-weight:800;color:var(--primary);margin-top:.25rem;}
+  .row{display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;}
+  .saved{font-size:.7rem;color:var(--faint);white-space:nowrap;}
+  .banner{margin-top:1rem;display:flex;align-items:center;justify-content:space-between;
+    gap:.75rem;border:1px solid var(--line);background:var(--surface);
+    border-radius:.75rem;padding:1rem;}
+  .banner p{font-size:.875rem;}
+  .btn{flex-shrink:0;border:0;border-radius:.75rem;background:var(--accent);
+    color:#fff;font-size:.875rem;font-weight:600;padding:.5rem 1rem;cursor:pointer;}
+  .note{margin-top:.5rem;font-size:.875rem;color:var(--muted);}
+  .empty{margin-top:2rem;font-size:.875rem;color:var(--muted);}
+  h2{font-size:.875rem;font-weight:700;color:var(--primary);margin:1.75rem 0 .5rem;}
+  ul{list-style:none;}
+  .card{display:flex;gap:.75rem;border:1px solid var(--line);background:var(--surface);
+    border-radius:.75rem;padding:.75rem;margin-bottom:.5rem;}
+  .thumb{width:3.5rem;height:3.5rem;flex-shrink:0;border-radius:.5rem;
+    object-fit:cover;background:var(--line);}
+  .card .body{min-width:0;flex:1;}
+  .card .head{display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;}
+  .title{font-size:.875rem;font-weight:600;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .date{flex-shrink:0;font-size:.7rem;color:var(--faint);}
+  .excerpt{margin-top:.125rem;font-size:.8rem;color:var(--muted);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .task{display:flex;align-items:center;justify-content:space-between;gap:.5rem;
+    border:1px solid var(--line);background:var(--surface);border-radius:.75rem;
+    padding:.625rem .75rem;margin-bottom:.375rem;}
+  .task .t{font-size:.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="eyebrow">MISSION FOR HONDURAS</p>
+    <div class="row">
+      <h1>오프라인</h1>
+      <span class="saved hidden" id="saved"></span>
+    </div>
+
+    <div class="banner hidden" id="online-banner">
+      <p>인터넷에 다시 연결되었습니다.</p>
+      <button class="btn" id="home-btn">홈으로</button>
+    </div>
+    <p class="note hidden" id="offline-note">인터넷 연결이 없습니다. 저장된 최근 기록을 봅니다.</p>
+    <p class="empty hidden" id="empty">저장된 기록이 없습니다. 온라인일 때 일지·할일 화면을 한 번 열면 자동으로 저장됩니다.</p>
+
+    <section id="journal-section" class="hidden">
+      <h2>최근 일지</h2>
+      <ul id="journal-list"></ul>
+    </section>
+    <section id="task-section" class="hidden">
+      <h2>할 일 (미완료)</h2>
+      <ul id="task-list"></ul>
+    </section>
+  </div>
+
+  <script>
+  (function () {
+    var DB = 'mfh-offline', VER = 1
+
+    function openDb() {
+      return new Promise(function (res, rej) {
+        var r = indexedDB.open(DB, VER)
+        r.onupgradeneeded = function () {
+          var db = r.result
+          if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv')
+          if (!db.objectStoreNames.contains('thumbs')) db.createObjectStore('thumbs')
+        }
+        r.onsuccess = function () { res(r.result) }
+        r.onerror = function () { rej(r.error) }
+      })
+    }
+    function get(store, key) {
+      return openDb().then(function (db) {
+        return new Promise(function (res, rej) {
+          var t = db.transaction(store, 'readonly')
+          var rq = t.objectStore(store).get(key)
+          rq.onsuccess = function () { res(rq.result) }
+          rq.onerror = function () { rej(rq.error) }
+          t.oncomplete = function () { db.close() }
+        })
+      })
+    }
+    function pad(n) { return n < 10 ? '0' + n : '' + n }
+    function fmtDate(d) {
+      if (!d) return ''
+      var p = String(d).split('-')
+      if (p.length < 3) return d
+      return Number(p[1]) + '.' + Number(p[2])
+    }
+    function fmtSaved(ms) {
+      var dt = new Date(ms)
+      return (dt.getMonth() + 1) + '.' + dt.getDate() + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes())
+    }
+    function show(id) { document.getElementById(id).classList.remove('hidden') }
+    function hide(id) { document.getElementById(id).classList.add('hidden') }
+    function el(tag, cls, txt) {
+      var e = document.createElement(tag)
+      if (cls) e.className = cls
+      if (txt != null) e.textContent = txt
+      return e
+    }
+
+    function syncOnline() {
+      if (navigator.onLine) { show('online-banner'); hide('offline-note') }
+      else { hide('online-banner'); show('offline-note') }
+    }
+    syncOnline()
+    window.addEventListener('online', syncOnline)
+    window.addEventListener('offline', syncOnline)
+    document.getElementById('home-btn').addEventListener('click', function () { location.href = '/' })
+
+    function renderJournals(items) {
+      var ul = document.getElementById('journal-list')
+      items.forEach(function (j) {
+        var li = el('li', 'card')
+        if (j.thumbPath) {
+          var img = el('img', 'thumb'); img.alt = ''
+          li.appendChild(img)
+          get('thumbs', j.thumbPath).then(function (blob) {
+            if (blob) img.src = URL.createObjectURL(blob)
+          }).catch(function () {})
+        }
+        var body = el('div', 'body')
+        var head = el('div', 'head')
+        head.appendChild(el('span', 'title', j.headline || '(제목 없음)'))
+        head.appendChild(el('span', 'date', fmtDate(j.entry_date)))
+        body.appendChild(head)
+        if (j.today) body.appendChild(el('p', 'excerpt', j.today))
+        li.appendChild(body)
+        ul.appendChild(li)
+      })
+      show('journal-section')
+    }
+    function renderTasks(items) {
+      var ul = document.getElementById('task-list')
+      items.forEach(function (t) {
+        var li = el('li', 'task')
+        li.appendChild(el('span', 't', t.title))
+        if (t.due_date) li.appendChild(el('span', 'date', fmtDate(t.due_date)))
+        ul.appendChild(li)
+      })
+      show('task-section')
+    }
+
+    Promise.all([get('kv', 'journals'), get('kv', 'tasks')]).then(function (r) {
+      var j = r[0], t = r[1]
+      var jItems = (j && j.items) || []
+      var tItems = (t && t.items) || []
+      var at = Math.max((j && j.savedAt) || 0, (t && t.savedAt) || 0)
+      if (at > 0) {
+        var s = document.getElementById('saved')
+        s.textContent = '저장 ' + fmtSaved(at)
+        show('saved')
+      }
+      if (jItems.length) renderJournals(jItems)
+      if (tItems.length) renderTasks(tItems)
+      if (!jItems.length && !tItems.length) show('empty')
+    }).catch(function () {
+      show('empty')
+    })
+  })()
+  </script>
+</body>
+</html>
