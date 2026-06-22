@@ -51,7 +51,10 @@ export default function VideoSection({ categories, videos, showHeader = true }: 
       <div className={`${showHeader ? 'mt-4' : ''} space-y-9`}>
         {groups.map((g) => (
           <div key={g.key} id={`cat-${g.key}`} className="scroll-mt-6 min-[740px]:scroll-mt-8">
-            <h3 className="pf-group-title mb-3.5">{g.name}</h3>
+            <h3 className="pf-group-title mb-4 flex items-center gap-2">
+              {g.name}
+              <span className="pf-count-badge">{g.items.length}개</span>
+            </h3>
             <ul className="grid grid-cols-2 gap-x-4 gap-y-6 min-[740px]:grid-cols-3 min-[1100px]:grid-cols-4">
               {g.items.map((v) => {
                 const thumb = videoThumbnail(v);

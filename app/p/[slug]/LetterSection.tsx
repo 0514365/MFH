@@ -57,7 +57,7 @@ export default function LetterSection({ letters, slug }: Props) {
             <Link
               key={g.year}
               href={`/p/${slug}/letters#year-${g.year}`}
-              className="pf-vcard w-[92px] min-[740px]:w-[104px]"
+              className="pf-vcard w-[108px] min-[740px]:w-[150px]"
             >
               <div
                 className="pf-media pf-media--portrait"
@@ -65,9 +65,9 @@ export default function LetterSection({ letters, slug }: Props) {
               >
                 {!cover && <span className="pf-media__ph">편지</span>}
               </div>
-              <div className="mt-1.5 text-sm font-semibold text-ink">
+              <div className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-ink">
                 {g.year}년
-                <span className="ml-1 text-xs font-normal text-muted">- {g.letters.length}편</span>
+                <span className="pf-count-badge">{g.letters.length}편</span>
               </div>
             </Link>
           );

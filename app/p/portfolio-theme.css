@@ -246,12 +246,26 @@ body:has(.portfolio-theme)::before {
   color: var(--color-muted);
 }
 
-/* 그룹 소제목(섹션 내 카테고리·연도 등) — title-md(16/600) */
+/* 그룹 소제목(전체 페이지의 연도·카테고리) — 좌측 바 + display-sm 으로 메인 섹션과 동일 구분감 */
 .portfolio-theme .pf-group-title {
-  font-size: var(--type-title-md-size);
-  font-weight: var(--type-title-md-weight);
-  line-height: var(--type-title-md-lh);
+  border-left: 3px solid var(--color-primary);
+  padding-left: 10px;
+  font-size: var(--type-display-sm-size);
+  font-weight: var(--type-display-sm-weight);
+  line-height: var(--type-display-sm-lh);
+  letter-spacing: var(--type-display-sm-ls);
   color: var(--color-ink);
+}
+/* 개수 뱃지(N편 / N개) — 연도·카테고리 옆 알약 */
+.portfolio-theme .pf-count-badge {
+  display: inline-block;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-strong);
+  color: var(--color-muted);
+  padding: 1px 9px;
+  font-size: var(--type-badge-size);
+  font-weight: var(--type-badge-weight);
+  line-height: 1.6;
 }
 
 /* .pf-media 안의 <img> 채움 (VideoSection 등 img 기반 카드용) */

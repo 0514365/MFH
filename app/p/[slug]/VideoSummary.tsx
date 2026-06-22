@@ -62,7 +62,9 @@ export default function VideoSummary({ slug, categories, videos }: Props) {
                 </span>
               </div>
               <div className="pf-card-title">{g.cat.name}</div>
-              <div className="pf-card-meta">영상 {g.items.length}개</div>
+              <div className="mt-1">
+                <span className="pf-count-badge">영상 {g.items.length}개</span>
+              </div>
             </Link>
           );
         })}

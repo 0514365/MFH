@@ -23,9 +23,9 @@ export default function LetterFullSection({ letters }: Props) {
     <div className="mt-4 space-y-9">
       {groups.map((g) => (
         <div key={g.year} id={`year-${g.year}`} className="scroll-mt-6 min-[740px]:scroll-mt-8">
-          <h3 className="pf-group-title mb-3.5">
+          <h3 className="pf-group-title mb-4 flex items-center gap-2">
             {g.year}년
-            <span className="ml-2 text-sm font-normal text-muted">{g.letters.length}편</span>
+            <span className="pf-count-badge">{g.letters.length}편</span>
           </h3>
           <ul className="grid grid-cols-2 gap-x-4 gap-y-6 min-[560px]:grid-cols-3 min-[1100px]:grid-cols-4">
             {g.letters.map((l) => (
