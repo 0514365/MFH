@@ -365,7 +365,7 @@ export default function JournalList({
     return (
       <li
         key={e.id}
-        className={`relative flex flex-col rounded-[24px] border bg-surface p-5 shadow-sm shadow-ink/[0.02] ${
+        className={`relative flex flex-col rounded-[24px] border bg-surface p-5 shadow-[0_4px_18px_-6px_rgba(34,34,34,0.16)] ${
           emphasized ? 'border-primary border-2' : 'border-line'
         }`}
       >
