@@ -11,6 +11,7 @@ import { resolveJournalPhotos } from '@/lib/journalPhotos'
 import type { CollagePhoto } from './PhotoCollage'
 import OfflineSync from '@/components/OfflineSync'
 import type { OfflineJournal } from '@/lib/offlineStore'
+import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,7 +98,7 @@ export default async function JournalPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
+    <main className="app-theme mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
       <PageHeader
         title="Log"
         current="journal"
