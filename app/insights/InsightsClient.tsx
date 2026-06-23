@@ -503,9 +503,9 @@ export default function InsightsClient({
         {/* 종합(overall) — 가로 카드 */}
         <button
           onClick={() => setView('overall')}
-          className="col-span-2 flex items-center gap-4 rounded-3xl bg-[#14213d] p-4 text-left shadow-sm transition hover:opacity-90"
+          className="col-span-2 flex items-center gap-4 rounded-3xl bg-[#f3f1ec] p-4 text-left shadow-sm transition hover:opacity-90"
         >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-white text-[#14213d] shadow-sm">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-white text-accent shadow-sm">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="9" />
               <path d="M3 12h18" />
@@ -513,13 +513,13 @@ export default function InsightsClient({
             </svg>
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-display text-[11px] font-bold uppercase tracking-[0.15em] text-[#8fa3c4]">Overall</span>
-            <span className="block text-[14px] font-semibold text-white">일지·프로젝트·할일 종합</span>
+            <span className="block font-display text-[11px] font-bold uppercase tracking-[0.15em] text-[#8a8377]">Overall</span>
+            <span className="block text-[14px] font-semibold text-[#44403c]">일지·프로젝트·할일 종합</span>
           </span>
           {updatedOf('overall') && (
             <span className="shrink-0 text-right">
-              <span className="block font-display text-[9px] uppercase tracking-[0.05em] text-white opacity-70">업데이트</span>
-              <span className="mt-0.5 block font-display text-[10px] font-bold uppercase tracking-[0.05em] text-white">
+              <span className="block font-display text-[9px] uppercase tracking-[0.05em] text-[#a8a29a]">업데이트</span>
+              <span className="mt-0.5 block font-display text-[10px] font-bold uppercase tracking-[0.05em] text-[#44403c]">
                 {updatedOf('overall')}
               </span>
             </span>
