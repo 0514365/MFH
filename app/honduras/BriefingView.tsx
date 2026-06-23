@@ -88,12 +88,16 @@ function SourceLine({
   return <p className={`${className} text-xs text-faint`}>출처 · {s}</p>
 }
 
-function ItemBlock({ item }: { item: SectionItem }) {
+function ItemBlock({ item, accent }: { item: SectionItem; accent: string }) {
   const title = (item.title ?? '').trim()
   const body = (item.body ?? '').trim()
   if (!title && !body) return null
+  // 분야색 좌측 레일 — 회색 단일 테두리(단조로움) 대신 분야 dot색을 좌측 3px 레일로(은은한 구분). ring 은 #ebebeb 로 더 옅게.
   return (
-    <div className="rounded-xl border border-line bg-surface p-4">
+    <div
+      className="rounded-xl border bg-surface p-4"
+      style={{ borderColor: '#ebebeb', borderLeftColor: accent, borderLeftWidth: 3 }}
+    >
       {title && <p className="text-[17px] font-bold leading-snug text-ink">{title}</p>}
       {body && <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-muted">{body}</p>}
       <SourceLine source={item.source} url={item.url} />
@@ -137,9 +141,12 @@ export default function BriefingView({
         </div>
       </header>
 
-      {/* 하이라이트 — San Pedro Sula·한인 강조(부드러운 마룬 톤) */}
+      {/* 하이라이트 — San Pedro Sula·한인. 글로우 카드(흰 배경 + 마룬 좌측 레일 + 소프트 글로우): 면적 큰 연레드 채움을 빛으로 대체해 시야 부담 ↓ */}
       {highlights.length > 0 && (
-        <section className="rounded-2xl bg-accent-soft p-4">
+        <section
+          className="rounded-2xl border-l-[3px] border-accent bg-surface p-4"
+          style={{ boxShadow: '0 0 0 1px rgba(182,24,33,0.10), 0 6px 22px -10px rgba(182,24,33,0.22)' }}
+        >
           <p className="mb-2 text-sm font-bold tracking-wide text-accent">주목 · San Pedro Sula / 한인</p>
           <div className="space-y-3">
             {highlights.map((h, i) => (
@@ -175,7 +182,7 @@ export default function BriefingView({
             </div>
             <div className="space-y-2.5">
               {items.map((it, i) => (
-                <ItemBlock key={i} item={it} />
+                <ItemBlock key={i} item={it} accent={m.dot} />
               ))}
             </div>
           </section>
