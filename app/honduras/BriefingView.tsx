@@ -88,16 +88,13 @@ function SourceLine({
   return <p className={`${className} text-xs text-faint`}>출처 · {s}</p>
 }
 
-function ItemBlock({ item, accent }: { item: SectionItem; accent: string }) {
+function ItemRow({ item, divided }: { item: SectionItem; divided: boolean }) {
   const title = (item.title ?? '').trim()
   const body = (item.body ?? '').trim()
   if (!title && !body) return null
-  // 분야색 좌측 레일 — 회색 단일 테두리(단조로움) 대신 분야 dot색을 좌측 3px 레일로(은은한 구분). ring 은 #ebebeb 로 더 옅게.
+  // 분야 박스 안의 기사 row — 첫 기사 외에는 상단 가는 중간선(#ececec)으로만 구분(개별 카드 → 통합 리스트).
   return (
-    <div
-      className="rounded-xl border bg-surface p-4"
-      style={{ borderColor: '#ebebeb', borderLeftColor: accent, borderLeftWidth: 3 }}
-    >
+    <div className={`p-4${divided ? ' border-t' : ''}`} style={divided ? { borderTopColor: '#ececec' } : undefined}>
       {title && <p className="text-[17px] font-bold leading-snug text-ink">{title}</p>}
       {body && <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-muted">{body}</p>}
       <SourceLine source={item.source} url={item.url} />
@@ -180,9 +177,10 @@ export default function BriefingView({
               <h2 className="font-display text-xl font-bold text-ink">{m.label}</h2>
               <span className="text-xs text-faint">{items.length}건</span>
             </div>
-            <div className="space-y-2.5">
+            {/* 분야 통합 박스 — 전체 테두리 = 분야색(m.dot). 기사들은 박스 안에서 가는 중간선으로 구분. */}
+            <div className="overflow-hidden rounded-2xl border bg-surface" style={{ borderColor: m.dot }}>
               {items.map((it, i) => (
-                <ItemBlock key={i} item={it} accent={m.dot} />
+                <ItemRow key={i} item={it} divided={i > 0} />
               ))}
             </div>
           </section>
