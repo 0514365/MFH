@@ -187,9 +187,12 @@ export default function BriefingView({
         )
       })}
 
-      {/* 선교 인사이트 + 기도 포인트(별도 박스) */}
+      {/* 선교 인사이트 + 기도 포인트(별도 박스) — 주목과 어울리는 마룬 글로우 추가. 좌측 레일 4px·연회색 면은 결론부 정체성으로 유지. */}
       {((row.insight ?? '').trim() || prayerPoints.length > 0) && (
-        <section className="rounded-2xl border-l-4 border-accent bg-surface-subtle p-5">
+        <section
+          className="rounded-2xl border-l-4 border-accent bg-surface-subtle p-5"
+          style={{ boxShadow: '0 0 0 1px rgba(182,24,33,0.10), 0 6px 22px -10px rgba(182,24,33,0.22)' }}
+        >
           <p className="mb-3 font-display text-2xl font-extrabold tracking-tight text-accent">선교 인사이트</p>
           {(row.insight ?? '').trim() && (
             <p className="whitespace-pre-wrap text-[17px] leading-relaxed text-ink">{row.insight!.trim()}</p>
