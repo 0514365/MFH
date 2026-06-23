@@ -84,7 +84,7 @@ export default function SplashGate({
         <div className="mfh-stage">
           <div className="mfh-logo">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-white.svg" alt="MFH — Mission for Honduras" />
+            <img src="/logo-primary.svg" alt="MFH — Mission for Honduras" />
           </div>
           <div className="mfh-panel">
             {hasTheme && (
@@ -121,8 +121,8 @@ export default function SplashGate({
           position: fixed;
           inset: 0;
           z-index: 100;
-          background: #661f20;
-          color: #fff;
+          background: #fff;
+          color: #222;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -180,7 +180,7 @@ export default function SplashGate({
           font-size: 13px;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.72);
+          color: #717171;
         }
         .mfh-theme {
           margin: 12px 0 8px;
@@ -203,14 +203,14 @@ export default function SplashGate({
           font-style: italic;
           font-size: 13.5px;
           line-height: 1.55;
-          color: rgba(255, 255, 255, 0.78);
+          color: #717171;
           max-width: 300px;
           margin: 0 auto;
         }
         .mfh-rule {
           width: 46px;
           height: 2px;
-          background: rgba(255, 255, 255, 0.4);
+          background: #ff385c;
           margin: 16px auto 14px;
           border-radius: 2px;
         }
@@ -224,7 +224,7 @@ export default function SplashGate({
         .mfh-goals li {
           font-size: 14.5px;
           line-height: 1.9;
-          color: rgba(255, 255, 255, 0.9);
+          color: #3f3f3f;
           position: relative;
           padding-left: 18px;
         }
@@ -232,15 +232,15 @@ export default function SplashGate({
           content: '–';
           position: absolute;
           left: 0;
-          color: rgba(255, 255, 255, 0.6);
+          color: #ff385c;
         }
         .mfh-start {
           margin-top: 28px;
           font-family: var(--font-montserrat), sans-serif;
           font-weight: 700;
           font-size: 14px;
-          color: #661f20;
-          background: #fff;
+          color: #fff;
+          background: #ff385c;
           border: 0;
           border-radius: 12px;
           padding: 12px 30px;
@@ -254,8 +254,8 @@ export default function SplashGate({
           font-family: var(--font-montserrat), sans-serif;
           font-weight: 600;
           font-size: 12px;
-          color: rgba(255, 255, 255, 0.8);
-          background: rgba(255, 255, 255, 0.12);
+          color: #717171;
+          background: #f2f2f2;
           border: 0;
           border-radius: 8px;
           padding: 7px 12px;
