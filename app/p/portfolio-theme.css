@@ -115,6 +115,14 @@
   font-family: var(--font-sans);
 }
 
+/* 홈(.app-theme) 전용 강조색 — 레드핑크 대신 MFH 마룬레드(차분·눈편함). 포트폴리오(/p)는 레드핑크 유지. */
+.app-theme {
+  --accent: #b61821;
+  --accent-hover: #9a141b;
+  --accent-soft: #fae3e4;
+  --on-accent-soft: #b61821;
+}
+
 /* 공개페이지에서는 전역 종이질감 노이즈 오버레이 제거 + body 배경 순백 (Airbnb 클린 룩) */
 body:has(.portfolio-theme),
 body:has(.app-theme) {

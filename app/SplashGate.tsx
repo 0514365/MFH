@@ -210,7 +210,7 @@ export default function SplashGate({
         .mfh-rule {
           width: 46px;
           height: 2px;
-          background: #ff385c;
+          background: #b61821;
           margin: 16px auto 14px;
           border-radius: 2px;
         }
@@ -232,7 +232,7 @@ export default function SplashGate({
           content: '–';
           position: absolute;
           left: 0;
-          color: #ff385c;
+          color: #b61821;
         }
         .mfh-start {
           margin-top: 28px;
@@ -240,7 +240,7 @@ export default function SplashGate({
           font-weight: 700;
           font-size: 14px;
           color: #fff;
-          background: #ff385c;
+          background: #b61821;
           border: 0;
           border-radius: 12px;
           padding: 12px 30px;
