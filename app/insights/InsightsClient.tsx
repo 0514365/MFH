@@ -545,8 +545,8 @@ export default function InsightsClient({
       {/* 분야별 분석 */}
       <div>
         <div className="mb-4 flex items-center gap-2">
-          <span className="h-3.5 w-1.5 rounded-full bg-line" />
-          <h3 className="text-[12px] font-bold text-muted">분야별 분석</h3>
+          <span className="h-5 w-1.5 rounded-full bg-accent" />
+          <h3 className="text-[17px] font-bold tracking-tight text-accent">분야별 분석</h3>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {(['journal', 'project', 'task'] as InsightDomain[]).map((d) => (

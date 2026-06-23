@@ -13,6 +13,13 @@ import type { InsightDomain } from '@/lib/insightExport'
 // 기도제목 출력 순서(라벨 → 우선순위). '나라'는 표시 단계에서 '온두라스'로 통일한다.
 const PRAYER_RANK: Record<string, number> = { 온두라스: 0, 사역: 1, 가정: 2 }
 
+// 기도제목 라벨별 색 뱃지(온두라스/사역/가정). Tailwind 기본 팔레트라 테마 무관.
+const PRAYER_BADGE: Record<string, string> = {
+  온두라스: 'bg-sky-100 text-sky-700',
+  사역: 'bg-amber-100 text-amber-700',
+  가정: 'bg-rose-100 text-rose-700',
+}
+
 type PrayerItem = { label: string; body: string }
 
 // 기도제목 라벨 줄("사역 · …" 또는 "- 가정 · …") → {label, body}. 라벨 직후 '·'/':' 구분자 필수(오탐 방지).
@@ -78,7 +85,7 @@ export default function InsightContent({
           <div key={key++} className="space-y-3">
             {ordered.map((it, j) => (
               <div key={j}>
-                <span className="inline-block rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary-soft">
+                <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${PRAYER_BADGE[it.label] ?? 'bg-surface-subtle text-muted'}`}>
                   {it.label}
                 </span>
                 <p className="mt-1">{renderInline(it.body, key * 100 + j)}</p>
@@ -189,6 +196,17 @@ export default function InsightContent({
       blocks.push(
         <p key={key++} className="mt-3.5 text-[15px] font-bold leading-snug text-ink first:mt-0">
           {trimmed.slice(2, -2)}
+        </p>,
+      )
+      i++
+      continue
+    }
+
+    // 6b) Letter 발행호수(MFH #YYMM) → 크게 볼드
+    if (domain === 'letter' && /^MFH\s*#/.test(trimmed)) {
+      blocks.push(
+        <p key={key++} className="text-[19px] font-bold tracking-tight text-ink">
+          {trimmed}
         </p>,
       )
       i++
