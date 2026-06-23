@@ -104,31 +104,35 @@ export default async function ProjectDetail(props: {
     <main className="app-theme mx-auto max-w-md pb-10">
       {/* 상단바 — 일지 상세와 통일 */}
       <header
-        className="sticky top-0 z-30 flex items-center gap-3 border-b border-line px-4 py-3"
+        className="sticky top-0 z-30 border-b border-line px-4 py-3"
         style={{ background: 'var(--paper)' }}
       >
-        <BackButton href="/projects" label="" variant="text" />
-        <h1 className="min-w-0 flex-1 truncate text-center text-[16px] font-bold tracking-tight text-ink">
+        <h1 className="truncate text-center text-[22px] font-bold leading-tight tracking-tight text-ink">
           {project.title}
         </h1>
-        <DetailNav
-          basePath="/projects"
-          prevId={nav.prevId}
-          nextId={nav.nextId}
-          index={nav.index}
-          total={nav.total}
-          query={navQuery}
-          variant="minimal"
-        />
-      </header>
-
-      {/* 헤더: 기간 / 메타 / 제목 */}
-      <section className="px-5 pb-6 pt-5">
-        {period && (
-          <div className="mb-3 font-display text-[13px] font-medium uppercase tracking-[0.12em] text-muted">
+        <div className="mt-3 grid grid-cols-3 items-center">
+          <div className="justify-self-start">
+            <BackButton href="/projects" label="목록" variant="text" />
+          </div>
+          <div className="justify-self-center whitespace-nowrap font-display text-[13px] font-medium tracking-wide text-muted">
             {period}
           </div>
-        )}
+          <div className="justify-self-end">
+            <DetailNav
+              basePath="/projects"
+              prevId={nav.prevId}
+              nextId={nav.nextId}
+              index={nav.index}
+              total={nav.total}
+              query={navQuery}
+              variant="minimal"
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* 메타칩 */}
+      <section className="px-5 pb-6 pt-5">
         <div className="flex flex-wrap items-center gap-2">
           <ImportanceStars value={project.importance} size="md" />
           <span
@@ -165,7 +169,7 @@ export default async function ProjectDetail(props: {
             <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
               Description
             </div>
-            <h2 className="text-[14px] font-bold tracking-tight text-ink">프로젝트 개요</h2>
+            <h2 className="text-[17px] font-bold tracking-tight text-ink">프로젝트 개요</h2>
           </div>
           <p className="whitespace-pre-wrap break-keep text-[15px] font-light leading-[1.75] text-ink">
             {project.description}
@@ -193,11 +197,11 @@ export default async function ProjectDetail(props: {
             <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
               Progress
             </div>
-            <h2 className="text-[16px] font-bold tracking-tight text-ink">진행 상황</h2>
+            <h2 className="text-[19px] font-bold tracking-tight text-ink">진행 상황</h2>
           </div>
           <Link
             href={`/tasks/new?project=${project.id}`}
-            className="text-[13px] font-medium text-primary transition-colors hover:text-accent"
+            className="shrink-0 rounded-full bg-accent-soft px-3.5 py-1.5 text-[12.5px] font-medium text-accent transition hover:opacity-80"
           >
             + 할 일 추가
           </Link>
@@ -240,14 +244,13 @@ export default async function ProjectDetail(props: {
 
       {/* 수정 / 삭제 — 일지 상세와 통일 */}
       {canEdit ? (
-        <div className="flex items-center justify-center gap-6 border-t border-line px-5 pb-12 pt-8">
+        <div className="flex items-center justify-center gap-3 border-t border-line px-5 pb-12 pt-8">
           <Link
             href={`/projects/${project.id}/edit`}
-            className="rounded-xl px-5 py-2 text-[13px] font-medium text-muted transition hover:bg-surface-subtle"
+            className="rounded-full border border-line bg-surface-subtle px-5 py-2 text-[13px] font-medium text-muted transition hover:border-primary"
           >
-            수정하기
+            수정
           </Link>
-          <div className="h-3 w-px bg-line" />
           <DeleteButton id={project.id} />
         </div>
       ) : (
