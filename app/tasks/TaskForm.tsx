@@ -19,7 +19,6 @@ import CategorySelect from '@/components/CategorySelect'
 import AttachmentUpload from '@/components/AttachmentUpload'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
-import AuthorSelect from '@/components/AuthorSelect'
 import RecurrenceBadge from '@/components/RecurrenceBadge'
 import RecurrenceScopeModal from '@/components/RecurrenceScopeModal'
 import {
@@ -111,8 +110,6 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
   const [attachments, setAttachments] = useState<Attachment[]>(initial?.attachments ?? [])
   // 첨부 업로드용 현재 로그인 사용자 id(본인 폴더 정책). 마운트 시 채움.
   const [viewerId, setViewerId] = useState('')
-  // 작성자(user_id) — 마스터만 AuthorSelect 로 변경 가능. 신규는 컴포넌트가 본인으로 채움.
-  const [authorId, setAuthorId] = useState(initial?.user_id ?? '')
   // 반복 등록(새 할 일 한정). 마감일을 첫 날짜로, 종료일까지 같은 할 일을 일괄 생성.
   const [repeatFreq, setRepeatFreq] = useState<RepeatFreq>('none')
   const [repeatUntil, setRepeatUntil] = useState('')
@@ -280,7 +277,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     // 새 항목
     setSaving(true)
     setMsg(null)
-    const ownerId = resolveOwnerId({ chosen: authorId, existingOwnerId: initial?.user_id, viewerId: user.id })
+    const ownerId = resolveOwnerId({ existingOwnerId: initial?.user_id, viewerId: user.id })
     // 프로젝트에 연결되면 그 프로젝트 맨 끝(max+10)으로 배치(patch95). 단독 할 일은 null.
     const baseSo = projectId ? await nextSortOrder(supabase, projectId) : null
     if (recurring) {
@@ -329,7 +326,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
       router.replace('/login')
       return
     }
-    const ownerId = resolveOwnerId({ chosen: authorId, existingOwnerId: initial.user_id, viewerId: user.id })
+    const ownerId = resolveOwnerId({ existingOwnerId: initial.user_id, viewerId: user.id })
     // 프로젝트가 바뀌면 새 프로젝트 맨 끝으로 sort_order 재부여(안 바뀌면 기존 순서 보존).
     const projectChanged = (initial.project_id ?? '') !== (projectId || '')
     const sortPatch = projectChanged
@@ -446,9 +443,6 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
           </p>
         </div>
       )}
-
-      {/* 작성자 (편집·마스터만) */}
-      {mode === 'edit' && <AuthorSelect value={authorId} onChange={setAuthorId} className={input} />}
 
       {/* 데스크탑·아이패드(≥md): 두 카드 좌우 2컬럼 / 모바일: 세로 스택 */}
       <div className="md:grid md:grid-cols-2 md:items-start md:gap-6">

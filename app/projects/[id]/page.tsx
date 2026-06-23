@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { getMembersMap, canEditEntry } from '@/lib/members'
+import { canEditEntry } from '@/lib/members'
 import type { Project, Attachment } from '@/lib/types'
 import { applyProjectFilter, parseProjectFilter } from '@/lib/projectFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
@@ -43,7 +43,6 @@ export default async function ProjectDetail(props: {
   const project = data as Project | null
   if (!project) notFound()
 
-  const membersMap = await getMembersMap(supabase)
   const canEdit = canEditEntry(project.user_id, user.id)
 
   // 목록과 동일한 필터+정렬로 전체를 재계산 → 현재 항목의 이전/다음.
@@ -84,8 +83,6 @@ export default async function ProjectDetail(props: {
       : st === 'in_progress'
         ? 'bg-status-progress text-on-status-progress'
         : 'bg-status-upcoming text-on-status-upcoming'
-  const author = membersMap[project.user_id]
-
   // 첨부 signed URL(1시간) — 비공개 'attachments' 버킷.
   const atts = (project.attachments ?? []) as Attachment[]
   let attItems: AttItem[] = []
@@ -163,7 +160,6 @@ export default async function ProjectDetail(props: {
               {project.category}
             </span>
           )}
-          {author && <span className="flex-1 text-right text-[12px] text-muted">{author}</span>}
         </div>
       </section>
 
@@ -260,7 +256,7 @@ export default async function ProjectDetail(props: {
         </div>
       ) : (
         <p className="border-t border-line px-5 pb-12 pt-8 text-center text-xs text-faint">
-          {author ?? '다른 멤버'}님의 프로젝트입니다. 보기·할 일 추가만 가능합니다.
+          다른 멤버님의 프로젝트입니다. 보기·할 일 추가만 가능합니다.
         </p>
       )}
     </main>

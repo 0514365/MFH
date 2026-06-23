@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { getMembersMap, canEditEntry } from '@/lib/members'
+import { canEditEntry } from '@/lib/members'
 import type { Attachment } from '@/lib/types'
 import { parseTaskFilter, orderTaskIds } from '@/lib/taskFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
@@ -72,7 +72,6 @@ export default async function TaskDetailPage(props: {
   const task = data as unknown as TaskDetail | null
   if (!task) notFound()
 
-  const membersMap = await getMembersMap(supabase)
   const canEdit = canEditEntry(task.user_id, user.id)
 
   // 목록과 동일한 필터+정렬+그룹평탄화로 전체를 재계산 → 현재 항목의 이전/다음.
@@ -92,7 +91,6 @@ export default async function TaskDetailPage(props: {
   const navQuery = searchParamsToQuery(searchParams)
 
   const overdue = !!task.due_date && !task.done && isOverdue(task.due_date)
-  const author = membersMap[task.user_id]
 
   // 첨부 signed URL(1시간) — 비공개 'attachments' 버킷.
   const atts = (task.attachments ?? []) as Attachment[]
@@ -158,7 +156,6 @@ export default async function TaskDetailPage(props: {
             </span>
           )}
           {task.recurrence_id && <RecurrenceBadge freq={task.recurrence_freq} />}
-          {author && <span className="ml-auto text-[12px] text-muted">{author}</span>}
         </div>
 
         <div className="flex items-start gap-4">
@@ -277,7 +274,7 @@ export default async function TaskDetailPage(props: {
       ) : (
         <div className="border-t border-line px-5 pb-10 pt-8 text-center">
           <p className="mb-5 text-[13px] leading-relaxed text-muted">
-            {author ?? '다른 멤버'}님의 할 일입니다. 보기·복제만 가능합니다.
+            다른 멤버님의 할 일입니다. 보기·복제만 가능합니다.
           </p>
           <Link
             href={`/tasks/new?from=${task.id}`}

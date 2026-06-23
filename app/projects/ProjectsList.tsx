@@ -5,8 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import type { Project } from '@/lib/types'
-import { canEditEntry, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
-import AuthorBadge from '@/components/AuthorBadge'
+import { canEditEntry } from '@/lib/members'
 import { STATUSES, normalizeStatus, type StatusValue } from '@/lib/constants'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import {
@@ -43,13 +42,11 @@ function ProjectSummary({
   p,
   counts,
   detailSuffix,
-  authorName,
   canEdit,
 }: {
   p: Project
   counts: { total: number; done: number }
   detailSuffix: string
-  authorName?: string
   canEdit: boolean
 }) {
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -66,7 +63,6 @@ function ProjectSummary({
     <div>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <AuthorBadge name={authorName} />
           <h2 className="mt-1 text-lg font-bold text-ink">{p.title}</h2>
         </div>
         <div className="flex shrink-0 gap-1.5">
@@ -123,12 +119,10 @@ function ProjectSummary({
 export default function ProjectsList({
   projects,
   counts,
-  membersMap = {},
   currentUserId,
 }: {
   projects: Project[]
   counts: Counts
-  membersMap?: MembersMap
   currentUserId?: string
 }) {
   const router = useRouter()
@@ -180,18 +174,6 @@ export default function ProjectsList({
         new Set(projects.map((p) => p.category).filter((c): c is string => !!c)),
       ).sort(),
     [projects],
-  )
-
-  // 작성자 옵션: 멤버 전원(고정 2명). 데이터에 글이 없는 작성자도 칩으로 노출 —
-  // 멤버 공유 앱이라 작성자=멤버. 마스터(김우진) 먼저.
-  const authorOpts = useMemo(
-    () =>
-      Object.entries(membersMap)
-        .map(([id, name]) => ({ id, name }))
-        .sort((a, b) =>
-          a.id === PORTFOLIO_OWNER_ID ? -1 : b.id === PORTFOLIO_OWNER_ID ? 1 : a.name.localeCompare(b.name),
-        ),
-    [membersMap],
   )
 
   const filtered = useMemo(
@@ -418,21 +400,6 @@ export default function ProjectsList({
             </div>
           )}
 
-          {authorOpts.length > 1 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11px] font-semibold text-faint">작성자</span>
-              {authorOpts.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => setFAuthor((arr) => toggle(arr, a.id))}
-                  className={`${chip} ${fAuthor.includes(a.id) ? chipOn : ''}`}
-                >
-                  {a.name}
-                </button>
-              ))}
-            </div>
-          )}
           {categoryOpts.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="mr-1 text-[11px] font-semibold text-faint">분류</span>
@@ -487,14 +454,13 @@ export default function ProjectsList({
         </p>
       ) : (
         (() => {
-          function ProjectBody({ p, authorName }: { p: Project; authorName?: string }) {
+          function ProjectBody({ p }: { p: Project }) {
             return (
               <>
                 <div className="flex flex-wrap items-center gap-2">
                   {p.importance > 0 && <ImportanceStars value={p.importance} size="md" />}
                   <StatusBadge value={p.status} />
                   <CategoryBadge value={p.category} />
-                  <AuthorBadge name={authorName} />
                 </div>
                 <div className="mt-1.5 font-bold text-ink">{p.title}</div>
                 {p.description && (
@@ -537,7 +503,7 @@ export default function ProjectsList({
                         onClick={() => sel.toggleId(p.id)}
                         className="min-w-0 flex-1 text-left"
                       >
-                        <ProjectBody p={p} authorName={membersMap[p.user_id]} />
+                        <ProjectBody p={p} />
                       </button>
                     ) : wide ? (
                       <button
@@ -545,11 +511,11 @@ export default function ProjectsList({
                         onClick={() => setSelectedId(p.id)}
                         className="min-w-0 flex-1 text-left"
                       >
-                        <ProjectBody p={p} authorName={membersMap[p.user_id]} />
+                        <ProjectBody p={p} />
                       </button>
                     ) : (
                       <Link href={`/projects/${p.id}${detailSuffix}`} className="min-w-0 flex-1">
-                        <ProjectBody p={p} authorName={membersMap[p.user_id]} />
+                        <ProjectBody p={p} />
                       </Link>
                     )}
 
@@ -657,7 +623,6 @@ export default function ProjectsList({
                       p={selectedProject}
                       counts={selCounts}
                       detailSuffix={detailSuffix}
-                      authorName={membersMap[selectedProject.user_id]}
                       canEdit={canEditEntry(selectedProject.user_id, currentUserId)}
                     />
                   ) : (

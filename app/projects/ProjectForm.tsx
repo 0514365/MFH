@@ -12,7 +12,6 @@ import type { Project, Attachment } from '@/lib/types'
 import DateField from '../journal/DateField'
 import CategorySelect from '@/components/CategorySelect'
 import AttachmentUpload from '@/components/AttachmentUpload'
-import AuthorSelect from '@/components/AuthorSelect'
 import BackButton from '@/components/BackButton'
 import { resolveOwnerId } from '@/lib/members'
 
@@ -41,8 +40,6 @@ export default function ProjectForm({ mode, initial }: Props) {
   const [importance, setImportance] = useState<number>(initial?.importance ?? 0)
   const [startDate, setStartDate] = useState(initial?.start_date ?? '')
   const [dueDate, setDueDate] = useState(initial?.due_date ?? '')
-  // 작성자(user_id) — 마스터만 AuthorSelect 로 변경 가능. 신규는 컴포넌트가 본인으로 채움.
-  const [authorId, setAuthorId] = useState(initial?.user_id ?? '')
   const [attachments, setAttachments] = useState<Attachment[]>(initial?.attachments ?? [])
   // 첨부 업로드용 현재 로그인 사용자 id(본인 폴더 정책). 마운트 시 채움.
   const [viewerId, setViewerId] = useState('')
@@ -70,7 +67,7 @@ export default function ProjectForm({ mode, initial }: Props) {
       return
     }
     const payload = {
-      user_id: resolveOwnerId({ chosen: authorId, existingOwnerId: initial?.user_id, viewerId: user.id }),
+      user_id: resolveOwnerId({ existingOwnerId: initial?.user_id, viewerId: user.id }),
       title: title.trim(),
       description: description.trim() || null,
       category: category || null,
@@ -121,9 +118,6 @@ export default function ProjectForm({ mode, initial }: Props) {
         </h1>
         <span className="w-10" aria-hidden="true" />
       </header>
-
-      {/* 작성자 (편집·마스터만) */}
-      {mode === 'edit' && <AuthorSelect value={authorId} onChange={setAuthorId} className={input} />}
 
       {/* 데스크탑·아이패드(≥md): 두 카드 좌우 2컬럼 / 모바일: 세로 스택 */}
       <div className="md:grid md:grid-cols-2 md:items-start md:gap-6">

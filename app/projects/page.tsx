@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { getMembersMap } from '@/lib/members'
 import PageHeader from '@/components/PageHeader'
 import type { Project } from '@/lib/types'
 import ProjectsList from './ProjectsList'
@@ -36,7 +35,6 @@ export default async function ProjectsPage() {
     counts[t.project_id] = c
   }
 
-  const membersMap = await getMembersMap(supabase)
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
   const signals = projectSignals(projects, today)
 
@@ -60,7 +58,7 @@ export default async function ProjectsPage() {
       <DomainInsightPanel domain="project_assist" />
       <DomainInsightPanel domain="project" />
 
-      <ProjectsList projects={projects} counts={counts} membersMap={membersMap} currentUserId={user.id} />
+      <ProjectsList projects={projects} counts={counts} currentUserId={user.id} />
     </main>
   )
 }

@@ -17,8 +17,7 @@ import {
 } from '@/lib/taskFilter'
 import { chip, chipOn, statusChipCls, toggle } from '@/lib/statusChip'
 import { fmtTime } from '@/lib/calendar'
-import { canEditEntry, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
-import AuthorBadge from '@/components/AuthorBadge'
+import { canEditEntry } from '@/lib/members'
 import { StatusBadge, CategoryBadge, ImportanceStars } from '../projects/badges'
 import { useWideScreen } from '@/lib/useWideScreen'
 import {
@@ -132,12 +131,10 @@ function uniqueCopyTitle(base: string, existing: Set<string>): string {
 // 요약 패널(읽기전용). 넓은 화면 우측. '편집' 버튼 → /tasks/[id]/edit.
 function TaskSummary({
   t,
-  authorName,
   canEdit,
   editSuffix,
 }: {
   t: TaskListRow
-  authorName?: string
   canEdit: boolean
   editSuffix: string
 }) {
@@ -152,7 +149,6 @@ function TaskSummary({
     <div>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <AuthorBadge name={authorName} />
           <h2 className={`mt-1 text-lg font-bold ${t.done ? 'text-faint line-through' : 'text-ink'}`}>
             {t.title}
           </h2>
@@ -219,11 +215,9 @@ function TaskSummary({
 
 export default function TasksListClient({
   tasks,
-  membersMap = {},
   currentUserId,
 }: {
   tasks: TaskListRow[]
-  membersMap?: MembersMap
   currentUserId?: string
 }) {
   const router = useRouter()
@@ -312,17 +306,6 @@ export default function TasksListClient({
   const categoryOpts = useMemo(
     () => Array.from(new Set(tasks.map((t) => t.category).filter((c): c is string => !!c))).sort(),
     [tasks],
-  )
-  // 작성자 옵션: 멤버 전원(고정 2명). 데이터에 글이 없는 작성자도 칩으로 노출 —
-  // 멤버 공유 앱이라 작성자=멤버. 마스터(김우진) 먼저.
-  const authorOpts = useMemo(
-    () =>
-      Object.entries(membersMap)
-        .map(([id, name]) => ({ id, name }))
-        .sort((a, b) =>
-          a.id === PORTFOLIO_OWNER_ID ? -1 : b.id === PORTFOLIO_OWNER_ID ? 1 : a.name.localeCompare(b.name),
-        ),
-    [membersMap],
   )
   const projectOpts = useMemo(() => {
     const map = new Map<string, string>()
@@ -636,21 +619,6 @@ export default function TasksListClient({
             </div>
           )}
 
-          {authorOpts.length > 1 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11px] font-semibold text-faint">작성자</span>
-              {authorOpts.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => setFAuthor((arr) => toggle(arr, a.id))}
-                  className={`${chip} ${fAuthor.includes(a.id) ? chipOn : ''}`}
-                >
-                  {a.name}
-                </button>
-              ))}
-            </div>
-          )}
           {categoryOpts.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="mr-1 text-[11px] font-semibold text-faint">분류</span>
@@ -725,7 +693,7 @@ export default function TasksListClient({
           const grouped = sortKey === 'due' && asc
 
           // 카드 내용(날짜·제목·설명·배지). TaskCheck 는 renderTask 의 li 직속 자식으로 분리(button 중첩 회피).
-          function TaskBody({ t, authorName }: { t: TaskListRow; authorName?: string }) {
+          function TaskBody({ t }: { t: TaskListRow }) {
             const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
             const soon = !!t.due_date && !t.done && !overdue && isSoon(t.due_date)
             const dueRed = overdue || soon
@@ -736,7 +704,6 @@ export default function TasksListClient({
                 {/* 상단: (좌) 작성자·상태·반복 / (우) 관련 프로젝트 */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <AuthorBadge name={authorName} />
                     <StatusBadge value={t.status ?? 'upcoming'} />
                     {t.recurrence_id && <RecurrenceBadge freq={t.recurrence_freq} />}
                   </div>
@@ -817,15 +784,15 @@ export default function TasksListClient({
                 {/* 본문: selectMode=토글 / 넓은화면=요약선택 / 좁은화면=상세 Link. */}
                 {inSelectMode ? (
                   <button type="button" onClick={() => sel.toggleId(t.id)} className="min-w-0 flex-1 text-left">
-                    <TaskBody t={t} authorName={membersMap[t.user_id]} />
+                    <TaskBody t={t} />
                   </button>
                 ) : wide ? (
                   <button type="button" onClick={() => setSelectedId(t.id)} className="min-w-0 flex-1 text-left">
-                    <TaskBody t={t} authorName={membersMap[t.user_id]} />
+                    <TaskBody t={t} />
                   </button>
                 ) : (
                   <Link href={`/tasks/${t.id}${detailSuffix}`} className="min-w-0 flex-1">
-                    <TaskBody t={t} authorName={membersMap[t.user_id]} />
+                    <TaskBody t={t} />
                   </Link>
                 )}
               </li>
@@ -937,7 +904,6 @@ export default function TasksListClient({
                   ) : selectedTask ? (
                     <TaskSummary
                       t={selectedTask}
-                      authorName={membersMap[selectedTask.user_id]}
                       canEdit={canEditEntry(selectedTask.user_id, currentUserId)}
                       editSuffix={detailSuffix}
                     />

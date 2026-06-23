@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { getMembersMap } from '@/lib/members'
 import PageHeader from '@/components/PageHeader'
 import type { TaskListRow } from './TasksListClient'
 import TasksListClient from './TasksListClient'
@@ -32,7 +31,6 @@ export default async function TasksPage() {
     .order('due_time', { ascending: true, nullsFirst: true })
     .order('created_at', { ascending: false })
   const tasks = (data ?? []) as unknown as TaskListRow[]
-  const membersMap = await getMembersMap(supabase)
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
   const signals = taskSignals(tasks, today)
 
@@ -67,7 +65,7 @@ export default async function TasksPage() {
       <DomainInsightPanel domain="task_assist" />
       <DomainInsightPanel domain="task" />
 
-      <TasksListClient tasks={tasks} membersMap={membersMap} currentUserId={user.id} />
+      <TasksListClient tasks={tasks} currentUserId={user.id} />
 
       <OfflineSync tasks={offlineTasks} />
     </main>
