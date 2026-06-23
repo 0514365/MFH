@@ -30,9 +30,13 @@ export function CategoryBadge({ value }: { value: string | null }) {
   return <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">{value}</span>
 }
 
-export function ImportanceStars({ value }: { value: number }) {
+export function ImportanceStars({ value, size = 'sm' }: { value: number; size?: 'sm' | 'md' }) {
   if (!value) return null
-  return <span className="text-[11px] text-yellow-400">{'★'.repeat(value)}</span>
+  return (
+    <span className={`${size === 'md' ? 'text-sm' : 'text-[11px]'} text-yellow-400`}>
+      {'★'.repeat(value)}
+    </span>
+  )
 }
 
 export function fmtDate(d: string | null): string {

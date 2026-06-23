@@ -490,11 +490,6 @@ export default function ProjectsList({
           function ProjectBody({ p, authorName }: { p: Project; authorName?: string }) {
             return (
               <>
-                {p.importance > 0 && (
-                  <div className="mb-1.5">
-                    <ImportanceStars value={p.importance} />
-                  </div>
-                )}
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge value={p.status} />
                   <CategoryBadge value={p.category} />
@@ -532,8 +527,15 @@ export default function ProjectsList({
                     aria-hidden="true"
                   />
 
-                  {/* 상단 본문 행(기존 그대로). 우측 완료 토글 자리 확보 pr-16. */}
-                  <div className="flex items-start gap-3 pr-16">
+                  {/* 중요도 별표 — 카드 최상단 단독 줄(있을 때만). 작은 요소라 클릭영역 밖. */}
+                  {p.importance > 0 && (
+                    <div className="mb-2">
+                      <ImportanceStars value={p.importance} size="md" />
+                    </div>
+                  )}
+
+                  {/* 본문 행: 좌=클릭영역(메타칩·제목·설명) / 우=완료 토글(button 중첩 회피 위해 클릭영역의 형제). */}
+                  <div className="flex items-start gap-3">
                     {inSelectMode && <SelectionCheckbox checked={checked} />}
                     {inSelectMode ? (
                       <button
@@ -556,12 +558,12 @@ export default function ProjectsList({
                         <ProjectBody p={p} authorName={membersMap[p.user_id]} />
                       </Link>
                     )}
-                  </div>
 
-                  {/* 우측 상단: "완료" 라벨 + ProjectStatusToggle (밴드 안쪽, button 중첩 회피 위해 직속 absolute) */}
-                  <div className="absolute right-4 top-3 flex shrink-0 items-center gap-1.5">
-                    <span className="text-[11px] font-semibold text-faint">완료</span>
-                    <ProjectStatusToggle id={p.id} status={p.status} />
+                    {/* 완료 라벨 + ProjectStatusToggle — 메타칩 줄과 같은 행 오른쪽 끝. */}
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className="text-[11px] font-semibold text-faint">완료</span>
+                      <ProjectStatusToggle id={p.id} status={p.status} />
+                    </div>
                   </div>
 
                   {/* 하단: Due Date(강조) + 할 일 숫자(강조) — 라벨 + 값 2단. */}
