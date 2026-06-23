@@ -45,11 +45,11 @@ function EntryBody({ e }: { e: JournalEntry }) {
   )
 }
 
-// 카드 하단 메타 칩(연계 프로젝트·할일·장소·작성자). 아이콘 + 라벨.
-function MetaChip({ icon, label }: { icon: React.ReactNode; label: string }) {
+// 카드 하단 메타 칩(연계 프로젝트·할일·장소·작성자). 아이콘 + 라벨. iconColor 면 아이콘만 종류색(③ 절제 스타일).
+function MetaChip({ icon, label, iconColor }: { icon: React.ReactNode; label: string; iconColor?: string }) {
   return (
     <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
-      <span className="shrink-0 text-faint">{icon}</span>
+      <span className={`shrink-0 ${iconColor ? '' : 'text-faint'}`} style={iconColor ? { color: iconColor } : undefined}>{icon}</span>
       <span className="max-w-[140px] truncate">{label}</span>
     </span>
   )
@@ -69,6 +69,15 @@ const metaIcon = {
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
   ),
 }
+
+// 메타칩 아이콘색(③ 절제 스타일) — 브랜드 어스톤 + 작성자만 청/로즈로 구별. 동적 클래스 회피 위해 hex 직접.
+const META_ICON_COLOR = {
+  project: '#B05744',
+  task: '#B08A4A',
+  place: '#9A9A98',
+  authorMaster: '#5E82A6',
+  authorOther: '#C56A7E',
+} as const
 
 // 요약 패널(읽기전용). 넓은 화면 우측. '상세' → /journal/[id], '편집' → /journal/[id]/edit.
 function EntrySummary({
@@ -392,10 +401,16 @@ export default function JournalList({
         {/* 하단: 메타 칩(연계 프로젝트·할일·장소·작성자) + 기도후보 토글. */}
         <div className="mt-3.5 flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap gap-2">
-            {projTitle && <MetaChip icon={metaIcon.project} label={projTitle} />}
-            {taskTitle && <MetaChip icon={metaIcon.task} label={taskTitle} />}
-            {e.place_name && <MetaChip icon={metaIcon.place} label={e.place_name} />}
-            {authorName && <MetaChip icon={metaIcon.user} label={authorName} />}
+            {projTitle && <MetaChip icon={metaIcon.project} label={projTitle} iconColor={META_ICON_COLOR.project} />}
+            {taskTitle && <MetaChip icon={metaIcon.task} label={taskTitle} iconColor={META_ICON_COLOR.task} />}
+            {e.place_name && <MetaChip icon={metaIcon.place} label={e.place_name} iconColor={META_ICON_COLOR.place} />}
+            {authorName && (
+              <MetaChip
+                icon={metaIcon.user}
+                label={authorName}
+                iconColor={e.user_id === PORTFOLIO_OWNER_ID ? META_ICON_COLOR.authorMaster : META_ICON_COLOR.authorOther}
+              />
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <span className="text-[11px] font-semibold text-faint">기도후보</span>

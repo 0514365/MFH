@@ -60,14 +60,14 @@ export default function DomainInsightPanel({ domain }: { domain: InsightDomain }
         className="flex w-full items-center justify-between gap-2 px-4 py-3.5 text-left"
       >
         <span className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/60 text-primary">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6z" />
             </svg>
           </span>
-          <span className="text-sm font-bold text-primary">{DOMAIN_LABEL[domain]}</span>
+          <span className="text-sm font-bold text-accent">{DOMAIN_LABEL[domain]}</span>
         </span>
-        <span className="text-xs text-primary opacity-50">{open ? '▾' : '▸'}</span>
+        <span className="text-xs text-accent opacity-50">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
         <div className="border-t border-white/50 px-4 py-4">
