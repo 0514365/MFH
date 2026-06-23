@@ -13,7 +13,7 @@ export default function BackButton({
 }: {
   href: string
   label?: string
-  variant?: 'icon' | 'text' | 'chip'
+  variant?: 'icon' | 'text' | 'chip' | 'icon-accent'
 }) {
   const router = useRouter()
 
@@ -25,6 +25,22 @@ export default function BackButton({
       return
     }
     router.push(href)
+  }
+
+  // icon-accent: 마룬 캐럿 아이콘만(연마룬 원형) — 강조 + 폭 절약.
+  if (variant === 'icon-accent') {
+    return (
+      <button
+        type="button"
+        onClick={goBack}
+        aria-label={label || '뒤로'}
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-accent-soft text-accent transition hover:opacity-80"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+    )
   }
 
   // chip: 아웃라인 알약(‹ + 라벨). text: 캐럿 + 라벨. icon: 동그라미 박스(기본).

@@ -6,7 +6,7 @@ import type { Project, Attachment } from '@/lib/types'
 import { applyProjectFilter, parseProjectFilter } from '@/lib/projectFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import { normalizeStatus, statusV2Label } from '@/lib/constants'
-import { fmtDate, ImportanceStars } from '../badges'
+import { ImportanceStars } from '../badges'
 import { ProgressRing } from '../Progress'
 import ProjectTaskList from './ProjectTaskList'
 import BackButton from '@/components/BackButton'
@@ -70,9 +70,10 @@ export default async function ProjectDetail(props: {
   const done = tlist.filter((t) => t.done).length
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
 
+  const toYYMMDD = (d: string | null) => (d ? d.slice(2).split('-').join('.') : '—')
   const period =
     project.start_date || project.due_date
-      ? `${fmtDate(project.start_date) || '—'} — ${fmtDate(project.due_date) || '—'}`
+      ? `${toYYMMDD(project.start_date)} — ${toYYMMDD(project.due_date)}`
       : null
 
   // 상태 칩 색 (목록 배지와 동일 토큰)
@@ -109,7 +110,7 @@ export default async function ProjectDetail(props: {
       >
         <div className="flex items-center gap-2">
           <div className="shrink-0">
-            <BackButton href="/projects" label="목록" variant="chip" />
+            <BackButton href="/projects" label="목록" variant="icon-accent" />
           </div>
           <div className="min-w-0 flex-1 text-center">
             <h1 className="truncate text-[18px] font-bold leading-tight tracking-tight text-ink">

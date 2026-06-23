@@ -65,34 +65,36 @@ export default function DetailNav({ basePath, prevId, nextId, index, total, quer
     )
   }
 
-  // pad: 큰 40px 사각 버튼(터치 영역 확대) — 프로젝트 상세 헤더용.
+  // pad: 1/7 위 + 큰 [‹][›] 아래(세로) — 프로젝트 상세 헤더용(터치 영역↑·가로 폭↓).
   if (variant === 'pad') {
     const pBtn =
-      'inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line text-muted transition hover:border-primary hover:text-ink'
-    const pDis = 'inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line text-faint opacity-40'
+      'inline-flex h-[34px] w-[38px] items-center justify-center rounded-[10px] border border-line text-muted transition hover:border-primary hover:text-ink'
+    const pDis = 'inline-flex h-[34px] w-[38px] items-center justify-center rounded-[10px] border border-line text-faint opacity-40'
     return (
-      <div className="flex items-center gap-1.5">
-        {prevId ? (
-          <Link href={withQuery(`${basePath}/${prevId}${suffix}`, query)} replace aria-label="이전" className={pBtn}>
-            <Arrow dir="prev" />
-          </Link>
-        ) : (
-          <span aria-disabled className={pDis}>
-            <Arrow dir="prev" />
-          </span>
-        )}
-        <span className="min-w-[26px] text-center font-display text-[11px] font-bold tracking-wide text-muted">
+      <div className="flex flex-col items-center gap-1">
+        <span className="font-display text-[10.5px] font-bold tracking-wide text-muted">
           {index} / {total}
         </span>
-        {nextId ? (
-          <Link href={withQuery(`${basePath}/${nextId}${suffix}`, query)} replace aria-label="다음" className={pBtn}>
-            <Arrow dir="next" />
-          </Link>
-        ) : (
-          <span aria-disabled className={pDis}>
-            <Arrow dir="next" />
-          </span>
-        )}
+        <div className="flex gap-1.5">
+          {prevId ? (
+            <Link href={withQuery(`${basePath}/${prevId}${suffix}`, query)} replace aria-label="이전" className={pBtn}>
+              <Arrow dir="prev" />
+            </Link>
+          ) : (
+            <span aria-disabled className={pDis}>
+              <Arrow dir="prev" />
+            </span>
+          )}
+          {nextId ? (
+            <Link href={withQuery(`${basePath}/${nextId}${suffix}`, query)} replace aria-label="다음" className={pBtn}>
+              <Arrow dir="next" />
+            </Link>
+          ) : (
+            <span aria-disabled className={pDis}>
+              <Arrow dir="next" />
+            </span>
+          )}
+        </div>
       </div>
     )
   }
