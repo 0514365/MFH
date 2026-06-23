@@ -490,10 +490,14 @@ export default function ProjectsList({
           function ProjectBody({ p, authorName }: { p: Project; authorName?: string }) {
             return (
               <>
+                {p.importance > 0 && (
+                  <div className="mb-1.5">
+                    <ImportanceStars value={p.importance} />
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge value={p.status} />
                   <CategoryBadge value={p.category} />
-                  <ImportanceStars value={p.importance} />
                   <AuthorBadge name={authorName} />
                 </div>
                 <div className="mt-1.5 font-bold text-ink">{p.title}</div>
