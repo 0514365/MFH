@@ -54,7 +54,7 @@ export default function DomainInsightPanel({ domain }: { domain: InsightDomain }
   }, [open, row, domain])
 
   return (
-    <div className="mb-5 overflow-hidden rounded-[20px] bg-primary-soft">
+    <div className="mb-5 overflow-hidden rounded-[20px] border-l-4 border-accent bg-primary-soft">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-2 px-4 py-3.5 text-left"
@@ -65,9 +65,9 @@ export default function DomainInsightPanel({ domain }: { domain: InsightDomain }
               <path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6z" />
             </svg>
           </span>
-          <span className="text-sm font-bold text-accent">{DOMAIN_LABEL[domain]}</span>
+          <span className="text-sm font-bold text-ink">{DOMAIN_LABEL[domain]}</span>
         </span>
-        <span className="text-xs text-accent opacity-50">{open ? '▾' : '▸'}</span>
+        <span className="text-xs text-faint">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
         <div className="border-t border-white/50 px-4 py-4">
