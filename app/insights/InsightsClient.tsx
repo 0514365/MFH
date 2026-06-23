@@ -51,6 +51,35 @@ const LENS_META: LensMeta[] = [
   { key: 'letter', desc: '월간 기도편지 초안' },
 ]
 
+// 렌즈/분야 색 베리에이션(아이콘 칩 + 라벨) — 정적 매핑(동적 클래스 금지). 홈 모듈 색과 연결.
+const LENS_CHIP: Record<string, string> = {
+  prayer: 'bg-rose-100 text-rose-700',
+  balance: 'bg-sky-100 text-sky-700',
+  fruit: 'bg-amber-100 text-amber-700',
+  letter: 'bg-indigo-100 text-indigo-700',
+  project_assist: 'bg-violet-100 text-violet-700',
+  task_assist: 'bg-teal-100 text-teal-700',
+}
+const LENS_TEXT: Record<string, string> = {
+  prayer: 'text-rose-700',
+  balance: 'text-sky-700',
+  fruit: 'text-amber-700',
+  letter: 'text-indigo-700',
+  project_assist: 'text-violet-700',
+  task_assist: 'text-teal-700',
+}
+const DOMAIN_CHIP: Record<string, string> = {
+  journal: 'bg-emerald-100 text-emerald-700',
+  project: 'bg-violet-100 text-violet-700',
+  task: 'bg-teal-100 text-teal-700',
+}
+// 분야 카드 표시용 영문 타이틀(홈 모듈과 통일). 전역 DOMAIN_LABEL(AI 프롬프트·타 페이지용)은 유지.
+const DOMAIN_TITLE: Record<string, string> = {
+  journal: 'Log',
+  project: 'Project',
+  task: 'To-Do',
+}
+
 
 // 렌즈 아이콘(인라인 SVG, 24x24, currentColor 상속 — ModuleIcon 스타일).
 // 홈 렌즈 카드(LENS_META)인 prayer/balance/fruit/letter 만 아이콘이 있다.
@@ -217,7 +246,7 @@ function BalanceSection({ loading, data }: { loading: boolean; data: BalanceResu
   return (
     <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-primary">분류 비중</div>
+        <div className="text-sm font-semibold text-accent">분류 비중</div>
         {data && data.all.total > 0 && (
           <div className="text-[11px] text-faint">활동 {data.all.total}건</div>
         )}
@@ -330,7 +359,7 @@ function FruitSection({ loading, items }: { loading: boolean; items: FruitItem[]
   return (
     <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-primary">감사·응답 타임라인</div>
+        <div className="text-sm font-semibold text-accent">감사·응답 타임라인</div>
         {items && items.length > 0 && <div className="text-[11px] text-faint">{items.length}건</div>}
       </div>
       {loading ? (
@@ -365,7 +394,7 @@ function PeriodChips({
             onClick={() => onChange(p.value)}
             className={
               active
-                ? `rounded-full border-2 border-primary font-semibold text-primary ${pad}`
+                ? `rounded-full border-2 border-accent font-semibold text-accent ${pad}`
                 : `rounded-full border border-line text-muted transition hover:border-primary ${pad}`
             }
           >
@@ -442,10 +471,10 @@ export default function InsightsClient({
       {/* 연 주제 칩 */}
       {themeName && (
         <div className="flex justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-primary-soft px-5 py-2">
-            <span className="font-display text-[13px] font-semibold tracking-wider text-primary">{year}</span>
-            <span className="h-[3px] w-[3px] rounded-full bg-primary opacity-30" />
-            <span className="text-[14px] font-medium text-primary">{themeName}</span>
+          <div className="inline-flex items-center gap-2 rounded-full bg-surface-subtle px-5 py-2">
+            <span className="font-display text-[13px] font-semibold tracking-wider text-accent">{year}</span>
+            <span className="h-[3px] w-[3px] rounded-full bg-accent opacity-40" />
+            <span className="text-[14px] font-medium text-accent">{themeName}</span>
           </div>
         </div>
       )}
@@ -463,10 +492,10 @@ export default function InsightsClient({
               onClick={() => setView(m.key)}
               className="flex h-[172px] flex-col rounded-3xl border border-line bg-surface p-4 text-left shadow-sm transition hover:border-primary"
             >
-              <span className="mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-primary-soft text-primary">
+              <span className={`mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] ${LENS_CHIP[m.key] ?? 'bg-surface-subtle text-muted'}`}>
                 <LensIcon name={m.key} size={22} />
               </span>
-              <span className="mb-1.5 font-display text-[11px] font-bold uppercase tracking-[0.15em] text-primary">
+              <span className={`mb-1.5 font-display text-[11px] font-bold uppercase tracking-[0.15em] ${LENS_TEXT[m.key] ?? 'text-muted'}`}>
                 {LENS_LABEL[m.key]}
               </span>
               <span className="text-[13px] font-medium leading-snug text-ink">{m.desc}</span>
@@ -491,7 +520,7 @@ export default function InsightsClient({
           onClick={() => setView('overall')}
           className="col-span-2 flex items-center gap-4 rounded-3xl bg-primary-soft p-4 text-left shadow-sm transition hover:opacity-90"
         >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-surface text-primary shadow-sm">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-surface text-accent shadow-sm">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="9" />
               <path d="M3 12h18" />
@@ -499,13 +528,13 @@ export default function InsightsClient({
             </svg>
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-display text-[11px] font-bold uppercase tracking-[0.15em] text-primary">Overall</span>
-            <span className="block text-[14px] font-semibold text-primary">일지·프로젝트·할일 종합</span>
+            <span className="block font-display text-[11px] font-bold uppercase tracking-[0.15em] text-accent">Overall</span>
+            <span className="block text-[14px] font-semibold text-accent">일지·프로젝트·할일 종합</span>
           </span>
           {updatedOf('overall') && (
             <span className="shrink-0 text-right">
-              <span className="block font-display text-[9px] uppercase tracking-[0.05em] text-primary opacity-70">업데이트</span>
-              <span className="mt-0.5 block font-display text-[10px] font-bold uppercase tracking-[0.05em] text-primary">
+              <span className="block font-display text-[9px] uppercase tracking-[0.05em] text-accent opacity-70">업데이트</span>
+              <span className="mt-0.5 block font-display text-[10px] font-bold uppercase tracking-[0.05em] text-accent">
                 {updatedOf('overall')}
               </span>
             </span>
@@ -528,12 +557,12 @@ export default function InsightsClient({
                 d === 'task' ? 'col-span-2' : ''
               }`}
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-subtle text-muted">
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${DOMAIN_CHIP[d] ?? 'bg-surface-subtle text-muted'}`}>
                 <DomainIcon domain={d} />
               </span>
               {d === 'task' ? (
                 <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                  <span className="text-[13px] font-semibold text-ink">{DOMAIN_LABEL[d]}</span>
+                  <span className="text-[13px] font-semibold text-ink">{DOMAIN_TITLE[d] ?? DOMAIN_LABEL[d]}</span>
                   {updatedOf(d) && (
                     <span className="shrink-0 font-display text-[9px] uppercase tracking-[0.05em] text-faint">
                       Upd {updatedOf(d)}
@@ -542,7 +571,7 @@ export default function InsightsClient({
                 </span>
               ) : (
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-[12px] font-semibold text-ink">{DOMAIN_LABEL[d]}</span>
+                  <span className="truncate text-[12px] font-semibold text-ink">{DOMAIN_TITLE[d] ?? DOMAIN_LABEL[d]}</span>
                   {updatedOf(d) && (
                     <span className="mt-0.5 font-display text-[9px] uppercase tracking-[0.05em] text-faint">
                       Upd {updatedOf(d)}
@@ -605,11 +634,11 @@ function LensDetail({
           </svg>
         </button>
         {isLens(domain) && (
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft text-primary">
+          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${LENS_CHIP[domain] ?? 'bg-surface-subtle text-muted'}`}>
             <LensIcon name={domain} size={18} />
           </span>
         )}
-        <h2 className="font-display text-lg font-bold text-primary">{title}</h2>
+        <h2 className="font-display text-lg font-bold text-ink">{title}</h2>
       </div>
 
       <DomainInsightBody
@@ -726,7 +755,7 @@ export function DomainInsightBody({
 
       {/* 결과 목록(히스토리) */}
       <div className="space-y-4">
-        <div className="text-sm font-semibold text-primary">저장된 인사이트</div>
+        <div className="text-sm font-semibold text-accent">저장된 인사이트</div>
         {rows.length === 0 ? (
           <p className="text-sm text-faint">아직 저장된 인사이트가 없습니다.</p>
         ) : (
@@ -824,14 +853,14 @@ function InsightCard({
         {showLetter && (
           <button
             onClick={() => onToggleLetter(!inLetter)}
-            className={inLetter ? 'ml-2 text-xs text-primary underline' : 'ml-2 text-xs text-muted underline'}
+            className={inLetter ? 'ml-2 text-xs text-accent underline' : 'ml-2 text-xs text-muted underline'}
           >
             {inLetter ? '편지에 담김' : '편지에 담기'}
           </button>
         )}
         <button
           onClick={isScrapped ? onUnscrap : onScrap}
-          className={isScrapped ? 'ml-2 text-xs text-primary underline' : 'ml-2 text-xs text-muted underline'}
+          className={isScrapped ? 'ml-2 text-xs text-accent underline' : 'ml-2 text-xs text-muted underline'}
         >
           {isScrapped ? '보관됨' : '보관'}
         </button>
@@ -847,14 +876,14 @@ function InsightCard({
             onChange={(e) => setNote(e.target.value)}
             rows={3}
             placeholder="이 인사이트에 대한 메모(다음 분석 개선에 반영)"
-            className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-primary"
+            className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-accent"
           />
           <button
             onClick={() => {
               onNote(note.trim())
               setNoteOpen(false)
             }}
-            className="rounded-xl border border-primary px-3 py-1.5 text-sm font-semibold text-primary transition hover:bg-primary-soft"
+            className="rounded-xl border border-accent px-3 py-1.5 text-sm font-semibold text-accent transition hover:bg-accent-soft"
           >
             메모 저장
           </button>

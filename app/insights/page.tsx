@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import { scrapKey } from '@/lib/insightExport'
 import InsightsClient, { type InsightRow } from './InsightsClient'
+import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +41,7 @@ export default async function InsightsPage() {
   const themeName = (themeRow as { theme?: string | null } | null)?.theme ?? null
 
   return (
-    <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
+    <main className="app-theme mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
       <PageHeader title="Insights" current="insights" />
       <InsightsClient
         initial={(rows ?? []) as InsightRow[]}
