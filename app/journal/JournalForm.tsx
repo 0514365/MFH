@@ -14,6 +14,7 @@ import { haversineMeters } from '@/lib/geo'
 import { MAX_JOURNAL_PHOTOS } from '@/lib/types'
 import type { JournalEntry, JournalPhoto, Project, Task } from '@/lib/types'
 import DateField from './DateField'
+import '../p/portfolio-theme.css'
 
 function todayStr() {
   const d = new Date()
@@ -326,7 +327,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
 
   async function save() {
     if (!headline.trim() && !todayText.trim()) {
-      setMsg('제목 또는 오늘 있었던 일을 입력해 주세요.')
+      setMsg('제목 또는 오늘의 기록을 입력해 주세요.')
       return
     }
     setSaving(true)
@@ -544,7 +545,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
   const innerBox = 'rounded-2xl bg-surface-subtle p-4'
 
   return (
-    <main className="mx-auto max-w-md px-4 pb-10 sm:max-w-3xl lg:max-w-6xl">
+    <main className="app-theme mx-auto max-w-md px-4 pb-10 sm:max-w-3xl lg:max-w-6xl">
       {/* 상단바(미니멀): ‹ Log + 중앙 제목 */}
       <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
         <BackButton
@@ -590,7 +591,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1.5fr_1fr] lg:grid-cols-[1.8fr_1fr]">
         {/* ── 좌측 카드: 본문 ── */}
         <div className={`${card} min-w-0`}>
-          <label className="mb-1 block text-xs text-muted">한 줄 머리말</label>
+          <label className={sectionTitle}>✏️ 제목</label>
           <input
             value={headline}
             onChange={(e) => setHeadline(e.target.value)}
@@ -598,12 +599,12 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
             placeholder="오늘의 핵심을 한 문장으로"
           />
 
-          <label className={`${sectionTitle} mt-5`}>🌿 오늘 있었던 일</label>
+          <label className={`${sectionTitle} mt-5`}>🌿 오늘의 기록</label>
           <textarea
             value={todayText}
             onChange={(e) => setTodayText(e.target.value)}
             rows={5}
-            className={`${input} resize-y`}
+            className={`${input} resize-y min-h-[110px] [field-sizing:content]`}
             placeholder="오늘 한 일·만난 사람·있었던 일을 사실대로 기록하세요"
           />
 
@@ -630,7 +631,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
                     value={subValue[k]}
                     onChange={(e) => subSet[k](e.target.value)}
                     rows={3}
-                    className={`${input} mt-2`}
+                    className={`${input} mt-2 min-h-[76px] [field-sizing:content]`}
                   />
                 )}
               </div>
@@ -638,13 +639,13 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
           </div>
 
           {/* 기도제목: 기본 펼침 + 편지후보 체크 — 마룬 틴트 강조 묶음 */}
-          <div className="mt-4 rounded-2xl bg-primary-soft p-4">
-            <label className={sectionTitle}>📌 기도제목</label>
+          <div className="mt-4 rounded-2xl bg-accent-soft p-4">
+            <label className="mb-1 block text-sm font-bold text-accent">📌 기도제목</label>
             <textarea
               value={prayer}
               onChange={(e) => setPrayer(e.target.value)}
               rows={3}
-              className={input}
+              className={`${input} min-h-[64px] [field-sizing:content]`}
               placeholder="예: 자포탈 교회 건축 / 가정 평강"
             />
             <label className="mt-2 flex items-center gap-2 text-sm text-muted">
@@ -890,7 +891,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
           <button
             onClick={save}
             disabled={saving}
-            className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary disabled:opacity-50"
+            className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
           >
             {saving ? '저장 중…' : 'Save Log'}
           </button>

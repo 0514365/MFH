@@ -241,7 +241,7 @@ export default async function JournalDetail(props: {
       )}
 
       {/* 4 섹션 */}
-      <Section emoji="🌿" enLabel="Today" koLabel="오늘 있었던 일" text={entry.today} />
+      <Section emoji="🌿" enLabel="Today" koLabel="오늘의 기록" text={entry.today} />
       <Section emoji="🙏" enLabel="Thanks & Answers" koLabel="감사·응답" text={entry.thanks} alt />
       <Section emoji="💭" enLabel="Meditation" koLabel="묵상·깨달음" text={entry.meditation} />
       <Section emoji="📌" enLabel="Prayer Requests" koLabel="기도제목" text={entry.prayer} alt />

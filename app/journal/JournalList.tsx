@@ -142,7 +142,7 @@ function EntrySummary({
       </div>
 
       <div className="mt-3 divide-y divide-line border-t border-line">
-        <Section label="🌿 오늘 있었던 일" text={e.today} />
+        <Section label="🌿 오늘의 기록" text={e.today} />
         <Section label="🙏 감사·응답" text={e.thanks} />
         <Section label="💭 묵상·깨달음" text={e.meditation} />
         <Section label="📌 기도제목" text={e.prayer} />
