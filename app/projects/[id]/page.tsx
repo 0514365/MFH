@@ -5,14 +5,15 @@ import { getMembersMap, canEditEntry } from '@/lib/members'
 import type { Project, Attachment } from '@/lib/types'
 import { applyProjectFilter, parseProjectFilter } from '@/lib/projectFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
-import { normalizeStatus, statusV2Label, priorityLabel, IMPORTANCE_MAX } from '@/lib/constants'
-import { fmtDate } from '../badges'
+import { normalizeStatus, statusV2Label } from '@/lib/constants'
+import { fmtDate, ImportanceStars } from '../badges'
 import { ProgressRing } from '../Progress'
 import ProjectTaskList from './ProjectTaskList'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
 import AttachmentList, { type AttItem } from '@/components/AttachmentList'
 import DeleteButton from './DeleteButton'
+import '../../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,13 +83,6 @@ export default async function ProjectDetail(props: {
       : st === 'in_progress'
         ? 'bg-status-progress text-on-status-progress'
         : 'bg-status-upcoming text-on-status-upcoming'
-  // 우선순위 칩 색
-  const prCls =
-    project.priority === 'high'
-      ? 'bg-accent-soft text-accent'
-      : project.priority === 'low'
-        ? 'bg-surface-subtle text-faint'
-        : 'bg-surface-subtle text-muted'
   const author = membersMap[project.user_id]
 
   // 첨부 signed URL(1시간) — 비공개 'attachments' 버킷.
@@ -107,13 +101,16 @@ export default async function ProjectDetail(props: {
   }
 
   return (
-    <main className="mx-auto max-w-md pb-10">
+    <main className="app-theme mx-auto max-w-md pb-10">
       {/* 상단바 — 일지 상세와 통일 */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between border-b border-line px-4 py-3"
+        className="sticky top-0 z-30 flex items-center gap-3 border-b border-line px-4 py-3"
         style={{ background: 'var(--paper)' }}
       >
-        <BackButton href="/projects" label="Projects" variant="text" />
+        <BackButton href="/projects" label="" variant="text" />
+        <h1 className="min-w-0 flex-1 truncate text-center text-[16px] font-bold tracking-tight text-ink">
+          {project.title}
+        </h1>
         <DetailNav
           basePath="/projects"
           prevId={nav.prevId}
@@ -128,21 +125,17 @@ export default async function ProjectDetail(props: {
       {/* 헤더: 기간 / 메타 / 제목 */}
       <section className="px-5 pb-6 pt-5">
         {period && (
-          <div className="mb-4 font-display text-[11px] font-medium uppercase tracking-[0.15em] text-muted">
+          <div className="mb-3 font-display text-[13px] font-medium uppercase tracking-[0.12em] text-muted">
             {period}
           </div>
         )}
-        <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <ImportanceStars value={project.importance} size="md" />
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${stCls}`}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-current opacity-50" />
             {statusV2Label(project.status)}
-          </span>
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${prCls}`}
-          >
-            {priorityLabel(project.priority)}
           </span>
           {project.category && (
             <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] text-muted">
@@ -161,25 +154,15 @@ export default async function ProjectDetail(props: {
               {project.category}
             </span>
           )}
-          {project.importance > 0 && (
-            <span className="ml-0.5 inline-flex items-center text-[10px] tracking-widest" style={{ color: '#D4AF37' }}>
-              {Array.from({ length: IMPORTANCE_MAX }).map((_, i) => (
-                <span key={i} className={i < project.importance ? '' : 'text-line'}>
-                  ★
-                </span>
-              ))}
-            </span>
-          )}
           {author && <span className="flex-1 text-right text-[12px] text-muted">{author}</span>}
         </div>
-        <h1 className="break-keep text-[26px] font-bold leading-[1.3] tracking-tight text-ink">{project.title}</h1>
       </section>
 
       {/* 설명 */}
       {project.description && (
         <section className="border-t border-line bg-white/50 px-5 py-7">
           <div className="mb-3">
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-muted">
+            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
               Description
             </div>
             <h2 className="text-[14px] font-bold tracking-tight text-ink">프로젝트 개요</h2>
@@ -207,7 +190,7 @@ export default async function ProjectDetail(props: {
       <section className="border-t border-line px-5 pb-7 pt-7">
         <div className="mb-5 flex items-end justify-between">
           <div>
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-primary">
+            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
               Progress
             </div>
             <h2 className="text-[16px] font-bold tracking-tight text-ink">진행 상황</h2>

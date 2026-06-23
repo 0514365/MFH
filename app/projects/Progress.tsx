@@ -19,7 +19,7 @@ export function ProgressRing({ done, total, size = 46 }: Props) {
           r={r}
           fill="none"
           strokeWidth={stroke}
-          style={{ stroke: 'var(--surface-subtle)' }}
+          style={{ stroke: 'var(--accent-soft)' }}
         />
         {total > 0 && (
           <circle
@@ -31,11 +31,11 @@ export function ProgressRing({ done, total, size = 46 }: Props) {
             strokeDasharray={c}
             strokeDashoffset={offset}
             strokeLinecap="round"
-            style={{ stroke: 'var(--primary)' }}
+            style={{ stroke: 'var(--accent)' }}
           />
         )}
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-primary">
+      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-accent">
         {total > 0 ? `${pct}%` : '–'}
       </span>
     </div>
