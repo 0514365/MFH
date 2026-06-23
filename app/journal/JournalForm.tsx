@@ -550,7 +550,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
       <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
         <BackButton
           href={mode === 'edit' && initial ? `/journal/${initial.id}` : '/journal'}
-          label="Log"
+          label=""
           variant="text"
         />
         <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-lg font-extrabold uppercase tracking-[0.15em] text-primary">
