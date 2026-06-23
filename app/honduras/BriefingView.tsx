@@ -78,7 +78,7 @@ function SourceLine({
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-faint underline decoration-faint/40 underline-offset-2 transition-colors hover:text-primary"
+          className="text-faint underline decoration-faint/40 underline-offset-2 transition-colors hover:text-accent"
         >
           출처 · {label} ↗
         </a>
@@ -127,7 +127,7 @@ export default function BriefingView({
         <p className="text-sm font-semibold tracking-wide text-muted">{latest ? '오늘의 온두라스' : '지난 동향'}</p>
         <div className="mt-0.5 flex items-end justify-between gap-3">
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-2xl font-bold text-primary">
+            <span className="font-display text-2xl font-bold text-ink">
               {row.news_date}
               {dateSuffix}
             </span>
@@ -139,13 +139,13 @@ export default function BriefingView({
 
       {/* 하이라이트 — San Pedro Sula·한인 강조(부드러운 마룬 톤) */}
       {highlights.length > 0 && (
-        <section className="rounded-2xl border border-primary/15 bg-primarySoft p-4">
-          <p className="mb-2 text-sm font-bold tracking-wide text-primary">주목 · San Pedro Sula / 한인</p>
+        <section className="rounded-2xl bg-accent-soft p-4">
+          <p className="mb-2 text-sm font-bold tracking-wide text-accent">주목 · San Pedro Sula / 한인</p>
           <div className="space-y-3">
             {highlights.map((h, i) => (
               <div key={i}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-white">
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">
                     {(h.tag ?? '').trim() || '주목'}
                   </span>
                   {(h.title ?? '').trim() && (
@@ -170,7 +170,7 @@ export default function BriefingView({
           <section key={m.key}>
             <div className="mb-2.5 flex items-center gap-2">
               <span className="inline-block h-3 w-3 rounded-full" style={{ background: m.dot }} />
-              <h2 className="font-display text-xl font-bold text-primary">{m.label}</h2>
+              <h2 className="font-display text-xl font-bold text-ink">{m.label}</h2>
               <span className="text-xs text-faint">{items.length}건</span>
             </div>
             <div className="space-y-2.5">
@@ -184,26 +184,26 @@ export default function BriefingView({
 
       {/* 선교 인사이트 + 기도 포인트(별도 박스) */}
       {((row.insight ?? '').trim() || prayerPoints.length > 0) && (
-        <section className="rounded-2xl border-l-4 border-primary bg-primarySoft p-5">
-          <p className="mb-3 font-display text-2xl font-extrabold tracking-tight text-primary">선교 인사이트</p>
+        <section className="rounded-2xl border-l-4 border-accent bg-surface-subtle p-5">
+          <p className="mb-3 font-display text-2xl font-extrabold tracking-tight text-accent">선교 인사이트</p>
           {(row.insight ?? '').trim() && (
             <p className="whitespace-pre-wrap text-[17px] leading-relaxed text-ink">{row.insight!.trim()}</p>
           )}
           {prayerPoints.length > 0 && (
-            <div className="mt-4 rounded-xl border border-primary/15 bg-surface p-4">
+            <div className="mt-4 rounded-xl border border-line bg-surface p-4">
               <div className="mb-2.5 flex items-center gap-2">
                 <svg
                   width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  className="text-primary"
+                  className="text-accent"
                 >
                   <path d="M12 21s-7-4.35-9.5-8.5C.5 9 2 5.5 5.5 5.5c2 0 3.5 1.5 4.5 3 1-1.5 2.5-3 4.5-3C18 5.5 19.5 9 21.5 12.5 19 16.65 12 21 12 21z" />
                 </svg>
-                <p className="text-base font-bold text-primary">기도 포인트</p>
+                <p className="text-base font-bold text-accent">기도 포인트</p>
               </div>
               <ul className="space-y-2">
                 {prayerPoints.map((p, i) => (
                   <li key={i} className="flex gap-2.5 text-[15px] leading-relaxed text-ink">
-                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                     <span>{p}</span>
                   </li>
                 ))}

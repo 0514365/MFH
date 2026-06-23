@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import BriefingView, { hasBriefingContent, NEWS_SELECT, type NewsRow } from './BriefingView'
 import { seqSuffix } from '@/lib/honduras'
+import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +35,7 @@ export default async function HondurasPage() {
   const archiveLink = (
     <Link
       href="/honduras/archive"
-      className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition hover:underline"
+      className="inline-flex items-center gap-1 text-sm font-semibold text-accent transition hover:underline"
     >
       지난 동향
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -45,7 +46,7 @@ export default async function HondurasPage() {
   )
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-8">
+    <main className="app-theme mx-auto max-w-2xl px-5 py-8">
       <PageHeader title="온두라스 동향" />
 
       {hasBriefingContent(row) ? (

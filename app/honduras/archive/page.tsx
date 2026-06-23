@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import { SECTION_META, NEWS_SELECT, type NewsRow } from '../BriefingView'
+import '../../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,12 +62,12 @@ export default async function HondurasArchivePage() {
     (countMap.get(r.news_date) ?? 1) > 1 ? `${r.news_date} (${seqMap.get(r.id) ?? 1})` : r.news_date
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-8">
+    <main className="app-theme mx-auto max-w-2xl px-5 py-8">
       <PageHeader title="지난 동향" />
 
       {/* 최신으로 */}
       <div className="mb-4">
-        <Link href="/honduras" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+        <Link href="/honduras" className="inline-flex items-center gap-1 text-sm font-semibold text-accent hover:underline">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5" />
             <path d="M12 19l-7-7 7-7" />
@@ -96,7 +97,7 @@ export default async function HondurasArchivePage() {
                   className="block rounded-xl border border-line bg-surface p-4 transition hover:border-primary"
                 >
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-display text-lg font-bold text-primary">{dateLabel(r)}</span>
+                    <span className="font-display text-lg font-bold text-ink">{dateLabel(r)}</span>
                     <span className="shrink-0 text-xs text-faint">{countItems(r)}건</span>
                   </div>
                   {preview && <p className="mt-1 line-clamp-1 text-sm text-muted">{preview}</p>}
