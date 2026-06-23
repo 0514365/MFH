@@ -19,7 +19,7 @@ export default function PageHeader({ title, current, action, showLogout = false 
 
   return (
     <div
-      className="sticky top-0 z-30 -mx-5 mb-3 flex items-center justify-between gap-3 px-5 py-3"
+      className="sticky top-0 z-30 -mx-5 mb-3 flex items-center justify-between gap-3 px-5 py-2"
       style={{ background: 'var(--paper)' }}
     >
       <div className="flex min-w-0 items-end gap-2">

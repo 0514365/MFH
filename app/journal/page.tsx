@@ -98,7 +98,7 @@ export default async function JournalPage() {
   }
 
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8 pt-1 min-[740px]:max-w-5xl">
+    <main className="app-theme mx-auto max-w-md px-5 pb-8 min-[740px]:max-w-5xl">
       <PageHeader
         title="Log"
         current="journal"
