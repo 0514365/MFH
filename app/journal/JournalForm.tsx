@@ -567,19 +567,17 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
       <div className={`${card} mb-4`}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs text-muted">일지 날짜</label>
-            <div className="flex items-center gap-2">
-              <div className="min-w-0 flex-1">
-                <DateField value={entryDate} onChange={setEntryDate} placeholder="날짜 선택" />
-              </div>
+            <div className="mb-1 flex items-center gap-2">
+              <label className="text-xs text-muted">날짜</label>
               <button
                 type="button"
                 onClick={() => setEntryDate(todayStr())}
-                className="shrink-0 rounded-lg border border-accent px-3 py-2 text-xs font-semibold text-accent"
+                className="rounded-md border border-accent px-2 py-0.5 text-[11px] font-semibold text-accent"
               >
                 오늘
               </button>
             </div>
+            <DateField value={entryDate} onChange={setEntryDate} placeholder="날짜 선택" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-muted">사역 분류</label>
