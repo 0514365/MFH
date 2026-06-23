@@ -513,7 +513,7 @@ export default function ProjectsList({
             return (
               <li key={p.id}>
                 <div
-                  className={`relative overflow-hidden rounded-2xl border bg-surface p-4 ${
+                  className={`relative overflow-hidden rounded-2xl border bg-surface p-4 shadow-[0_4px_18px_-6px_rgba(34,34,34,0.16)] ${
                     inSelectMode && checked
                       ? 'border-primary border-2'
                       : isSel

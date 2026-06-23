@@ -8,6 +8,7 @@ import ProjectsList from './ProjectsList'
 import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 import SignalChips from '@/components/SignalChips'
 import { projectSignals } from '@/lib/signals'
+import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +41,7 @@ export default async function ProjectsPage() {
   const signals = projectSignals(projects, today)
 
   return (
-    <main className="mx-auto max-w-md px-5 pb-8 min-[740px]:max-w-5xl">
+    <main className="app-theme mx-auto max-w-md px-5 pb-8 min-[740px]:max-w-5xl">
       <PageHeader
         title="Projects"
         current="projects"
