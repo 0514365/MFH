@@ -98,7 +98,7 @@ export default async function JournalPage() {
   }
 
   return (
-    <main className="app-theme mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
+    <main className="app-theme mx-auto max-w-md px-5 pb-8 pt-3 min-[740px]:max-w-5xl" style={{ background: '#f4f2ec' }}>
       <PageHeader
         title="Log"
         current="journal"
