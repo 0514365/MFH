@@ -137,7 +137,7 @@ export default async function JournalDetail(props: {
         style={{ background: 'var(--paper)' }}
       >
         <BackButton href="/journal" label="" variant="text" />
-        <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-display text-[14px] font-medium uppercase tracking-[0.1em] text-muted">
+        <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-display text-[16px] font-semibold uppercase tracking-[0.06em] text-muted">
           {fmtDateEn(entry.entry_date)}
         </span>
         <DetailNav
