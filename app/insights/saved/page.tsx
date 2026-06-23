@@ -18,7 +18,7 @@ export default async function SavedInsightsPage() {
     .order('scrapped_at', { ascending: false })
 
   return (
-    <main className="mx-auto max-w-md px-5 py-8">
+    <main className="mx-auto max-w-md px-5 pb-8 pt-2">
       <div className="mb-4 flex items-center gap-2">
         <Link
           href="/insights"

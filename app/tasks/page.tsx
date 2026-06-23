@@ -49,7 +49,7 @@ export default async function TasksPage() {
     }))
 
   return (
-    <main className="mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
+    <main className="mx-auto max-w-md px-5 pb-8 min-[740px]:max-w-5xl">
       <PageHeader
         title="To-Do"
         current="tasks"

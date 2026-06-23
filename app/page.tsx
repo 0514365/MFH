@@ -200,7 +200,7 @@ export default async function Home() {
 
   return (
     <SplashGate>
-      <main className="app-theme mx-auto max-w-md px-4 pb-10 pt-6">
+      <main className="app-theme mx-auto max-w-md px-4 pb-10 pt-2">
         <header className="mb-4 flex items-center justify-between px-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-primary.svg" alt="MFH — Mission for Honduras" className="h-9 w-auto" />
