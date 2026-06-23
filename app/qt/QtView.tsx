@@ -136,8 +136,8 @@ export default function QtView({ row }: { row: QtRow }) {
       {med && (
         <section className="flex flex-col gap-3 px-1">
           <div className="flex flex-col gap-1.5">
-            <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-muted">Meditation</div>
-            <h3 className="text-[20px] font-bold tracking-tight text-accent">묵상</h3>
+            <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-accent">Meditation</div>
+            <h3 className="text-[20px] font-bold tracking-tight text-ink">묵상</h3>
           </div>
           <p className="whitespace-pre-wrap text-[16.5px] leading-[1.8] text-ink">{med}</p>
         </section>
@@ -147,8 +147,8 @@ export default function QtView({ row }: { row: QtRow }) {
       {apps.length > 0 && (
         <section className="flex flex-col gap-4 px-1">
           <div className="flex flex-col gap-1.5">
-            <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-muted">Application</div>
-            <h3 className="text-[20px] font-bold tracking-tight text-accent">우리 사역에의 적용</h3>
+            <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-accent">Application</div>
+            <h3 className="text-[20px] font-bold tracking-tight text-ink">우리 사역에의 적용</h3>
           </div>
           <div className="mt-1 flex flex-col gap-3.5">
             {apps.map((a, i) => (
