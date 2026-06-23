@@ -208,10 +208,10 @@ export default async function Home() {
         </header>
 
         <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)]">
-          {/* 2026 주제 — hero. 라디얼 마룬 글로우(좌상단→딥마룬)로 단색 면 부담 분산 — brand 마룬 정체성 유지 */}
+          {/* 2026 주제 — hero. 딥 그라데이션(마룬레드→딥마룬)으로 단색 면 부담 분산 — brand 마룬 정체성 유지 */}
           <section
             className="col-span-2 flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white"
-            style={{ background: 'radial-gradient(130% 115% at 18% 12%, #C42130 0%, #A81A22 38%, #661F20 100%)' }}
+            style={{ background: 'linear-gradient(150deg, #B61821 0%, #661F20 100%)' }}
           >
             <div>
               <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">
