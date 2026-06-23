@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import QtView, { hasQtContent, QT_SELECT, type QtRow } from './QtView'
+import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +28,7 @@ export default async function QtPage() {
   const row = data as QtRow | null
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-8">
+    <main className="app-theme mx-auto max-w-2xl px-5 py-8">
       <PageHeader title="오늘의 QT" />
 
       {hasQtContent(row) ? (
@@ -48,7 +49,7 @@ export default async function QtPage() {
       <div className="mt-8 text-center">
         <Link
           href="/qt/archive"
-          className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition hover:underline"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-accent transition hover:underline"
         >
           지난 QT 보기
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

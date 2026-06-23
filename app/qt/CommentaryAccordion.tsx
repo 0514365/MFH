@@ -35,7 +35,7 @@ export default function CommentaryAccordion({ items }: { items: Item[] }) {
           {list.map((it, i) => (
             <div key={i} className="flex flex-col gap-2.5">
               {(it.heading ?? '').trim() && (
-                <span className="self-start rounded-[6px] bg-accent-soft px-2.5 py-1 text-[12px] font-bold tracking-wide text-primary">
+                <span className="self-start rounded-[6px] bg-accent-soft px-2.5 py-1 text-[12px] font-bold tracking-wide text-accent">
                   {(it.heading ?? '').trim()}
                 </span>
               )}

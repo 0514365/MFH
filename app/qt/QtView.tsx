@@ -66,14 +66,14 @@ export default function QtView({ row }: { row: QtRow }) {
       <section className="flex items-end justify-between">
         <div className="flex flex-col gap-1">
           <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-muted">오늘의 양식</div>
-          <div className="font-display text-[32px] font-extrabold leading-none tracking-tight text-primary">{row.qt_date}</div>
+          <div className="font-display text-[32px] font-extrabold leading-none tracking-tight text-ink">{row.qt_date}</div>
         </div>
         {sourceUrl && (
           <a
             href={sourceUrl}
             target="_blank"
             rel="noreferrer noopener"
-            className="flex shrink-0 items-center gap-0.5 pb-1 text-[13px] font-bold text-primary transition active:opacity-60"
+            className="flex shrink-0 items-center gap-0.5 pb-1 text-[13px] font-bold text-accent transition active:opacity-60"
           >
             성서유니온
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -86,9 +86,9 @@ export default function QtView({ row }: { row: QtRow }) {
 
       {/* 본문 — 매일성경 제목 + 주소 */}
       <section className="flex flex-col gap-2.5 rounded-[24px] border border-line bg-primary-soft p-6 shadow-soft">
-        <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-primary">오늘의 본문</div>
+        <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-accent">오늘의 본문</div>
         {title && <h2 className="mt-0.5 text-[24px] font-bold leading-tight tracking-tight text-ink">{title}</h2>}
-        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[14px] font-medium text-primary">
+        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[14px] font-medium text-accent">
           <span>
             {book} {range}
           </span>
@@ -104,7 +104,7 @@ export default function QtView({ row }: { row: QtRow }) {
       {/* 핵심절 — 좌측 마룬 바 + quote 장식 */}
       {(verseText || verseRef) && (
         <section className="relative overflow-hidden rounded-[24px] border border-line bg-surface py-6 pl-6 pr-5 shadow-soft">
-          <div className="absolute bottom-0 left-0 top-0 w-[4px] bg-primary" />
+          <div className="absolute bottom-0 left-0 top-0 w-[4px] bg-accent" />
           <svg
             width="44" height="44" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
             className="absolute right-4 top-4 text-primary-soft opacity-60"
@@ -115,7 +115,7 @@ export default function QtView({ row }: { row: QtRow }) {
             {verseText && (
               <p className="pr-6 text-[17.5px] font-light italic leading-[1.7] tracking-tight text-ink">&ldquo;{verseText}&rdquo;</p>
             )}
-            {verseRef && <div className="text-[13px] font-bold tracking-wide text-primary">{verseRef} (개역개정)</div>}
+            {verseRef && <div className="text-[13px] font-bold tracking-wide text-accent">{verseRef} (개역개정)</div>}
             {verseSummary && (
               <>
                 <div className="my-1 h-px w-full bg-surface-subtle" />
@@ -137,7 +137,7 @@ export default function QtView({ row }: { row: QtRow }) {
         <section className="flex flex-col gap-3 px-1">
           <div className="flex flex-col gap-1.5">
             <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-muted">Meditation</div>
-            <h3 className="text-[20px] font-bold tracking-tight text-ink">묵상</h3>
+            <h3 className="text-[20px] font-bold tracking-tight text-accent">묵상</h3>
           </div>
           <p className="whitespace-pre-wrap text-[16.5px] leading-[1.8] text-ink">{med}</p>
         </section>
@@ -148,7 +148,7 @@ export default function QtView({ row }: { row: QtRow }) {
         <section className="flex flex-col gap-4 px-1">
           <div className="flex flex-col gap-1.5">
             <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-muted">Application</div>
-            <h3 className="text-[20px] font-bold tracking-tight text-ink">우리 사역에의 적용</h3>
+            <h3 className="text-[20px] font-bold tracking-tight text-accent">우리 사역에의 적용</h3>
           </div>
           <div className="mt-1 flex flex-col gap-3.5">
             {apps.map((a, i) => (
@@ -156,7 +156,7 @@ export default function QtView({ row }: { row: QtRow }) {
                 <p className="text-[16px] font-bold leading-[1.65] text-ink">{(a.point ?? '').trim()}</p>
                 {(a.basis ?? '').trim() && (
                   <div className="flex items-center gap-1.5 self-start rounded-full border border-line bg-paper px-3 py-1.5 text-[13.5px] font-medium text-muted">
-                    <span className="text-primary">↳</span>
+                    <span className="text-accent">↳</span>
                     <span>근거: {(a.basis ?? '').trim()}</span>
                   </div>
                 )}
@@ -170,15 +170,15 @@ export default function QtView({ row }: { row: QtRow }) {
       {prayers.length > 0 && (
         <section className="flex flex-col gap-5 rounded-[24px] border border-line bg-primary-soft p-7 shadow-soft">
           <div className="flex items-center gap-2.5">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="text-primary">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="text-accent">
               <path d="M12 21s-7-4.35-9.5-8.5C.5 9 2 5.5 5.5 5.5c2 0 3.5 1.5 4.5 3 1-1.5 2.5-3 4.5-3C18 5.5 19.5 9 21.5 12.5 19 16.65 12 21 12 21z" />
             </svg>
-            <h3 className="text-[19px] font-bold tracking-tight text-primary">오늘의 기도</h3>
+            <h3 className="text-[19px] font-bold tracking-tight text-accent">오늘의 기도</h3>
           </div>
           <ul className="flex flex-col gap-4">
             {prayers.map((pr, i) => (
               <li key={i} className="flex items-start gap-3 text-[16px] leading-[1.75] text-ink">
-                <span className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                <span className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                 <span>{pr}</span>
               </li>
             ))}

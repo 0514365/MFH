@@ -43,7 +43,7 @@ export default function PassageAccordion({ date, refLabel }: { date: string; ref
           {refLabel && (
             <>
               <span className="text-[14px] font-normal text-faint">·</span>
-              <span className="font-semibold text-primary">{refLabel}</span>
+              <span className="font-semibold text-accent">{refLabel}</span>
             </>
           )}
         </span>
@@ -67,7 +67,7 @@ export default function PassageAccordion({ date, refLabel }: { date: string; ref
                 const num = newChapter && v.chapter != null ? `${v.chapter}:${v.verse}` : `${v.verse}`
                 return (
                   <div key={i} className="flex items-start gap-3.5">
-                    <span className="mt-[3px] w-[30px] shrink-0 text-[13px] font-bold text-primary">{num}</span>
+                    <span className="mt-[3px] w-[30px] shrink-0 text-[13px] font-bold text-accent">{num}</span>
                     <p className="text-[16.5px] leading-[1.8] text-ink">{v.text}</p>
                   </div>
                 )
