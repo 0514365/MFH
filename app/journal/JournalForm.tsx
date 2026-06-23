@@ -567,8 +567,8 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
       <div className={`${card} mb-4`}>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <div className="mb-1 flex items-center gap-2">
-              <label className="text-xs text-muted">날짜</label>
+            <div className="mb-1 flex h-7 items-center gap-2">
+              <label className="text-sm font-bold text-primary">날짜</label>
               <button
                 type="button"
                 onClick={() => setEntryDate(todayStr())}
@@ -580,7 +580,9 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
             <DateField value={entryDate} onChange={setEntryDate} placeholder="날짜 선택" />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-muted">사역 분류</label>
+            <div className="mb-1 flex h-7 items-center">
+              <label className="text-sm font-bold text-primary">사역 분류</label>
+            </div>
             <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="선택 안 함" />
           </div>
         </div>
