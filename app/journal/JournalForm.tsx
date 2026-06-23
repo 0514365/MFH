@@ -565,7 +565,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
 
       {/* 헤더 줄: 날짜+오늘 / 사역분류 — 카드로 묶음 */}
       <div className={`${card} mb-4`}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <div className="mb-1 flex items-center gap-2">
               <label className="text-xs text-muted">날짜</label>
