@@ -1,16 +1,16 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { getMembersMap, canEditEntry } from '@/lib/members'
+import { getMembersMap, canEditEntry, PORTFOLIO_OWNER_ID } from '@/lib/members'
 import type { JournalEntry } from '@/lib/types'
 import { applyJournalFilter, parseJournalFilter } from '@/lib/journalFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
-import AuthorBadge from '@/components/AuthorBadge'
 import { collectPhotoPaths, resolveJournalPhotos } from '@/lib/journalPhotos'
 import PhotoCollage, { type CollagePhoto } from '../PhotoCollage'
 import DeleteButton from './DeleteButton'
+import '../../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -130,13 +130,16 @@ export default async function JournalDetail(props: {
   })
 
   return (
-    <main className="mx-auto max-w-md pb-10">
+    <main className="app-theme mx-auto max-w-md pb-10">
       {/* 상단바 (이미지) — 좌: ‹ Log / 우: ‹ n/total › */}
       <header
         className="sticky top-0 z-30 flex items-center justify-between border-b border-line px-4 py-3"
         style={{ background: 'var(--paper)' }}
       >
-        <BackButton href="/journal" label="Log" variant="text" />
+        <BackButton href="/journal" label="" variant="text" />
+        <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-display text-[14px] font-medium uppercase tracking-[0.1em] text-muted">
+          {fmtDateEn(entry.entry_date)}
+        </span>
         <DetailNav
           basePath="/journal"
           prevId={nav.prevId}
@@ -148,35 +151,46 @@ export default async function JournalDetail(props: {
         />
       </header>
 
-      {/* 헤더: (1행) 날짜 / (2행) 메타 / (3행) 제목 — 행 분리 */}
-      <section className="flex flex-col gap-3 px-5 pb-6 pt-5">
-        {/* 날짜 행 */}
-        <span className="font-display text-[12px] font-bold uppercase tracking-[0.15em] text-muted">
-          {fmtDateEn(entry.entry_date)}
-        </span>
-        {/* 메타 행 */}
-        <div className="flex flex-wrap items-center gap-2">
-          {entry.category && (
-            <span className="rounded-md bg-surface-subtle px-2 py-1 text-[11px] font-semibold leading-none text-ink">
-              {entry.category}
-            </span>
-          )}
-          {entry.place_name && (
-            <span className="flex items-center gap-1 text-xs text-muted">📍 {entry.place_name}</span>
-          )}
-          <AuthorBadge name={membersMap[entry.user_id]} />
-          {entry.prayer_candidate && (
-            <span className="ml-auto rounded-md bg-accent-soft px-2 py-1 text-[11px] font-bold leading-none text-accent">
-              기도후보
-            </span>
-          )}
-        </div>
+      {/* 헤더: 제목 → 메타칩(로그목록과 동일 스타일). 날짜는 상단바 중앙으로 이동. */}
+      <section className="flex flex-col gap-3.5 px-5 pb-6 pt-5">
         {/* 제목 */}
         {entry.headline && (
           <h1 className="break-keep text-[26px] font-bold leading-[1.3] tracking-tight text-ink">
             {entry.headline}
           </h1>
         )}
+        {/* 메타칩 — 분류(회색) + 장소·작성자·기도후보(아이콘색, 목록과 동일) */}
+        <div className="flex flex-wrap items-center gap-2">
+          {entry.category && (
+            <span className="rounded-lg bg-surface-subtle px-2.5 py-1 text-[11px] font-bold tracking-wide text-primary">
+              {entry.category}
+            </span>
+          )}
+          {entry.place_name && (
+            <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
+              <span className="shrink-0" style={{ color: '#9A9A98' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+              </span>
+              <span className="max-w-[160px] truncate">{entry.place_name}</span>
+            </span>
+          )}
+          {membersMap[entry.user_id] && (
+            <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
+              <span className="shrink-0" style={{ color: entry.user_id === PORTFOLIO_OWNER_ID ? '#5E82A6' : '#C56A7E' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+              </span>
+              <span className="max-w-[120px] truncate">{membersMap[entry.user_id]}</span>
+            </span>
+          )}
+          {entry.prayer_candidate && (
+            <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
+              <span className="shrink-0" style={{ color: '#B61821' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M10 2.5h4v6h6v4h-6v9h-4v-9H4v-4h6z" /></svg>
+              </span>
+              기도후보
+            </span>
+          )}
+        </div>
       </section>
 
       {/* 중보기도 연계 카드 */}
