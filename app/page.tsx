@@ -47,14 +47,14 @@ function SignalBadges({ signals }: { signals: Signal[] }) {
   )
 }
 
-// 벤토 모듈 타일 — 옅은 칩 아이콘(마룬 단색) + 영문 타이틀/서브타이틀(기존 유지). topRight=배지/시각.
+// 벤토 모듈 타일 — 모듈별 색 칩 아이콘 + 영문 타이틀/서브타이틀. chipClass=칩 색(모듈별), topRight=배지/시각.
 function ModuleTile({
   href,
   icon,
   title,
   sub,
   topRight,
-  tint,
+  chipClass,
   className = '',
 }: {
   href: string
@@ -62,18 +62,16 @@ function ModuleTile({
   title: string
   sub: string
   topRight?: ReactNode
-  tint?: 'red'
+  chipClass: string
   className?: string
 }) {
-  const surface = tint === 'red' ? 'bg-accent-soft' : 'border border-line bg-surface hover:border-primary'
-  const chip = tint === 'red' ? 'bg-white/60 text-accent' : 'bg-accent-soft text-accent'
   return (
     <Link
       href={href}
-      className={`relative flex flex-col justify-between overflow-hidden rounded-3xl p-4 transition active:scale-[0.99] ${surface} ${className}`}
+      className={`relative flex flex-col justify-between overflow-hidden rounded-3xl border border-line bg-surface p-4 transition hover:border-primary active:scale-[0.99] ${className}`}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${chip}`}>{icon}</div>
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${chipClass}`}>{icon}</div>
         {topRight}
       </div>
       <div className="mt-3">
@@ -294,6 +292,7 @@ export default async function Home() {
             icon={<ModuleIcon name="log" size={20} />}
             title="Log"
             sub="Today's grace"
+            chipClass="bg-emerald-100 text-emerald-700"
             className="row-span-2"
           />
 
@@ -303,6 +302,7 @@ export default async function Home() {
             icon={<ModuleIcon name="insights" size={18} />}
             title="Insights"
             sub="Light on the path"
+            chipClass="bg-amber-100 text-amber-700"
             topRight={
               insightTime ? (
                 <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-medium text-muted">
@@ -318,6 +318,7 @@ export default async function Home() {
             icon={<ModuleIcon name="calendar" size={18} />}
             title="Calendar"
             sub="Times & seasons"
+            chipClass="bg-sky-100 text-sky-700"
           />
 
           {/* Projects — 좌. 임박·정체 등 신호 배지 */}
@@ -326,6 +327,7 @@ export default async function Home() {
             icon={<ModuleIcon name="projects" size={18} />}
             title="Projects"
             sub="The calling's path"
+            chipClass="bg-violet-100 text-violet-700"
             topRight={<SignalBadges signals={projSignals} />}
           />
 
@@ -335,6 +337,7 @@ export default async function Home() {
             icon={<ModuleIcon name="todo" size={18} />}
             title="To-Do"
             sub="Entrusted work"
+            chipClass="bg-teal-100 text-teal-700"
             topRight={<SignalBadges signals={tSignals} />}
           />
 
@@ -344,7 +347,7 @@ export default async function Home() {
             icon={<HeartIcon />}
             title="중보기도"
             sub="Prayers & blessings"
-            tint="red"
+            chipClass="bg-rose-100 text-rose-700"
             topRight={
               unreadPrayers > 0 ? (
                 <span className="rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">
@@ -360,6 +363,7 @@ export default async function Home() {
             icon={<ModuleIcon name="photos" size={18} />}
             title="Photos"
             sub="Moments of grace"
+            chipClass="bg-fuchsia-100 text-fuchsia-700"
           />
 
           {/* Facebook — 좌 */}
@@ -368,6 +372,7 @@ export default async function Home() {
             icon={<FacebookIcon />}
             title="Facebook"
             sub="This week's story"
+            chipClass="bg-blue-100 text-blue-700"
           />
 
           {/* Portfolio — 우 */}
@@ -376,6 +381,7 @@ export default async function Home() {
             icon={<ModuleIcon name="portfolio" size={18} />}
             title="Portfolio"
             sub="Sharing our journey"
+            chipClass="bg-indigo-100 text-indigo-700"
           />
         </div>
 
