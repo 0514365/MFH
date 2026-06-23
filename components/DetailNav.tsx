@@ -12,7 +12,7 @@ type Props = {
   total: number
   query?: string // 목록 필터 유지용 쿼리스트링(없으면 '')
   suffix?: string // id 뒤에 붙일 경로(예: '/edit'). 없으면 상세로.
-  variant?: 'box' | 'minimal' // minimal: 테두리 없는 캐럿 + n/total(상세 상단바용)
+  variant?: 'box' | 'minimal' | 'pad' // minimal: 캐럿+n/total / pad: 큰 40px 버튼(터치 영역↑)
 }
 
 function withQuery(href: string, query?: string) {
@@ -58,6 +58,38 @@ export default function DetailNav({ basePath, prevId, nextId, index, total, quer
           </Link>
         ) : (
           <span aria-disabled className="opacity-30">
+            <Arrow dir="next" />
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  // pad: 큰 40px 사각 버튼(터치 영역 확대) — 프로젝트 상세 헤더용.
+  if (variant === 'pad') {
+    const pBtn =
+      'inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line text-muted transition hover:border-primary hover:text-ink'
+    const pDis = 'inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line text-faint opacity-40'
+    return (
+      <div className="flex items-center gap-1.5">
+        {prevId ? (
+          <Link href={withQuery(`${basePath}/${prevId}${suffix}`, query)} replace aria-label="이전" className={pBtn}>
+            <Arrow dir="prev" />
+          </Link>
+        ) : (
+          <span aria-disabled className={pDis}>
+            <Arrow dir="prev" />
+          </span>
+        )}
+        <span className="min-w-[26px] text-center font-display text-[11px] font-bold tracking-wide text-muted">
+          {index} / {total}
+        </span>
+        {nextId ? (
+          <Link href={withQuery(`${basePath}/${nextId}${suffix}`, query)} replace aria-label="다음" className={pBtn}>
+            <Arrow dir="next" />
+          </Link>
+        ) : (
+          <span aria-disabled className={pDis}>
             <Arrow dir="next" />
           </span>
         )}

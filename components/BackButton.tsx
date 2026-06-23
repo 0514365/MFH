@@ -13,7 +13,7 @@ export default function BackButton({
 }: {
   href: string
   label?: string
-  variant?: 'icon' | 'text'
+  variant?: 'icon' | 'text' | 'chip'
 }) {
   const router = useRouter()
 
@@ -25,6 +25,23 @@ export default function BackButton({
       return
     }
     router.push(href)
+  }
+
+  // chip: 아웃라인 알약(‹ + 라벨). text: 캐럿 + 라벨. icon: 동그라미 박스(기본).
+  if (variant === 'chip') {
+    return (
+      <button
+        type="button"
+        onClick={goBack}
+        aria-label={label || '뒤로'}
+        className="inline-flex items-center gap-0.5 rounded-full border border-line py-1.5 pl-2 pr-3 text-[12px] font-medium text-ink transition hover:border-primary"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+        {label}
+      </button>
+    )
   }
 
   // text: 캐럿 + 라벨(상세 상단바용). icon: 동그라미 박스(기본).

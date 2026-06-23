@@ -104,20 +104,24 @@ export default async function ProjectDetail(props: {
     <main className="app-theme mx-auto max-w-md pb-10">
       {/* 상단바 — 일지 상세와 통일 */}
       <header
-        className="sticky top-0 z-30 border-b border-line px-4 py-3"
+        className="sticky top-0 z-30 border-b border-line px-3 py-3"
         style={{ background: 'var(--paper)' }}
       >
-        <h1 className="truncate text-center text-[22px] font-bold leading-tight tracking-tight text-ink">
-          {project.title}
-        </h1>
-        <div className="mt-3 grid grid-cols-3 items-center">
-          <div className="justify-self-start">
-            <BackButton href="/projects" label="목록" variant="text" />
+        <div className="flex items-center gap-2">
+          <div className="shrink-0">
+            <BackButton href="/projects" label="목록" variant="chip" />
           </div>
-          <div className="justify-self-center whitespace-nowrap font-display text-[13px] font-medium tracking-wide text-muted">
-            {period}
+          <div className="min-w-0 flex-1 text-center">
+            <h1 className="truncate text-[18px] font-bold leading-tight tracking-tight text-ink">
+              {project.title}
+            </h1>
+            {period && (
+              <div className="mt-0.5 font-display text-[12px] font-medium tracking-wide text-muted">
+                ( {period} )
+              </div>
+            )}
           </div>
-          <div className="justify-self-end">
+          <div className="shrink-0">
             <DetailNav
               basePath="/projects"
               prevId={nav.prevId}
@@ -125,7 +129,7 @@ export default async function ProjectDetail(props: {
               index={nav.index}
               total={nav.total}
               query={navQuery}
-              variant="minimal"
+              variant="pad"
             />
           </div>
         </div>
