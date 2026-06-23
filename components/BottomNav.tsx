@@ -48,7 +48,7 @@ function TabLink({ tab, pathname }: { tab: Tab; pathname: string }) {
         href={tab.href}
         aria-current={isActive ? 'page' : undefined}
         className={`flex flex-col items-center gap-0.5 py-2 transition ${
-          isActive ? 'text-primary' : 'text-muted'
+          isActive ? 'text-accent' : 'text-muted'
         }`}
       >
         <ModuleIcon name={tab.icon} size={22} strokeWidth={isActive ? 2.3 : 2.1} />
