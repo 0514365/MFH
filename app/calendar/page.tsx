@@ -91,7 +91,7 @@ export default async function CalendarPage() {
   ]
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-5 py-8">
+    <main className="mx-auto w-full max-w-4xl px-5 pb-8">
       <PageHeader title="Calendar" current="calendar" />
       <p className="-mt-3 mb-5 text-xs text-muted">프로젝트·할 일 마감 일정</p>
 
