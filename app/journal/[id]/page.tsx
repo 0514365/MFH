@@ -85,6 +85,18 @@ export default async function JournalDetail(props: {
     linkedIntercession = (ic as { visitor_name: string; message: string }) ?? null
   }
 
+  // 연계 프로젝트·할일 제목(메타칩용). 연결 없으면 null.
+  let projectTitle: string | null = null
+  if (entry.project_id) {
+    const { data: p } = await supabase.from('projects').select('title').eq('id', entry.project_id).maybeSingle()
+    projectTitle = (p as { title: string } | null)?.title ?? null
+  }
+  let taskTitle: string | null = null
+  if (entry.task_id) {
+    const { data: t } = await supabase.from('tasks').select('title').eq('id', entry.task_id).maybeSingle()
+    taskTitle = (t as { title: string } | null)?.title ?? null
+  }
+
   // 목록과 동일한 필터+검색+정렬로 전체를 재계산 → 현재 항목의 이전/다음.
   const filter = parseJournalFilter({ get: (k) => {
     const v = searchParams[k]
@@ -159,11 +171,19 @@ export default async function JournalDetail(props: {
             {entry.headline}
           </h1>
         )}
-        {/* 메타칩 — 분류(회색) + 장소·작성자·기도후보(아이콘색, 목록과 동일) */}
+        {/* 메타칩 — 사역구분(회색) → 작성자 → 장소 → 프로젝트 → 할일 → 기도후보 (목록과 동일 스타일) */}
         <div className="flex flex-wrap items-center gap-2">
           {entry.category && (
             <span className="rounded-lg bg-surface-subtle px-2.5 py-1 text-[11px] font-bold tracking-wide text-primary">
               {entry.category}
+            </span>
+          )}
+          {membersMap[entry.user_id] && (
+            <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
+              <span className="shrink-0" style={{ color: entry.user_id === PORTFOLIO_OWNER_ID ? '#5E82A6' : '#C56A7E' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+              </span>
+              <span className="max-w-[120px] truncate">{membersMap[entry.user_id]}</span>
             </span>
           )}
           {entry.place_name && (
@@ -174,12 +194,20 @@ export default async function JournalDetail(props: {
               <span className="max-w-[160px] truncate">{entry.place_name}</span>
             </span>
           )}
-          {membersMap[entry.user_id] && (
+          {projectTitle && (
             <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
-              <span className="shrink-0" style={{ color: entry.user_id === PORTFOLIO_OWNER_ID ? '#5E82A6' : '#C56A7E' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+              <span className="shrink-0" style={{ color: '#B05744' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
               </span>
-              <span className="max-w-[120px] truncate">{membersMap[entry.user_id]}</span>
+              <span className="max-w-[160px] truncate">{projectTitle}</span>
+            </span>
+          )}
+          {taskTitle && (
+            <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
+              <span className="shrink-0" style={{ color: '#B08A4A' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+              </span>
+              <span className="max-w-[140px] truncate">{taskTitle}</span>
             </span>
           )}
           {entry.prayer_candidate && (

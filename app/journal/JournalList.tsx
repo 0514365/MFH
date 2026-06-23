@@ -401,9 +401,6 @@ export default function JournalList({
         {/* 하단: 메타 칩(연계 프로젝트·할일·장소·작성자) + 기도후보 토글. */}
         <div className="mt-3.5 flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap gap-2">
-            {projTitle && <MetaChip icon={metaIcon.project} label={projTitle} iconColor={META_ICON_COLOR.project} />}
-            {taskTitle && <MetaChip icon={metaIcon.task} label={taskTitle} iconColor={META_ICON_COLOR.task} />}
-            {e.place_name && <MetaChip icon={metaIcon.place} label={e.place_name} iconColor={META_ICON_COLOR.place} />}
             {authorName && (
               <MetaChip
                 icon={metaIcon.user}
@@ -411,6 +408,9 @@ export default function JournalList({
                 iconColor={e.user_id === PORTFOLIO_OWNER_ID ? META_ICON_COLOR.authorMaster : META_ICON_COLOR.authorOther}
               />
             )}
+            {e.place_name && <MetaChip icon={metaIcon.place} label={e.place_name} iconColor={META_ICON_COLOR.place} />}
+            {projTitle && <MetaChip icon={metaIcon.project} label={projTitle} iconColor={META_ICON_COLOR.project} />}
+            {taskTitle && <MetaChip icon={metaIcon.task} label={taskTitle} iconColor={META_ICON_COLOR.task} />}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <span className="text-[11px] font-semibold text-faint">기도후보</span>
