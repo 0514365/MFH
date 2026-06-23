@@ -408,13 +408,9 @@ function PeriodChips({
 
 export default function InsightsClient({
   initial,
-  year,
-  themeName,
   scrappedKeys,
 }: {
   initial: InsightRow[]
-  year: number
-  themeName: string | null
   scrappedKeys: string[]
 }) {
   const [rows, setRows] = useState<InsightRow[]>(initial)
@@ -468,17 +464,6 @@ export default function InsightsClient({
 
   return (
     <div className="space-y-6">
-      {/* 연 주제 칩 */}
-      {themeName && (
-        <div className="flex justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-surface-subtle px-5 py-2">
-            <span className="font-display text-[13px] font-semibold tracking-wider text-accent">{year}</span>
-            <span className="h-[3px] w-[3px] rounded-full bg-accent opacity-40" />
-            <span className="text-[14px] font-medium text-accent">{themeName}</span>
-          </div>
-        </div>
-      )}
-
       {/* 렌즈 + 종합 — 2열 그리드 */}
       <div className="grid grid-cols-2 gap-3">
         {LENS_META.map((m) => {
@@ -518,9 +503,9 @@ export default function InsightsClient({
         {/* 종합(overall) — 가로 카드 */}
         <button
           onClick={() => setView('overall')}
-          className="col-span-2 flex items-center gap-4 rounded-3xl bg-primary-soft p-4 text-left shadow-sm transition hover:opacity-90"
+          className="col-span-2 flex items-center gap-4 rounded-3xl bg-[#14213d] p-4 text-left shadow-sm transition hover:opacity-90"
         >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-surface text-accent shadow-sm">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-white text-[#14213d] shadow-sm">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="9" />
               <path d="M3 12h18" />
@@ -528,13 +513,13 @@ export default function InsightsClient({
             </svg>
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-display text-[11px] font-bold uppercase tracking-[0.15em] text-accent">Overall</span>
-            <span className="block text-[14px] font-semibold text-accent">일지·프로젝트·할일 종합</span>
+            <span className="block font-display text-[11px] font-bold uppercase tracking-[0.15em] text-[#8fa3c4]">Overall</span>
+            <span className="block text-[14px] font-semibold text-white">일지·프로젝트·할일 종합</span>
           </span>
           {updatedOf('overall') && (
             <span className="shrink-0 text-right">
-              <span className="block font-display text-[9px] uppercase tracking-[0.05em] text-accent opacity-70">업데이트</span>
-              <span className="mt-0.5 block font-display text-[10px] font-bold uppercase tracking-[0.05em] text-accent">
+              <span className="block font-display text-[9px] uppercase tracking-[0.05em] text-white opacity-70">업데이트</span>
+              <span className="mt-0.5 block font-display text-[10px] font-bold uppercase tracking-[0.05em] text-white">
                 {updatedOf('overall')}
               </span>
             </span>
@@ -546,7 +531,7 @@ export default function InsightsClient({
       <div>
         <div className="mb-4 flex items-center gap-2">
           <span className="h-5 w-1.5 rounded-full bg-accent" />
-          <h3 className="text-[17px] font-bold tracking-tight text-accent">분야별 분석</h3>
+          <h3 className="text-[17px] font-bold tracking-tight text-ink">분야별 분석</h3>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {(['journal', 'project', 'task'] as InsightDomain[]).map((d) => (

@@ -32,21 +32,11 @@ export default async function InsightsPage() {
     scrapKey((s as { domain: string }).domain, (s as { content: string | null }).content),
   )
 
-  const year = new Date().getFullYear()
-  const { data: themeRow } = await supabase
-    .from('year_themes')
-    .select('theme')
-    .eq('year', year)
-    .maybeSingle()
-  const themeName = (themeRow as { theme?: string | null } | null)?.theme ?? null
-
   return (
     <main className="app-theme mx-auto max-w-md px-5 py-8 min-[740px]:max-w-5xl">
       <PageHeader title="Insights" current="insights" />
       <InsightsClient
         initial={(rows ?? []) as InsightRow[]}
-        year={year}
-        themeName={themeName}
         scrappedKeys={scrappedKeys}
       />
     </main>
