@@ -33,7 +33,7 @@ export function CategoryBadge({ value }: { value: string | null }) {
 export function ImportanceStars({ value, size = 'sm' }: { value: number; size?: 'sm' | 'md' }) {
   if (!value) return null
   return (
-    <span className={`${size === 'md' ? 'text-sm' : 'text-[11px]'} text-yellow-400`}>
+    <span className={`${size === 'md' ? 'text-xs' : 'text-[11px]'} text-yellow-400`}>
       {'★'.repeat(value)}
     </span>
   )

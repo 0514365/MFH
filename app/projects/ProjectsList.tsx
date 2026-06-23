@@ -491,6 +491,7 @@ export default function ProjectsList({
             return (
               <>
                 <div className="flex flex-wrap items-center gap-2">
+                  {p.importance > 0 && <ImportanceStars value={p.importance} size="md" />}
                   <StatusBadge value={p.status} />
                   <CategoryBadge value={p.category} />
                   <AuthorBadge name={authorName} />
@@ -526,13 +527,6 @@ export default function ProjectsList({
                     style={{ background: bandColor(p.status) }}
                     aria-hidden="true"
                   />
-
-                  {/* 중요도 별표 — 카드 최상단 단독 줄(있을 때만). 작은 요소라 클릭영역 밖. */}
-                  {p.importance > 0 && (
-                    <div className="mb-2">
-                      <ImportanceStars value={p.importance} size="md" />
-                    </div>
-                  )}
 
                   {/* 본문 행: 좌=클릭영역(메타칩·제목·설명) / 우=완료 토글(button 중첩 회피 위해 클릭영역의 형제). */}
                   <div className="flex items-start gap-3">
