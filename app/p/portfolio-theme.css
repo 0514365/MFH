@@ -8,10 +8,10 @@
 .app-theme {
   /* ===== Stayly DS 원본 토큰 ===== */
 
-  /* color */
-  --color-primary: #ff385c;
-  --color-primary-active: #e00b41;
-  --color-primary-disabled: #ffd1da;
+  /* color — 강조색은 MFH 마룬레드로 커스터마이즈(원래 Stayly 레드핑크 #ff385c) */
+  --color-primary: #b61821;
+  --color-primary-active: #9a141b;
+  --color-primary-disabled: #fae3e4;
   --color-on-primary: #ffffff;
   --color-ink: #222222;
   --color-body: #3f3f3f;
@@ -113,14 +113,6 @@
   background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
-}
-
-/* 홈(.app-theme) 전용 강조색 — 레드핑크 대신 MFH 마룬레드(차분·눈편함). 포트폴리오(/p)는 레드핑크 유지. */
-.app-theme {
-  --accent: #b61821;
-  --accent-hover: #9a141b;
-  --accent-soft: #fae3e4;
-  --on-accent-soft: #b61821;
 }
 
 /* 공개페이지에서는 전역 종이질감 노이즈 오버레이 제거 + body 배경 순백 (Airbnb 클린 룩) */
