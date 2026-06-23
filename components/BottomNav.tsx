@@ -91,8 +91,8 @@ export default function BottomNav() {
               className="flex justify-center"
             >
               <span
-                className={`flex h-14 w-14 -translate-y-5 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg transition active:scale-95 ${
-                  isHome ? 'ring-4 ring-primary-soft' : ''
+                className={`flex h-14 w-14 -translate-y-5 items-center justify-center rounded-full bg-[#ff385c] text-white shadow-lg transition active:scale-95 ${
+                  isHome ? 'ring-4 ring-[#ffd1da]' : ''
                 }`}
               >
                 <HomeIcon />

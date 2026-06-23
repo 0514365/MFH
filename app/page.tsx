@@ -9,6 +9,7 @@ import type { YearTheme } from '@/lib/types'
 import type { Highlight } from './honduras/BriefingView'
 import { projectSignals, taskSignals, type Signal, type SignalKind } from '@/lib/signals'
 import pkg from '../package.json'
+import './p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,7 +66,7 @@ function ModuleTile({
   className?: string
 }) {
   const surface = tint === 'red' ? 'bg-accent-soft' : 'border border-line bg-surface hover:border-primary'
-  const chip = tint === 'red' ? 'bg-white/60 text-accent' : 'bg-surface-subtle text-primary'
+  const chip = tint === 'red' ? 'bg-white/60 text-accent' : 'bg-accent-soft text-accent'
   return (
     <Link
       href={href}
@@ -201,7 +202,7 @@ export default async function Home() {
 
   return (
     <SplashGate>
-      <main className="mx-auto max-w-md px-4 pb-10 pt-6">
+      <main className="app-theme mx-auto max-w-md px-4 pb-10 pt-6">
         <header className="mb-4 flex items-center justify-between px-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-primary.svg" alt="MFH — Mission for Honduras" className="h-9 w-auto" />
@@ -210,7 +211,7 @@ export default async function Home() {
 
         <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)]">
           {/* 2026 주제 — hero */}
-          <section className="col-span-2 flex flex-col justify-between overflow-hidden rounded-3xl bg-primary p-6 text-white">
+          <section className="col-span-2 flex flex-col justify-between overflow-hidden rounded-3xl bg-accent p-6 text-white">
             <div>
               <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">
                 {year} 주제
@@ -243,7 +244,7 @@ export default async function Home() {
             className="col-span-2 flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99]"
           >
             <div className="flex items-center justify-between">
-              <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
+              <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
                 오늘의 QT · Daily Bread
               </div>
               {qtTime ? (
@@ -269,7 +270,7 @@ export default async function Home() {
             className="col-span-2 flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99]"
           >
             <div className="flex items-center justify-between">
-              <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
+              <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
                 온두라스 동향 · Today in Honduras
               </div>
               {newsTime ? (
