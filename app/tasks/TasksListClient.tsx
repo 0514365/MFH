@@ -693,61 +693,22 @@ export default function TasksListClient({
           const grouped = sortKey === 'due' && asc
 
           // 카드 내용(날짜·제목·설명·배지). TaskCheck 는 renderTask 의 li 직속 자식으로 분리(button 중첩 회피).
+          // 카드 본문(메타칩 + 제목 + 설명) — 프로젝트 카드와 동일 레이아웃.
           function TaskBody({ t }: { t: TaskListRow }) {
-            const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
-            const soon = !!t.due_date && !t.done && !overdue && isSoon(t.due_date)
-            const dueRed = overdue || soon
-            // 우측 열(사역분류 중심) — 분류·장소·중요. 프로젝트는 상단 우측으로 분리.
-            const hasRightMeta = t.importance > 0 || !!t.category || !!t.place_name
             return (
               <>
-                {/* 상단: (좌) 작성자·상태·반복 / (우) 관련 프로젝트 */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge value={t.status ?? 'upcoming'} />
-                    {t.recurrence_id && <RecurrenceBadge freq={t.recurrence_freq} />}
-                  </div>
-                  {t.projects?.title && (
-                    <span className="flex shrink-0 items-center gap-1 rounded-full border border-line bg-paper px-2.5 py-1 text-[11px] font-medium text-muted">
-                      <span className="shrink-0 text-faint">{taskMetaIcon.project}</span>
-                      <span className="max-w-[110px] truncate">{t.projects.title}</span>
-                    </span>
-                  )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {t.importance > 0 && <ImportanceStars value={t.importance} size="md" />}
+                  <StatusBadge value={t.status ?? 'upcoming'} />
+                  {t.category && <CategoryBadge value={t.category} />}
+                  {t.place_name && <MetaChip icon={taskMetaIcon.place} label={t.place_name} />}
+                  {t.recurrence_id && <RecurrenceBadge freq={t.recurrence_freq} />}
                 </div>
-
-                {/* 제목 */}
-                <h3 className={`mt-1.5 text-[15px] font-bold leading-snug ${t.done ? 'text-faint line-through' : 'text-ink'}`}>
+                <div className={`mt-1.5 font-bold ${t.done ? 'text-faint line-through' : 'text-ink'}`}>
                   {t.title}
-                </h3>
-
-                {/* 노트(설명) */}
+                </div>
                 {t.description && (
-                  <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-[13px] leading-relaxed text-muted min-[740px]:line-clamp-none">
-                    {t.description}
-                  </p>
-                )}
-
-                {/* 하단: (좌 고정) Due Date 강조 | (우) 사역분류·장소·중요 */}
-                {(t.due_date || hasRightMeta) && (
-                  <div className="mt-3 flex items-stretch gap-3">
-                    {t.due_date && (
-                      <div className="flex shrink-0 flex-col justify-center">
-                        <span className="font-display text-[8px] font-bold uppercase tracking-[0.15em] text-faint">Due date</span>
-                        <span className={`font-display text-[13px] font-extrabold tracking-tight ${dueRed ? 'text-accent' : 'text-ink'}`}>
-                          {fmtDueShort(t.due_date)}
-                          {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
-                        </span>
-                      </div>
-                    )}
-                    {t.due_date && hasRightMeta && <div className="w-px shrink-0 self-stretch bg-line" />}
-                    {hasRightMeta && (
-                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                        {t.importance > 0 && <ImportanceStars value={t.importance} />}
-                        {t.category && <MetaChip icon={taskMetaIcon.tag} label={t.category} />}
-                        {t.place_name && <MetaChip icon={taskMetaIcon.place} label={t.place_name} />}
-                      </div>
-                    )}
-                  </div>
+                  <div className="mt-1 line-clamp-2 text-sm text-muted">{t.description}</div>
                 )}
               </>
             )
@@ -757,44 +718,73 @@ export default function TasksListClient({
             const isSel = wide && t.id === selectedId && !sel.selectMode
             const checked = sel.isSelected(t.id)
             const inSelectMode = sel.selectMode
+            const overdue = !!t.due_date && !t.done && isOverdue(t.due_date)
+            const soon = !!t.due_date && !t.done && !overdue && isSoon(t.due_date)
+            const dueRed = overdue || soon
 
             return (
-              <li
-                key={t.id}
-                className={`relative flex items-start gap-3 overflow-hidden rounded-2xl border bg-surface p-4 ${
-                  (inSelectMode && checked) || isSel ? 'border-primary border-2' : 'border-line'
-                } ${t.done ? 'opacity-60' : ''}`}
-              >
-                {/* 좌측 긴급도 밴드 */}
-                <span
-                  className="absolute inset-y-0 left-0 w-1.5"
-                  style={{ background: bandColor(t) }}
-                  aria-hidden="true"
-                />
+              <li key={t.id}>
+                <div
+                  className={`relative overflow-hidden rounded-2xl border bg-surface p-4 shadow-[0_4px_18px_-6px_rgba(34,34,34,0.16)] ${
+                    (inSelectMode && checked) || isSel ? 'border-primary border-2' : 'border-line'
+                  } ${t.done ? 'opacity-60' : ''}`}
+                >
+                  {/* 좌측 긴급도 밴드 */}
+                  <span
+                    className="absolute inset-y-0 left-0 w-1.5"
+                    style={{ background: bandColor(t) }}
+                    aria-hidden="true"
+                  />
 
-                {/* 좌측 체크 — selectMode=선택 / 평소=완료 토글(본문과 형제라 button 중첩 회피). */}
-                <div className="shrink-0 self-start pl-1.5 pt-0.5">
-                  {inSelectMode ? (
-                    <SelectionCheckbox checked={checked} />
-                  ) : (
-                    <TaskCheck id={t.id} done={t.done} />
-                  )}
+                  {/* 본문 행: 좌=클릭영역(메타칩·제목·설명) / 우=완료(라벨+체크). */}
+                  <div className="flex items-start gap-3">
+                    {inSelectMode && <SelectionCheckbox checked={checked} />}
+                    {inSelectMode ? (
+                      <button type="button" onClick={() => sel.toggleId(t.id)} className="min-w-0 flex-1 text-left">
+                        <TaskBody t={t} />
+                      </button>
+                    ) : wide ? (
+                      <button type="button" onClick={() => setSelectedId(t.id)} className="min-w-0 flex-1 text-left">
+                        <TaskBody t={t} />
+                      </button>
+                    ) : (
+                      <Link href={`/tasks/${t.id}${detailSuffix}`} className="min-w-0 flex-1">
+                        <TaskBody t={t} />
+                      </Link>
+                    )}
+
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className="text-[13px] font-bold text-accent">완료</span>
+                      <TaskCheck id={t.id} done={t.done} />
+                    </div>
+                  </div>
+
+                  {/* 하단: Due Date(강조) | 연결 프로젝트 — 프로젝트 카드와 동일. */}
+                  <div className="mt-3 flex items-end justify-between gap-2 border-t border-line pt-3">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-display text-[8px] font-bold uppercase tracking-[0.15em] text-faint">Due date</span>
+                      <span className={`font-display text-[13px] font-bold tracking-wide ${t.due_date ? (dueRed ? 'text-accent' : 'text-ink') : 'text-faint'}`}>
+                        {t.due_date ? (
+                          <>
+                            {fmtDueShort(t.due_date)}
+                            {t.due_time ? ` ${fmtTime(t.due_time)}` : ''}
+                            {overdue ? ' · 연체' : ''}
+                          </>
+                        ) : (
+                          '—'
+                        )}
+                      </span>
+                    </div>
+                    {t.projects?.title && (
+                      <div className="flex min-w-0 flex-col items-end gap-1">
+                        <span className="font-display text-[8px] font-bold uppercase tracking-[0.15em] text-faint">Project</span>
+                        <span className="max-w-[150px] truncate font-display text-[12px] font-semibold text-ink">
+                          {t.projects.title}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                {/* 본문: selectMode=토글 / 넓은화면=요약선택 / 좁은화면=상세 Link. */}
-                {inSelectMode ? (
-                  <button type="button" onClick={() => sel.toggleId(t.id)} className="min-w-0 flex-1 text-left">
-                    <TaskBody t={t} />
-                  </button>
-                ) : wide ? (
-                  <button type="button" onClick={() => setSelectedId(t.id)} className="min-w-0 flex-1 text-left">
-                    <TaskBody t={t} />
-                  </button>
-                ) : (
-                  <Link href={`/tasks/${t.id}${detailSuffix}`} className="min-w-0 flex-1">
-                    <TaskBody t={t} />
-                  </Link>
-                )}
               </li>
             )
           }

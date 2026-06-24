@@ -10,6 +10,7 @@ import SignalChips from '@/components/SignalChips'
 import { taskSignals } from '@/lib/signals'
 import OfflineSync from '@/components/OfflineSync'
 import type { OfflineTask } from '@/lib/offlineStore'
+import '../p/portfolio-theme.css'
 
 // MFH-TASKS-PAGE-V2
 export const dynamic = 'force-dynamic'
@@ -47,7 +48,7 @@ export default async function TasksPage() {
     }))
 
   return (
-    <main className="mx-auto max-w-md px-5 pb-8 min-[740px]:max-w-5xl">
+    <main className="app-theme mx-auto max-w-md px-5 pb-8 min-[740px]:max-w-5xl">
       <PageHeader
         title="To-Do"
         current="tasks"
