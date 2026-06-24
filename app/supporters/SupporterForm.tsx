@@ -17,6 +17,9 @@ import {
   CURRENCY_LABEL,
   SUPPORTER_PHOTO_BUCKET,
   uploadSupporterPhoto,
+  formatAmountInput,
+  sanitizeAmountInput,
+  amountToNumber,
 } from '@/lib/supporters'
 import '../p/portfolio-theme.css'
 
@@ -140,7 +143,8 @@ export default function SupporterForm({ mode, initial }: Props) {
       referrer: referrer.trim() || null,
       first_met_date: firstMet || null,
       is_recurring: isRecurring,
-      recurring_amount: isRecurring && recurringAmount ? Number(recurringAmount) : null,
+      recurring_amount:
+        isRecurring && recurringAmount ? amountToNumber(recurringAmount, recurringCurrency) : null,
       recurring_currency: recurringCurrency,
       recurring_note: isRecurring ? recurringNote.trim() || null : null,
       prayer_points: prayerPoints.trim() || null,
@@ -309,7 +313,13 @@ export default function SupporterForm({ mode, initial }: Props) {
           {isRecurring && (
             <div className="mt-3 space-y-3">
               <div className="grid grid-cols-[1fr_auto] gap-3">
-                <input value={recurringAmount} onChange={(e) => setRecurringAmount(e.target.value)} className={input} inputMode="decimal" placeholder="정기후원 금액" />
+                <input
+                  value={formatAmountInput(recurringAmount, recurringCurrency)}
+                  onChange={(e) => setRecurringAmount(sanitizeAmountInput(e.target.value))}
+                  className={input}
+                  inputMode="decimal"
+                  placeholder="정기후원 금액"
+                />
                 <select value={recurringCurrency} onChange={(e) => setRecurringCurrency(e.target.value as Currency)} className={`${input} w-auto`}>
                   {CURRENCIES.map((c) => (
                     <option key={c} value={c}>

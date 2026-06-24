@@ -80,6 +80,38 @@ export function formatUsd(amount?: number | null): string {
   return formatMoney(amount, 'USD')
 }
 
+// ── 금액 입력 필드: 실시간 천단위 콤마 표시 ──────────────────
+// state 는 콤마 없는 raw 문자열로 보관(sanitizeAmountInput), 화면 표시만 포맷(formatAmountInput).
+// KRW: 정수만(소수부 무시). USD: 소수 2자리까지 허용. 천단위 구분은 콤마(,).
+export function sanitizeAmountInput(v: string): string {
+  let s = v.replace(/,/g, '').replace(/[^0-9.]/g, '')
+  const i = s.indexOf('.')
+  if (i >= 0) s = s.slice(0, i + 1) + s.slice(i + 1).replace(/\./g, '')
+  return s
+}
+
+export function formatAmountInput(raw: string, currency: Currency): string {
+  if (!raw) return ''
+  const dot = raw.indexOf('.')
+  if (currency === 'KRW') {
+    const intp = dot >= 0 ? raw.slice(0, dot) : raw
+    return intp ? Number(intp).toLocaleString('en-US') : ''
+  }
+  if (dot >= 0) {
+    const intp = raw.slice(0, dot)
+    const dec = raw.slice(dot + 1, dot + 3) // 소수 2자리까지
+    const intFmt = intp ? Number(intp).toLocaleString('en-US') : '0'
+    return `${intFmt}.${dec}`
+  }
+  return Number(raw).toLocaleString('en-US')
+}
+
+// 저장용 숫자 변환 — KRW 는 정수로 반올림(원은 소수 없음), USD 는 그대로.
+export function amountToNumber(raw: string, currency: Currency): number {
+  const n = Number(raw) || 0
+  return currency === 'KRW' ? Math.round(n) : n
+}
+
 // 헌금 USD 합계.
 export function donationTotalUsd(rows: Pick<SupporterDonation, 'amount_usd'>[]): number {
   return round2(rows.reduce((s, r) => s + (Number(r.amount_usd) || 0), 0))

@@ -16,6 +16,9 @@ import {
   formatMoney,
   formatUsd,
   toUsd,
+  formatAmountInput,
+  sanitizeAmountInput,
+  amountToNumber,
 } from '@/lib/supporters'
 import DateField from '../../journal/DateField'
 
@@ -62,7 +65,7 @@ export default function DonationPanel({
   const editingId = mode !== 'none' && mode !== 'add' ? mode : null
 
   const total = donationTotalUsd(rows)
-  const amtNum = Number(amount) || 0
+  const amtNum = amountToNumber(amount, currency)
   const rateNum = Number(rate) || 0
   const previewUsd = currency === 'USD' ? amtNum : rateNum > 0 ? toUsd(amtNum, 'KRW', rateNum) : 0
 
@@ -209,7 +212,13 @@ export default function DonationPanel({
         <div className="grid grid-cols-[1fr_auto] gap-3">
           <div>
             <span className="mb-1 block text-[11px] font-semibold text-faint">금액</span>
-            <input value={amount} onChange={(e) => setAmount(e.target.value)} className={input} inputMode="decimal" placeholder="0" />
+            <input
+              value={formatAmountInput(amount, currency)}
+              onChange={(e) => setAmount(sanitizeAmountInput(e.target.value))}
+              className={input}
+              inputMode="decimal"
+              placeholder="0"
+            />
           </div>
           <div>
             <span className="mb-1 block text-[11px] font-semibold text-faint">통화</span>
