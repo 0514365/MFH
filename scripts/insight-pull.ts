@@ -19,6 +19,8 @@ import {
   type TaskRow,
   type LetterDigestRow,
   type ScrapRow,
+  type SupporterRow,
+  supporterBlock,
   isValidDomain,
 } from '@/lib/insightExport'
 import { buildBundleInstruction, buildFewShot, type FewShotExample } from '@/lib/insightPrompt'
@@ -82,6 +84,64 @@ async function main() {
     journals: (journals ?? []) as JournalRow[],
     projects: (projects ?? []) as ProjectRow[],
     tasks: (tasks ?? []) as TaskRow[],
+  }
+
+  // 후원자 데이터 — supporter_care 도메인일 때만 조회(헌금·관계기록을 후원자별로 묶음). 기간 무관 전체.
+  let supporters: SupporterRow[] = []
+  if (domains.includes('supporter_care')) {
+    const [{ data: sups }, { data: dons }, { data: slogs }] = await Promise.all([
+      sb
+        .from('supporters')
+        .select(
+          'id,name,birth_date,affiliation,role,region,is_recurring,recurring_amount,recurring_currency,prayer_points,notes,is_active,first_met_date',
+        )
+        .order('name', { ascending: true }),
+      sb.from('supporter_donations').select('supporter_id,donation_date,amount_usd,donation_type'),
+      sb.from('supporter_logs').select('supporter_id,log_date,log_type,title,body'),
+    ])
+    type D = {
+      supporter_id: string
+      donation_date: string | null
+      amount_usd: number | null
+      donation_type: string | null
+    }
+    type L = {
+      supporter_id: string
+      log_date: string | null
+      log_type: string | null
+      title: string | null
+      body: string | null
+    }
+    type S = { id: string } & Omit<SupporterRow, 'donations' | 'logs'>
+    const donBy = new Map<string, D[]>()
+    for (const d of (dons ?? []) as D[]) {
+      const arr = donBy.get(d.supporter_id) ?? []
+      arr.push(d)
+      donBy.set(d.supporter_id, arr)
+    }
+    const logBy = new Map<string, L[]>()
+    for (const l of (slogs ?? []) as L[]) {
+      const arr = logBy.get(l.supporter_id) ?? []
+      arr.push(l)
+      logBy.set(l.supporter_id, arr)
+    }
+    supporters = ((sups ?? []) as S[]).map((s) => {
+      const { id, ...rest } = s
+      return {
+        ...rest,
+        donations: (donBy.get(id) ?? []).map((d) => ({
+          donation_date: d.donation_date,
+          amount_usd: d.amount_usd,
+          donation_type: d.donation_type,
+        })),
+        logs: (logBy.get(id) ?? []).map((l) => ({
+          log_date: l.log_date,
+          log_type: l.log_type,
+          title: l.title,
+          body: l.body,
+        })),
+      }
+    })
   }
 
   // few-shot: rating>=4 과거 인사이트(앱 별점 피드백 → 톤·구성 개인화).
@@ -150,6 +210,15 @@ async function main() {
       ].join('\n')
     : ''
 
+  // 후원자 섹션 — supporter_care 도메인일 때만. buildDataMarkdown 밖에서 별도 섹션으로 보탠다(captionBlock 패턴).
+  const supporterSection =
+    domains.includes('supporter_care') && supporters.length
+      ? [
+          '═══════════════════════ 후원자 데이터 ═══════════════════════',
+          supporterBlock(supporters),
+        ].join('\n')
+      : ''
+
   // 작업지시서 = 가드레일·도메인 관점·회수양식(lib) + few-shot + 분석 데이터 + 사진 캡션 + 편지 재료 + 양식 가이드.
   const out = [
     buildBundleInstruction(domains),
@@ -161,6 +230,8 @@ async function main() {
     buildDataMarkdown(data),
     '',
     captionBlock,
+    '',
+    supporterSection,
     '',
     letterDigest,
     '',

@@ -21,7 +21,8 @@ type LatestRow = {
 export default function DomainInsightPanel({ domain }: { domain: InsightDomain }) {
   const [open, setOpen] = useState(false)
   const [row, setRow] = useState<LatestRow | null | undefined>(undefined) // undefined = 아직 미조회
-  const isAssist = domain === 'task_assist' || domain === 'project_assist'
+  const isAssist =
+    domain === 'task_assist' || domain === 'project_assist' || domain === 'supporter_care'
   // 업데이트 시각(날짜+시:분) — 보는 사람 로컬 기준. SSR=날짜만(UTC) → 마운트 후 시:분(hydration 안전).
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])

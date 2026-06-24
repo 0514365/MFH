@@ -5,6 +5,7 @@ import PageHeader from '@/components/PageHeader'
 import type { Supporter } from '@/lib/types'
 import { SUPPORTER_PHOTO_BUCKET, formatUsd } from '@/lib/supporters'
 import SupportersList from './SupportersList'
+import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
@@ -48,6 +49,13 @@ export default async function SupportersPage() {
   monthUsd = Math.round(monthUsd * 100) / 100
   const activeCount = supporters.filter((s) => s.is_active).length
   const recurringCount = supporters.filter((s) => s.is_active && s.is_recurring).length
+
+  // 이번 달 생일(활성 후원자, birth_date 의 월이 이번 달). 일(day) 오름차순.
+  const thisMonth = ymStr.slice(5, 7)
+  const birthdays = supporters
+    .filter((s) => s.is_active && s.birth_date && s.birth_date.slice(5, 7) === thisMonth)
+    .map((s) => ({ name: s.name, date: s.birth_date as string }))
+    .sort((a, b) => a.date.slice(8, 10).localeCompare(b.date.slice(8, 10)))
 
   // 프로필 사진 썸네일 signed URL 일괄(1시간). 썸네일 없으면 원본 폴백.
   const photoPaths = Array.from(
@@ -110,6 +118,29 @@ export default async function SupportersPage() {
           </div>
         </div>
       )}
+
+      {birthdays.length > 0 && (
+        <div className="mb-4 flex items-center gap-2.5 rounded-2xl bg-accent-soft px-4 py-3">
+          <span className="shrink-0 text-accent">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="8" width="18" height="4" rx="1" />
+              <path d="M12 8v13" />
+              <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
+              <path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8" />
+              <path d="M16.5 8a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8" />
+            </svg>
+          </span>
+          <div className="text-sm text-ink">
+            <span className="font-semibold">이번 달 생일</span>
+            <span className="text-muted">
+              {' · '}
+              {birthdays.map((b) => `${b.name}(${Number(b.date.slice(8, 10))}일)`).join(', ')}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {supporters.length > 0 && <DomainInsightPanel domain="supporter_care" />}
 
       <SupportersList
         supporters={supporters}
