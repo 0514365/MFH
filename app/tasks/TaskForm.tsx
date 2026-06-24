@@ -1,9 +1,11 @@
 'use client'
 
-// MFH-TASK-FORM-V5
-// 할 일 입력 폼 (Variant Var5 — 2카드: 내용 / 속성·일정). 일지·프로젝트 폼과 톤 통일.
-// 저장·검증·완료↔상태연동·반복 생성/편집(범위 모달)·복제·삭제·작성자·이전/다음 편집순회 로직은 V4 그대로 보존, 비주얼만 교체.
-import { useEffect, useRef, useState } from 'react'
+// MFH-TASK-FORM-V6
+// 할 일 입력 폼 — 단일 카드(프로젝트 폼과 통일). app-theme + Airbnb 절제 + 영문캡스 마룬 라벨.
+// 순서: 제목 → 설명 → [마감일·시간] → [반복·장소] → [중요도·상태] → [상위프로젝트·사역분류] → 첨부 → 완료토글.
+// 선행/후속(프로젝트 선택 시)·반복 종료일(주기 선택 시)은 조건부 펼침.
+// 저장·검증·완료↔상태연동·반복 생성/편집(범위 모달)·복제·삭제·작성자·이전/다음 편집순회 로직은 V5 그대로 보존.
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import {
@@ -29,6 +31,7 @@ import {
 } from '@/lib/recurrence'
 import type { ListNav } from '@/lib/listNav'
 import { resolveOwnerId } from '@/lib/members'
+import '../p/portfolio-theme.css'
 
 type Props = {
   mode: 'new' | 'edit'
@@ -82,13 +85,15 @@ async function nextSortOrder(supabase: ReturnType<typeof createClient>, projId: 
   return max + 10
 }
 
-// 필드 라벨: 한글 + 작은 영문 캡스(프로젝트 폼과 동일)
+// 필드 라벨: 한글(잉크 medium) + 작은 영문 캡스(마룬) — 프로젝트 폼과 동일
 function FieldLabel({ ko, en, required }: { ko: string; en: string; required?: boolean }) {
   return (
-    <label className="mb-1.5 block text-[13px] font-medium text-muted">
-      {ko}
-      {required && <span className="ml-0.5 text-accent">*</span>}
-      <span className="ml-1.5 font-display text-[9px] uppercase tracking-[0.15em] text-faint">{en}</span>
+    <label className="mb-2 flex items-baseline gap-1.5">
+      <span className="text-[14px] font-medium text-ink">
+        {ko}
+        {required && <span className="ml-0.5 text-accent">*</span>}
+      </span>
+      <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">{en}</span>
     </label>
   )
 }
@@ -126,18 +131,6 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
   // 우선순위는 UI에서 제거됨(데이터 보존용 상수)
   const priority = initial?.priority ?? 'med'
   const isRecurring = !!initial?.recurrence_id
-
-  // 설명 textarea 자동 높이(입력 길이에 맞춰 늘어남, 최소 2줄)
-  const descRef = useRef<HTMLTextAreaElement>(null)
-  function syncDescHeight() {
-    const el = descRef.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = `${el.scrollHeight}px`
-  }
-  useEffect(() => {
-    syncDescHeight()
-  }, [description])
 
   useEffect(() => {
     const supabase = createClient()
@@ -407,15 +400,14 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
   }
 
   const input =
-    'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
-  const card = 'rounded-3xl border border-line bg-surface p-5 shadow-sm'
+    'w-full rounded-xl border border-line bg-surface px-4 py-3.5 text-sm text-ink outline-none focus:border-primary'
 
   return (
-    <main className="mx-auto max-w-md px-4 pb-10 md:max-w-5xl">
+    <main className="app-theme mx-auto max-w-md px-4 pb-10 sm:max-w-2xl">
       {/* 상단바(미니멀) — 프로젝트 폼과 통일: 캐럿 + 중앙 제목 + (편집)이전/다음 */}
       <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
         <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label="" variant="text" />
-        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-lg font-extrabold uppercase tracking-[0.15em] text-primary">
+        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-[15px] font-extrabold uppercase tracking-[0.2em] text-ink">
           {mode === 'edit' ? 'Edit To-Do' : 'New To-Do'}
         </h1>
         {mode === 'edit' && nav ? (
@@ -444,10 +436,9 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
         </div>
       )}
 
-      {/* 데스크탑·아이패드(≥md): 두 카드 좌우 2컬럼 / 모바일: 세로 스택 */}
-      <div className="md:grid md:grid-cols-2 md:items-start md:gap-6">
-      {/* 카드1: 내용 */}
-      <div className={`${card} mb-4 flex flex-col gap-5 md:mb-0`}>
+      {/* 단일 카드 — 제목→설명→[마감일·시간]→[반복·장소]→[중요도·상태]→[상위프로젝트·사역분류]→첨부→완료 */}
+      <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
+        {/* 제목 */}
         <div>
           <FieldLabel ko="제목" en="Title" required />
           <input
@@ -457,80 +448,71 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
             placeholder="예: 건축 설계 도면 검토"
           />
         </div>
-        <div>
+
+        {/* 설명 — 입력에 따라 자동 확장 */}
+        <div className="mt-5">
           <FieldLabel ko="설명" en="Desc" />
           <textarea
-            ref={descRef}
             value={description}
-            onChange={(e) => {
-              setDescription(e.target.value)
-              syncDescHeight()
-            }}
+            onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            className={`${input} resize-none overflow-hidden`}
+            className={`${input} min-h-[64px] resize-none leading-relaxed [field-sizing:content]`}
             placeholder="간단한 메모"
           />
         </div>
-        <div>
-          <FieldLabel ko="관련 프로젝트" en="Project" />
-          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={input}>
-            <option value="">없음 (단독 할 일)</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
-        </div>
-        {projectId && projectTasks.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="min-w-0">
-              <FieldLabel ko="선행 작업" en="Prev" />
-              <select
-                value={predecessorId}
-                onChange={(e) => setPredecessorId(e.target.value)}
-                className={input}
-              >
-                <option value="">없음</option>
-                {projectTasks.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="min-w-0">
-              <FieldLabel ko="후속 작업" en="Next" />
-              <select
-                value={successorId}
-                onChange={(e) => setSuccessorId(e.target.value)}
-                className={input}
-              >
-                <option value="">없음</option>
-                {projectTasks.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
-        <div>
-          <FieldLabel ko="첨부파일" en="Files" />
-          <AttachmentUpload userId={viewerId} value={attachments} onChange={setAttachments} />
-        </div>
-      </div>
 
-      {/* 카드2: 속성 · 일정 */}
-      <div className={`${card} flex flex-col gap-5`}>
-        {/* 사역분류 · 장소 */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* 구분선 */}
+        <div className="my-5 h-px bg-line" />
+
+        {/* 마감일 · 마감 시간 */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="min-w-0">
-            <FieldLabel ko="사역분류" en="Category" />
-            <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="분류 없음" />
+            <FieldLabel ko="마감일" en="Due" />
+            <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
           </div>
           <div className="min-w-0">
+            <FieldLabel ko="마감 시간" en="Time" />
+            <input
+              type="time"
+              value={dueTime}
+              onChange={(e) => setDueTime(e.target.value)}
+              disabled={!dueDate}
+              className={`${input} disabled:opacity-50`}
+            />
+          </div>
+        </div>
+        {!dueDate && (
+          <p className="mt-1.5 text-[11px] text-faint">마감일을 먼저 정하면 시간을 추가할 수 있어요.</p>
+        )}
+
+        {/* 반복 · 장소 (반복은 새 할 일에서만 / 편집은 장소 단독) */}
+        {mode === 'new' ? (
+          <div className="mt-5 grid grid-cols-2 gap-4">
+            <div className="min-w-0">
+              <FieldLabel ko="반복" en="Repeat" />
+              <select
+                value={repeatFreq}
+                onChange={(e) => setRepeatFreq(e.target.value as RepeatFreq)}
+                className={input}
+              >
+                <option value="none">반복 안 함</option>
+                <option value="daily">매일</option>
+                <option value="weekly">매주</option>
+                <option value="monthly">매월</option>
+              </select>
+            </div>
+            <div className="min-w-0">
+              <FieldLabel ko="장소" en="Place" />
+              <input
+                value={placeName}
+                onChange={(e) => setPlaceName(e.target.value)}
+                className={input}
+                placeholder="예: 자포탈 더좋은교회"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="mt-5">
             <FieldLabel ko="장소" en="Place" />
             <input
               value={placeName}
@@ -539,24 +521,27 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
               placeholder="예: 자포탈 더좋은교회"
             />
           </div>
-        </div>
+        )}
 
-        {/* 상태 · 중요도 */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="min-w-0">
-            <FieldLabel ko="상태" en="Status" />
-            <select
-              value={status}
-              onChange={(e) => onChangeStatus(e.target.value as StatusValue)}
-              className={input}
-            >
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+        {/* 반복 종료일 — 주기 선택 시 펼침 */}
+        {mode === 'new' && repeatFreq !== 'none' && (
+          <div className="mt-3 rounded-2xl bg-surface-subtle p-4">
+            <FieldLabel ko="반복 종료일" en="Until" />
+            <DateField value={repeatUntil} onChange={setRepeatUntil} placeholder="반복 종료일" />
+            <p className={`mt-2 text-[11px] ${!dueDate || !repeatUntil ? 'text-danger' : 'text-faint'}`}>
+              {!dueDate
+                ? '먼저 위에서 마감일(첫 날짜)을 정해 주세요.'
+                : !repeatUntil
+                  ? '종료일을 정해야 저장됩니다 — 종료일까지만 생성되고 그 뒤로는 만들지 않습니다.'
+                  : `마감일(${dueDate})부터 종료일(${repeatUntil})까지 ${
+                      repeatFreq === 'daily' ? '매일' : repeatFreq === 'weekly' ? '매주' : '매월'
+                    } 같은 할 일을 만듭니다.`}
+            </p>
           </div>
+        )}
+
+        {/* 중요도 · 상태 */}
+        <div className="mt-5 grid grid-cols-2 gap-4">
           <div className="min-w-0">
             <FieldLabel ko="중요도" en="Stars" />
             <div className="flex h-[46px] items-center gap-1.5">
@@ -594,75 +579,90 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
               })}
             </div>
           </div>
-        </div>
-
-        {/* 마감일 · 마감 시간 */}
-        <div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="min-w-0">
-              <FieldLabel ko="마감일" en="Due" />
-              <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
-            </div>
-            <div className="min-w-0">
-              <FieldLabel ko="마감 시간" en="Time" />
-              <input
-                type="time"
-                value={dueTime}
-                onChange={(e) => setDueTime(e.target.value)}
-                disabled={!dueDate}
-                className={`${input} disabled:opacity-50`}
-              />
-            </div>
+          <div className="min-w-0">
+            <FieldLabel ko="상태" en="Status" />
+            <select
+              value={status}
+              onChange={(e) => onChangeStatus(e.target.value as StatusValue)}
+              className={input}
+            >
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
           </div>
-          {!dueDate && (
-            <p className="mt-1 text-[11px] text-faint">마감일을 먼저 정하면 시간을 추가할 수 있어요.</p>
-          )}
         </div>
 
-        {/* 반복 등록 — 새 할 일에서만. 마감일을 첫 날짜로, 종료일까지 일괄 생성. */}
-        {mode === 'new' && (
-          <div className="rounded-2xl bg-surface-subtle p-4">
-            <div className="text-xs font-semibold text-muted">반복 (선택)</div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
+        {/* 상위 프로젝트 · 사역 분류 */}
+        <div className="mt-5 grid grid-cols-2 gap-4">
+          <div className="min-w-0">
+            <FieldLabel ko="상위 프로젝트" en="Project" />
+            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={input}>
+              <option value="">없음 (단독 할 일)</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="min-w-0">
+            <FieldLabel ko="사역 분류" en="Category" />
+            <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="분류 없음" />
+          </div>
+        </div>
+
+        {/* 선행 · 후속 작업 — 상위 프로젝트 선택 시 펼침 */}
+        {projectId && projectTasks.length > 0 && (
+          <div className="mt-3 rounded-2xl bg-surface-subtle p-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
-                <FieldLabel ko="주기" en="Repeat" />
+                <FieldLabel ko="선행 작업" en="Prev" />
                 <select
-                  value={repeatFreq}
-                  onChange={(e) => setRepeatFreq(e.target.value as RepeatFreq)}
+                  value={predecessorId}
+                  onChange={(e) => setPredecessorId(e.target.value)}
                   className={input}
                 >
-                  <option value="none">반복 안 함</option>
-                  <option value="daily">매일</option>
-                  <option value="weekly">매주</option>
-                  <option value="monthly">매월</option>
+                  <option value="">없음</option>
+                  {projectTasks.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
+                    </option>
+                  ))}
                 </select>
               </div>
-              {repeatFreq !== 'none' && (
-                <div className="min-w-0">
-                  <FieldLabel ko="종료일" en="Until" />
-                  <DateField value={repeatUntil} onChange={setRepeatUntil} placeholder="반복 종료일" />
-                </div>
-              )}
+              <div className="min-w-0">
+                <FieldLabel ko="후속 작업" en="Next" />
+                <select
+                  value={successorId}
+                  onChange={(e) => setSuccessorId(e.target.value)}
+                  className={input}
+                >
+                  <option value="">없음</option>
+                  {projectTasks.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            {repeatFreq !== 'none' && (
-              <p className={`mt-2 text-[11px] ${!dueDate || !repeatUntil ? 'text-danger' : 'text-faint'}`}>
-                {!dueDate
-                  ? '먼저 위에서 마감일(첫 날짜)을 정해 주세요.'
-                  : !repeatUntil
-                    ? '종료일을 정해야 저장됩니다 — 종료일까지만 생성되고 그 뒤로는 만들지 않습니다.'
-                    : `마감일(${dueDate})부터 종료일(${repeatUntil})까지 ${
-                        repeatFreq === 'daily' ? '매일' : repeatFreq === 'weekly' ? '매주' : '매월'
-                      } 같은 할 일을 만듭니다.`}
-              </p>
-            )}
           </div>
         )}
 
+        {/* 첨부파일 */}
+        <div className="mt-5">
+          <FieldLabel ko="첨부파일" en="Files" />
+          <AttachmentUpload userId={viewerId} value={attachments} onChange={setAttachments} />
+        </div>
+
         {/* 완료됨 토글 */}
-        <div className="flex items-center justify-between border-t border-line pt-4">
-          <div className="flex items-end gap-1.5">
-            <span className="text-[14px] font-semibold text-ink">완료됨</span>
-            <span className="mb-0.5 font-display text-[9px] uppercase tracking-[0.15em] text-faint">Completed</span>
+        <div className="mt-5 flex items-center justify-between border-t border-line pt-5">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[14px] font-medium text-ink">완료됨</span>
+            <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-faint">Completed</span>
           </div>
           <button
             type="button"
@@ -682,7 +682,6 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
           </button>
         </div>
       </div>
-      </div>
 
       {msg && <p className="mt-4 text-center text-sm text-danger">{msg}</p>}
 
@@ -690,7 +689,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
       <button
         onClick={save}
         disabled={saving}
-        className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary disabled:opacity-50"
+        className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
       >
         {saving
           ? '저장 중…'
