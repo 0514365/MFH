@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { canEditEntry } from '@/lib/members'
+import { canEditEntry, isMaster } from '@/lib/members'
 import type { Supporter, SupporterDonation, SupporterLog } from '@/lib/types'
 import {
   ageFromBirth,
@@ -35,6 +35,7 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  if (!isMaster(user.id)) redirect('/')
 
   const { data } = await supabase.from('supporters').select('*').eq('id', params.id).maybeSingle()
   const s = data as Supporter | null

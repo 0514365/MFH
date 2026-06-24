@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { Supporter } from '@/lib/types'
-import { canEditEntry } from '@/lib/members'
+import { canEditEntry, isMaster } from '@/lib/members'
 import SupporterForm from '../../SupporterForm'
 
 export const dynamic = 'force-dynamic'
@@ -13,6 +13,7 @@ export default async function EditSupporter(props: { params: Promise<{ id: strin
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  if (!isMaster(user.id)) redirect('/')
 
   const { data } = await supabase.from('supporters').select('*').eq('id', params.id).maybeSingle()
   const supporter = data as Supporter | null

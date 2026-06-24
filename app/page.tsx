@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import { isMaster } from '@/lib/members'
 import ModuleIcon from '@/components/ModuleIcon'
 import SplashGate from './SplashGate'
 import SignOutButton from '@/components/SignOutButton'
@@ -397,15 +398,17 @@ export default async function Home() {
             chipClass="bg-indigo-100 text-indigo-700"
           />
 
-          {/* 후원자 — 관계·후원 관리 (신규, wide) */}
-          <ModuleTile
-            href="/supporters"
-            icon={<SupportersIcon />}
-            title="Supporters"
-            sub="Partners in mission"
-            chipClass="bg-orange-100 text-orange-700"
-            className="col-span-2"
-          />
+          {/* 후원자 — 공개 전까지 우진(마스터)만. 관계·후원 관리 (wide) */}
+          {isMaster(user.id) && (
+            <ModuleTile
+              href="/supporters"
+              icon={<SupportersIcon />}
+              title="Supporters"
+              sub="Partners in mission"
+              chipClass="bg-orange-100 text-orange-700"
+              className="col-span-2"
+            />
+          )}
         </div>
 
         {/* 마일스톤 (자매앱 WorshipFlow·Brew Journal 형식).

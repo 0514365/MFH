@@ -21,6 +21,7 @@ export default async function InsightsPage() {
   const { data: rows } = await supabase
     .from('insights')
     .select('id,domain,period_start,period_end,content,model,rating,feedback_note,in_letter,created_at')
+    .neq('domain', 'supporter_care') // 후원자 인사이트는 공개 전까지 인사이트 홈에서 제외(후원자 페이지 전용)
     .order('created_at', { ascending: false })
     .limit(50)
 

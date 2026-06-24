@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import type { Supporter } from '@/lib/types'
 import { SUPPORTER_PHOTO_BUCKET, formatUsd } from '@/lib/supporters'
+import { isMaster } from '@/lib/members'
 import SupportersList from './SupportersList'
 import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 import BulkMailButton from './BulkMailButton'
@@ -18,6 +19,8 @@ export default async function SupportersPage() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  // 후원자 메뉴는 공개 전까지 우진(마스터)만 접근.
+  if (!isMaster(user.id)) redirect('/')
 
   const { data } = await supabase
     .from('supporters')
