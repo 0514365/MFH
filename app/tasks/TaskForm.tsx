@@ -477,7 +477,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
               value={dueTime}
               onChange={(e) => setDueTime(e.target.value)}
               disabled={!dueDate}
-              className={`${input} disabled:opacity-50`}
+              className={`${input} min-w-0 disabled:opacity-50`}
             />
           </div>
         </div>
@@ -626,11 +626,13 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
                   className={input}
                 >
                   <option value="">없음</option>
-                  {projectTasks.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
-                    </option>
-                  ))}
+                  {projectTasks
+                    .filter((t) => t.id !== successorId)
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div className="min-w-0">
@@ -641,11 +643,13 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
                   className={input}
                 >
                   <option value="">없음</option>
-                  {projectTasks.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
-                    </option>
-                  ))}
+                  {projectTasks
+                    .filter((t) => t.id !== predecessorId)
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title}
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>
