@@ -53,7 +53,7 @@ export default async function FacebookPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-8">
+    <main className="mx-auto max-w-2xl px-5 pb-8">
       <PageHeader title="Facebook" />
       <FacebookClient
         weekStart={row?.week_start ?? null}
