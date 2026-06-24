@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import IntercessionsList, { type Intercession } from './IntercessionsList'
+import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +22,7 @@ export default async function IntercessionsPage() {
   const items = (data ?? []) as Intercession[]
 
   return (
-    <main className="mx-auto max-w-md px-5 pb-8">
+    <main className="app-theme mx-auto max-w-md px-5 pb-8">
       <PageHeader title="중보기도" />
       <p className="-mt-1 mb-5 text-xs text-muted">공개 페이지 방문자가 남긴 기도·응원</p>
       <IntercessionsList initial={items} />

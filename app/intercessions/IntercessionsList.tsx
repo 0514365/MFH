@@ -83,7 +83,7 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
         {items.map((it) => (
           <li
             key={it.id}
-            className={`rounded-2xl border bg-surface p-4 ${it.is_read ? 'border-line' : 'border-primary'}`}
+            className="rounded-2xl border border-line bg-surface p-4 shadow-[0_4px_18px_-6px_rgba(34,34,34,0.16)]"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -93,10 +93,10 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
               <span className="shrink-0 text-[11px] text-faint">{fmtDateTime(it.created_at)}</span>
             </div>
             <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{it.message}</p>
-            <div className="mt-3 flex items-center gap-3 border-t border-line pt-2.5">
+            <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
               <Link
                 href={`/journal/new?intercession=${it.id}`}
-                className="text-xs font-semibold text-primary underline transition hover:opacity-80"
+                className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-ink transition hover:border-ink"
               >
                 일지 쓰기
               </Link>
@@ -104,7 +104,7 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
                 type="button"
                 onClick={() => toggleRead(it)}
                 disabled={busy === it.id}
-                className="text-xs font-semibold text-muted underline transition hover:text-primary disabled:opacity-50"
+                className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-muted transition hover:border-ink hover:text-ink disabled:opacity-50"
               >
                 {it.is_read ? '안 읽음으로' : '읽음으로'}
               </button>
@@ -112,7 +112,7 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
                 type="button"
                 onClick={() => remove(it)}
                 disabled={busy === it.id}
-                className="ml-auto text-xs font-semibold text-accent underline transition hover:opacity-80 disabled:opacity-50"
+                className="ml-auto rounded-full border border-accent px-3 py-1 text-xs font-semibold text-accent transition hover:bg-accent-soft disabled:opacity-50"
               >
                 삭제
               </button>
