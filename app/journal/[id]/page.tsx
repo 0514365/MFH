@@ -96,6 +96,16 @@ export default async function JournalDetail(props: {
     const { data: t } = await supabase.from('tasks').select('title').eq('id', entry.task_id).maybeSingle()
     taskTitle = (t as { title: string } | null)?.title ?? null
   }
+  // 연계 후원자 이름(메타칩용). 후원자 상세에서 이 일지를 연결하면 채워짐.
+  let supporterName: string | null = null
+  if (entry.supporter_id) {
+    const { data: sp } = await supabase
+      .from('supporters')
+      .select('name')
+      .eq('id', entry.supporter_id)
+      .maybeSingle()
+    supporterName = (sp as { name: string } | null)?.name ?? null
+  }
 
   // 목록과 동일한 필터+검색+정렬로 전체를 재계산 → 현재 항목의 이전/다음.
   const filter = parseJournalFilter({ get: (k) => {
@@ -209,6 +219,17 @@ export default async function JournalDetail(props: {
               </span>
               <span className="max-w-[140px] truncate">{taskTitle}</span>
             </span>
+          )}
+          {supporterName && (
+            <Link
+              href={`/supporters/${entry.supporter_id}`}
+              className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted transition hover:border-primary"
+            >
+              <span className="shrink-0" style={{ color: '#C2683A' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              </span>
+              <span className="max-w-[140px] truncate">{supporterName}</span>
+            </Link>
           )}
           {entry.prayer_candidate && (
             <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">

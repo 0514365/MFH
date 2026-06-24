@@ -12,6 +12,7 @@ import BackButton from '@/components/BackButton'
 import DeleteButton from './DeleteButton'
 import DonationPanel from './DonationPanel'
 import LogPanel from './LogPanel'
+import JournalLinkPanel from './JournalLinkPanel'
 import '../../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
@@ -51,6 +52,25 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
     .eq('supporter_id', params.id)
     .order('log_date', { ascending: false })
   const logs = (logData ?? []) as SupporterLog[]
+
+  // 연결된 일지(supporter_id=이 후원자) + 연결 후보(supporter_id 없는 최근 일지).
+  type JItem = { id: string; entry_date: string; headline: string | null }
+  const { data: linkedJ } = await supabase
+    .from('journal_entries')
+    .select('id, entry_date, headline')
+    .eq('supporter_id', params.id)
+    .order('entry_date', { ascending: false })
+  const linkedJournals = (linkedJ ?? []) as JItem[]
+  let candidateJournals: JItem[] = []
+  if (canEdit) {
+    const { data: candJ } = await supabase
+      .from('journal_entries')
+      .select('id, entry_date, headline')
+      .is('supporter_id', null)
+      .order('entry_date', { ascending: false })
+      .limit(100)
+    candidateJournals = (candJ ?? []) as JItem[]
+  }
 
   const age = ageFromBirth(s.birth_date)
   const lastRate =
@@ -184,6 +204,14 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
 
       {/* 관계 히스토리 */}
       <LogPanel supporterId={s.id} initial={logs} canEdit={canEdit} />
+
+      {/* 연결된 일지 */}
+      <JournalLinkPanel
+        supporterId={s.id}
+        linked={linkedJournals}
+        candidates={candidateJournals}
+        canEdit={canEdit}
+      />
 
       {/* 수정 / 삭제 */}
       {canEdit ? (
