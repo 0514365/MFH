@@ -113,3 +113,65 @@ export type Task = {
   successor_ids: string[] | null
   created_at: string
 }
+
+// ─── 후원자 관리(patch97) ───
+// 후원자 = 멤버(부부)가 관리하는 대상 데이터(앱 사용자 아님). 멤버 전용 비공개 RLS.
+// 헌금 통화는 KRW/USD 선택, USD 환산액(amount_usd)을 입력 시점 환율로 고정 저장 → 합계는 USD 기준.
+
+export type Currency = 'KRW' | 'USD'
+export type DonationType = 'regular' | 'purpose' | 'onetime'
+export type SupporterLogType = 'first_meet' | 'letter_sent' | 'visit' | 'contact' | 'prayer' | 'other'
+
+export type Supporter = {
+  id: string
+  user_id: string
+  name: string
+  birth_date: string | null
+  affiliation: string | null // 소속
+  role: string | null // 직분
+  region: string | null // 거주지역
+  phone: string | null
+  email: string | null
+  sns: string | null // 기타 연락처(SNS)
+  photo_path: string | null
+  thumb_path: string | null
+  referrer: string | null // 소개자
+  first_met_date: string | null
+  is_recurring: boolean
+  recurring_amount: number | null
+  recurring_currency: Currency
+  recurring_note: string | null
+  prayer_points: string | null // 주요 기도제목
+  notes: string | null // 특이사항 메모
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type SupporterDonation = {
+  id: string
+  supporter_id: string
+  user_id: string
+  donation_date: string
+  amount: number // 입력 원금
+  currency: Currency
+  exchange_rate: number | null // 1 USD = N KRW (KRW 입력 시)
+  amount_usd: number // USD 환산액(고정 저장, 합계용)
+  donation_type: DonationType | null
+  purpose: string | null // 목적헌금 메모
+  method: string | null
+  note: string | null
+  created_at: string
+}
+
+export type SupporterLog = {
+  id: string
+  supporter_id: string
+  user_id: string
+  log_date: string
+  log_type: SupporterLogType | null
+  title: string | null
+  body: string | null
+  journal_id: string | null // Phase B: 일지 연계
+  created_at: string
+}
