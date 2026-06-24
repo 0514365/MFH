@@ -701,6 +701,7 @@ export default function TasksListClient({
                   {t.importance > 0 && <ImportanceStars value={t.importance} size="md" />}
                   <StatusBadge value={t.status ?? 'upcoming'} />
                   {t.category && <CategoryBadge value={t.category} />}
+                  {t.place_name && <MetaChip icon={taskMetaIcon.place} label={t.place_name} />}
                   {t.recurrence_id && <RecurrenceBadge freq={t.recurrence_freq} />}
                 </div>
                 <div className={`mt-1.5 font-bold ${t.done ? 'text-faint line-through' : 'text-ink'}`}>
@@ -708,11 +709,6 @@ export default function TasksListClient({
                 </div>
                 {t.description && (
                   <div className="mt-1 line-clamp-2 text-sm text-muted">{t.description}</div>
-                )}
-                {t.place_name && (
-                  <div className="mt-2 flex justify-end">
-                    <MetaChip icon={taskMetaIcon.place} label={t.place_name} />
-                  </div>
                 )}
               </>
             )
@@ -810,9 +806,9 @@ export default function TasksListClient({
               <div className="space-y-5">
                 {TASK_GROUP_ORDER.filter((k) => buckets[k].length > 0).map((k) => (
                   <section key={k}>
-                    <h2 className="mb-2 flex items-center gap-2 text-xs font-bold text-muted">
+                    <h2 className="mb-3 flex items-center gap-2 text-[17px] font-bold text-ink">
                       {TASK_GROUP_LABEL[k]}
-                      <span className="rounded-full bg-surface-subtle px-1.5 text-[10px] font-semibold text-faint">
+                      <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] font-bold text-muted">
                         {buckets[k].length}
                       </span>
                     </h2>
