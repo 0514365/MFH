@@ -140,7 +140,6 @@ export default function ProjectsList({
   const [fStatus, setFStatus] = useState<StatusValue[]>(initial.fStatus)
   const [fImportance, setFImportance] = useState<number[]>(initial.fImportance)
   const [fCategory, setFCategory] = useState<string[]>(initial.fCategory)
-  const [fAuthor, setFAuthor] = useState<string[]>(initial.fAuthor)
   const [sortKey, setSortKey] = useState<SortKey>(initial.sortKey)
   const [asc, setAsc] = useState(initial.asc)
   const [filterOpen, setFilterOpen] = useState(false)
@@ -154,12 +153,12 @@ export default function ProjectsList({
 
   // 필터/정렬 → URL 쿼리 동기화
   useEffect(() => {
-    const f: ProjectFilter = { hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc }
+    const f: ProjectFilter = { hideDone, fStatus, fImportance, fCategory, sortKey, asc }
     const qs = buildProjectQuery(f)
     const current = searchParams.toString()
     if (qs === current) return
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc, pathname, router, searchParams])
+  }, [hideDone, fStatus, fImportance, fCategory, sortKey, asc, pathname, router, searchParams])
 
   const importanceOpts = useMemo(
     () =>
@@ -177,13 +176,13 @@ export default function ProjectsList({
   )
 
   const filtered = useMemo(
-    () => applyProjectFilter(projects, { hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc }),
-    [projects, hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc],
+    () => applyProjectFilter(projects, { hideDone, fStatus, fImportance, fCategory, sortKey, asc }),
+    [projects, hideDone, fStatus, fImportance, fCategory, sortKey, asc],
   )
 
   const detailQuery = useMemo(
-    () => buildProjectQuery({ hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc }),
-    [hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc],
+    () => buildProjectQuery({ hideDone, fStatus, fImportance, fCategory, sortKey, asc }),
+    [hideDone, fStatus, fImportance, fCategory, sortKey, asc],
   )
   const detailSuffix = detailQuery ? `?${detailQuery}` : ''
 
@@ -204,7 +203,7 @@ export default function ProjectsList({
   )
 
   const activeCount =
-    (hideDone ? 0 : 1) + fStatus.length + fImportance.length + fCategory.length + fAuthor.length
+    (hideDone ? 0 : 1) + fStatus.length + fImportance.length + fCategory.length
   const hasFilter = activeCount > 0
   const sortChanged = sortKey !== 'due' || !asc
   const canReset = hasFilter || sortChanged
@@ -214,7 +213,6 @@ export default function ProjectsList({
     setFStatus([])
     setFImportance([])
     setFCategory([])
-    setFAuthor([])
     setSortKey('due')
     setAsc(true)
   }

@@ -17,7 +17,6 @@ export type ProjectFilter = {
   fStatus: StatusValue[]
   fImportance: number[]
   fCategory: string[]
-  fAuthor: string[] // 작성자(user_id) 필터
   sortKey: ProjectSortKey
   asc: boolean
 }
@@ -27,7 +26,6 @@ export const EMPTY_PROJECT_FILTER: ProjectFilter = {
   fStatus: [],
   fImportance: [],
   fCategory: [],
-  fAuthor: [],
   sortKey: 'due',
   asc: true,
 }
@@ -39,7 +37,6 @@ export function parseProjectFilter(sp: ParamsLike): ProjectFilter {
   const fStatus = parseStatusCsv(sp.get('status'))
   const fImportance = parseImportanceCsv(sp.get('imp'))
   const fCategory = splitCsv(sp.get('cat'))
-  const fAuthor = splitCsv(sp.get('author'))
 
   const sortRaw = sp.get('sort')
   const sortKey: ProjectSortKey = sortRaw === 'importance' ? 'importance' : 'due'
@@ -47,7 +44,7 @@ export function parseProjectFilter(sp: ParamsLike): ProjectFilter {
   const dirRaw = sp.get('dir')
   const asc = dirRaw === 'desc' ? false : true
 
-  return { hideDone, fStatus, fImportance, fCategory, fAuthor, sortKey, asc }
+  return { hideDone, fStatus, fImportance, fCategory, sortKey, asc }
 }
 
 // 필터를 쿼리스트링으로. 기본값(빈 필터)이면 빈 문자열을 반환 -> URL 깔끔하게 유지.
@@ -57,7 +54,6 @@ export function buildProjectQuery(f: ProjectFilter): string {
   if (f.fStatus.length) params.set('status', f.fStatus.join(','))
   if (f.fImportance.length) params.set('imp', f.fImportance.join(','))
   if (f.fCategory.length) params.set('cat', f.fCategory.join(','))
-  if (f.fAuthor.length) params.set('author', f.fAuthor.join(','))
   if (f.sortKey !== 'due') params.set('sort', f.sortKey)
   if (!f.asc) params.set('dir', 'desc')
   return params.toString()
@@ -69,7 +65,6 @@ export function isDefaultProjectFilter(f: ProjectFilter): boolean {
     f.fStatus.length === 0 &&
     f.fImportance.length === 0 &&
     f.fCategory.length === 0 &&
-    f.fAuthor.length === 0 &&
     f.sortKey === 'due' &&
     f.asc
   )
@@ -81,7 +76,6 @@ type FilterableProject = {
   status: string
   importance: number
   category: string | null
-  user_id?: string | null
   due_date: string | null
   created_at?: string | null
 }
@@ -95,7 +89,6 @@ export function applyProjectFilter<T extends FilterableProject>(projects: T[], f
     if (f.fStatus.length && !f.fStatus.includes(normalizeStatus(p.status))) return false
     if (f.fImportance.length && !f.fImportance.includes(p.importance)) return false
     if (f.fCategory.length && !(p.category && f.fCategory.includes(p.category))) return false
-    if (f.fAuthor.length && !(p.user_id && f.fAuthor.includes(p.user_id))) return false
     return true
   })
 
