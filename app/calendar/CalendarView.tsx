@@ -196,13 +196,13 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
   return (
     <div>
       {/* 헤더: 월 제목 + 네비 + 오늘 + 필터 */}
-      <div className="mb-2 flex items-center gap-2">
-        <h2 className="font-display text-xl font-bold text-ink md:text-2xl">{title}</h2>
-        <div className="ml-1 flex items-center">
-          <button type="button" onClick={prevMonth} aria-label="이전 달" className="rounded-lg px-2 py-1 text-xl leading-none text-muted transition hover:text-primary">
+      <div className="mb-3 flex items-center gap-2">
+        <h2 className="font-display text-2xl font-bold text-ink md:text-3xl">{title}</h2>
+        <div className="ml-1 flex items-center gap-1.5">
+          <button type="button" onClick={prevMonth} aria-label="이전 달" className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted transition hover:border-ink hover:text-ink">
             ‹
           </button>
-          <button type="button" onClick={nextMonth} aria-label="다음 달" className="rounded-lg px-2 py-1 text-xl leading-none text-muted transition hover:text-primary">
+          <button type="button" onClick={nextMonth} aria-label="다음 달" className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted transition hover:border-ink hover:text-ink">
             ›
           </button>
         </div>
@@ -210,7 +210,7 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
           <button
             type="button"
             onClick={goToday}
-            className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-primary"
+            className="rounded-full border border-line px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-ink hover:text-ink"
           >
             오늘
           </button>
@@ -218,8 +218,8 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
             type="button"
             onClick={() => setFilterOpen((v) => !v)}
             aria-label="필터"
-            className={`relative inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 transition ${
-              filterOpen || filterActiveAny ? 'border-primary text-primary' : 'border-line bg-surface text-muted hover:border-primary'
+            className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border transition ${
+              filterOpen || filterActiveAny ? 'border-ink text-ink' : 'border-line bg-surface text-muted hover:border-ink hover:text-ink'
             }`}
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
@@ -296,7 +296,7 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
       {/* 요일 헤더 */}
       <div className="grid grid-cols-7 text-center text-[11px] font-semibold md:text-xs">
         {DOW_LABELS.map((d, i) => (
-          <div key={d} className={`py-1.5 ${i === 0 ? 'text-accent' : i === 6 ? 'text-on-status-progress' : 'text-faint'}`}>
+          <div key={d} className={`py-1.5 ${i === 0 ? 'text-accent' : 'text-faint'}`}>
             {d}
           </div>
         ))}
@@ -317,9 +317,7 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
                   ? 'text-faint/60'
                   : dow === 0
                     ? 'text-accent'
-                    : dow === 6
-                      ? 'text-on-status-progress'
-                      : 'text-ink'
+                    : 'text-ink'
               return (
                 <button
                   type="button"
@@ -331,7 +329,7 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
                 >
                   <span
                     className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold md:text-sm ${numColor} ${
-                      isToday ? 'bg-primary' : isSel ? 'ring-1 ring-primary' : ''
+                      isToday ? 'bg-accent' : isSel ? 'ring-1 ring-ink' : ''
                     }`}
                   >
                     {c.day}
@@ -371,7 +369,7 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
                     key={c.key}
                     onClick={() => setSelected(c.key)}
                     className={`mx-auto flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold transition ${
-                      isToday ? 'bg-primary text-white' : isSel ? 'ring-1 ring-primary text-primary' : ci === 0 ? 'text-accent' : 'text-muted'
+                      isToday ? 'bg-accent text-white' : isSel ? 'ring-1 ring-ink text-ink' : ci === 0 ? 'text-accent' : 'text-muted'
                     }`}
                   >
                     {c.day}
@@ -439,7 +437,7 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
                     {STATUS_META[normalizeStatus(it.status)].label}
                   </span>
                   {it.category && (
-                    <span className="hidden shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary sm:inline">
+                    <span className="hidden shrink-0 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] text-muted sm:inline">
                       {it.category}
                     </span>
                   )}

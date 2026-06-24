@@ -4,6 +4,7 @@ import { normalizeStatus } from '@/lib/constants'
 import PageHeader from '@/components/PageHeader'
 import CalendarView, { type CalItem } from './CalendarView'
 import CalendarSubscribe from './CalendarSubscribe'
+import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 // MFH-CAL-FILTER-V1
@@ -91,7 +92,7 @@ export default async function CalendarPage() {
   ]
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-5 pb-8">
+    <main className="app-theme mx-auto w-full max-w-4xl px-5 pb-8">
       <PageHeader title="Calendar" current="calendar" />
       <p className="-mt-3 mb-5 text-xs text-muted">프로젝트·할 일 마감 일정</p>
 
