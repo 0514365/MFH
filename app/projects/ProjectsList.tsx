@@ -521,7 +521,7 @@ export default function ProjectsList({
 
                     {/* 완료 라벨 + ProjectStatusToggle — 메타칩 줄과 같은 행 오른쪽 끝. */}
                     <div className="flex shrink-0 items-center gap-1.5">
-                      <span className="text-[11px] font-bold text-accent">완료</span>
+                      <span className="text-[13px] font-bold text-accent">완료</span>
                       <ProjectStatusToggle id={p.id} status={p.status} />
                     </div>
                   </div>

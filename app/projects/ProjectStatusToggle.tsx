@@ -46,7 +46,7 @@ export default function ProjectStatusToggle({
       onClick={toggle}
       disabled={busy}
       aria-label="완료 토글"
-      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-xs font-extrabold ${
+      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm font-extrabold ${
         checked
           ? 'border-accent bg-accent text-white'
           : 'border-[#e6c9cb] bg-surface text-transparent'
