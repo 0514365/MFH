@@ -7,6 +7,7 @@ import { SUPPORTER_PHOTO_BUCKET, formatUsd } from '@/lib/supporters'
 import SupportersList from './SupportersList'
 import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 import BulkMailButton from './BulkMailButton'
+import SupportersExport from './SupportersExport'
 import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
@@ -149,6 +150,8 @@ export default async function SupportersPage() {
       {supporters.length > 0 && <DomainInsightPanel domain="supporter_care" />}
 
       <BulkMailButton emails={mailRecipients} />
+
+      {supporters.length > 0 && <SupportersExport supporters={supporters} />}
 
       <SupportersList
         supporters={supporters}
