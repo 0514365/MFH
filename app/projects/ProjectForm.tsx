@@ -1,8 +1,9 @@
 'use client'
 
-// MFH-PROJECT-FORM-V3
-// 프로젝트 입력 폼 (Variant V4 — 2카드: 내용 / 속성·일정). 일지 폼과 톤 통일.
-// 저장·검증·작성자·날짜·별점 로직은 V2 그대로 보존, 비주얼(헤더·카드·라벨·별·버튼)만 교체.
+// MFH-PROJECT-FORM-V4
+// 프로젝트 입력 폼 — 1카드 단일 흐름. app-theme(Airbnb/Stayly) + 1차 시안(영문 캡스 라벨).
+// 입력 순서: 제목 → 설명 → [시작일·마감일] → [중요도·상태] → 사역 분류 → 첨부파일.
+// 저장·검증·날짜·별점 로직은 보존, 비주얼(헤더·카드·라벨·필드·버튼)만 교체.
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -14,18 +15,19 @@ import CategorySelect from '@/components/CategorySelect'
 import AttachmentUpload from '@/components/AttachmentUpload'
 import BackButton from '@/components/BackButton'
 import { resolveOwnerId } from '@/lib/members'
+import '../p/portfolio-theme.css'
 
 type Props = {
   mode: 'new' | 'edit'
   initial?: Project | null
 }
 
-// 필드 라벨: 한글 + 작은 영문 캡스(시안 패턴)
+// 필드 라벨: 한글(잉크 medium) + 작은 영문 캡스(마룬, Stayly type-uppercase 톤)
 function FieldLabel({ ko, en }: { ko: string; en: string }) {
   return (
-    <label className="mb-1.5 block text-[13px] font-medium text-muted">
-      {ko}
-      <span className="ml-1.5 font-display text-[9px] uppercase tracking-[0.15em] text-faint">{en}</span>
+    <label className="mb-2 flex items-baseline gap-1.5">
+      <span className="text-[14px] font-medium text-ink">{ko}</span>
+      <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">{en}</span>
     </label>
   )
 }
@@ -101,28 +103,26 @@ export default function ProjectForm({ mode, initial }: Props) {
   }
 
   const input =
-    'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
-  const card = 'rounded-3xl border border-line bg-surface p-5 shadow-sm'
+    'w-full rounded-xl border border-line bg-surface px-4 py-3.5 text-sm text-ink outline-none focus:border-primary'
 
   return (
-    <main className="mx-auto max-w-md px-4 pb-10 md:max-w-5xl">
-      {/* 상단바(미니멀) — 일지 폼과 통일: ‹ Project + 중앙 제목 */}
+    <main className="app-theme mx-auto max-w-md px-4 pb-10 sm:max-w-2xl">
+      {/* 상단바(미니멀) — ‹ + 중앙 제목 */}
       <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
         <BackButton
           href={mode === 'edit' && initial ? `/projects/${initial.id}` : '/projects'}
           label=""
           variant="text"
         />
-        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-lg font-extrabold uppercase tracking-[0.15em] text-primary">
+        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-[15px] font-extrabold uppercase tracking-[0.2em] text-ink">
           {mode === 'edit' ? 'Edit Project' : 'New Project'}
         </h1>
         <span className="w-10" aria-hidden="true" />
       </header>
 
-      {/* 데스크탑·아이패드(≥md): 두 카드 좌우 2컬럼 / 모바일: 세로 스택 */}
-      <div className="md:grid md:grid-cols-2 md:items-start md:gap-6">
-      {/* 카드1: 프로젝트 내용 */}
-      <div className={`${card} mb-4 flex flex-col gap-5 md:mb-0`}>
+      {/* 단일 카드 — 제목 → 설명 → [시작·마감] → [중요도·상태] → 사역 분류 → 첨부 */}
+      <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
+        {/* 제목 */}
         <div>
           <FieldLabel ko="제목" en="Title" />
           <input
@@ -132,42 +132,36 @@ export default function ProjectForm({ mode, initial }: Props) {
             placeholder="예: 자포탈 더좋은교회 건축"
           />
         </div>
-        <div>
+
+        {/* 설명 — 입력에 따라 자동 확장 */}
+        <div className="mt-5">
           <FieldLabel ko="설명" en="Desc" />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className={`${input} resize-none leading-relaxed`}
+            className={`${input} min-h-[88px] resize-none leading-relaxed [field-sizing:content]`}
+            placeholder="프로젝트 설명"
           />
         </div>
-        <div>
-          <FieldLabel ko="사역 분류" en="Category" />
-          <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="선택 안 함" />
-        </div>
-        <div>
-          <FieldLabel ko="첨부파일" en="Files" />
-          <AttachmentUpload userId={viewerId} value={attachments} onChange={setAttachments} />
-        </div>
-      </div>
 
-      {/* 카드2: 속성 · 일정 */}
-      <div className={`${card} flex flex-col gap-5`}>
+        {/* 구분선 */}
+        <div className="my-5 h-px bg-line" />
+
+        {/* 시작일 · 마감일 */}
         <div className="grid grid-cols-2 gap-4">
           <div className="min-w-0">
-            <FieldLabel ko="상태" en="Status" />
-            <select
-              value={status}
-              onChange={(e) => setStatus(normalizeStatus(e.target.value))}
-              className={input}
-            >
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+            <FieldLabel ko="시작일" en="Start" />
+            <DateField value={startDate} onChange={setStartDate} placeholder="시작일 (선택)" />
           </div>
+          <div className="min-w-0">
+            <FieldLabel ko="마감일" en="Due" />
+            <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
+          </div>
+        </div>
+
+        {/* 중요도 · 상태 */}
+        <div className="mt-5 grid grid-cols-2 gap-4">
           <div className="min-w-0">
             <FieldLabel ko="중요도" en="Stars" />
             <div className="flex h-[46px] items-center gap-1.5">
@@ -205,18 +199,33 @@ export default function ProjectForm({ mode, initial }: Props) {
               })}
             </div>
           </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
           <div className="min-w-0">
-            <FieldLabel ko="시작일" en="Start" />
-            <DateField value={startDate} onChange={setStartDate} placeholder="시작일 (선택)" />
-          </div>
-          <div className="min-w-0">
-            <FieldLabel ko="마감일" en="Due" />
-            <DateField value={dueDate} onChange={setDueDate} placeholder="마감일 (선택)" />
+            <FieldLabel ko="상태" en="Status" />
+            <select
+              value={status}
+              onChange={(e) => setStatus(normalizeStatus(e.target.value))}
+              className={input}
+            >
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
-      </div>
+
+        {/* 사역 분류 */}
+        <div className="mt-5">
+          <FieldLabel ko="사역 분류" en="Category" />
+          <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="선택 안 함" />
+        </div>
+
+        {/* 첨부파일 */}
+        <div className="mt-5">
+          <FieldLabel ko="첨부파일" en="Files" />
+          <AttachmentUpload userId={viewerId} value={attachments} onChange={setAttachments} />
+        </div>
       </div>
 
       {msg && <p className="mt-4 text-center text-sm text-danger">{msg}</p>}
@@ -224,7 +233,7 @@ export default function ProjectForm({ mode, initial }: Props) {
       <button
         onClick={save}
         disabled={saving}
-        className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary disabled:opacity-50"
+        className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
       >
         {saving ? '저장 중…' : mode === 'edit' ? 'Update Project' : 'Save Project'}
       </button>
