@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { normalizeStatus } from '@/lib/constants'
-import PageHeader from '@/components/PageHeader'
 import CalendarView, { type CalItem } from './CalendarView'
 import CalendarSubscribe from './CalendarSubscribe'
 import '../p/portfolio-theme.css'
@@ -92,10 +91,7 @@ export default async function CalendarPage() {
   ]
 
   return (
-    <main className="app-theme mx-auto w-full max-w-4xl px-5 pb-8">
-      <PageHeader title="Calendar" current="calendar" />
-      <p className="-mt-3 mb-5 text-xs text-muted">프로젝트·할 일 마감 일정</p>
-
+    <main className="app-theme mx-auto w-full max-w-4xl px-5 pb-8 pt-4">
       <CalendarView items={items} />
 
       <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted">

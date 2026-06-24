@@ -195,18 +195,9 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
 
   return (
     <div>
-      {/* 헤더: 월 제목 + 네비 + 오늘 + 필터 */}
-      <div className="mb-3 flex items-center gap-2">
-        <h2 className="font-display text-2xl font-bold text-ink md:text-3xl">{title}</h2>
-        <div className="ml-1 flex items-center gap-1.5">
-          <button type="button" onClick={prevMonth} aria-label="이전 달" className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted transition hover:border-ink hover:text-ink">
-            ‹
-          </button>
-          <button type="button" onClick={nextMonth} aria-label="다음 달" className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted transition hover:border-ink hover:text-ink">
-            ›
-          </button>
-        </div>
-        <div className="ml-auto flex items-center gap-1.5">
+      {/* 헤더: 중앙 월 네비(‹ 년월 ›) + 좌 오늘 · 우 필터 */}
+      <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <div className="justify-self-start">
           <button
             type="button"
             onClick={goToday}
@@ -214,6 +205,17 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
           >
             오늘
           </button>
+        </div>
+        <div className="flex items-center justify-self-center gap-2.5">
+          <button type="button" onClick={prevMonth} aria-label="이전 달" className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted transition hover:border-ink hover:text-ink">
+            ‹
+          </button>
+          <h2 className="whitespace-nowrap font-display text-2xl font-bold text-ink">{title}</h2>
+          <button type="button" onClick={nextMonth} aria-label="다음 달" className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted transition hover:border-ink hover:text-ink">
+            ›
+          </button>
+        </div>
+        <div className="justify-self-end">
           <button
             type="button"
             onClick={() => setFilterOpen((v) => !v)}
