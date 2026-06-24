@@ -4,6 +4,15 @@
 // 복사 = 문구 + 해시태그(추천이유 rationale 은 우진 참고용이라 복사·표시만, 게시문 미포함).
 import { useState } from 'react'
 
+// 주차 라벨: "2026-06-16","2026-06-22" → "6월 16일 ~ 22일"(같은 달) / "6월 30일 ~ 7월 6일"(다른 달).
+function fmtWeek(s: string | null, e: string | null): string {
+  if (!s || !e) return ''
+  const [, sm, sd] = s.split('-')
+  const [, em, ed] = e.split('-')
+  if (sm === em) return `${Number(sm)}월 ${Number(sd)}일 ~ ${Number(ed)}일`
+  return `${Number(sm)}월 ${Number(sd)}일 ~ ${Number(em)}월 ${Number(ed)}일`
+}
+
 export type FbPhotoView = { path: string; caption: string | null; url: string | null }
 export type FbPostView = {
   text: string
@@ -23,7 +32,7 @@ export default function FacebookClient({ weekStart, weekEnd, generatedAt, posts 
   if (!posts.length) {
     return (
       <div className="rounded-2xl border border-line bg-surface p-6 text-center">
-        <p className="text-sm font-semibold text-primary">아직 이번 주 게시 추천이 없습니다</p>
+        <p className="text-sm font-semibold text-ink">아직 이번 주 게시 추천이 없습니다</p>
         <p className="mt-2 text-xs leading-relaxed text-muted">
           Cowork(아이폰 원격) 또는 터미널에서 <code className="rounded bg-paper px-1 py-0.5 font-mono text-[11px]">/fb-update</code> 를 실행하면
           <br />
@@ -35,17 +44,15 @@ export default function FacebookClient({ weekStart, weekEnd, generatedAt, posts 
 
   return (
     <div>
-      <header className="mb-4">
-        <p className="text-xs font-semibold tracking-wide text-muted">이번 주 게시 추천</p>
-        <div className="mt-0.5 flex items-baseline gap-2">
-          <span className="font-display text-lg font-bold text-primary">
-            {weekStart} ~ {weekEnd}
-          </span>
-          <span className="text-[11px] text-faint">게시안 {posts.length}개</span>
+      <header className="mb-5">
+        <p className="text-[11px] font-semibold tracking-wide text-muted">이번 주 게시 추천</p>
+        <div className="mt-1.5 text-[22px] font-semibold tracking-tight text-ink">
+          {fmtWeek(weekStart, weekEnd)}
         </div>
-        {generatedAt && (
-          <p className="mt-0.5 text-[11px] text-faint">생성 {generatedAt.slice(0, 10)} · 게시는 직접 올려 주세요</p>
-        )}
+        <p className="mt-1 text-[12px] text-muted">
+          게시안 {posts.length}개
+          {generatedAt ? ` · 생성 ${generatedAt.slice(0, 10)} · 게시는 직접 올려 주세요` : ''}
+        </p>
       </header>
 
       <div className="space-y-4">
@@ -75,11 +82,11 @@ function PostCard({ post, index }: { post: FbPostView; index: number }) {
 
   return (
     <article className="rounded-2xl border border-line bg-surface p-5">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <span className="text-[11px] font-semibold tracking-wide text-muted">게시안 {index + 1}</span>
         <button
           onClick={copy}
-          className="rounded-lg border border-line px-3 py-1 text-xs font-semibold text-primary transition hover:border-primary"
+          className="rounded-full bg-accent-soft px-3.5 py-1 text-xs font-medium text-accent transition hover:opacity-80"
         >
           {copied ? '복사됨 ✓' : '문구 복사'}
         </button>
@@ -90,7 +97,7 @@ function PostCard({ post, index }: { post: FbPostView; index: number }) {
       {shown.length > 0 && (
         <div className="mt-3 grid grid-cols-3 gap-2">
           {shown.map((ph, j) => (
-            <figure key={j} className="overflow-hidden rounded-lg border border-line">
+            <figure key={j} className="overflow-hidden rounded-2xl border border-line">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={ph.url!} alt={ph.caption ?? '추천 사진'} className="aspect-square w-full object-cover" />
               {ph.caption && (
@@ -104,12 +111,12 @@ function PostCard({ post, index }: { post: FbPostView; index: number }) {
       )}
 
       {post.hashtags.length > 0 && (
-        <p className="mt-3 text-xs font-medium text-muted">{post.hashtags.join(' ')}</p>
+        <p className="mt-3 text-xs font-medium text-accent">{post.hashtags.join(' ')}</p>
       )}
 
       {post.rationale && (
-        <p className="mt-3 rounded-lg bg-paper px-3 py-2 text-[11px] leading-relaxed text-faint">
-          추천 이유 · {post.rationale}
+        <p className="mt-3 rounded-xl bg-surface-subtle px-3 py-2 text-[11px] leading-relaxed text-muted">
+          <span className="font-semibold">추천 이유</span> · {post.rationale}
         </p>
       )}
     </article>

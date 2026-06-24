@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import FacebookClient, { type FbPostView } from './FacebookClient'
+import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,7 +54,7 @@ export default async function FacebookPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-5 pb-8">
+    <main className="app-theme mx-auto max-w-2xl px-5 pb-8">
       <PageHeader title="Facebook" />
       <FacebookClient
         weekStart={row?.week_start ?? null}
