@@ -107,6 +107,15 @@ export function amountToRaw(amount: number | null | undefined, currency: Currenc
   return currency === 'KRW' ? String(Math.round(amount)) : String(Math.round(amount * 100))
 }
 
+// supporter_care 인사이트 content 에서 "감사·안부 메시지 초안" 부분만 추출(발송 도우미용).
+// 4부 출력의 마지막 섹션이라, "메시지 초안" 헤더 줄 다음부터 끝까지를 가져온다.
+export function extractMessageDraft(content: string | null | undefined): string | null {
+  if (!content) return null
+  const m = content.match(/메시지 초안[^\n]*\n([\s\S]+)$/)
+  const draft = m ? m[1].trim() : null
+  return draft || null
+}
+
 // 헌금 USD 합계.
 export function donationTotalUsd(rows: Pick<SupporterDonation, 'amount_usd'>[]): number {
   return round2(rows.reduce((s, r) => s + (Number(r.amount_usd) || 0), 0))

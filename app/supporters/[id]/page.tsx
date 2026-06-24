@@ -7,12 +7,14 @@ import {
   ageFromBirth,
   formatMoney,
   SUPPORTER_PHOTO_BUCKET,
+  extractMessageDraft,
 } from '@/lib/supporters'
 import BackButton from '@/components/BackButton'
 import DeleteButton from './DeleteButton'
 import DonationPanel from './DonationPanel'
 import LogPanel from './LogPanel'
 import JournalLinkPanel from './JournalLinkPanel'
+import MessageActions from './MessageActions'
 import '../../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
@@ -83,6 +85,16 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
       .createSignedUrl(s.photo_path, 3600)
     photoUrl = signed?.signedUrl ?? null
   }
+
+  // 발송 도우미용 AI 초안 — supporter_care 인사이트의 "메시지 초안" 부분.
+  const { data: scRow } = await supabase
+    .from('insights')
+    .select('content')
+    .eq('domain', 'supporter_care')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const aiDraft = extractMessageDraft((scRow as { content: string | null } | null)?.content ?? null)
 
   const meta = [age != null ? `${age}세` : null, s.affiliation, s.role, s.region]
     .filter(Boolean)
@@ -161,6 +173,14 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
           </div>
         </section>
       )}
+
+      {/* 메시지 발송 */}
+      <section className="border-t border-line px-5 py-5">
+        <div className="mb-2 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
+          Message
+        </div>
+        <MessageActions email={s.email} name={s.name} aiDraft={aiDraft} />
+      </section>
 
       {/* 정기후원 */}
       {s.is_recurring && (

@@ -6,6 +6,7 @@ import type { Supporter } from '@/lib/types'
 import { SUPPORTER_PHOTO_BUCKET, formatUsd } from '@/lib/supporters'
 import SupportersList from './SupportersList'
 import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
+import BulkMailButton from './BulkMailButton'
 import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
@@ -49,6 +50,11 @@ export default async function SupportersPage() {
   monthUsd = Math.round(monthUsd * 100) / 100
   const activeCount = supporters.filter((s) => s.is_active).length
   const recurringCount = supporters.filter((s) => s.is_active && s.is_recurring).length
+
+  // 통합 발송 대상 — 활성 + 이메일 보유 후원자 주소.
+  const mailRecipients = supporters
+    .filter((s) => s.is_active && s.email && s.email.trim())
+    .map((s) => (s.email as string).trim())
 
   // 이번 달 생일(활성 후원자, birth_date 의 월이 이번 달). 일(day) 오름차순.
   const thisMonth = ymStr.slice(5, 7)
@@ -141,6 +147,8 @@ export default async function SupportersPage() {
       )}
 
       {supporters.length > 0 && <DomainInsightPanel domain="supporter_care" />}
+
+      <BulkMailButton emails={mailRecipients} />
 
       <SupportersList
         supporters={supporters}
