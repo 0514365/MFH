@@ -19,6 +19,7 @@ import {
   formatAmountInput,
   sanitizeAmountInput,
   amountToNumber,
+  amountToRaw,
 } from '@/lib/supporters'
 import DateField from '../../journal/DateField'
 
@@ -88,7 +89,7 @@ export default function DonationPanel({
 
   function startEdit(d: SupporterDonation) {
     setDate(d.donation_date)
-    setAmount(String(d.amount))
+    setAmount(amountToRaw(d.amount, d.currency))
     setCurrency(d.currency)
     setRate(d.exchange_rate ? String(d.exchange_rate) : lastRate ? String(lastRate) : '')
     setDtype(d.donation_type ?? 'regular')
@@ -215,14 +216,21 @@ export default function DonationPanel({
             <input
               value={formatAmountInput(amount, currency)}
               onChange={(e) => setAmount(sanitizeAmountInput(e.target.value))}
-              className={input}
-              inputMode="decimal"
-              placeholder="0"
+              className={`${input} text-right`}
+              inputMode="numeric"
+              placeholder={currency === 'USD' ? '0.00' : '0'}
             />
           </div>
           <div>
             <span className="mb-1 block text-[11px] font-semibold text-faint">통화</span>
-            <select value={currency} onChange={(e) => setCurrency(e.target.value as Currency)} className={`${input} w-auto`}>
+            <select
+              value={currency}
+              onChange={(e) => {
+                setCurrency(e.target.value as Currency)
+                setAmount('')
+              }}
+              className={`${input} w-auto`}
+            >
               {CURRENCIES.map((c) => (
                 <option key={c} value={c}>
                   {c}

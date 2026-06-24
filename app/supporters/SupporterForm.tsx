@@ -20,6 +20,7 @@ import {
   formatAmountInput,
   sanitizeAmountInput,
   amountToNumber,
+  amountToRaw,
 } from '@/lib/supporters'
 import '../p/portfolio-theme.css'
 
@@ -51,7 +52,7 @@ export default function SupporterForm({ mode, initial }: Props) {
   const [firstMet, setFirstMet] = useState(initial?.first_met_date ?? '')
   const [isRecurring, setIsRecurring] = useState(initial?.is_recurring ?? false)
   const [recurringAmount, setRecurringAmount] = useState(
-    initial?.recurring_amount != null ? String(initial.recurring_amount) : '',
+    amountToRaw(initial?.recurring_amount, initial?.recurring_currency ?? 'USD'),
   )
   const [recurringCurrency, setRecurringCurrency] = useState<Currency>(
     initial?.recurring_currency ?? 'USD',
@@ -316,11 +317,18 @@ export default function SupporterForm({ mode, initial }: Props) {
                 <input
                   value={formatAmountInput(recurringAmount, recurringCurrency)}
                   onChange={(e) => setRecurringAmount(sanitizeAmountInput(e.target.value))}
-                  className={input}
-                  inputMode="decimal"
+                  className={`${input} text-right`}
+                  inputMode="numeric"
                   placeholder="정기후원 금액"
                 />
-                <select value={recurringCurrency} onChange={(e) => setRecurringCurrency(e.target.value as Currency)} className={`${input} w-auto`}>
+                <select
+                  value={recurringCurrency}
+                  onChange={(e) => {
+                    setRecurringCurrency(e.target.value as Currency)
+                    setRecurringAmount('')
+                  }}
+                  className={`${input} w-auto`}
+                >
                   {CURRENCIES.map((c) => (
                     <option key={c} value={c}>
                       {CURRENCY_LABEL[c]}

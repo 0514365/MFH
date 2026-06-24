@@ -80,36 +80,31 @@ export function formatUsd(amount?: number | null): string {
   return formatMoney(amount, 'USD')
 }
 
-// ── 금액 입력 필드: 실시간 천단위 콤마 표시 ──────────────────
-// state 는 콤마 없는 raw 문자열로 보관(sanitizeAmountInput), 화면 표시만 포맷(formatAmountInput).
-// KRW: 정수만(소수부 무시). USD: 소수 2자리까지 허용. 천단위 구분은 콤마(,).
+// ── 금액 입력 필드: 회계형(우측 정렬 + 통화별 자동 포맷) ──────────────────
+// 숫자만 입력받아(점·콤마 무시) state(raw=digits)에 보관하고, 화면 표시만 포맷한다.
+// KRW: 정수 + 천단위 콤마. USD: 입력 숫자를 '센트'로 해석해 우측에서 채우며 항상 소수 2자리 + 천단위 콤마.
+//   예) USD 에서 1 → 2 → 3 입력 시 0.01 → 0.12 → 1.23 (입력 즉시 2자리 유지).
 export function sanitizeAmountInput(v: string): string {
-  let s = v.replace(/,/g, '').replace(/[^0-9.]/g, '')
-  const i = s.indexOf('.')
-  if (i >= 0) s = s.slice(0, i + 1) + s.slice(i + 1).replace(/\./g, '')
-  return s
+  return v.replace(/\D/g, '')
 }
 
 export function formatAmountInput(raw: string, currency: Currency): string {
   if (!raw) return ''
-  const dot = raw.indexOf('.')
-  if (currency === 'KRW') {
-    const intp = dot >= 0 ? raw.slice(0, dot) : raw
-    return intp ? Number(intp).toLocaleString('en-US') : ''
-  }
-  if (dot >= 0) {
-    const intp = raw.slice(0, dot)
-    const dec = raw.slice(dot + 1, dot + 3) // 소수 2자리까지
-    const intFmt = intp ? Number(intp).toLocaleString('en-US') : '0'
-    return `${intFmt}.${dec}`
-  }
-  return Number(raw).toLocaleString('en-US')
+  const n = Number(raw)
+  if (currency === 'KRW') return n.toLocaleString('en-US')
+  return (n / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-// 저장용 숫자 변환 — KRW 는 정수로 반올림(원은 소수 없음), USD 는 그대로.
+// 저장용 숫자 변환 — KRW 는 정수(입력 그대로), USD 는 센트 → 달러(/100).
 export function amountToNumber(raw: string, currency: Currency): number {
   const n = Number(raw) || 0
-  return currency === 'KRW' ? Math.round(n) : n
+  return currency === 'KRW' ? n : n / 100
+}
+
+// 기존 저장값 → 입력 raw(digits). 편집 시 폼 채우기용. KRW=정수, USD=센트.
+export function amountToRaw(amount: number | null | undefined, currency: Currency): string {
+  if (amount == null) return ''
+  return currency === 'KRW' ? String(Math.round(amount)) : String(Math.round(amount * 100))
 }
 
 // 헌금 USD 합계.
