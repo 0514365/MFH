@@ -61,7 +61,7 @@ export default function DeleteButton({
       <button
         onClick={onClick}
         disabled={busy}
-        className="text-xs text-danger underline disabled:opacity-50"
+        className="rounded-full border border-[#f0c4c4] bg-white px-5 py-2 text-[13px] font-medium text-danger transition hover:bg-accent-soft disabled:opacity-50"
       >
         {busy ? '삭제 중…' : '삭제'}
       </button>
