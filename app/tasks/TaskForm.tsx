@@ -529,7 +529,8 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
               value={dueTime}
               onChange={(e) => setDueTime(e.target.value)}
               disabled={!dueDate}
-              className={`${input} min-w-0 disabled:opacity-50`}
+              className={`${input} disabled:opacity-50`}
+              style={{ WebkitAppearance: 'none', appearance: 'none', minWidth: 0 }}
             />
           </div>
         </div>
