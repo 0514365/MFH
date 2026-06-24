@@ -701,7 +701,6 @@ export default function TasksListClient({
                   {t.importance > 0 && <ImportanceStars value={t.importance} size="md" />}
                   <StatusBadge value={t.status ?? 'upcoming'} />
                   {t.category && <CategoryBadge value={t.category} />}
-                  {t.place_name && <MetaChip icon={taskMetaIcon.place} label={t.place_name} />}
                   {t.recurrence_id && <RecurrenceBadge freq={t.recurrence_freq} />}
                 </div>
                 <div className={`mt-1.5 font-bold ${t.done ? 'text-faint line-through' : 'text-ink'}`}>
@@ -709,6 +708,11 @@ export default function TasksListClient({
                 </div>
                 {t.description && (
                   <div className="mt-1 line-clamp-2 text-sm text-muted">{t.description}</div>
+                )}
+                {t.place_name && (
+                  <div className="mt-2 flex justify-end">
+                    <MetaChip icon={taskMetaIcon.place} label={t.place_name} />
+                  </div>
                 )}
               </>
             )
