@@ -3,7 +3,7 @@ description: MFH 온두라스 동향 일일 브리핑 생성·저장 (pull → W
 allowed-tools: Bash, Read, Write, WebSearch
 ---
 
-오늘 온두라스 주요 뉴스를 WebSearch 로 검색해 **정치/경제/사회/문화 4분야 + San Pedro Sula·한인 하이라이트 + 선교 인사이트**로 정리하고 Supabase(honduras_news)에 저장한다. 분석 주체는 Claude Code(구독·WebSearch) — 종량제 API·web_search server tool 을 쓰지 않아 추가 현금 비용 0.
+오늘 온두라스 주요 뉴스를 WebSearch 로 검색해 **정치/경제/사회/문화 4분야 + San Pedro Sula·한인·안전 하이라이트 + 선교 인사이트**로 정리하고 Supabase(honduras_news)에 저장한다. 분석 주체는 Claude Code(구독·WebSearch) — 종량제 API·web_search server tool 을 쓰지 않아 추가 현금 비용 0.
 
 ## 절차
 
@@ -11,13 +11,15 @@ allowed-tools: Bash, Read, Write, WebSearch
    `npx tsx scripts/news-pull.ts`
    stderr 한 줄 요약은 무시하고, **stdout 전체가 작업지시서**다(오늘 날짜 · 검색 가이드 · result.json 형식 · 최근 헤드라인).
 
-2. **검색** — 작업지시서 [검색 가이드]대로 **WebSearch** 를 실행한다(표준 깊이 = 약 5~6회). 스페인어 현지 매체가 1차, 영어/한국어로 보강. San Pedro Sula·한인 검색은 반드시 포함.
+2. **검색** — 작업지시서 [검색 가이드]대로 **WebSearch** 를 실행한다(표준 깊이 = 약 7~8회). 스페인어 현지 매체가 1차, 영문으로 교차·안전 보강. ★작업지시서 [신뢰 출처 티어]의 도메인을 **allowed_domains** 로 지정해 최신·신뢰 결과로 좁히고, ★각 기사의 **발행일**을 확인한다(불확실하면 제외).
 
 3. **정리·작성** — 작업지시서 [정리 규칙]을 **그대로 충실히 따른다**:
    - **정당명·인물명은 사실대로 그대로 기재**한다(이 페이지는 내부 동향 파악용 — 편지·FB 의 정치중립 규칙과 정반대). 단 **사실·출처 기반만**, WebSearch 로 확인 안 된 내용·추측·날조는 금지(불확실하면 제외).
-   - ★최신성·공통 보도 우선: 최신 소식을 앞세우고, 여러 언론이 공통으로 주목하는 사안을 우선 분석한다.
-   - 분야별 2~3건, 각 항목 title(한국어 한 줄) + body(2~4문장 한국어) + source(매체/URL).
-   - San Pedro Sula·한인 뉴스는 highlights 에 tag 로 한 번 더 강조.
+   - ★**최신성 차등**(핵심): 정치·경제·사회는 발행일 **최근 72시간(불가피하면 7일) 이내** 소식만 — 오래된 기사로 칸을 채우지 않는다. 문화는 7일 내, 없으면 생략.
+   - ★San Pedro Sula(7일 내)·한인(14일 내)·안전은 **새 소식이 있을 때만** highlights 에 tag 로 넣는다(tag = "San Pedro Sula" | "한인" | "안전"). 없으면 빈 배열 — 한인은 본래 소식이 드무니 없는 게 정상.
+   - ★안전(safety): OSAC·US Embassy·ReliefWeb 의 신규·갱신된 여행경보·치안·기상/재난 alert 가 있을 때만(상시 동일 경보 반복은 제외).
+   - ★각 항목에 **published_at("YYYY-MM-DD", 기사 발행일)** 을 넣는다(끝내 불확실하면 빈 문자열) — 앱이 최신성 라벨로 쓴다.
+   - 분야별 2~3건(빈 분야 0건 허용), 각 항목 title(한국어 한 줄) + body(2~4문장 한국어) + source + url + published_at.
    - 최근 저장된 헤드라인과 똑같은 내용의 단순 반복만 피한다(같은 사안의 새 전개·추가 소식은 가능 — 같은 날 다시 생성 시 새 소식 위주).
    - insight(선교 인사이트): 오늘 동향의 선교·사역·기도 함의 2~4문장. 건설적·중립 톤(정파 편들기 금지).
    - prayer_points(기도 포인트): 인사이트에서 도출한 기도제목 1~2개를 짧은 문장 배열로 분리(앱에서 별도 박스로 표시).

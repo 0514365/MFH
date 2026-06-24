@@ -1,5 +1,6 @@
-// MFH-NEWS-PUSH-V1
+// MFH-NEWS-PUSH-V2
 // Claude Code 가 만든 result.json(온두라스 동향 브리핑)을 읽어 honduras_news 테이블에 upsert + repo 아카이브.
+//   · V2: 항목별 published_at(기사 발행일, YYYY-MM-DD) 통과. 안전 레이어는 highlights tag="안전"로 수용(스키마 무변경).
 //   · insert — 같은 날도 매번 새 행으로 누적(아침/저녁·반복 수동 생성 보관). 앱은 "날짜 (N)" 넘버링으로 구분.
 //   · 저장 귀속 user_id = .env.local 의 MFH_USER_ID(분석은 WebSearch 공개정보, 저장은 1명 귀속).
 // 사용:  npx tsx scripts/news-push.ts                       (기본 insights-archive/_news/result.json)
@@ -16,14 +17,14 @@ import {
 } from './_shared'
 
 // 정규화 후 타입(source 는 항상 string|null 로 채움). 입력 파싱은 normItems 가 unknown 으로 받아 처리.
-type SectionItem = { title: string; body: string; source: string | null; url: string | null }
+type SectionItem = { title: string; body: string; source: string | null; url: string | null; published_at: string | null }
 type Sections = {
   politics?: SectionItem[]
   economy?: SectionItem[]
   society?: SectionItem[]
   culture?: SectionItem[]
 }
-type Highlight = { tag: string; title: string; body: string; source: string | null; url: string | null }
+type Highlight = { tag: string; title: string; body: string; source: string | null; url: string | null; published_at: string | null }
 type Result = {
   news_date?: string
   sections?: Sections
@@ -45,7 +46,9 @@ function normItems(arr: unknown): SectionItem[] {
       if (!title && !body) return null
       const source = typeof o.source === 'string' && o.source.trim() ? o.source.trim() : null
       const url = typeof o.url === 'string' && o.url.trim() ? o.url.trim() : null
-      return { title, body, source, url }
+      const published_at =
+        typeof o.published_at === 'string' && isDate(o.published_at.trim()) ? o.published_at.trim() : null
+      return { title, body, source, url, published_at }
     })
     .filter((x): x is SectionItem => x !== null)
 }
@@ -84,7 +87,9 @@ async function main() {
           if (!tag || (!title && !body)) return null
           const source = typeof o.source === 'string' && o.source.trim() ? o.source.trim() : null
           const url = typeof o.url === 'string' && o.url.trim() ? o.url.trim() : null
-          return { tag, title, body, source, url }
+          const published_at =
+            typeof o.published_at === 'string' && isDate(o.published_at.trim()) ? o.published_at.trim() : null
+          return { tag, title, body, source, url, published_at }
         })
         .filter((x): x is Highlight => x !== null)
     : []
