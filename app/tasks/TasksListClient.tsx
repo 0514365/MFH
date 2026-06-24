@@ -795,8 +795,9 @@ export default function TasksListClient({
               this_month: [],
               later: [],
               unset: [],
+              done: [],
             }
-            for (const t of filtered) buckets[taskGroupOf(t.due_date)].push(t)
+            for (const t of filtered) buckets[taskGroupOf(t.due_date, t.done)].push(t)
             return (
               <div className="space-y-5">
                 {TASK_GROUP_ORDER.filter((k) => buckets[k].length > 0).map((k) => (

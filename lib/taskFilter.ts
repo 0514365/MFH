@@ -160,8 +160,9 @@ export function orderTaskIds<T extends FilterableTask>(tasks: T[], f: TaskFilter
     this_month: [],
     later: [],
     unset: [],
+    done: [],
   }
-  for (const t of filtered) buckets[taskGroupOf(t.due_date)].push(t)
+  for (const t of filtered) buckets[taskGroupOf(t.due_date, t.done)].push(t)
   const ordered: string[] = []
   for (const k of TASK_GROUP_ORDER) {
     for (const t of buckets[k]) ordered.push(t.id)

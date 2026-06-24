@@ -10,6 +10,7 @@ export type TaskGroupKey =
   | 'this_month'
   | 'later'
   | 'unset'
+  | 'done'
 
 export const TASK_GROUP_LABEL: Record<TaskGroupKey, string> = {
   overdue: '연체',
@@ -18,6 +19,7 @@ export const TASK_GROUP_LABEL: Record<TaskGroupKey, string> = {
   this_month: '이번 달',
   later: '나머지',
   unset: '미지정',
+  done: '완료',
 }
 
 export const TASK_GROUP_ORDER: TaskGroupKey[] = [
@@ -27,6 +29,7 @@ export const TASK_GROUP_ORDER: TaskGroupKey[] = [
   'this_month',
   'later',
   'unset',
+  'done',
 ]
 
 function fmtLocal(d: Date): string {
@@ -66,7 +69,9 @@ function nextMonthStart(baseStr: string): string {
 //   [afterNextSun, monthEnd+1) : this_month  ← 이번주·다음주를 지나서도 이번달이 남아있을 때만 등장
 //   그 외 미래                 : later
 //   null/undefined             : unset
-export function taskGroupOf(dueDate: string | null | undefined): TaskGroupKey {
+export function taskGroupOf(dueDate: string | null | undefined, done?: boolean): TaskGroupKey {
+  // 완료된 할 일은 마감일과 무관하게 '완료' 그룹(연체 등에 섞이지 않게).
+  if (done) return 'done'
   if (!dueDate) return 'unset'
   const today = localTodayStr()
   if (dueDate < today) return 'overdue'
