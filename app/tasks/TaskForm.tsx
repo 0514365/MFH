@@ -5,7 +5,7 @@
 // 순서: 제목 → 설명 → [마감일·시간] → [반복·장소] → [중요도·상태] → [상위프로젝트·사역분류] → 첨부 → 완료토글.
 // 선행/후속(프로젝트 선택 시)·반복 종료일(주기 선택 시)은 조건부 펼침.
 // 저장·검증·완료↔상태연동·반복 생성/편집(범위 모달)·복제·삭제·작성자·이전/다음 편집순회 로직은 V5 그대로 보존.
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import {
@@ -21,6 +21,7 @@ import CategorySelect from '@/components/CategorySelect'
 import AttachmentUpload from '@/components/AttachmentUpload'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
+import LinkedPicker, { type PickerItem } from '@/components/LinkedPicker'
 import RecurrenceBadge from '@/components/RecurrenceBadge'
 import RecurrenceScopeModal from '@/components/RecurrenceScopeModal'
 import {
@@ -118,9 +119,11 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
   // 반복 등록(새 할 일 한정). 마감일을 첫 날짜로, 종료일까지 같은 할 일을 일괄 생성.
   const [repeatFreq, setRepeatFreq] = useState<RepeatFreq>('none')
   const [repeatUntil, setRepeatUntil] = useState('')
-  const [projects, setProjects] = useState<{ id: string; title: string }[]>([])
+  const [projects, setProjects] = useState<{ id: string; title: string; status: string | null }[]>([])
   // 선행/후속 선택용: 현재 프로젝트의 할 일 목록(자기 자신 제외) + 각 1개 선택.
-  const [projectTasks, setProjectTasks] = useState<{ id: string; title: string }[]>([])
+  const [projectTasks, setProjectTasks] = useState<
+    { id: string; title: string; done: boolean; status: string | null }[]
+  >([])
   const [predecessorId, setPredecessorId] = useState<string>(initial?.predecessor_ids?.[0] ?? '')
   const [successorId, setSuccessorId] = useState<string>(initial?.successor_ids?.[0] ?? '')
   const [saving, setSaving] = useState(false)
@@ -132,14 +135,63 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
   const priority = initial?.priority ?? 'med'
   const isRecurring = !!initial?.recurrence_id
 
+  // ── 연계 선택(상위 프로젝트·선행·후속): 완료 항목은 따로 분리(일지 폼과 동일) ──
+  // 현재 선택값의 표시명(완료 항목이어도 항상 보이게).
+  const projectLabel = useMemo(
+    () => projects.find((p) => p.id === projectId)?.title ?? '',
+    [projects, projectId],
+  )
+  const predLabel = useMemo(
+    () => projectTasks.find((t) => t.id === predecessorId)?.title ?? '',
+    [projectTasks, predecessorId],
+  )
+  const sucLabel = useMemo(
+    () => projectTasks.find((t) => t.id === successorId)?.title ?? '',
+    [projectTasks, successorId],
+  )
+  // 프로젝트 후보: 완료(status='done')는 doneItems 로 분리.
+  const projectItems = useMemo(() => {
+    const active: PickerItem[] = []
+    const done: PickerItem[] = []
+    for (const p of projects) {
+      const item: PickerItem = { id: p.id, title: p.title }
+      ;(normalizeStatus(p.status ?? 'upcoming') === 'done' ? done : active).push(item)
+    }
+    return { active, done }
+  }, [projects])
+  // 선행 후보: 후속에 고른 항목 제외 + 완료(done|status='done') 분리.
+  const predItems = useMemo(() => {
+    const active: PickerItem[] = []
+    const done: PickerItem[] = []
+    for (const t of projectTasks) {
+      if (t.id === successorId) continue
+      const item: PickerItem = { id: t.id, title: t.title }
+      ;(t.done || normalizeStatus(t.status ?? 'upcoming') === 'done' ? done : active).push(item)
+    }
+    return { active, done }
+  }, [projectTasks, successorId])
+  // 후속 후보: 선행에 고른 항목 제외 + 완료 분리.
+  const sucItems = useMemo(() => {
+    const active: PickerItem[] = []
+    const done: PickerItem[] = []
+    for (const t of projectTasks) {
+      if (t.id === predecessorId) continue
+      const item: PickerItem = { id: t.id, title: t.title }
+      ;(t.done || normalizeStatus(t.status ?? 'upcoming') === 'done' ? done : active).push(item)
+    }
+    return { active, done }
+  }, [projectTasks, predecessorId])
+
   useEffect(() => {
     const supabase = createClient()
     void supabase.auth.getUser().then(({ data }) => setViewerId(data.user?.id ?? ''))
     void supabase
       .from('projects')
-      .select('id, title')
+      .select('id, title, status')
       .order('created_at', { ascending: false })
-      .then(({ data }) => setProjects((data ?? []) as { id: string; title: string }[]))
+      .then(({ data }) =>
+        setProjects((data ?? []) as { id: string; title: string; status: string | null }[]),
+      )
   }, [])
 
   // 관련 프로젝트가 바뀌면 그 프로젝트 할 일만 선행/후속 후보로 로드(자기 자신 제외).
@@ -152,14 +204,14 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     const supabase = createClient()
     void supabase
       .from('tasks')
-      .select('id, title')
+      .select('id, title, done, status')
       .eq('project_id', projectId)
       .order('sort_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true })
       .then(({ data }) => {
-        const list = ((data ?? []) as { id: string; title: string }[]).filter(
-          (t) => t.id !== initial?.id,
-        )
+        const list = (
+          (data ?? []) as { id: string; title: string; done: boolean; status: string | null }[]
+        ).filter((t) => t.id !== initial?.id)
         setProjectTasks(list)
         const valid = new Set(list.map((t) => t.id))
         setPredecessorId((prev) => (valid.has(prev) ? prev : ''))
@@ -599,14 +651,16 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
         <div className="mt-5 grid grid-cols-2 gap-4">
           <div className="min-w-0">
             <FieldLabel ko="상위 프로젝트" en="Project" />
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={input}>
-              <option value="">없음 (단독 할 일)</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
+            <LinkedPicker
+              value={projectId}
+              onChange={setProjectId}
+              activeItems={projectItems.active}
+              doneItems={projectItems.done}
+              selectedLabel={projectLabel}
+              placeholder="없음 (단독 할 일)"
+              emptyLabel="없음 (단독 할 일)"
+              doneLabel="완료된 프로젝트"
+            />
           </div>
           <div className="min-w-0">
             <FieldLabel ko="사역 분류" en="Category" />
@@ -620,37 +674,29 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
                 <FieldLabel ko="선행 작업" en="Prev" />
-                <select
+                <LinkedPicker
                   value={predecessorId}
-                  onChange={(e) => setPredecessorId(e.target.value)}
-                  className={input}
-                >
-                  <option value="">없음</option>
-                  {projectTasks
-                    .filter((t) => t.id !== successorId)
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title}
-                      </option>
-                    ))}
-                </select>
+                  onChange={setPredecessorId}
+                  activeItems={predItems.active}
+                  doneItems={predItems.done}
+                  selectedLabel={predLabel}
+                  placeholder="없음"
+                  emptyLabel="없음"
+                  doneLabel="완료된 할 일"
+                />
               </div>
               <div className="min-w-0">
                 <FieldLabel ko="후속 작업" en="Next" />
-                <select
+                <LinkedPicker
                   value={successorId}
-                  onChange={(e) => setSuccessorId(e.target.value)}
-                  className={input}
-                >
-                  <option value="">없음</option>
-                  {projectTasks
-                    .filter((t) => t.id !== predecessorId)
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title}
-                      </option>
-                    ))}
-                </select>
+                  onChange={setSuccessorId}
+                  activeItems={sucItems.active}
+                  doneItems={sucItems.done}
+                  selectedLabel={sucLabel}
+                  placeholder="없음"
+                  emptyLabel="없음"
+                  doneLabel="완료된 할 일"
+                />
               </div>
             </div>
           </div>
