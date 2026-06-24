@@ -17,6 +17,7 @@ import {
 } from '@/lib/constants'
 import type { Task, Attachment } from '@/lib/types'
 import DateField from '../journal/DateField'
+import TimeField from '@/components/TimeField'
 import CategorySelect from '@/components/CategorySelect'
 import AttachmentUpload from '@/components/AttachmentUpload'
 import BackButton from '@/components/BackButton'
@@ -524,14 +525,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
           </div>
           <div className="min-w-0">
             <FieldLabel ko="마감 시간" en="Time" />
-            <input
-              type="time"
-              value={dueTime}
-              onChange={(e) => setDueTime(e.target.value)}
-              disabled={!dueDate}
-              className={`${input} disabled:opacity-50`}
-              style={{ WebkitAppearance: 'none', appearance: 'none', minWidth: 0 }}
-            />
+            <TimeField value={dueTime} onChange={setDueTime} disabled={!dueDate} placeholder="시간 선택" />
           </div>
         </div>
         {!dueDate && (
