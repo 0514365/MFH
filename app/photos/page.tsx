@@ -8,6 +8,7 @@ import { isImageAttachment, taskAttachmentDate, projectAttachmentDate } from '@/
 import type { JournalPhoto, Attachment } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import PhotoGalleryClient, { type PhotoItem } from './PhotoGalleryClient'
+import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -167,7 +168,7 @@ export default async function PhotosPage(props: {
   await collectAttachmentPhotos('projects', 'project', projectAttachmentDate)
 
   return (
-    <main className="mx-auto max-w-2xl px-5 pb-8">
+    <main className="app-theme mx-auto max-w-2xl px-5 pb-8">
       <PageHeader title="Photos" current="photos" />
       <PhotoGalleryClient
         month={month}
