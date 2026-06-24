@@ -46,13 +46,13 @@ function TabLink({ tab, pathname }: { tab: Tab; pathname: string }) {
     <li className="flex-1">
       <Link
         href={tab.href}
+        aria-label={tab.label}
         aria-current={isActive ? 'page' : undefined}
-        className={`flex flex-col items-center gap-0.5 py-2 transition ${
+        className={`flex items-center justify-center py-3.5 transition ${
           isActive ? 'text-accent' : 'text-muted'
         }`}
       >
-        <ModuleIcon name={tab.icon} size={22} strokeWidth={isActive ? 2.3 : 2.1} />
-        <span className={`text-[10px] ${isActive ? 'font-bold' : 'font-semibold'}`}>{tab.label}</span>
+        <ModuleIcon name={tab.icon} size={28} strokeWidth={isActive ? 2.3 : 2.1} />
       </Link>
     </li>
   )

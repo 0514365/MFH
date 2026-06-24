@@ -248,14 +248,13 @@ export default async function JournalDetail(props: {
 
       {/* 수정 / 삭제 */}
       {canEdit ? (
-        <div className="flex items-center justify-center gap-6 border-t border-line px-5 pb-12 pt-8">
+        <div className="flex items-center justify-center gap-3 border-t border-line px-5 pb-12 pt-8">
           <Link
             href={`/journal/${entry.id}/edit`}
-            className="rounded-xl px-5 py-2 text-[13px] font-medium text-muted transition hover:bg-surface-subtle"
+            className="rounded-full border border-line bg-surface-subtle px-5 py-2 text-[13px] font-medium text-muted transition hover:border-primary"
           >
-            수정하기
+            수정
           </Link>
-          <div className="h-3 w-px bg-line" />
           <DeleteButton id={entry.id} paths={collectPhotoPaths(entry)} />
         </div>
       ) : (

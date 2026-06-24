@@ -690,10 +690,10 @@ export default function TasksListClient({
 
           // 카드 내용(날짜·제목·설명·배지). TaskCheck 는 renderTask 의 li 직속 자식으로 분리(button 중첩 회피).
           // 카드 본문(메타칩 + 제목 + 설명) — 프로젝트 카드와 동일 레이아웃.
-          function TaskBody({ t }: { t: TaskListRow }) {
+          function TaskBody({ t, reserveDone }: { t: TaskListRow; reserveDone?: boolean }) {
             return (
               <>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className={`flex flex-wrap items-center gap-2 ${reserveDone ? 'pr-16' : ''}`}>
                   {t.importance > 0 && <ImportanceStars value={t.importance} size="md" />}
                   <StatusBadge value={t.status ?? 'upcoming'} />
                   {t.place_name && <MetaChip icon={taskMetaIcon.place} label={t.place_name} />}
@@ -731,7 +731,15 @@ export default function TasksListClient({
                     aria-hidden="true"
                   />
 
-                  {/* 본문 행: 좌=클릭영역(메타칩·제목·설명) / 우=완료(라벨+체크). */}
+                  {/* 완료(라벨+체크) — 우상단 고정(클릭영역과 분리). 선택모드 제외. */}
+                  {!inSelectMode && (
+                    <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5">
+                      <span className="text-[13px] font-bold text-accent">완료</span>
+                      <TaskCheck id={t.id} done={t.done} />
+                    </div>
+                  )}
+
+                  {/* 본문 — 제목·설명은 카드 전체 폭(메타칩 줄만 완료 자리 확보). */}
                   <div className="flex items-start gap-3">
                     {inSelectMode && <SelectionCheckbox checked={checked} />}
                     {inSelectMode ? (
@@ -740,18 +748,13 @@ export default function TasksListClient({
                       </button>
                     ) : wide ? (
                       <button type="button" onClick={() => setSelectedId(t.id)} className="min-w-0 flex-1 text-left">
-                        <TaskBody t={t} />
+                        <TaskBody t={t} reserveDone />
                       </button>
                     ) : (
                       <Link href={`/tasks/${t.id}${detailSuffix}`} className="min-w-0 flex-1">
-                        <TaskBody t={t} />
+                        <TaskBody t={t} reserveDone />
                       </Link>
                     )}
-
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <span className="text-[13px] font-bold text-accent">완료</span>
-                      <TaskCheck id={t.id} done={t.done} />
-                    </div>
                   </div>
 
                   {/* 하단: Due Date(강조) | 연결 프로젝트 — 프로젝트 카드와 동일. */}

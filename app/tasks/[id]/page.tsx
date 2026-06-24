@@ -220,11 +220,26 @@ export default async function TaskDetailPage(props: {
         </div>
       </section>
 
+      {/* 설명 — 프로젝트 상세 Description 과 동일 */}
+      {task.description && (
+        <section className="border-t border-line bg-white/50 px-5 py-7">
+          <div className="mb-3">
+            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
+              Description
+            </div>
+            <h2 className="text-[17px] font-bold tracking-tight text-ink">설명</h2>
+          </div>
+          <p className="whitespace-pre-wrap break-keep text-[15px] font-light leading-[1.75] text-ink">
+            {task.description}
+          </p>
+        </section>
+      )}
+
       {/* 상위 프로젝트 */}
       {task.projects && (
         <section className="border-t border-line px-5 py-7">
           <div className="mb-3">
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-muted">
+            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
               Parent Project
             </div>
             <h2 className="text-[16px] font-bold tracking-tight text-ink">상위 프로젝트</h2>
@@ -246,26 +261,11 @@ export default async function TaskDetailPage(props: {
         </section>
       )}
 
-      {/* 설명 — 프로젝트 상세 Description 과 동일 */}
-      {task.description && (
-        <section className="border-t border-line bg-white/50 px-5 py-7">
-          <div className="mb-3">
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-              Description
-            </div>
-            <h2 className="text-[17px] font-bold tracking-tight text-ink">설명</h2>
-          </div>
-          <p className="whitespace-pre-wrap break-keep text-[15px] font-light leading-[1.75] text-ink">
-            {task.description}
-          </p>
-        </section>
-      )}
-
       {/* 선행 · 후속 업무 (같은 프로젝트 할 일 각 1개) */}
       {(predTitle || sucTitle) && (
         <section className="border-t border-line px-5 py-7">
           <div className="mb-3">
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-muted">
+            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
               Linked Tasks
             </div>
             <h2 className="text-[16px] font-bold tracking-tight text-ink">선행 · 후속 업무</h2>
