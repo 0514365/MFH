@@ -1,8 +1,9 @@
 'use client'
 
-// MFH-DONATION-PANEL-V1
-// 헌금 이력 — USD 합계 + 목록 + 인라인 추가/삭제.
+// MFH-DONATION-PANEL-V2
+// 헌금 이력 — USD 합계 + 목록 + 인라인 추가/수정/삭제.
 // 통화 KRW/USD 선택, KRW 는 환율 입력(직전 환율 기본값) → amount_usd 환산 저장.
+// 추가 폼과 수정 폼은 동일(renderForm 재사용). mode = 'none' | 'add' | <편집 중 id>.
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -44,7 +45,7 @@ export default function DonationPanel({
 }) {
   const router = useRouter()
   const [rows, setRows] = useState<SupporterDonation[]>(initial)
-  const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<'none' | 'add' | string>('none')
   const [busy, setBusy] = useState(false)
 
   const [date, setDate] = useState(todayTegucigalpa())
@@ -56,6 +57,9 @@ export default function DonationPanel({
   const [method, setMethod] = useState('transfer')
   const [note, setNote] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
+
+  const adding = mode === 'add'
+  const editingId = mode !== 'none' && mode !== 'add' ? mode : null
 
   const total = donationTotalUsd(rows)
   const amtNum = Number(amount) || 0
@@ -74,7 +78,30 @@ export default function DonationPanel({
     setMsg(null)
   }
 
-  async function add() {
+  function startAdd() {
+    resetForm()
+    setMode('add')
+  }
+
+  function startEdit(d: SupporterDonation) {
+    setDate(d.donation_date)
+    setAmount(String(d.amount))
+    setCurrency(d.currency)
+    setRate(d.exchange_rate ? String(d.exchange_rate) : lastRate ? String(lastRate) : '')
+    setDtype(d.donation_type ?? 'regular')
+    setPurpose(d.purpose ?? '')
+    setMethod(d.method ?? 'transfer')
+    setNote(d.note ?? '')
+    setMsg(null)
+    setMode(d.id)
+  }
+
+  function cancel() {
+    setMode('none')
+    resetForm()
+  }
+
+  async function submit() {
     if (!amount || amtNum <= 0) {
       setMsg('금액을 입력해 주세요.')
       return
@@ -93,9 +120,7 @@ export default function DonationPanel({
       router.replace('/login')
       return
     }
-    const payload = {
-      supporter_id: supporterId,
-      user_id: user.id,
+    const fields = {
       donation_date: date,
       amount: amtNum,
       currency,
@@ -106,21 +131,42 @@ export default function DonationPanel({
       method,
       note: note.trim() || null,
     }
-    const { data, error } = await supabase
-      .from('supporter_donations')
-      .insert(payload)
-      .select('*')
-      .single()
-    if (error) {
-      setBusy(false)
-      setMsg('저장 실패: ' + error.message)
-      return
+    if (editingId) {
+      const { data, error } = await supabase
+        .from('supporter_donations')
+        .update(fields)
+        .eq('id', editingId)
+        .select('*')
+        .single()
+      if (error) {
+        setBusy(false)
+        setMsg('저장 실패: ' + error.message)
+        return
+      }
+      setRows((r) =>
+        r
+          .map((x) => (x.id === editingId ? (data as SupporterDonation) : x))
+          .sort((a, b) => b.donation_date.localeCompare(a.donation_date)),
+      )
+    } else {
+      const { data, error } = await supabase
+        .from('supporter_donations')
+        .insert({ supporter_id: supporterId, user_id: user.id, ...fields })
+        .select('*')
+        .single()
+      if (error) {
+        setBusy(false)
+        setMsg('저장 실패: ' + error.message)
+        return
+      }
+      setRows((r) =>
+        [data as SupporterDonation, ...r].sort((a, b) =>
+          b.donation_date.localeCompare(a.donation_date),
+        ),
+      )
     }
-    setRows((r) =>
-      [data as SupporterDonation, ...r].sort((a, b) => b.donation_date.localeCompare(a.donation_date)),
-    )
     setBusy(false)
-    setOpen(false)
+    setMode('none')
     resetForm()
     router.refresh()
   }
@@ -134,11 +180,94 @@ export default function DonationPanel({
       return
     }
     setRows((r) => r.filter((x) => x.id !== id))
+    if (editingId === id) cancel()
     router.refresh()
   }
 
   const input =
     'w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-primary'
+
+  function renderForm() {
+    return (
+      <div className="space-y-3 rounded-2xl border border-line bg-surface-subtle p-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <span className="mb-1 block text-[11px] font-semibold text-faint">날짜</span>
+            <DateField value={date} onChange={setDate} />
+          </div>
+          <div>
+            <span className="mb-1 block text-[11px] font-semibold text-faint">유형</span>
+            <select value={dtype} onChange={(e) => setDtype(e.target.value as DonationType)} className={input}>
+              {DONATION_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {DONATION_TYPE_LABEL[t]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-[1fr_auto] gap-3">
+          <div>
+            <span className="mb-1 block text-[11px] font-semibold text-faint">금액</span>
+            <input value={amount} onChange={(e) => setAmount(e.target.value)} className={input} inputMode="decimal" placeholder="0" />
+          </div>
+          <div>
+            <span className="mb-1 block text-[11px] font-semibold text-faint">통화</span>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value as Currency)} className={`${input} w-auto`}>
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {currency === 'KRW' && (
+          <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+            <div>
+              <span className="mb-1 block text-[11px] font-semibold text-faint">환율 (1 USD = ? KRW)</span>
+              <input value={rate} onChange={(e) => setRate(e.target.value)} className={input} inputMode="decimal" placeholder="예: 1380" />
+            </div>
+            <div className="pb-2.5 text-sm font-semibold text-accent">= {formatUsd(previewUsd)}</div>
+          </div>
+        )}
+        <div>
+          <span className="mb-1 block text-[11px] font-semibold text-faint">목적 (선택)</span>
+          <input value={purpose} onChange={(e) => setPurpose(e.target.value)} className={input} placeholder="목적헌금 메모" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <span className="mb-1 block text-[11px] font-semibold text-faint">방법</span>
+            <select value={method} onChange={(e) => setMethod(e.target.value)} className={input}>
+              {METHODS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <span className="mb-1 block text-[11px] font-semibold text-faint">메모 (선택)</span>
+            <input value={note} onChange={(e) => setNote(e.target.value)} className={input} />
+          </div>
+        </div>
+        {msg && <p className="text-sm text-danger">{msg}</p>}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={submit}
+            disabled={busy}
+            className="flex-1 rounded-xl bg-accent py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+          >
+            {busy ? '저장 중…' : editingId ? '수정 저장' : '추가'}
+          </button>
+          <button type="button" onClick={cancel} className="rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-muted">
+            취소
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <section className="border-t border-line px-5 py-7">
@@ -157,132 +286,56 @@ export default function DonationPanel({
         </div>
       </div>
 
-      {canEdit && !open && (
+      {canEdit && mode === 'none' && (
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={startAdd}
           className="mb-3 w-full rounded-xl border border-dashed border-line py-2.5 text-sm font-medium text-muted transition hover:border-primary hover:text-primary"
         >
           + 헌금 기록 추가
         </button>
       )}
 
-      {canEdit && open && (
-        <div className="mb-4 space-y-3 rounded-2xl border border-line bg-surface-subtle p-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <span className="mb-1 block text-[11px] font-semibold text-faint">날짜</span>
-              <DateField value={date} onChange={setDate} />
-            </div>
-            <div>
-              <span className="mb-1 block text-[11px] font-semibold text-faint">유형</span>
-              <select value={dtype} onChange={(e) => setDtype(e.target.value as DonationType)} className={input}>
-                {DONATION_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {DONATION_TYPE_LABEL[t]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-[1fr_auto] gap-3">
-            <div>
-              <span className="mb-1 block text-[11px] font-semibold text-faint">금액</span>
-              <input value={amount} onChange={(e) => setAmount(e.target.value)} className={input} inputMode="decimal" placeholder="0" />
-            </div>
-            <div>
-              <span className="mb-1 block text-[11px] font-semibold text-faint">통화</span>
-              <select value={currency} onChange={(e) => setCurrency(e.target.value as Currency)} className={`${input} w-auto`}>
-                {CURRENCIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          {currency === 'KRW' && (
-            <div className="grid grid-cols-[1fr_auto] items-end gap-3">
-              <div>
-                <span className="mb-1 block text-[11px] font-semibold text-faint">환율 (1 USD = ? KRW)</span>
-                <input value={rate} onChange={(e) => setRate(e.target.value)} className={input} inputMode="decimal" placeholder="예: 1380" />
-              </div>
-              <div className="pb-2.5 text-sm font-semibold text-accent">= {formatUsd(previewUsd)}</div>
-            </div>
-          )}
-          <div>
-            <span className="mb-1 block text-[11px] font-semibold text-faint">목적 (선택)</span>
-            <input value={purpose} onChange={(e) => setPurpose(e.target.value)} className={input} placeholder="목적헌금 메모" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <span className="mb-1 block text-[11px] font-semibold text-faint">방법</span>
-              <select value={method} onChange={(e) => setMethod(e.target.value)} className={input}>
-                {METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <span className="mb-1 block text-[11px] font-semibold text-faint">메모 (선택)</span>
-              <input value={note} onChange={(e) => setNote(e.target.value)} className={input} />
-            </div>
-          </div>
-          {msg && <p className="text-sm text-danger">{msg}</p>}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={add}
-              disabled={busy}
-              className="flex-1 rounded-xl bg-accent py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-            >
-              {busy ? '저장 중…' : '추가'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                resetForm()
-              }}
-              className="rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-muted"
-            >
-              취소
-            </button>
-          </div>
-        </div>
-      )}
+      {canEdit && adding && <div className="mb-4">{renderForm()}</div>}
 
       {rows.length === 0 ? (
         <p className="py-4 text-center text-xs text-faint">헌금 기록이 없습니다.</p>
       ) : (
         <ul className="space-y-2">
-          {rows.map((d) => (
-            <li key={d.id} className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-display text-[13px] font-bold text-ink">{formatUsd(d.amount_usd)}</span>
-                  {d.currency === 'KRW' && (
-                    <span className="text-[11px] text-muted">({formatMoney(d.amount, 'KRW')})</span>
-                  )}
-                  <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-medium text-muted">
-                    {DONATION_TYPE_LABEL[d.donation_type as DonationType] ?? d.donation_type}
-                  </span>
+          {rows.map((d) =>
+            editingId === d.id ? (
+              <li key={d.id}>{renderForm()}</li>
+            ) : (
+              <li key={d.id} className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-display text-[13px] font-bold text-ink">{formatUsd(d.amount_usd)}</span>
+                    {d.currency === 'KRW' && (
+                      <span className="text-[11px] text-muted">({formatMoney(d.amount, 'KRW')})</span>
+                    )}
+                    <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-medium text-muted">
+                      {DONATION_TYPE_LABEL[d.donation_type as DonationType] ?? d.donation_type}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted">
+                    {d.donation_date}
+                    {d.purpose ? ` · ${d.purpose}` : ''}
+                    {d.method ? ` · ${methodLabel(d.method)}` : ''}
+                  </div>
                 </div>
-                <div className="mt-0.5 text-xs text-muted">
-                  {d.donation_date}
-                  {d.purpose ? ` · ${d.purpose}` : ''}
-                  {d.method ? ` · ${methodLabel(d.method)}` : ''}
-                </div>
-              </div>
-              {canEdit && (
-                <button type="button" onClick={() => del(d.id)} className="shrink-0 text-xs text-faint hover:text-danger">
-                  삭제
-                </button>
-              )}
-            </li>
-          ))}
+                {canEdit && (
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button type="button" onClick={() => startEdit(d)} className="text-xs text-muted hover:text-primary">
+                      수정
+                    </button>
+                    <button type="button" onClick={() => del(d.id)} className="text-xs text-faint hover:text-danger">
+                      삭제
+                    </button>
+                  </div>
+                )}
+              </li>
+            ),
+          )}
         </ul>
       )}
     </section>
