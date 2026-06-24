@@ -452,10 +452,10 @@ export default function ProjectsList({
         </p>
       ) : (
         (() => {
-          function ProjectBody({ p }: { p: Project }) {
+          function ProjectBody({ p, reserveDone }: { p: Project; reserveDone?: boolean }) {
             return (
               <>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className={`flex flex-wrap items-center gap-2 ${reserveDone ? 'pr-16' : ''}`}>
                   {p.importance > 0 && <ImportanceStars value={p.importance} size="md" />}
                   <StatusBadge value={p.status} />
                   <CategoryBadge value={p.category} />
@@ -492,7 +492,15 @@ export default function ProjectsList({
                     aria-hidden="true"
                   />
 
-                  {/* 본문 행: 좌=클릭영역(메타칩·제목·설명) / 우=완료 토글(button 중첩 회피 위해 클릭영역의 형제). */}
+                  {/* 완료 라벨 + 토글 — 우상단 고정(클릭영역과 분리). 선택모드 제외. */}
+                  {!inSelectMode && (
+                    <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5">
+                      <span className="text-[13px] font-bold text-accent">완료</span>
+                      <ProjectStatusToggle id={p.id} status={p.status} />
+                    </div>
+                  )}
+
+                  {/* 본문 — 제목·설명은 카드 전체 폭(메타칩 줄만 완료 자리 확보). */}
                   <div className="flex items-start gap-3">
                     {inSelectMode && <SelectionCheckbox checked={checked} />}
                     {inSelectMode ? (
@@ -509,19 +517,13 @@ export default function ProjectsList({
                         onClick={() => setSelectedId(p.id)}
                         className="min-w-0 flex-1 text-left"
                       >
-                        <ProjectBody p={p} />
+                        <ProjectBody p={p} reserveDone />
                       </button>
                     ) : (
                       <Link href={`/projects/${p.id}${detailSuffix}`} className="min-w-0 flex-1">
-                        <ProjectBody p={p} />
+                        <ProjectBody p={p} reserveDone />
                       </Link>
                     )}
-
-                    {/* 완료 라벨 + ProjectStatusToggle — 메타칩 줄과 같은 행 오른쪽 끝. */}
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <span className="text-[13px] font-bold text-accent">완료</span>
-                      <ProjectStatusToggle id={p.id} status={p.status} />
-                    </div>
                   </div>
 
                   {/* 하단: Due Date(강조) + 할 일 숫자(강조) — 라벨 + 값 2단. */}
