@@ -168,32 +168,40 @@ export async function getAcctOptions(): Promise<AcctOptions | null> {
 }
 
 export type InoutRow = {
+  id: string
   gubun: string | null
   date: string | null
   name: string | null
   currency: string | null
+  principal: number | null
+  rate: number | null
   amountUsd: number | null
   itemId: string | null
   accountId: string | null
+  supporterId: string | null
 }
 
-// 최근 거래(표시용) — 빈 거래 제외, 날짜 내림차순. 항목·계좌 이름은 호출부가 옵션 맵으로 변환.
+// 최근 거래(표시·수정용) — 빈 거래 제외, 날짜 내림차순. id·수정 필드 포함. 항목·계좌 이름은 호출부가 옵션 맵으로 변환.
 export async function getRecentInout(limit = 12): Promise<InoutRow[] | null> {
   const token = process.env.NOTION_TOKEN
   if (!token) return null
   const txs = await queryAll(INOUT_DB_ID, token)
   if (!txs) return null
+  const num = (v: number | null | undefined) => (typeof v === 'number' ? v : null)
   const rows: InoutRow[] = txs.map((tx) => {
     const pr = tx.properties ?? {}
-    const amt = pr['금액']?.number
     return {
+      id: tx.id ?? '',
       gubun: pr['구분']?.select?.name ?? null,
       date: pr['날짜']?.date?.start ?? null,
       name: readText(pr['이름']),
       currency: pr['통화']?.select?.name ?? null,
-      amountUsd: typeof amt === 'number' ? amt : null,
+      principal: num(pr['원금']?.number),
+      rate: num(pr['환율']?.number),
+      amountUsd: num(pr['금액']?.number),
       itemId: pr['항목']?.relation?.[0]?.id ?? null,
       accountId: pr['입금계좌']?.relation?.[0]?.id ?? pr['지불계좌']?.relation?.[0]?.id ?? null,
+      supporterId: pr['후원자']?.relation?.[0]?.id ?? null,
     }
   })
   return rows
@@ -247,6 +255,74 @@ export async function createInoutRecord(p: InoutInput): Promise<{ ok: boolean; e
     if (!res.ok) {
       const txt = await res.text()
       return { ok: false, error: `노션 저장 실패 (${res.status}) ${txt.slice(0, 160)}` }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : '네트워크 오류' }
+  }
+}
+
+// 입출금기록 거래 1건 수정(PATCH). 계좌는 구분에 맞춰 한쪽만 채우고 반대쪽은 비운다(구분 변경 대응).
+export async function updateInoutRecord(
+  pageId: string,
+  p: InoutInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const token = process.env.NOTION_TOKEN
+  if (!token) return { ok: false, error: 'NOTION_TOKEN 미설정' }
+  const properties: Record<string, unknown> = {
+    구분: { select: { name: p.gubun } },
+    날짜: { date: { start: p.date } },
+    이름: { title: [{ text: { content: p.name || '(무제)' } }] },
+    통화: { select: { name: p.currency } },
+    원금: { number: p.principal },
+    환율: { number: p.rate },
+    금액: { number: p.amountUsd },
+    항목: { relation: [{ id: p.itemId }] },
+    입금계좌:
+      p.gubun === '수입' && p.accountId ? { relation: [{ id: p.accountId }] } : { relation: [] },
+    지불계좌:
+      p.gubun === '지출' && p.accountId ? { relation: [{ id: p.accountId }] } : { relation: [] },
+    후원자: p.supporterId ? { relation: [{ id: p.supporterId }] } : { relation: [] },
+  }
+  try {
+    const res = await fetch(`${NOTION_API}/pages/${pageId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Notion-Version': NOTION_VERSION,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ properties }),
+      cache: 'no-store',
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      return { ok: false, error: `노션 수정 실패 (${res.status}) ${txt.slice(0, 160)}` }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : '네트워크 오류' }
+  }
+}
+
+// 입출금기록 거래 1건 삭제 — archived=true(노션 휴지통, 30일 복구 가능). 헌금합계 rollup 자동 정정.
+export async function deleteInoutRecord(pageId: string): Promise<{ ok: boolean; error?: string }> {
+  const token = process.env.NOTION_TOKEN
+  if (!token) return { ok: false, error: 'NOTION_TOKEN 미설정' }
+  try {
+    const res = await fetch(`${NOTION_API}/pages/${pageId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Notion-Version': NOTION_VERSION,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ archived: true }),
+      cache: 'no-store',
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      return { ok: false, error: `노션 삭제 실패 (${res.status}) ${txt.slice(0, 160)}` }
     }
     return { ok: true }
   } catch (e) {
