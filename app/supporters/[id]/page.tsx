@@ -2,14 +2,14 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { canEditEntry, isMaster } from '@/lib/members'
-import type { Supporter, SupporterDonation, SupporterLog } from '@/lib/types'
+import type { Supporter, SupporterLog } from '@/lib/types'
 import {
   ageFromBirth,
   formatMoney,
   SUPPORTER_PHOTO_BUCKET,
   extractMessageDraft,
 } from '@/lib/supporters'
-import { getDonationTotalsByAppId } from '@/lib/notion'
+import { getDonationsByAppId } from '@/lib/notion'
 import BackButton from '@/components/BackButton'
 import DeleteButton from './DeleteButton'
 import DonationPanel from './DonationPanel'
@@ -43,16 +43,9 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
   if (!s) notFound()
   const canEdit = canEditEntry(s.user_id, user.id)
 
-  const { data: donData } = await supabase
-    .from('supporter_donations')
-    .select('*')
-    .eq('supporter_id', params.id)
-    .order('donation_date', { ascending: false })
-  const donations = (donData ?? []) as SupporterDonation[]
-
-  // 노션 회계(SoT)의 후원자별 헌금합계 — 미연동(토큰 없음)/실패 시 null → 앱 합계 폴백.
-  const notionTotals = await getDonationTotalsByAppId()
-  const notionTotal = notionTotals?.get(s.id) ?? null
+  // 노션 회계(SoT)의 후원자별 헌금 연도별 집계 — 미연동(토큰 없음)/실패 시 null → "기록 없음".
+  const donationsByApp = await getDonationsByAppId()
+  const yearly = donationsByApp?.get(s.id) ?? null
 
   const { data: logData } = await supabase
     .from('supporter_logs')
@@ -235,7 +228,7 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
       </section>
 
       {/* 헌금 이력 (읽기전용 — 입력 SoT 는 노션, 합계는 노션 rollup) */}
-      <DonationPanel donations={donations} notionTotal={notionTotal} />
+      <DonationPanel yearly={yearly} />
 
       {/* 수정 / 삭제 */}
       {canEdit ? (
