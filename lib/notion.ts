@@ -181,8 +181,9 @@ export type InoutRow = {
   supporterId: string | null
 }
 
-// 최근 거래(표시·수정용) — 빈 거래 제외, 날짜 내림차순. id·수정 필드 포함. 항목·계좌 이름은 호출부가 옵션 맵으로 변환.
-export async function getRecentInout(limit = 12): Promise<InoutRow[] | null> {
+// 거래 목록(표시·수정·집계용) — 빈 거래 제외, 날짜 내림차순. id·수정 필드 포함. 항목·계좌 이름은 호출부가 옵션 맵으로 변환.
+// limit 미지정 시 전체 반환(월별 그룹화·합계·필터·정렬은 클라이언트에서 전체 위에 수행).
+export async function getRecentInout(limit?: number): Promise<InoutRow[] | null> {
   const token = process.env.NOTION_TOKEN
   if (!token) return null
   const txs = await queryAll(INOUT_DB_ID, token)
@@ -204,10 +205,10 @@ export async function getRecentInout(limit = 12): Promise<InoutRow[] | null> {
       supporterId: pr['후원자']?.relation?.[0]?.id ?? null,
     }
   })
-  return rows
+  const sorted = rows
     .filter((r) => !!r.name || r.amountUsd != null)
     .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
-    .slice(0, limit)
+  return limit != null ? sorted.slice(0, limit) : sorted
 }
 
 export type InoutInput = {

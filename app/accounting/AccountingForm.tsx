@@ -2,10 +2,11 @@
 // MFH-ACCOUNTING-FORM-V2
 // 회계 입력·수정·삭제 — 데스크탑 가로(스프레드시트)·모바일 세로. 조건부 콤보·환산 자동·후원자 자동연결.
 // 입력 폼 + 최근 거래 목록 통합(편집 모드 상태 공유). 저장/수정/삭제는 server action → 노션(SoT).
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { AcctOptions, InoutRow } from '@/lib/notion'
-import { saveInout, updateInout, deleteInout } from './actions'
+import { saveInout, updateInout } from './actions'
+import TransactionList from './TransactionList'
 
 function todayLocal(): string {
   const d = new Date()
@@ -24,11 +25,6 @@ function withCommas(raw: string): string {
   const i = int ? Number(int).toLocaleString('en-US') : '0'
   return dec !== undefined ? `${i}.${dec}` : i
 }
-function fmtUsd(n: number | null): string {
-  if (n == null) return '—'
-  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
 const inp =
   'h-9 w-full rounded-lg border border-line bg-surface px-2 text-sm text-ink outline-none transition focus:border-primary'
 const labelCls = 'mb-1 block whitespace-nowrap text-[11px] font-medium text-faint'
@@ -51,7 +47,6 @@ export default function AccountingForm({
   const [accountId, setAccountId] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [busyId, setBusyId] = useState<string | null>(null)
   const [err, setErr] = useState('')
 
   const items = options.items[gubun]
@@ -69,14 +64,7 @@ export default function AccountingForm({
     return r > 0 ? p / r : 0
   }, [principal, rate, usd])
 
-  const nameOf = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const i of [...options.items['수입'], ...options.items['지출']]) m.set(i.id, i.name)
-    for (const a of options.accounts) m.set(a.id, a.name)
-    return m
-  }, [options])
-
-  function reset() {
+  const reset = useCallback(() => {
     setEditingId(null)
     setItemId('')
     setName('')
@@ -84,7 +72,12 @@ export default function AccountingForm({
     setRate('')
     setAccountId('')
     setErr('')
-  }
+  }, [])
+
+  // 편집 중인 거래가 목록에서 사라지면(삭제 등) 폼을 초기화.
+  useEffect(() => {
+    if (editingId && !recent.some((r) => r.id === editingId)) reset()
+  }, [recent, editingId, reset])
 
   function startEdit(r: InoutRow) {
     setErr('')
@@ -128,24 +121,6 @@ export default function AccountingForm({
       router.refresh()
     } else {
       setErr(res.error ?? '저장 실패')
-    }
-  }
-
-  async function onDelete(r: InoutRow) {
-    if (
-      !window.confirm(
-        `이 거래를 삭제할까요?\n${r.date ?? ''} · ${r.name ?? ''} · ${fmtUsd(r.amountUsd)}\n(노션 휴지통으로 — 복구 가능)`,
-      )
-    )
-      return
-    setBusyId(r.id)
-    const res = await deleteInout(r.id)
-    setBusyId(null)
-    if (res.ok) {
-      if (editingId === r.id) reset()
-      router.refresh()
-    } else {
-      setErr(res.error ?? '삭제 실패')
     }
   }
 
@@ -312,115 +287,14 @@ export default function AccountingForm({
         {err && <p className="mt-2 text-xs font-medium text-accent">{err}</p>}
       </section>
 
-      {/* 최근 거래 */}
-      <section className="mt-6">
-        <h2 className="mb-2 px-1 text-[13px] font-bold text-muted">최근 거래</h2>
-        {recent.length === 0 ? (
-          <p className="py-4 text-center text-xs text-faint">거래가 없습니다.</p>
-        ) : (
-          <>
-            {/* 데스크탑 — 테이블 */}
-            <div className="hidden overflow-hidden rounded-2xl border border-line md:block">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-line bg-surface-subtle text-left text-[11px] text-faint">
-                    <th className="px-3 py-2 font-medium">구분</th>
-                    <th className="px-3 py-2 font-medium">날짜</th>
-                    <th className="px-3 py-2 font-medium">항목</th>
-                    <th className="px-3 py-2 font-medium">이름</th>
-                    <th className="px-3 py-2 text-right font-medium">환산 (USD)</th>
-                    <th className="px-3 py-2 font-medium">계좌</th>
-                    <th className="px-3 py-2 text-right font-medium">관리</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recent.map((r) => (
-                    <tr
-                      key={r.id}
-                      className={`border-b border-line last:border-0 ${editingId === r.id ? 'bg-primary-soft' : ''}`}
-                    >
-                      <td className="px-3 py-2">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${r.gubun === '수입' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}
-                        >
-                          {r.gubun ?? '—'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-muted">{r.date ?? '—'}</td>
-                      <td className="px-3 py-2 text-ink">{r.itemId ? (nameOf.get(r.itemId) ?? '—') : '—'}</td>
-                      <td className="px-3 py-2 text-ink">{r.name ?? '—'}</td>
-                      <td className="px-3 py-2 text-right font-display font-bold text-ink">{fmtUsd(r.amountUsd)}</td>
-                      <td className="px-3 py-2 text-muted">{r.accountId ? (nameOf.get(r.accountId) ?? '—') : '—'}</td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => startEdit(r)}
-                            className="rounded-md border border-line px-2 py-1 text-[11px] text-muted transition hover:border-primary hover:text-primary"
-                          >
-                            수정
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onDelete(r)}
-                            disabled={busyId === r.id}
-                            className="rounded-md border border-line px-2 py-1 text-[11px] text-muted transition hover:border-accent hover:text-accent disabled:opacity-40"
-                          >
-                            {busyId === r.id ? '…' : '삭제'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {/* 모바일 — 카드 */}
-            <ul className="space-y-2 md:hidden">
-              {recent.map((r) => (
-                <li
-                  key={r.id}
-                  className={`rounded-xl border bg-surface p-3 ${editingId === r.id ? 'border-primary' : 'border-line'}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${r.gubun === '수입' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}
-                    >
-                      {r.gubun ?? '—'}
-                    </span>
-                    <span className="font-display text-[14px] font-bold text-ink">{fmtUsd(r.amountUsd)}</span>
-                  </div>
-                  <div className="mt-1 text-sm text-ink">
-                    {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
-                    {r.name ? ` · ${r.name}` : ''}
-                  </div>
-                  <div className="mt-0.5 text-xs text-faint">
-                    {r.date ?? ''}
-                    {r.accountId ? ` · ${nameOf.get(r.accountId) ?? ''}` : ''}
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => startEdit(r)}
-                      className="flex-1 rounded-md border border-line py-1.5 text-[12px] text-muted transition active:scale-[0.98]"
-                    >
-                      수정
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDelete(r)}
-                      disabled={busyId === r.id}
-                      className="flex-1 rounded-md border border-line py-1.5 text-[12px] text-muted transition active:scale-[0.98] disabled:opacity-40"
-                    >
-                      {busyId === r.id ? '…' : '삭제'}
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
+      {/* 거래 내역 — 월별 그룹·합계·필터·정렬 (별도 컴포넌트) */}
+      <TransactionList
+        recent={recent}
+        options={options}
+        editingId={editingId}
+        onEdit={startEdit}
+        onAfterMutate={() => router.refresh()}
+      />
     </div>
   )
 }

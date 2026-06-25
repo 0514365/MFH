@@ -20,7 +20,7 @@ export default async function AccountingPage() {
   if (!isMaster(user.id)) redirect('/')
 
   const options = await getAcctOptions()
-  const recent = (await getRecentInout(20)) ?? []
+  const recent = (await getRecentInout()) ?? []
 
   return (
     <main className="app-theme mx-auto max-w-md px-4 pb-12 pt-2 md:max-w-5xl md:px-6">
