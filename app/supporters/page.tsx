@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
-import type { Supporter } from '@/lib/types'
+import type { Supporter, SupporterDonation } from '@/lib/types'
 import { SUPPORTER_PHOTO_BUCKET, formatUsd } from '@/lib/supporters'
 import { isMaster } from '@/lib/members'
 import SupportersList from './SupportersList'
@@ -36,15 +36,13 @@ export default async function SupportersPage() {
 
   const { data: donRows } = await supabase
     .from('supporter_donations')
-    .select('supporter_id, amount_usd, donation_date')
+    .select('*')
+    .order('donation_date', { ascending: false })
+  const donations = (donRows ?? []) as SupporterDonation[]
   const totals: Record<string, number> = {}
   let yearUsd = 0
   let monthUsd = 0
-  for (const d of (donRows ?? []) as {
-    supporter_id: string
-    amount_usd: number
-    donation_date: string
-  }[]) {
+  for (const d of donations) {
     const v = Number(d.amount_usd) || 0
     totals[d.supporter_id] = (totals[d.supporter_id] ?? 0) + v
     if (d.donation_date?.startsWith(yearStr)) yearUsd += v
@@ -154,7 +152,7 @@ export default async function SupportersPage() {
 
       <BulkMailButton emails={mailRecipients} />
 
-      {supporters.length > 0 && <SupportersExport supporters={supporters} />}
+      {supporters.length > 0 && <SupportersExport supporters={supporters} donations={donations} />}
 
       <SupportersList
         supporters={supporters}

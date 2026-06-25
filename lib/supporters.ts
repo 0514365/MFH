@@ -171,6 +171,30 @@ export function supportersToJSON(rows: Supporter[]): string {
   return JSON.stringify(mapped, null, 2)
 }
 
+// 헌금(supporter_donations) 노션 연동용 export — JSON(영문 키).
+// supporter_app_id(=supporter_id)로 노션 후원자 relation 매핑, supporter_name 은 입출금기록 제목 참고용.
+// 통화·원금·환율·환산액(USD) 모두 보존 → 노션 입출금기록(수입)에 이중통화로 등록.
+export function donationsToJSON(
+  rows: SupporterDonation[],
+  supporters: Pick<Supporter, 'id' | 'name'>[],
+): string {
+  const nameById = new Map(supporters.map((s) => [s.id, s.name]))
+  const mapped = rows.map((d) => ({
+    supporter_app_id: d.supporter_id,
+    supporter_name: nameById.get(d.supporter_id) ?? null,
+    donation_date: d.donation_date,
+    currency: d.currency,
+    amount: d.amount,
+    exchange_rate: d.exchange_rate,
+    amount_usd: d.amount_usd,
+    donation_type: d.donation_type,
+    purpose: d.purpose,
+    method: d.method,
+    note: d.note,
+  }))
+  return JSON.stringify(mapped, null, 2)
+}
+
 // 헌금 USD 합계.
 export function donationTotalUsd(rows: Pick<SupporterDonation, 'amount_usd'>[]): number {
   return round2(rows.reduce((s, r) => s + (Number(r.amount_usd) || 0), 0))
