@@ -38,6 +38,21 @@ const SupportersIcon = () => (
   </svg>
 )
 
+// 회계 — ModuleIcon 에 없어 인라인(Lucide calculator).
+const AccountingIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="2" width="16" height="20" rx="2" />
+    <line x1="8" y1="6" x2="16" y2="6" />
+    <line x1="8" y1="10" x2="8" y2="10" />
+    <line x1="12" y1="10" x2="12" y2="10" />
+    <line x1="16" y1="10" x2="16" y2="10" />
+    <line x1="8" y1="14" x2="8" y2="14" />
+    <line x1="12" y1="14" x2="12" y2="14" />
+    <line x1="16" y1="14" x2="16" y2="18" />
+    <line x1="8" y1="18" x2="12" y2="18" />
+  </svg>
+)
+
 // 홈 타일용 신호 칩(SignalChips 와 동색, 더 작게). 시급순 정렬은 signals.ts 가 보장 → 앞 2개만.
 const SIG_CLS: Record<SignalKind, string> = {
   overdue: 'bg-red-50 text-red-700',
@@ -406,6 +421,18 @@ export default async function Home() {
               title="Supporters"
               sub="Partners in mission"
               chipClass="bg-orange-100 text-orange-700"
+              className="col-span-2"
+            />
+          )}
+
+          {/* 회계 입력 — 마스터만. 노션 회계(SoT)에 앱에서 직접 입력 (wide) */}
+          {isMaster(user.id) && (
+            <ModuleTile
+              href="/accounting"
+              icon={<AccountingIcon />}
+              title="Accounting"
+              sub="Stewardship & records"
+              chipClass="bg-lime-100 text-lime-700"
               className="col-span-2"
             />
           )}
