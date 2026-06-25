@@ -13,8 +13,8 @@ function todayLocal(): string {
 }
 
 const inp =
-  'w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-ink outline-none transition focus:border-primary'
-const labelCls = 'mb-1 block text-[11px] font-medium text-faint'
+  'h-9 w-full rounded-lg border border-line bg-surface px-2 text-sm text-ink outline-none transition focus:border-primary'
+const labelCls = 'mb-1 block whitespace-nowrap text-[11px] font-medium text-faint'
 
 export default function AccountingForm({ options }: { options: AcctOptions }) {
   const router = useRouter()
@@ -89,14 +89,14 @@ export default function AccountingForm({ options }: { options: AcctOptions }) {
         {/* 구분 토글 */}
         <div className="md:w-[92px] md:shrink-0">
           <label className={labelCls}>구분</label>
-          <div className="flex overflow-hidden rounded-lg border border-line text-sm">
+          <div className="flex h-9 overflow-hidden rounded-lg border border-line text-sm">
             <button
               type="button"
               onClick={() => {
                 setGubun('수입')
                 setItemId('')
               }}
-              className={`flex-1 py-1.5 ${gubun === '수입' ? 'bg-emerald-100 font-bold text-emerald-700' : 'text-faint'}`}
+              className={`flex flex-1 items-center justify-center ${gubun === '수입' ? 'bg-emerald-100 font-bold text-emerald-700' : 'text-faint'}`}
             >
               수입
             </button>
@@ -106,7 +106,7 @@ export default function AccountingForm({ options }: { options: AcctOptions }) {
                 setGubun('지출')
                 setItemId('')
               }}
-              className={`flex-1 py-1.5 ${gubun === '지출' ? 'bg-red-100 font-bold text-red-700' : 'text-faint'}`}
+              className={`flex flex-1 items-center justify-center ${gubun === '지출' ? 'bg-red-100 font-bold text-red-700' : 'text-faint'}`}
             >
               지출
             </button>
@@ -193,7 +193,7 @@ export default function AccountingForm({ options }: { options: AcctOptions }) {
         {/* 환산(USD, 자동) */}
         <div className="md:w-[88px] md:shrink-0">
           <label className={labelCls}>환산 $</label>
-          <div className="rounded-lg border border-dashed border-line bg-surface-subtle px-2 py-1.5 text-right text-sm text-muted">
+          <div className="flex h-9 items-center justify-end rounded-lg border border-dashed border-line bg-surface-subtle px-2 text-sm text-muted">
             {amountUsd ? `$${amountUsd.toFixed(2)}` : '—'}
           </div>
         </div>
@@ -217,7 +217,7 @@ export default function AccountingForm({ options }: { options: AcctOptions }) {
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="w-full rounded-lg bg-accent py-2 text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-50"
+            className="flex h-9 w-full items-center justify-center rounded-lg bg-accent text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-50"
           >
             {saving ? '…' : '저장'}
           </button>
