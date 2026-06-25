@@ -12,6 +12,20 @@ function todayLocal(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+// 금액 입력 — 숫자·소수점만 남긴 raw 문자열(점은 1개만).
+function cleanNumeric(v: string): string {
+  const c = v.replace(/[^\d.]/g, '')
+  const parts = c.split('.')
+  return parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : c
+}
+// raw 숫자 문자열 → 천단위 쉼표 표기(소수부 유지).
+function withCommas(raw: string): string {
+  if (!raw) return ''
+  const [int, dec] = raw.split('.')
+  const i = int ? Number(int).toLocaleString('en-US') : '0'
+  return dec !== undefined ? `${i}.${dec}` : i
+}
+
 const inp =
   'h-9 w-full rounded-lg border border-line bg-surface px-2 text-sm text-ink outline-none transition focus:border-primary'
 const labelCls = 'mb-1 block whitespace-nowrap text-[11px] font-medium text-faint'
@@ -169,10 +183,10 @@ export default function AccountingForm({ options }: { options: AcctOptions }) {
         <div className="md:w-[96px] md:shrink-0">
           <label className={labelCls}>금액</label>
           <input
-            type="number"
+            type="text"
             inputMode="decimal"
-            value={principal}
-            onChange={(e) => setPrincipal(e.target.value)}
+            value={withCommas(principal)}
+            onChange={(e) => setPrincipal(cleanNumeric(e.target.value))}
             className={`${inp} text-right`}
           />
         </div>
@@ -194,7 +208,9 @@ export default function AccountingForm({ options }: { options: AcctOptions }) {
         <div className="md:w-[88px] md:shrink-0">
           <label className={labelCls}>환산 $</label>
           <div className="flex h-9 items-center justify-end rounded-lg border border-dashed border-line bg-surface-subtle px-2 text-sm text-muted">
-            {amountUsd ? `$${amountUsd.toFixed(2)}` : '—'}
+            {amountUsd
+              ? `$${amountUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : '—'}
           </div>
         </div>
 
