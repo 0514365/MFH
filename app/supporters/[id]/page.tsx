@@ -9,6 +9,7 @@ import {
   SUPPORTER_PHOTO_BUCKET,
   extractMessageDraft,
 } from '@/lib/supporters'
+import { getDonationTotalsByAppId } from '@/lib/notion'
 import BackButton from '@/components/BackButton'
 import DeleteButton from './DeleteButton'
 import DonationPanel from './DonationPanel'
@@ -48,6 +49,10 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
     .eq('supporter_id', params.id)
     .order('donation_date', { ascending: false })
   const donations = (donData ?? []) as SupporterDonation[]
+
+  // 노션 회계(SoT)의 후원자별 헌금합계 — 미연동(토큰 없음)/실패 시 null → 앱 합계 폴백.
+  const notionTotals = await getDonationTotalsByAppId()
+  const notionTotal = notionTotals?.get(s.id) ?? null
 
   const { data: logData } = await supabase
     .from('supporter_logs')
@@ -218,8 +223,8 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
         </section>
       )}
 
-      {/* 헌금 이력 (읽기전용 — 입력 SoT 는 노션) */}
-      <DonationPanel donations={donations} />
+      {/* 헌금 이력 (읽기전용 — 입력 SoT 는 노션, 합계는 노션 rollup) */}
+      <DonationPanel donations={donations} notionTotal={notionTotal} />
 
       {/* 관계 히스토리 */}
       <LogPanel supporterId={s.id} initial={logs} canEdit={canEdit} />

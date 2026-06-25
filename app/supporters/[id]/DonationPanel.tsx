@@ -1,7 +1,7 @@
 // MFH-DONATION-PANEL-V3
 // 헌금 이력 — 읽기전용. 헌금 입력/관리 SoT 는 노션 회계로 이전(A방향).
-// 앱은 기록된 내역을 표시만 한다(USD 합계 + 목록). 추가/수정/삭제 없음.
-// 다음 단계(b): 노션 API 로 후원자별 헌금합계를 읽어 표시.
+// Total(USD): 노션 헌금합계(notionTotal) 우선, 미연동 시 앱 기록 합계로 폴백.
+// 개별 목록은 앱 잔존 기록(참고용). 추가/수정/삭제 없음.
 import type { SupporterDonation, DonationType } from '@/lib/types'
 import { DONATION_TYPE_LABEL, donationTotalUsd, formatMoney, formatUsd } from '@/lib/supporters'
 
@@ -15,8 +15,15 @@ function methodLabel(v?: string | null): string {
   return METHOD_LABEL[v] ?? v
 }
 
-export default function DonationPanel({ donations }: { donations: SupporterDonation[] }) {
-  const total = donationTotalUsd(donations)
+export default function DonationPanel({
+  donations,
+  notionTotal,
+}: {
+  donations: SupporterDonation[]
+  notionTotal?: number | null
+}) {
+  const total = notionTotal != null ? notionTotal : donationTotalUsd(donations)
+  const usingNotion = notionTotal != null
 
   return (
     <section className="border-t border-line px-5 py-7">
@@ -36,7 +43,9 @@ export default function DonationPanel({ donations }: { donations: SupporterDonat
       </div>
 
       <p className="mb-4 rounded-xl border border-line bg-surface-subtle px-3 py-2.5 text-xs leading-relaxed text-muted">
-        헌금 입력·관리는 노션 회계로 이전되었습니다. 아래는 앱에 기록된 내역입니다.
+        {usingNotion
+          ? '합계는 노션 회계 기준입니다. 아래는 앱에 남은 과거 내역입니다.'
+          : '헌금 입력·관리는 노션 회계로 이전되었습니다. 아래는 앱에 기록된 내역입니다.'}
       </p>
 
       {donations.length === 0 ? (
