@@ -4,9 +4,10 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { isMaster } from '@/lib/members'
-import { getAcctOptions, getRecentInout } from '@/lib/notion'
+import { getAcctOptions, getRecentInout, getAccountBalances } from '@/lib/notion'
 import BackButton from '@/components/BackButton'
 import AccountingForm from './AccountingForm'
+import AccountingSummary from './AccountingSummary'
 import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
@@ -19,8 +20,11 @@ export default async function AccountingPage() {
   if (!user) redirect('/login')
   if (!isMaster(user.id)) redirect('/')
 
-  const options = await getAcctOptions()
-  const recent = (await getRecentInout()) ?? []
+  const [options, recent, balances] = await Promise.all([
+    getAcctOptions(),
+    getRecentInout().then((r) => r ?? []),
+    getAccountBalances().then((b) => b ?? []),
+  ])
 
   return (
     <main className="app-theme mx-auto max-w-md px-4 pb-12 pt-2 md:max-w-5xl md:px-6">
@@ -40,7 +44,10 @@ export default async function AccountingPage() {
       </header>
 
       {options ? (
-        <AccountingForm options={options} recent={recent} />
+        <>
+          <AccountingSummary recent={recent} balances={balances} />
+          <AccountingForm options={options} recent={recent} />
+        </>
       ) : (
         <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-faint">
           노션 회계 연동이 필요합니다 (NOTION_TOKEN 미설정).

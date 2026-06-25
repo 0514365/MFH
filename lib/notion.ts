@@ -19,6 +19,7 @@ type NotionProperty = {
   date?: { start?: string | null } | null
   number?: number | null
   select?: { name?: string | null } | null
+  formula?: { type?: string; number?: number | null; string?: string | null } | null
 }
 type NotionPage = { id?: string; properties?: Record<string, NotionProperty> }
 type NotionQueryResponse = {
@@ -165,6 +166,30 @@ export async function getAcctOptions(): Promise<AcctOptions | null> {
     if (p.id && name && (g === '수입' || g === '지출')) items[g].push({ id: p.id, name })
   }
   return { items, supporters: pickOptions(supPages), accounts: pickOptions(accPages) }
+}
+
+export type AccountBalance = { id: string; name: string; balanceUsd: number; currency: string | null }
+
+// 계좌별 잔액(메인 요약용) — 자산 DB 의 `잔액(USD)` formula 직접 read(입금합−출금합+조정·초기보유 최종값). 실패 시 null.
+export async function getAccountBalances(): Promise<AccountBalance[] | null> {
+  const token = process.env.NOTION_TOKEN
+  if (!token) return null
+  const pages = await queryAll(ASSET_DB_ID, token)
+  if (!pages) return null
+  const out: AccountBalance[] = []
+  for (const p of pages) {
+    const name = readText(p.properties?.['이름'])
+    if (!p.id || !name) continue
+    const bal = p.properties?.['잔액(USD)']
+    const balanceUsd = bal?.formula?.number ?? bal?.number ?? 0
+    out.push({
+      id: p.id,
+      name,
+      balanceUsd: typeof balanceUsd === 'number' ? balanceUsd : 0,
+      currency: p.properties?.['통화']?.select?.name ?? null,
+    })
+  }
+  return out
 }
 
 export type InoutRow = {
