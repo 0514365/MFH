@@ -76,8 +76,6 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
   }
 
   const age = ageFromBirth(s.birth_date)
-  const lastRate =
-    donations.find((d) => d.currency === 'KRW' && d.exchange_rate)?.exchange_rate ?? null
 
   let photoUrl: string | null = null
   if (s.photo_path) {
@@ -220,8 +218,8 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
         </section>
       )}
 
-      {/* 헌금 이력 */}
-      <DonationPanel supporterId={s.id} initial={donations} canEdit={canEdit} lastRate={lastRate} />
+      {/* 헌금 이력 (읽기전용 — 입력 SoT 는 노션) */}
+      <DonationPanel donations={donations} />
 
       {/* 관계 히스토리 */}
       <LogPanel supporterId={s.id} initial={logs} canEdit={canEdit} />
