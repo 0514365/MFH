@@ -39,12 +39,10 @@ export default async function SupportersPage() {
     .select('*')
     .order('donation_date', { ascending: false })
   const donations = (donRows ?? []) as SupporterDonation[]
-  const totals: Record<string, number> = {}
   let yearUsd = 0
   let monthUsd = 0
   for (const d of donations) {
     const v = Number(d.amount_usd) || 0
-    totals[d.supporter_id] = (totals[d.supporter_id] ?? 0) + v
     if (d.donation_date?.startsWith(yearStr)) yearUsd += v
     if (d.donation_date?.startsWith(ymStr)) monthUsd += v
   }
@@ -156,7 +154,6 @@ export default async function SupportersPage() {
 
       <SupportersList
         supporters={supporters}
-        totals={totals}
         photoUrls={photoUrls}
         currentUserId={user.id}
       />

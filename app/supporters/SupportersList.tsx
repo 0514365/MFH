@@ -1,15 +1,14 @@
 'use client'
 
 // MFH-SUPPORTERS-LIST-V1
-// 후원자 목록 — 아바타 카드 + 이름/소속/지역/나이 + 헌금 USD 누계. 검색·필터(정기/활성).
+// 후원자 목록 — 아바타 카드 + 이름/소속/지역/나이. 검색·필터(정기/활성).
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import type { Supporter } from '@/lib/types'
-import { ageFromBirth, formatUsd } from '@/lib/supporters'
+import { ageFromBirth } from '@/lib/supporters'
 
 type Props = {
   supporters: Supporter[]
-  totals: Record<string, number>
   photoUrls: Record<string, string>
   currentUserId?: string
 }
@@ -27,7 +26,7 @@ function Avatar({ url, name }: { url?: string; name: string }) {
   )
 }
 
-export default function SupportersList({ supporters, totals, photoUrls }: Props) {
+export default function SupportersList({ supporters, photoUrls }: Props) {
   const [q, setQ] = useState('')
   const [onlyRecurring, setOnlyRecurring] = useState(false)
   const [onlyActive, setOnlyActive] = useState(true)
@@ -91,7 +90,6 @@ export default function SupportersList({ supporters, totals, photoUrls }: Props)
         <ul className="space-y-3 min-[740px]:grid min-[740px]:grid-cols-2 min-[740px]:gap-3 min-[740px]:space-y-0">
           {filtered.map((s) => {
             const age = ageFromBirth(s.birth_date)
-            const total = totals[s.id] ?? 0
             const meta = [s.affiliation, s.role, s.region, age != null ? `${age}세` : null]
               .filter(Boolean)
               .join(' · ')
@@ -119,14 +117,6 @@ export default function SupportersList({ supporters, totals, photoUrls }: Props)
                       </div>
                       <div className="mt-0.5 truncate text-xs text-muted">{meta || '정보 없음'}</div>
                     </div>
-                    {total > 0 && (
-                      <div className="shrink-0 text-right">
-                        <div className="font-display text-[8px] font-bold uppercase tracking-[0.15em] text-faint">
-                          Total
-                        </div>
-                        <div className="font-display text-[13px] font-bold text-ink">{formatUsd(total)}</div>
-                      </div>
-                    )}
                   </div>
                 </Link>
               </li>

@@ -178,14 +178,6 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
         </section>
       )}
 
-      {/* 메시지 발송 */}
-      <section className="border-t border-line px-5 py-5">
-        <div className="mb-2 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-          Message
-        </div>
-        <MessageActions email={s.email} name={s.name} aiDraft={aiDraft} />
-      </section>
-
       {/* 정기후원 */}
       {s.is_recurring && (
         <section className="border-t border-line px-5 py-5">
@@ -223,12 +215,6 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
         </section>
       )}
 
-      {/* 헌금 이력 (읽기전용 — 입력 SoT 는 노션, 합계는 노션 rollup) */}
-      <DonationPanel donations={donations} notionTotal={notionTotal} />
-
-      {/* 관계 히스토리 */}
-      <LogPanel supporterId={s.id} initial={logs} canEdit={canEdit} />
-
       {/* 연결된 일지 */}
       <JournalLinkPanel
         supporterId={s.id}
@@ -236,6 +222,20 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
         candidates={candidateJournals}
         canEdit={canEdit}
       />
+
+      {/* 관계 히스토리 */}
+      <LogPanel supporterId={s.id} initial={logs} canEdit={canEdit} />
+
+      {/* 메시지 발송 */}
+      <section className="border-t border-line px-5 py-5">
+        <div className="mb-2 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
+          Message
+        </div>
+        <MessageActions email={s.email} name={s.name} aiDraft={aiDraft} />
+      </section>
+
+      {/* 헌금 이력 (읽기전용 — 입력 SoT 는 노션, 합계는 노션 rollup) */}
+      <DonationPanel donations={donations} notionTotal={notionTotal} />
 
       {/* 수정 / 삭제 */}
       {canEdit ? (
