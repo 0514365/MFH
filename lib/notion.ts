@@ -58,7 +58,7 @@ export async function getDonationTotalsByAppId(): Promise<Map<string, number> | 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
-        next: { revalidate: 300 }, // 합계는 실시간 불필요 → 5분 캐시
+        cache: 'no-store', // 노션이 SoT → 입력 즉시 앱 반영(후원자 상세는 마스터만, 호출 가벼움)
       })
       if (!res.ok) return null
       const data = (await res.json()) as NotionQueryResponse
