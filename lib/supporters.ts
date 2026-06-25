@@ -2,7 +2,6 @@
 // 후원자 관리 공통 헬퍼 — 라벨 매핑·나이 계산·통화 환산·헌금 합계·사진 업로드.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { makeThumbnail } from './imageResize'
-import { toCSV } from './csv'
 import type { Currency, DonationType, Supporter, SupporterDonation, SupporterLogType } from './types'
 
 export const SUPPORTER_PHOTO_BUCKET = 'supporter-photos'
@@ -115,84 +114,6 @@ export function extractMessageDraft(content: string | null | undefined): string 
   const m = content.match(/메시지 초안[^\n]*\n([\s\S]+)$/)
   const draft = m ? m[1].trim() : null
   return draft || null
-}
-
-// ── 노션 연동용 export ──────────────────
-// app_id(=supporter.id)를 매핑 키로 포함 → 노션 후원자 DB "앱ID" 컬럼과 1:1 연결.
-// CSV: 한글 헤더(노션 수동 import 시 컬럼 자동 매칭). JSON: 영문 키(향후 API 동기화).
-export function supportersToCSV(rows: Supporter[]): string {
-  const header = [
-    '앱ID', '이름', '생년월일', '소속', '직분', '지역',
-    '전화', '이메일', 'SNS', '소개자', '첫만남',
-    '정기후원', '정기통화', '정기금액', '기도제목', '메모', '활성',
-  ]
-  const body = rows.map((s) => [
-    s.id,
-    s.name,
-    s.birth_date ?? '',
-    s.affiliation ?? '',
-    s.role ?? '',
-    s.region ?? '',
-    s.phone ?? '',
-    s.email ?? '',
-    s.sns ?? '',
-    s.referrer ?? '',
-    s.first_met_date ?? '',
-    s.is_recurring ? 'Y' : 'N',
-    s.recurring_currency ?? '',
-    s.recurring_amount != null ? String(s.recurring_amount) : '',
-    s.prayer_points ?? '',
-    s.notes ?? '',
-    s.is_active ? 'Y' : 'N',
-  ])
-  return toCSV([header, ...body])
-}
-
-export function supportersToJSON(rows: Supporter[]): string {
-  const mapped = rows.map((s) => ({
-    app_id: s.id,
-    name: s.name,
-    birth_date: s.birth_date,
-    affiliation: s.affiliation,
-    role: s.role,
-    region: s.region,
-    phone: s.phone,
-    email: s.email,
-    sns: s.sns,
-    referrer: s.referrer,
-    first_met_date: s.first_met_date,
-    is_recurring: s.is_recurring,
-    recurring_currency: s.recurring_currency,
-    recurring_amount: s.recurring_amount,
-    prayer_points: s.prayer_points,
-    notes: s.notes,
-    is_active: s.is_active,
-  }))
-  return JSON.stringify(mapped, null, 2)
-}
-
-// 헌금(supporter_donations) 노션 연동용 export — JSON(영문 키).
-// supporter_app_id(=supporter_id)로 노션 후원자 relation 매핑, supporter_name 은 입출금기록 제목 참고용.
-// 통화·원금·환율·환산액(USD) 모두 보존 → 노션 입출금기록(수입)에 이중통화로 등록.
-export function donationsToJSON(
-  rows: SupporterDonation[],
-  supporters: Pick<Supporter, 'id' | 'name'>[],
-): string {
-  const nameById = new Map(supporters.map((s) => [s.id, s.name]))
-  const mapped = rows.map((d) => ({
-    supporter_app_id: d.supporter_id,
-    supporter_name: nameById.get(d.supporter_id) ?? null,
-    donation_date: d.donation_date,
-    currency: d.currency,
-    amount: d.amount,
-    exchange_rate: d.exchange_rate,
-    amount_usd: d.amount_usd,
-    donation_type: d.donation_type,
-    purpose: d.purpose,
-    method: d.method,
-    note: d.note,
-  }))
-  return JSON.stringify(mapped, null, 2)
 }
 
 // 헌금 USD 합계.

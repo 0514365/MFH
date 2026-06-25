@@ -4,6 +4,8 @@
 // NOTION_TOKEN 미설정/실패 시 null → 호출부는 "기록 없음" 으로 폴백.
 // 경로: Notion REST API POST /v1/databases/{id}/query (MCP 의 AI SQL 과 별개, plan 제약 없음).
 
+import type { Supporter } from './types'
+
 const NOTION_API = 'https://api.notion.com/v1'
 const NOTION_VERSION = '2022-06-28'
 // REST API(databases/{id}/query)는 *database id* 를 쓴다 — MCP 의 collection://… (data source id)와 다르니 주의.
@@ -387,6 +389,117 @@ export async function patchInoutFields(
     if (!res.ok) {
       const txt = await res.text()
       return { ok: false, error: `노션 수정 실패 (${res.status}) ${txt.slice(0, 160)}` }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : '네트워크 오류' }
+  }
+}
+
+// ===== 후원자 노션 동기화(앱 SoT → 노션 후원자 DB) =====
+// 앱에서 후원자 등록/수정/삭제 시 노션 후원자 DB 에 자동 반영(앱ID 매핑). 헌금 relation·회계 후원자 콤보 소스를 일치시킨다.
+
+const supporterHeaders = (token: string) => ({
+  Authorization: `Bearer ${token}`,
+  'Notion-Version': NOTION_VERSION,
+  'Content-Type': 'application/json',
+})
+
+// 앱ID(=supporter.id)로 노션 후원자 page id 찾기. 없으면 null.
+async function findSupporterPageId(appId: string, token: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${NOTION_API}/databases/${SUPPORTER_DB_ID}/query`, {
+      method: 'POST',
+      headers: supporterHeaders(token),
+      body: JSON.stringify({
+        filter: { property: '앱ID', rich_text: { equals: appId } },
+        page_size: 1,
+      }),
+      cache: 'no-store',
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as NotionQueryResponse
+    return data.results?.[0]?.id ?? null
+  } catch {
+    return null
+  }
+}
+
+// 앱 후원자 → 노션 properties(기존 내보내기 17필드 매핑과 동일). 헌금·헌금합계는 노션이 입출금기록 relation 으로 자동.
+function supporterProps(s: Supporter): Record<string, unknown> {
+  const rt = (v: string | null) => ({ rich_text: v ? [{ text: { content: v } }] : [] })
+  const dt = (v: string | null) => ({ date: v ? { start: v } : null })
+  return {
+    이름: { title: [{ text: { content: s.name } }] },
+    앱ID: { rich_text: [{ text: { content: s.id } }] },
+    생년월일: dt(s.birth_date),
+    소속: rt(s.affiliation),
+    직분: rt(s.role),
+    지역: rt(s.region),
+    전화: { phone_number: s.phone || null },
+    이메일: { email: s.email || null },
+    SNS: rt(s.sns),
+    소개자: rt(s.referrer),
+    첫만남: dt(s.first_met_date),
+    정기후원: { checkbox: s.is_recurring },
+    정기통화: { select: s.recurring_currency ? { name: s.recurring_currency } : null },
+    정기금액: { number: s.recurring_amount },
+    기도제목: rt(s.prayer_points),
+    메모: rt(s.notes),
+    활성: { checkbox: s.is_active },
+  }
+}
+
+// 후원자 upsert — 앱ID 로 기존 page 찾으면 PATCH, 없으면 새 page 생성.
+export async function upsertSupporterToNotion(
+  s: Supporter,
+): Promise<{ ok: boolean; error?: string }> {
+  const token = process.env.NOTION_TOKEN
+  if (!token) return { ok: false, error: 'NOTION_TOKEN 미설정' }
+  const properties = supporterProps(s)
+  const pageId = await findSupporterPageId(s.id, token)
+  try {
+    const res = pageId
+      ? await fetch(`${NOTION_API}/pages/${pageId}`, {
+          method: 'PATCH',
+          headers: supporterHeaders(token),
+          body: JSON.stringify({ properties }),
+          cache: 'no-store',
+        })
+      : await fetch(`${NOTION_API}/pages`, {
+          method: 'POST',
+          headers: supporterHeaders(token),
+          body: JSON.stringify({ parent: { database_id: SUPPORTER_DB_ID }, properties }),
+          cache: 'no-store',
+        })
+    if (!res.ok) {
+      const txt = await res.text()
+      return { ok: false, error: `노션 동기화 실패 (${res.status}) ${txt.slice(0, 160)}` }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : '네트워크 오류' }
+  }
+}
+
+// 후원자 삭제 동기화 — 앱ID 로 노션 page 찾아 archived(휴지통, 복구 가능). 노션에 없으면 ok(할 일 없음).
+export async function archiveSupporterInNotion(
+  appId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const token = process.env.NOTION_TOKEN
+  if (!token) return { ok: false, error: 'NOTION_TOKEN 미설정' }
+  const pageId = await findSupporterPageId(appId, token)
+  if (!pageId) return { ok: true }
+  try {
+    const res = await fetch(`${NOTION_API}/pages/${pageId}`, {
+      method: 'PATCH',
+      headers: supporterHeaders(token),
+      body: JSON.stringify({ archived: true }),
+      cache: 'no-store',
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      return { ok: false, error: `노션 삭제 동기화 실패 (${res.status}) ${txt.slice(0, 160)}` }
     }
     return { ok: true }
   } catch (e) {

@@ -12,6 +12,7 @@ import type { Supporter, Currency } from '@/lib/types'
 import DateField from '../journal/DateField'
 import BackButton from '@/components/BackButton'
 import { resolveOwnerId } from '@/lib/members'
+import { syncSupporter } from './actions'
 import {
   CURRENCIES,
   CURRENCY_LABEL,
@@ -154,29 +155,42 @@ export default function SupporterForm({ mode, initial }: Props) {
       thumb_path: thumbPath,
       ...(mode === 'edit' ? { updated_at: new Date().toISOString() } : {}),
     }
-    let resultId = initial?.id ?? null
+    let saved: Supporter
     if (mode === 'edit' && initial) {
-      const { error } = await supabase.from('supporters').update(payload).eq('id', initial.id)
-      if (error) {
-        setSaving(false)
-        setMsg('저장 실패: ' + error.message)
-        return
-      }
-    } else {
       const { data, error } = await supabase
         .from('supporters')
-        .insert(payload)
-        .select('id')
+        .update(payload)
+        .eq('id', initial.id)
+        .select('*')
         .single()
       if (error) {
         setSaving(false)
         setMsg('저장 실패: ' + error.message)
         return
       }
-      resultId = (data as { id: string }).id
+      saved = data as Supporter
+    } else {
+      const { data, error } = await supabase
+        .from('supporters')
+        .insert(payload)
+        .select('*')
+        .single()
+      if (error) {
+        setSaving(false)
+        setMsg('저장 실패: ' + error.message)
+        return
+      }
+      saved = data as Supporter
+    }
+    // 노션 후원자 DB 동기화(앱ID upsert). 실패해도 앱 저장은 유지 — 경고 후 머무름(다시 저장하면 재시도).
+    const sync = await syncSupporter(saved)
+    if (!sync.ok) {
+      setSaving(false)
+      setMsg('저장됐지만 노션 동기화 실패: ' + (sync.error ?? '') + ' — 다시 저장하면 재시도됩니다.')
+      return
     }
     setSaving(false)
-    router.replace(resultId ? `/supporters/${resultId}` : '/supporters')
+    router.replace(`/supporters/${saved.id}`)
     router.refresh()
   }
 

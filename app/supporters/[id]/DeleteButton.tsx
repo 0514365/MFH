@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
+import { unsyncSupporter } from '../actions'
 
 export default function DeleteButton({ id }: { id: string }) {
   const router = useRouter()
@@ -18,6 +19,8 @@ export default function DeleteButton({ id }: { id: string }) {
       alert('삭제 실패: ' + error.message)
       return
     }
+    // 노션 후원자 archive(실패해도 앱 삭제는 완료 — 노션은 수동 정리 가능).
+    await unsyncSupporter(id)
     router.replace('/supporters')
     router.refresh()
   }
