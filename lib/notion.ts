@@ -330,3 +330,41 @@ export async function deleteInoutRecord(pageId: string): Promise<{ ok: boolean; 
     return { ok: false, error: e instanceof Error ? e.message : '네트워크 오류' }
   }
 }
+
+export type InoutPatch = { itemId?: string; accountId?: string }
+
+// 통합 수정 — 거래 1건의 항목/계좌만 부분 변경(금액·이름·날짜 등 보존). 계좌는 행 구분에 맞는 필드에 set.
+// 빈 patch(둘 다 미지정)는 변경 없이 ok. 일괄 수정은 actions.bulkPatchInout 이 행마다 호출.
+export async function patchInoutFields(
+  pageId: string,
+  gubun: '수입' | '지출',
+  patch: InoutPatch,
+): Promise<{ ok: boolean; error?: string }> {
+  const token = process.env.NOTION_TOKEN
+  if (!token) return { ok: false, error: 'NOTION_TOKEN 미설정' }
+  const properties: Record<string, unknown> = {}
+  if (patch.itemId) properties['항목'] = { relation: [{ id: patch.itemId }] }
+  if (patch.accountId) {
+    properties[gubun === '수입' ? '입금계좌' : '지불계좌'] = { relation: [{ id: patch.accountId }] }
+  }
+  if (Object.keys(properties).length === 0) return { ok: true }
+  try {
+    const res = await fetch(`${NOTION_API}/pages/${pageId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Notion-Version': NOTION_VERSION,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ properties }),
+      cache: 'no-store',
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      return { ok: false, error: `노션 수정 실패 (${res.status}) ${txt.slice(0, 160)}` }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : '네트워크 오류' }
+  }
+}

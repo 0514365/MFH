@@ -1,11 +1,10 @@
 'use client'
-// MFH-ACCOUNTING-TXLIST-V1
-// 거래 내역 — 월별 그룹화 + 월별 수입/지출 합계 + 필터(구분·항목·계좌·이름) + 정렬(날짜·금액). 행별 수정·삭제.
-// 데이터는 page.tsx 가 노션에서 전체 read → AccountingForm → 여기로 전달. 삭제는 server action(노션 SoT).
-// (다중선택·다중삭제·통합수정은 b단계에서 추가 예정)
-import { useMemo, useState } from 'react'
-import type { AcctOptions, InoutRow } from '@/lib/notion'
-import { deleteInout } from './actions'
+// MFH-ACCOUNTING-TXLIST-V2
+// 거래 내역 — 월별 그룹화 + 월별 수입/지출 합계 + 필터(구분·항목·계좌·이름) + 정렬(날짜·금액).
+// 행별 수정·삭제 + 다중선택 → 일괄 삭제 / 통합 수정(항목·계좌). 데이터는 노션(SoT) 전체 read, 변경은 server action.
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { AcctOptions, InoutRow, InoutPatch } from '@/lib/notion'
+import { deleteInout, bulkDeleteInout, bulkPatchInout } from './actions'
 
 function fmtUsd(n: number | null): string {
   if (n == null) return '—'
@@ -45,6 +44,12 @@ export default function TransactionList({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [busyId, setBusyId] = useState<string | null>(null)
   const [err, setErr] = useState('')
+  // 다중선택 / 일괄 작업
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkItemId, setBulkItemId] = useState('')
+  const [bulkAccountId, setBulkAccountId] = useState('')
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   const nameOf = useMemo(() => {
     const m = new Map<string, string>()
@@ -104,8 +109,39 @@ export default function TransactionList({
     })
   }, [recent, fGubun, fItemId, fAccountId, q, sortKey, sortDir])
 
-  const shownCount = useMemo(() => groups.reduce((s, g) => s + g.rows.length, 0), [groups])
+  const visibleIds = useMemo(() => groups.flatMap((g) => g.rows.map((r) => r.id)), [groups])
+  const shownCount = visibleIds.length
   const hasFilter = fGubun !== '전체' || !!fItemId || !!fAccountId || !!q.trim()
+
+  // 필터·정렬이 바뀌면 선택을 초기화(보이지 않는 선택에 작업되는 혼란 방지).
+  useEffect(() => {
+    setSelected(new Set())
+    setBulkOpen(false)
+  }, [fGubun, fItemId, fAccountId, q, sortKey, sortDir])
+
+  // 선택 행 분석 — 통합 수정 대상(수입·지출만), 구분 혼합 여부.
+  const selRows = useMemo(() => recent.filter((r) => selected.has(r.id)), [recent, selected])
+  const selCount = selRows.length
+  const editableTargets = useMemo(
+    () =>
+      selRows
+        .filter((r) => r.gubun === '수입' || r.gubun === '지출')
+        .map((r) => ({ id: r.id, gubun: r.gubun as '수입' | '지출' })),
+    [selRows],
+  )
+  const onlyGubun = useMemo(() => {
+    const s = new Set(selRows.map((r) => r.gubun))
+    return s.size === 1 ? [...s][0] : null
+  }, [selRows])
+  const itemEditable = onlyGubun === '수입' || onlyGubun === '지출'
+  const bulkItemOptions = itemEditable ? options.items[onlyGubun as '수입' | '지출'] : []
+
+  const allChecked = shownCount > 0 && visibleIds.every((id) => selected.has(id))
+  const someChecked = visibleIds.some((id) => selected.has(id))
+  const headRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (headRef.current) headRef.current.indeterminate = someChecked && !allChecked
+  }, [someChecked, allChecked])
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -128,6 +164,24 @@ export default function TransactionList({
     setFAccountId('')
     setQ('')
   }
+  function toggleRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+  function toggleAllVisible() {
+    setSelected((prev) => {
+      if (visibleIds.length > 0 && visibleIds.every((id) => prev.has(id))) return new Set()
+      return new Set(visibleIds)
+    })
+  }
+  function clearSel() {
+    setSelected(new Set())
+    setBulkOpen(false)
+  }
 
   async function onDelete(r: InoutRow) {
     if (
@@ -144,15 +198,65 @@ export default function TransactionList({
     else setErr(res.error ?? '삭제 실패')
   }
 
+  async function onBulkDelete() {
+    if (selCount === 0) return
+    if (!window.confirm(`선택한 ${selCount}건을 삭제할까요?\n(노션 휴지통으로 — 복구 가능)`)) return
+    setBulkBusy(true)
+    setErr('')
+    const res = await bulkDeleteInout([...selected])
+    setBulkBusy(false)
+    if (res.done > 0) {
+      clearSel()
+      onAfterMutate()
+      if (!res.ok) setErr(`${res.done}건 삭제 · 일부 실패: ${res.error ?? ''}`)
+    } else setErr(res.error ?? '삭제 실패')
+  }
+
+  async function onBulkPatch() {
+    if (editableTargets.length === 0) {
+      setErr('수입/지출 거래만 통합 수정할 수 있습니다')
+      return
+    }
+    const patch: InoutPatch = {}
+    if (itemEditable && bulkItemId && bulkItemOptions.some((o) => o.id === bulkItemId))
+      patch.itemId = bulkItemId
+    if (bulkAccountId) patch.accountId = bulkAccountId
+    if (!patch.itemId && !patch.accountId) {
+      setErr('변경할 항목 또는 계좌를 선택하세요')
+      return
+    }
+    setBulkBusy(true)
+    setErr('')
+    const res = await bulkPatchInout(editableTargets, patch)
+    setBulkBusy(false)
+    if (res.done > 0) {
+      setBulkItemId('')
+      setBulkAccountId('')
+      clearSel()
+      onAfterMutate()
+      if (!res.ok) setErr(`${res.done}건 수정 · 일부 실패: ${res.error ?? ''}`)
+    } else setErr(res.error ?? '수정 실패')
+  }
+
   const arrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '')
+  const cbCls = 'h-4 w-4 shrink-0 cursor-pointer accent-[#661F20]'
 
   return (
     <section className="mt-6">
       <div className="mb-2 flex items-center justify-between px-1">
-        <h2 className="text-[13px] font-bold text-muted">
-          거래 내역
-          <span className="ml-1.5 font-normal text-faint">{shownCount}건</span>
-        </h2>
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className={`${cbCls} md:hidden`}
+            checked={allChecked}
+            onChange={toggleAllVisible}
+            aria-label="전체 선택"
+          />
+          <h2 className="text-[13px] font-bold text-muted">
+            거래 내역
+            <span className="ml-1.5 font-normal text-faint">{shownCount}건</span>
+          </h2>
+        </div>
         {hasFilter && (
           <button
             type="button"
@@ -166,7 +270,6 @@ export default function TransactionList({
 
       {/* 필터 바 */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {/* 구분 토글 */}
         <div className="flex h-8 overflow-hidden rounded-lg border border-line text-xs">
           {(['전체', '수입', '지출'] as const).map((g) => (
             <button
@@ -174,7 +277,7 @@ export default function TransactionList({
               type="button"
               onClick={() => {
                 setFGubun(g)
-                setFItemId('') // 구분 바뀌면 항목 필터 리셋
+                setFItemId('')
               }}
               className={`flex items-center justify-center px-3 ${
                 fGubun === g
@@ -190,7 +293,6 @@ export default function TransactionList({
             </button>
           ))}
         </div>
-        {/* 항목 */}
         <select value={fItemId} onChange={(e) => setFItemId(e.target.value)} className={`${ctl} min-w-[96px]`}>
           <option value="">항목 전체</option>
           {itemOptions.map((i) => (
@@ -199,7 +301,6 @@ export default function TransactionList({
             </option>
           ))}
         </select>
-        {/* 계좌 */}
         <select
           value={fAccountId}
           onChange={(e) => setFAccountId(e.target.value)}
@@ -212,20 +313,14 @@ export default function TransactionList({
             </option>
           ))}
         </select>
-        {/* 이름 검색 */}
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="이름 검색"
           className={`${ctl} min-w-[120px] flex-1`}
         />
-        {/* 정렬 — 모바일 보조(데스크탑은 헤더 클릭) */}
         <div className="flex h-8 items-center gap-1 md:hidden">
-          <select
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as SortKey)}
-            className={`${ctl}`}
-          >
+          <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className={ctl}>
             <option value="date">날짜순</option>
             <option value="amount">금액순</option>
           </select>
@@ -240,6 +335,90 @@ export default function TransactionList({
         </div>
       </div>
 
+      {/* 선택 액션 바 */}
+      {selCount > 0 && (
+        <div className="mb-3 rounded-xl border border-primary/30 bg-primary-soft px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[13px] font-bold text-primary">{selCount}건 선택</span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setBulkOpen((o) => !o)}
+                disabled={bulkBusy}
+                className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink transition hover:border-primary disabled:opacity-40"
+              >
+                통합 수정
+              </button>
+              <button
+                type="button"
+                onClick={onBulkDelete}
+                disabled={bulkBusy}
+                className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium text-accent transition hover:border-accent disabled:opacity-40"
+              >
+                {bulkBusy ? '처리 중…' : '삭제'}
+              </button>
+              <button
+                type="button"
+                onClick={clearSel}
+                disabled={bulkBusy}
+                className="rounded-lg px-2 py-1 text-xs font-medium text-muted transition hover:text-ink disabled:opacity-40"
+              >
+                해제
+              </button>
+            </div>
+          </div>
+
+          {bulkOpen && (
+            <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-primary/20 pt-2">
+              <div>
+                <label className="mb-0.5 block text-[10px] font-medium text-faint">항목 변경</label>
+                <select
+                  value={bulkItemId}
+                  onChange={(e) => setBulkItemId(e.target.value)}
+                  disabled={!itemEditable}
+                  className={`${ctl} min-w-[110px] disabled:opacity-40`}
+                >
+                  <option value="">변경 안 함</option>
+                  {bulkItemOptions.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-0.5 block text-[10px] font-medium text-faint">계좌 변경</label>
+                <select
+                  value={bulkAccountId}
+                  onChange={(e) => setBulkAccountId(e.target.value)}
+                  className={`${ctl} min-w-[110px]`}
+                >
+                  <option value="">변경 안 함</option>
+                  {options.accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={onBulkPatch}
+                disabled={bulkBusy}
+                className="h-8 rounded-lg bg-accent px-3 text-xs font-bold text-white transition active:scale-[0.98] disabled:opacity-50"
+              >
+                {bulkBusy ? '…' : '적용'}
+              </button>
+              {!itemEditable && (
+                <p className="w-full text-[11px] text-faint">
+                  수입·지출이 섞여 있어 계좌만 변경할 수 있습니다. (이체는 통합 수정 제외)
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {err && <p className="mb-2 text-xs font-medium text-accent">{err}</p>}
 
       {recent.length === 0 ? (
@@ -253,6 +432,16 @@ export default function TransactionList({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line bg-surface-subtle text-left text-[11px] text-faint">
+                  <th className="w-9 px-3 py-2">
+                    <input
+                      ref={headRef}
+                      type="checkbox"
+                      className={cbCls}
+                      checked={allChecked}
+                      onChange={toggleAllVisible}
+                      aria-label="전체 선택"
+                    />
+                  </th>
                   <th className="px-3 py-2 font-medium">구분</th>
                   <th
                     className="cursor-pointer select-none px-3 py-2 font-medium hover:text-primary"
@@ -276,9 +465,8 @@ export default function TransactionList({
                 const isCollapsed = collapsed.has(g.key)
                 return (
                   <tbody key={g.key} className="border-b border-line last:border-0">
-                    {/* 그룹 헤더 */}
                     <tr className="bg-surface-subtle/60">
-                      <td colSpan={7} className="px-3 py-1.5">
+                      <td colSpan={8} className="px-3 py-1.5">
                         <div className="flex items-center justify-between">
                           <button
                             type="button"
@@ -299,13 +487,27 @@ export default function TransactionList({
                         </div>
                       </td>
                     </tr>
-                    {/* 거래 행 */}
                     {!isCollapsed &&
                       g.rows.map((r) => (
                         <tr
                           key={r.id}
-                          className={`border-t border-line ${editingId === r.id ? 'bg-primary-soft' : ''}`}
+                          className={`border-t border-line ${
+                            selected.has(r.id)
+                              ? 'bg-primary-soft/60'
+                              : editingId === r.id
+                                ? 'bg-primary-soft'
+                                : ''
+                          }`}
                         >
+                          <td className="px-3 py-2">
+                            <input
+                              type="checkbox"
+                              className={cbCls}
+                              checked={selected.has(r.id)}
+                              onChange={() => toggleRow(r.id)}
+                              aria-label="선택"
+                            />
+                          </td>
                           <td className="px-3 py-2">
                             <span
                               className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
@@ -351,10 +553,9 @@ export default function TransactionList({
                           </td>
                         </tr>
                       ))}
-                    {/* 그룹 합계(하단) */}
                     {!isCollapsed && (
                       <tr className="border-t border-line bg-surface-subtle/60">
-                        <td colSpan={7} className="px-3 py-1.5 text-right">
+                        <td colSpan={8} className="px-3 py-1.5 text-right">
                           <span className="text-[11px] text-faint">월 합계</span>
                           <span className="ml-2 font-display text-[12px] font-bold text-emerald-700">
                             수입 {fmtUsd(g.inUsd)}
@@ -399,20 +600,35 @@ export default function TransactionList({
                       {g.rows.map((r) => (
                         <li
                           key={r.id}
-                          className={`rounded-xl border bg-surface p-3 ${editingId === r.id ? 'border-primary' : 'border-line'}`}
+                          className={`rounded-xl border bg-surface p-3 ${
+                            selected.has(r.id)
+                              ? 'border-primary ring-1 ring-primary/30'
+                              : editingId === r.id
+                                ? 'border-primary'
+                                : 'border-line'
+                          }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                                r.gubun === '수입'
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : r.gubun === '지출'
-                                    ? 'bg-red-50 text-red-700'
-                                    : 'bg-surface-subtle text-faint'
-                              }`}
-                            >
-                              {r.gubun ?? '—'}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className={cbCls}
+                                checked={selected.has(r.id)}
+                                onChange={() => toggleRow(r.id)}
+                                aria-label="선택"
+                              />
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                  r.gubun === '수입'
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : r.gubun === '지출'
+                                      ? 'bg-red-50 text-red-700'
+                                      : 'bg-surface-subtle text-faint'
+                                }`}
+                              >
+                                {r.gubun ?? '—'}
+                              </span>
+                            </div>
                             <span className="font-display text-[14px] font-bold text-ink">
                               {fmtUsd(r.amountUsd)}
                             </span>
