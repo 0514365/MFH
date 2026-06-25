@@ -211,23 +211,28 @@ export default function BriefingView({
         </p>
       ) : null}
 
-      {/* 4분야 섹션 */}
+      {/* 4분야 섹션 — 정치·경제·사회·문화는 "당일 필수". 빈 분야도 숨기지 않고 "특이사항 없음"으로 표시(누락 vs 무소식 구분). */}
       {SECTION_META.map((m) => {
         const items = (sections[m.key] ?? []).filter((it) => (it?.title ?? '').trim() || (it?.body ?? '').trim())
-        if (!items.length) return null
         return (
           <section key={m.key}>
             <div className="mb-2.5 flex items-center gap-2">
               <span className="inline-block h-3 w-3 rounded-full" style={{ background: m.dot }} />
               <h2 className="font-display text-xl font-bold text-ink">{m.label}</h2>
-              <span className="text-xs text-faint">{items.length}건</span>
+              {items.length > 0 && <span className="text-xs text-faint">{items.length}건</span>}
             </div>
-            {/* 분야 통합 박스 — 전체 테두리 = 분야색(m.dot). 기사들은 박스 안에서 가는 중간선으로 구분. */}
-            <div className="overflow-hidden rounded-2xl border bg-surface" style={{ borderColor: m.dot }}>
-              {items.map((it, i) => (
-                <ItemRow key={i} item={it} divided={i > 0} baseDate={row.news_date} />
-              ))}
-            </div>
+            {items.length > 0 ? (
+              /* 분야 통합 박스 — 전체 테두리 = 분야색(m.dot). 기사들은 박스 안에서 가는 중간선으로 구분. */
+              <div className="overflow-hidden rounded-2xl border bg-surface" style={{ borderColor: m.dot }}>
+                {items.map((it, i) => (
+                  <ItemRow key={i} item={it} divided={i > 0} baseDate={row.news_date} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-line bg-surface px-4 py-3 text-sm text-faint">
+                특이사항 없음
+              </div>
+            )}
           </section>
         )
       })}
