@@ -170,7 +170,7 @@ export default function AccountingForm({
           )}
         </div>
 
-        <div className="flex flex-col gap-2.5 md:flex-row md:items-end md:gap-2">
+        <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-end md:gap-2">
           {/* 구분 토글 */}
           <div className="md:w-[92px] md:shrink-0">
             <label className={labelCls}>구분</label>
@@ -223,7 +223,7 @@ export default function AccountingForm({
 
           {/* 이름 (후원금이면 후원자 콤보 + 자유입력) */}
           <div className="md:min-w-0 md:flex-1">
-            <label className={labelCls}>이름{isDonation ? ' · 후원자' : ''}</label>
+            <label className={labelCls}>적요{isDonation ? ' · 후원자' : ''}</label>
             <input
               list={isDonation ? 'acct-sup-list' : undefined}
               value={name}
@@ -239,6 +239,9 @@ export default function AccountingForm({
               </datalist>
             )}
           </div>
+
+          {/* 적요까지 1행, 통화부터 2행 — 데스크탑 강제 줄바꿈 */}
+          <div className="hidden basis-full md:block" aria-hidden="true" />
 
           {/* 통화 */}
           <div className="md:w-[78px] md:shrink-0">

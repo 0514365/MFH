@@ -471,7 +471,7 @@ export default function TransactionList({
                     날짜{arrow('date')}
                   </th>
                   <th className="px-3 py-2 font-medium">항목</th>
-                  <th className="px-3 py-2 font-medium">이름</th>
+                  <th className="px-3 py-2 font-medium">적요</th>
                   <th className="px-3 py-2 font-medium">원화</th>
                   <th className="px-3 py-2 font-medium">렘피라</th>
                   <th className="px-3 py-2 font-medium">달러</th>
