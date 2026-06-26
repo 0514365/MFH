@@ -358,7 +358,7 @@ export default function TransactionList({
 
       {/* 선택 액션 바 */}
       {selCount > 0 && (
-        <div className="mb-3 rounded-xl border border-primary/30 bg-primary-soft px-3 py-2">
+        <div className="mb-3 rounded-xl border border-primary/30 bg-primary-soft px-2 py-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-[13px] font-bold text-primary">{selCount}건 선택</span>
             <div className="flex items-center gap-1.5">
@@ -453,7 +453,7 @@ export default function TransactionList({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line bg-surface-subtle text-center text-[13px] font-medium text-muted">
-                  <th className="w-9 px-3 py-2">
+                  <th className="w-9 px-2 py-2">
                     <input
                       ref={headRef}
                       type="checkbox"
@@ -463,25 +463,25 @@ export default function TransactionList({
                       aria-label="전체 선택"
                     />
                   </th>
-                  <th className="px-3 py-2 font-medium">구분</th>
+                  <th className="px-2 py-2 font-medium">구분</th>
                   <th
-                    className="cursor-pointer select-none px-3 py-2 font-medium hover:text-primary"
+                    className="cursor-pointer select-none px-2 py-2 font-medium hover:text-primary"
                     onClick={() => toggleSort('date')}
                   >
                     날짜{arrow('date')}
                   </th>
-                  <th className="px-3 py-2 font-medium">항목</th>
-                  <th className="px-3 py-2 font-medium">적요</th>
-                  <th className="px-3 py-2 font-medium">원화</th>
-                  <th className="px-3 py-2 font-medium">렘피라</th>
-                  <th className="px-3 py-2 font-medium">달러</th>
+                  <th className="px-2 py-2 font-medium">항목</th>
+                  <th className="px-2 py-2 font-medium">적요</th>
+                  <th className="px-2 py-2 font-medium">원화</th>
+                  <th className="px-2 py-2 font-medium">렘피라</th>
+                  <th className="px-2 py-2 font-medium">달러</th>
                   <th
-                    className="cursor-pointer select-none px-3 py-2 font-medium hover:text-primary"
+                    className="cursor-pointer select-none px-2 py-2 font-medium hover:text-primary"
                     onClick={() => toggleSort('amount')}
                   >
                     {`환산$${arrow('amount')}`}
                   </th>
-                  <th className="px-3 py-2 font-medium">관리</th>
+                  <th className="px-2 py-2 font-medium">관리</th>
                 </tr>
               </thead>
               {groups.map((g) => {
@@ -522,7 +522,7 @@ export default function TransactionList({
                                 : ''
                           }`}
                         >
-                          <td className="px-3 py-2">
+                          <td className="px-2 py-2">
                             <input
                               type="checkbox"
                               className={cbCls}
@@ -531,9 +531,9 @@ export default function TransactionList({
                               aria-label="선택"
                             />
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-2 py-2">
                             <span
-                              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                              className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
                                 r.gubun === '수입'
                                   ? 'bg-emerald-50 text-emerald-700'
                                   : r.gubun === '지출'
@@ -544,8 +544,8 @@ export default function TransactionList({
                               {r.gubun ?? '—'}
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-muted">{r.date ?? '—'}</td>
-                          <td className="px-3 py-2 text-ink">
+                          <td className="whitespace-nowrap px-2 py-2 text-muted">{r.date ?? '—'}</td>
+                          <td className="px-2 py-2 text-ink">
                             {r.itemId && catOf.get(r.itemId) && (
                               <div className="text-[10px] font-medium leading-tight text-faint">
                                 {catOf.get(r.itemId)}
@@ -553,20 +553,20 @@ export default function TransactionList({
                             )}
                             {r.itemId ? (nameOf.get(r.itemId) ?? '—') : '—'}
                           </td>
-                          <td className="px-3 py-2 text-ink">{r.name ?? '—'}</td>
-                          <td className="px-3 py-2 text-right font-display text-muted">
+                          <td className="px-2 py-2 text-ink">{r.name ?? '—'}</td>
+                          <td className="px-2 py-2 text-right font-display text-muted">
                             {fmtColCell(r.currency, 'KRW', r.principal)}
                           </td>
-                          <td className="px-3 py-2 text-right font-display text-muted">
+                          <td className="px-2 py-2 text-right font-display text-muted">
                             {fmtColCell(r.currency, 'HNL', r.principal)}
                           </td>
-                          <td className="px-3 py-2 text-right font-display text-muted">
+                          <td className="px-2 py-2 text-right font-display text-muted">
                             {fmtColCell(r.currency, 'USD', r.principal)}
                           </td>
-                          <td className="px-3 py-2 text-right font-display font-bold text-ink">
+                          <td className="px-2 py-2 text-right font-display font-bold text-ink">
                             {fmtUsd(r.amountUsd)}
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-2 py-2">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 type="button"
@@ -652,7 +652,7 @@ export default function TransactionList({
                                 aria-label="선택"
                               />
                               <span
-                                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
                                   r.gubun === '수입'
                                     ? 'bg-emerald-50 text-emerald-700'
                                     : r.gubun === '지출'
