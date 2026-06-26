@@ -256,10 +256,22 @@ export default function AccountingForm({
             </div>
           </div>
 
-          {/* 날짜 */}
+          {/* 날짜 — 표시는 yyyy-mm-dd 고정(OS 로캘 무관), 네이티브 피커는 투명 오버레이로 */}
           <div className="md:w-[130px] md:shrink-0">
             <label className={labelCls}>날짜</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inp} />
+            <div className="relative">
+              <div className={`${inp} flex items-center`} aria-hidden="true">
+                {date || '날짜 선택'}
+              </div>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                aria-label="날짜"
+              />
+            </div>
           </div>
 
           {/* 항목 */}
@@ -327,14 +339,14 @@ export default function AccountingForm({
             />
           </div>
 
-          {/* 환율 */}
-          <div className="md:w-[78px] md:shrink-0">
+          {/* 환율 — 천단위 쉼표 표시(raw 저장) */}
+          <div className="md:w-[88px] md:shrink-0">
             <label className={labelCls}>환율</label>
             <input
-              type="number"
+              type="text"
               inputMode="decimal"
-              value={usd ? '1' : rate}
-              onChange={(e) => setRate(e.target.value)}
+              value={usd ? '1' : withCommas(rate)}
+              onChange={(e) => setRate(cleanNumeric(e.target.value))}
               disabled={usd}
               className={`${inp} text-right disabled:opacity-40`}
             />
