@@ -25,10 +25,6 @@ export default function DonationPanel({ yearly }: { yearly?: DonationYearly | nu
         </div>
       </div>
 
-      <p className="mb-4 rounded-xl border border-line bg-surface-subtle px-3 py-2.5 text-xs leading-relaxed text-muted">
-        헌금 입력·관리는 노션 회계로 이전되었습니다. 합계는 노션 기준 연도별 집계입니다.
-      </p>
-
       {years.length === 0 ? (
         <p className="py-4 text-center text-xs text-faint">헌금 기록이 없습니다.</p>
       ) : (
