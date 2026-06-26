@@ -28,6 +28,8 @@ function withCommas(raw: string): string {
 const inp =
   'h-9 w-full rounded-lg border border-line bg-surface px-2 text-sm text-ink outline-none transition focus:border-primary'
 const labelCls = 'mb-1 block whitespace-nowrap text-[11px] font-medium text-faint'
+// 통화별 기본환율(1 USD당 현지통화) — 통화 변경 시 자동 채움(수동 변경 가능).
+const DEFAULT_RATE: Record<'KRW' | 'USD' | 'HNL', string> = { KRW: '1400', USD: '1', HNL: '26.5' }
 
 export default function AccountingForm({
   options,
@@ -37,14 +39,19 @@ export default function AccountingForm({
   recent: InoutRow[]
 }) {
   const router = useRouter()
+  // 통화 매칭 기본계좌(자산 DB 통화 select) — 없으면 빈 선택.
+  const accountByCurrency = useCallback(
+    (cur: string) => options.accounts.find((a) => a.currency === cur)?.id ?? '',
+    [options],
+  )
   const [gubun, setGubun] = useState<'수입' | '지출'>('수입')
   const [date, setDate] = useState(todayLocal)
   const [itemId, setItemId] = useState('')
   const [name, setName] = useState('')
   const [currency, setCurrency] = useState<'KRW' | 'USD' | 'HNL'>('KRW')
   const [principal, setPrincipal] = useState('')
-  const [rate, setRate] = useState('')
-  const [accountId, setAccountId] = useState('')
+  const [rate, setRate] = useState(DEFAULT_RATE.KRW)
+  const [accountId, setAccountId] = useState(() => accountByCurrency('KRW'))
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
@@ -69,10 +76,17 @@ export default function AccountingForm({
     setItemId('')
     setName('')
     setPrincipal('')
-    setRate('')
-    setAccountId('')
+    setRate(DEFAULT_RATE[currency])
+    setAccountId(accountByCurrency(currency))
     setErr('')
-  }, [])
+  }, [currency, accountByCurrency])
+
+  // 통화 변경 → 기본환율 + 통화 매칭 기본계좌 자동(둘 다 수동 변경 가능).
+  function onCurrencyChange(next: 'KRW' | 'USD' | 'HNL') {
+    setCurrency(next)
+    setRate(DEFAULT_RATE[next])
+    setAccountId(accountByCurrency(next))
+  }
 
   // 편집 중인 거래가 목록에서 사라지면(삭제 등) 폼을 초기화.
   useEffect(() => {
@@ -214,7 +228,7 @@ export default function AccountingForm({
             <label className={labelCls}>통화</label>
             <select
               value={currency}
-              onChange={(e) => setCurrency(e.target.value as 'KRW' | 'USD' | 'HNL')}
+              onChange={(e) => onCurrencyChange(e.target.value as 'KRW' | 'USD' | 'HNL')}
               className={inp}
             >
               <option value="KRW">KRW</option>
