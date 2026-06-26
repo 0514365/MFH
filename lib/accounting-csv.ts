@@ -108,6 +108,7 @@ export type MappedRow = {
     rate: string
     amountUsd: string
     account: string
+    supporter: string
   }
   errors: string[]
   ok: boolean
@@ -172,10 +173,16 @@ export function mapCsvRows(text: string, options: AcctOptions): MappedResult {
       ? (options.accounts.find((a) => a.id === accountId)?.name ?? '')
       : ''
 
-    // 후원자 — 수입·후원 대분류이고 이름이 후원자명과 일치하면 자동 연결(선택).
+    // 후원자 — 수입 거래에서 적요에 후원자명이 포함되면 자동 연결(정확일치 우선, 없으면 최장 포함명).
+    // CSV 에 후원자를 따로 적지 않아도 적요만으로 매칭. 예: '김우진 선교사 십일조헌금(3,4월)' → 김우진.
     let supporterId: string | null = null
-    if (gubun === '수입' && item?.category === '후원' && name) {
-      supporterId = options.supporters.find((s) => s.name === name)?.id ?? null
+    if (gubun === '수입' && name) {
+      const exact = options.supporters.find((s) => s.name === name)
+      supporterId =
+        (exact ??
+          options.supporters
+            .filter((s) => s.name && name.includes(s.name))
+            .sort((a, b) => b.name.length - a.name.length)[0])?.id ?? null
     }
 
     const ok = errors.length === 0
@@ -197,6 +204,9 @@ export function mapCsvRows(text: string, options: AcctOptions): MappedResult {
         rate: usd ? '1' : rateRaw,
         amountUsd: amountUsd ? `$${amountUsd.toFixed(2)}` : '—',
         account: accountName || accountRaw,
+        supporter: supporterId
+          ? (options.supporters.find((s) => s.id === supporterId)?.name ?? '')
+          : '',
       },
       errors,
       ok,

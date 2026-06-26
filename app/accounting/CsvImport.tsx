@@ -137,7 +137,8 @@ export default function CsvImport({ options }: { options: AcctOptions }) {
                 <th className="px-2 py-1.5 font-medium">구분</th>
                 <th className="px-2 py-1.5 font-medium">날짜</th>
                 <th className="px-2 py-1.5 font-medium">항목</th>
-                <th className="px-2 py-1.5 font-medium">이름</th>
+                <th className="px-2 py-1.5 font-medium">적요</th>
+                <th className="px-2 py-1.5 font-medium">후원자</th>
                 <th className="px-2 py-1.5 font-medium">통화</th>
                 <th className="px-2 py-1.5 text-right font-medium">금액</th>
                 <th className="px-2 py-1.5 text-right font-medium">환율</th>
@@ -159,6 +160,7 @@ export default function CsvImport({ options }: { options: AcctOptions }) {
                   </td>
                   <td className="px-2 py-1.5">{r.display.item}</td>
                   <td className="px-2 py-1.5">{r.display.name}</td>
+                  <td className="px-2 py-1.5 text-emerald-700">{r.display.supporter}</td>
                   <td className="px-2 py-1.5 text-center">{r.display.currency}</td>
                   <td className="px-2 py-1.5 text-right">{r.display.principal}</td>
                   <td className="px-2 py-1.5 text-right text-muted">{r.display.rate}</td>
