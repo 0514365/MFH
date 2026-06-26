@@ -546,10 +546,12 @@ export default function TransactionList({
                           </td>
                           <td className="px-3 py-2 text-muted">{r.date ?? '—'}</td>
                           <td className="px-3 py-2 text-ink">
-                            {r.itemId ? (nameOf.get(r.itemId) ?? '—') : '—'}
                             {r.itemId && catOf.get(r.itemId) && (
-                              <div className="text-[11px] text-faint">{catOf.get(r.itemId)}</div>
+                              <div className="text-[10px] font-medium leading-tight text-faint">
+                                {catOf.get(r.itemId)}
+                              </div>
                             )}
+                            {r.itemId ? (nameOf.get(r.itemId) ?? '—') : '—'}
                           </td>
                           <td className="px-3 py-2 text-ink">{r.name ?? '—'}</td>
                           <td className="px-3 py-2 text-right font-display text-muted">
@@ -672,12 +674,16 @@ export default function TransactionList({
                               )}
                             </span>
                           </div>
-                          <div className="mt-1 text-sm text-ink">
-                            {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
-                            {r.itemId && catOf.get(r.itemId) ? (
-                              <span className="text-faint"> · {catOf.get(r.itemId)}</span>
-                            ) : null}
-                            {r.name ? ` · ${r.name}` : ''}
+                          <div className="mt-1">
+                            {r.itemId && catOf.get(r.itemId) && (
+                              <div className="text-[10px] font-medium leading-tight text-faint">
+                                {catOf.get(r.itemId)}
+                              </div>
+                            )}
+                            <div className="text-sm text-ink">
+                              {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
+                              {r.name ? ` · ${r.name}` : ''}
+                            </div>
                           </div>
                           <div className="mt-0.5 text-xs text-faint">
                             {r.date ?? ''}

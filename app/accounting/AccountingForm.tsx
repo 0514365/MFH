@@ -65,6 +65,7 @@ export default function AccountingForm({
   const [principal, setPrincipal] = useState('')
   const [rate, setRate] = useState(DEFAULT_RATE.KRW)
   const [accountId, setAccountId] = useState(() => accountByCurrency('KRW'))
+  const [supporterId, setSupporterId] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
@@ -91,6 +92,7 @@ export default function AccountingForm({
     setPrincipal('')
     setRate(DEFAULT_RATE[currency])
     setAccountId(accountByCurrency(currency))
+    setSupporterId('')
     setErr('')
   }, [currency, accountByCurrency])
 
@@ -100,6 +102,16 @@ export default function AccountingForm({
     setRate(DEFAULT_RATE[next])
     setAccountId(accountByCurrency(next))
   }
+
+  // 후원 항목 + 적요가 후원자명과 일치하면 후원자 자동 연결(select 로 수동 변경 가능).
+  useEffect(() => {
+    if (!isDonation) {
+      setSupporterId('')
+      return
+    }
+    const match = options.supporters.find((s) => s.name.trim() === name.trim())
+    if (match) setSupporterId(match.id)
+  }, [name, isDonation, options])
 
   // 편집 중인 거래가 목록에서 사라지면(삭제 등) 폼을 초기화.
   useEffect(() => {
@@ -116,6 +128,7 @@ export default function AccountingForm({
     setPrincipal(r.principal != null ? String(r.principal) : '')
     setRate(r.rate != null ? String(r.rate) : '')
     setAccountId(r.accountId ?? '')
+    setSupporterId(r.supporterId ?? '')
     setEditingId(r.id)
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -125,9 +138,6 @@ export default function AccountingForm({
     if (!itemId) return setErr('항목을 선택하세요')
     if (!principal || Number(principal) <= 0) return setErr('금액을 입력하세요')
     if (!usd && (!rate || Number(rate) <= 0)) return setErr('환율을 입력하세요')
-    const supporterId = isDonation
-      ? (options.supporters.find((s) => s.name.trim() === name.trim())?.id ?? null)
-      : null
     const payload = {
       gubun,
       date,
@@ -138,7 +148,7 @@ export default function AccountingForm({
       rate: usd ? 1 : Number(rate),
       amountUsd: Math.round(amountUsd * 100) / 100,
       accountId: accountId || null,
-      supporterId,
+      supporterId: supporterId || null,
     }
     setSaving(true)
     const res = editingId ? await updateInout(editingId, payload) : await saveInout(payload)
@@ -205,7 +215,7 @@ export default function AccountingForm({
           </div>
 
           {/* 항목 */}
-          <div className="md:min-w-0 md:flex-1">
+          <div className="md:w-[104px] md:shrink-0">
             <label className={labelCls}>항목</label>
             <select value={itemId} onChange={(e) => setItemId(e.target.value)} className={inp}>
               <option value="">선택</option>
@@ -258,7 +268,7 @@ export default function AccountingForm({
           </div>
 
           {/* 금액(현지) */}
-          <div className="md:w-[96px] md:shrink-0">
+          <div className="md:w-[120px] md:shrink-0">
             <label className={labelCls}>금액</label>
             <input
               type="text"
@@ -283,7 +293,7 @@ export default function AccountingForm({
           </div>
 
           {/* 환산(USD, 자동) */}
-          <div className="md:w-[88px] md:shrink-0">
+          <div className="md:w-[112px] md:shrink-0">
             <label className={labelCls}>환산 $</label>
             <div className="flex h-9 items-center justify-end rounded-lg border border-dashed border-line bg-surface-subtle px-2 text-sm text-muted">
               {amountUsd
@@ -293,7 +303,7 @@ export default function AccountingForm({
           </div>
 
           {/* 계좌 */}
-          <div className="md:min-w-0 md:flex-1">
+          <div className="md:w-[140px] md:shrink-0">
             <label className={labelCls}>{gubun === '수입' ? '입금계좌' : '지불계좌'}</label>
             <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={inp}>
               <option value="">선택</option>
@@ -304,6 +314,25 @@ export default function AccountingForm({
               ))}
             </select>
           </div>
+
+          {/* 후원자 연결 — 후원 항목일 때, 적요명으로 자동 연결되며 수동 변경 가능 */}
+          {isDonation && (
+            <div className="md:min-w-0 md:flex-1">
+              <label className={labelCls}>후원자 연결</label>
+              <select
+                value={supporterId}
+                onChange={(e) => setSupporterId(e.target.value)}
+                className={inp}
+              >
+                <option value="">미연결</option>
+                {options.supporters.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* 저장 / 수정 */}
           <div className="md:w-[72px] md:shrink-0">
