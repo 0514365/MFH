@@ -76,7 +76,11 @@ async function queryAll(dbId: string, token: string): Promise<NotionPage[] | nul
   return all
 }
 
-export type DonationYearly = { total: number; years: { year: number; sum: number }[] }
+export type DonationYearly = {
+  total: number
+  years: { year: number; sum: number }[]
+  byCurrency: { currency: string; sum: number }[] // 실제 입금 통화별 원금 합(KRW·HNL·USD 순)
+}
 
 // 후원자별 헌금(노션 입출금기록 '수입' 거래)을 연도별로 집계. Map<app_id, {total, years[]}>.
 // 흐름: 후원자 DB(페이지id→앱ID) + 입출금기록(수입 거래의 후원자·날짜·금액) → 앱ID별 연도 합산.
@@ -98,6 +102,7 @@ export async function getDonationsByAppId(): Promise<Map<string, DonationYearly>
   const txs = await queryAll(INOUT_DB_ID, token)
   if (!txs) return null
   const byApp = new Map<string, Map<number, number>>()
+  const byAppCur = new Map<string, Map<string, number>>() // appId → 통화 → 원금 합
   for (const tx of txs) {
     const props = tx.properties ?? {}
     if (props['구분']?.select?.name !== '수입') continue
@@ -116,16 +121,30 @@ export async function getDonationsByAppId(): Promise<Map<string, DonationYearly>
       byApp.set(appId, years)
     }
     years.set(year, (years.get(year) ?? 0) + amount)
+    // 실제 입금 통화별 원금 합(원금·통화 없으면 USD 환산액으로 폴백).
+    const cur = props['통화']?.select?.name ?? 'USD'
+    const pr = props['원금']?.number
+    const principal = typeof pr === 'number' ? pr : amount
+    let curMap = byAppCur.get(appId)
+    if (!curMap) {
+      curMap = new Map<string, number>()
+      byAppCur.set(appId, curMap)
+    }
+    curMap.set(cur, (curMap.get(cur) ?? 0) + principal)
   }
 
   // 3) 연도 내림차순 정렬 + total.
+  const CUR_ORDER: Record<string, number> = { KRW: 0, HNL: 1, USD: 2 }
   const out = new Map<string, DonationYearly>()
   for (const [appId, years] of byApp) {
     const arr = [...years.entries()]
       .map(([year, sum]) => ({ year, sum }))
       .sort((a, b) => b.year - a.year)
     const total = arr.reduce((s, y) => s + y.sum, 0)
-    out.set(appId, { total, years: arr })
+    const byCurrency = [...(byAppCur.get(appId)?.entries() ?? [])]
+      .map(([currency, sum]) => ({ currency, sum }))
+      .sort((a, b) => (CUR_ORDER[a.currency] ?? 9) - (CUR_ORDER[b.currency] ?? 9))
+    out.set(appId, { total, years: arr, byCurrency })
   }
   return out
 }
@@ -135,7 +154,7 @@ export async function getDonationsByAppId(): Promise<Map<string, DonationYearly>
 const ITEM_DB_ID = '37c15af9-28ad-811c-b32f-c7878db9b51f' // 항목 DB(카테고리)
 const ASSET_DB_ID = '37c15af9-28ad-81eb-a392-ce9226dcdbc7' // 자산 DB(계좌)
 
-export type AcctOption = { id: string; name: string }
+export type AcctOption = { id: string; name: string; currency?: string | null }
 export type AcctOptions = {
   items: { 수입: AcctOption[]; 지출: AcctOption[] }
   supporters: AcctOption[]
@@ -167,7 +186,14 @@ export async function getAcctOptions(): Promise<AcctOptions | null> {
     const g = p.properties?.['구분']?.select?.name
     if (p.id && name && (g === '수입' || g === '지출')) items[g].push({ id: p.id, name })
   }
-  return { items, supporters: pickOptions(supPages), accounts: pickOptions(accPages) }
+  // 계좌는 통화(KRW/USD/HNL select) 포함 — 폼에서 통화별 기본계좌 자동선택용.
+  const accounts: AcctOption[] = []
+  for (const p of accPages) {
+    const name = readText(p.properties?.['이름'])
+    if (p.id && name)
+      accounts.push({ id: p.id, name, currency: p.properties?.['통화']?.select?.name ?? null })
+  }
+  return { items, supporters: pickOptions(supPages), accounts }
 }
 
 export type AccountBalance = { id: string; name: string; balanceUsd: number; currency: string | null }
