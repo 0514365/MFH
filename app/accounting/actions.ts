@@ -47,6 +47,23 @@ export async function deleteInout(pageId: string): Promise<{ ok: boolean; error?
   return res
 }
 
+// 일괄 생성(CSV 일괄 입력) — 매핑·검증된 거래들을 순차 생성(노션 rate limit 회피). 부분 성공 시 done 보고.
+export async function bulkCreateInout(
+  items: InoutInput[],
+): Promise<{ ok: boolean; done: number; error?: string }> {
+  if (!(await isMasterUser())) return { ok: false, done: 0, error: '권한이 없습니다' }
+  if (items.length === 0) return { ok: false, done: 0, error: '저장할 거래가 없습니다' }
+  let done = 0
+  let error: string | undefined
+  for (const it of items) {
+    const res = await createInoutRecord(it)
+    if (res.ok) done++
+    else error = res.error
+  }
+  if (done > 0) revalidatePath('/accounting')
+  return { ok: done === items.length, done, error }
+}
+
 // 일괄 삭제 — 선택 거래들을 순차 archived(노션 rate limit 회피). 부분 성공 시 done 으로 보고.
 export async function bulkDeleteInout(
   ids: string[],

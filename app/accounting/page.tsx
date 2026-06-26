@@ -9,6 +9,7 @@ import { getAcctOptions, getRecentInout, getAccountBalances } from '@/lib/notion
 import BackButton from '@/components/BackButton'
 import AccountingForm from './AccountingForm'
 import AccountingSummary from './AccountingSummary'
+import CsvImport from './CsvImport'
 import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
@@ -52,6 +53,7 @@ export default async function AccountingPage() {
       {options ? (
         <>
           <AccountingSummary recent={recent} balances={balances} />
+          <CsvImport options={options} />
           <AccountingForm options={options} recent={recent} />
         </>
       ) : (
