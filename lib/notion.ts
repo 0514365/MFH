@@ -149,6 +149,34 @@ export async function getDonationsByAppId(): Promise<Map<string, DonationYearly>
   return out
 }
 
+// 후원자 목록 통계용 — 후원자 귀속 '수입'의 올해/이번달 USD 합(America/Tegucigalpa 기준). 실패 시 null.
+// 후원 SoT 가 노션으로 이전돼, 후원자 목록의 올해/이번달 카드를 Supabase 대신 노션 집계로 일원화.
+export async function getSupporterDonationTotals(): Promise<{
+  yearUsd: number
+  monthUsd: number
+} | null> {
+  const token = process.env.NOTION_TOKEN
+  if (!token) return null
+  const txs = await queryAll(INOUT_DB_ID, token)
+  if (!txs) return null
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
+  const yearStr = today.slice(0, 4)
+  const ymStr = today.slice(0, 7)
+  let yearUsd = 0
+  let monthUsd = 0
+  for (const tx of txs) {
+    const pr = tx.properties ?? {}
+    if (pr['구분']?.select?.name !== '수입') continue
+    if (!pr['후원자']?.relation?.[0]?.id) continue
+    const dateStr = pr['날짜']?.date?.start
+    if (!dateStr) continue
+    const amt = typeof pr['금액']?.number === 'number' ? pr['금액'].number : 0
+    if (dateStr.startsWith(yearStr)) yearUsd += amt
+    if (dateStr.startsWith(ymStr)) monthUsd += amt
+  }
+  return { yearUsd: Math.round(yearUsd * 100) / 100, monthUsd: Math.round(monthUsd * 100) / 100 }
+}
+
 // ===== 회계 입력(A안) — 콤보 옵션·최근 거래 read + 노션 write =====
 // 앱에서 노션 입출금기록에 직접 입력(write)하기 위한 함수. 노션은 SoT 유지(앱은 저장소 없음).
 const ITEM_DB_ID = '37c15af9-28ad-811c-b32f-c7878db9b51f' // 항목 DB(카테고리)

@@ -2,9 +2,10 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
-import type { Supporter, SupporterDonation } from '@/lib/types'
+import type { Supporter } from '@/lib/types'
 import { SUPPORTER_PHOTO_BUCKET, formatUsd } from '@/lib/supporters'
 import { isMaster } from '@/lib/members'
+import { getSupporterDonationTotals } from '@/lib/notion'
 import SupportersList from './SupportersList'
 import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 import BulkMailButton from './BulkMailButton'
@@ -28,25 +29,12 @@ export default async function SupportersPage() {
     .order('name', { ascending: true })
   const supporters = (data ?? []) as Supporter[]
 
-  // 후원자별 헌금 USD 합계 — 목록 카드 표기용.
+  // 후원자별 헌금 USD 합계(목록 카드) — 노션 회계(SoT) 집계로 일원화.
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
-  const yearStr = today.slice(0, 4)
   const ymStr = today.slice(0, 7)
-
-  const { data: donRows } = await supabase
-    .from('supporter_donations')
-    .select('*')
-    .order('donation_date', { ascending: false })
-  const donations = (donRows ?? []) as SupporterDonation[]
-  let yearUsd = 0
-  let monthUsd = 0
-  for (const d of donations) {
-    const v = Number(d.amount_usd) || 0
-    if (d.donation_date?.startsWith(yearStr)) yearUsd += v
-    if (d.donation_date?.startsWith(ymStr)) monthUsd += v
-  }
-  yearUsd = Math.round(yearUsd * 100) / 100
-  monthUsd = Math.round(monthUsd * 100) / 100
+  const totals = await getSupporterDonationTotals()
+  const yearUsd = totals?.yearUsd ?? 0
+  const monthUsd = totals?.monthUsd ?? 0
   const activeCount = supporters.filter((s) => s.is_active).length
   const recurringCount = supporters.filter((s) => s.is_active && s.is_recurring).length
 
