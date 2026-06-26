@@ -10,6 +10,19 @@ function fmtUsd(n: number | null): string {
   if (n == null) return '—'
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
+// 통화 기호 — 모바일 카드에서 원금 앞에 붙인다.
+const CUR_SYMBOL: Record<string, string> = { KRW: '₩', USD: '$', HNL: 'L' }
+// 현지통화 원금(기호 + 천단위, 소수 최대 2) — 모바일.
+function fmtLocal(cur: string | null, n: number | null): string {
+  if (n == null) return '—'
+  const sym = cur ? (CUR_SYMBOL[cur] ?? '') : ''
+  return `${sym}${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+}
+// 데스크탑 통화열 — 행 통화가 열 통화와 같을 때만 숫자(기호는 열 제목이 대신).
+function fmtColCell(rowCur: string | null, colCur: string, n: number | null): string {
+  if (rowCur !== colCur || n == null) return ''
+  return n.toLocaleString('en-US', { maximumFractionDigits: 2 })
+}
 function monthLabel(key: string): string {
   if (key === '날짜없음') return '날짜 없음'
   const [y, m] = key.split('-')
@@ -252,9 +265,9 @@ export default function TransactionList({
             onChange={toggleAllVisible}
             aria-label="전체 선택"
           />
-          <h2 className="text-[13px] font-bold text-muted">
+          <h2 className="text-[18px] font-bold text-ink">
             거래 내역
-            <span className="ml-1.5 font-normal text-faint">{shownCount}건</span>
+            <span className="ml-1.5 text-[13px] font-normal text-faint">{shownCount}건</span>
           </h2>
         </div>
         {hasFilter && (
@@ -451,11 +464,14 @@ export default function TransactionList({
                   </th>
                   <th className="px-3 py-2 font-medium">항목</th>
                   <th className="px-3 py-2 font-medium">이름</th>
+                  <th className="px-3 py-2 text-right font-medium">원화</th>
+                  <th className="px-3 py-2 text-right font-medium">렘피라</th>
+                  <th className="px-3 py-2 text-right font-medium">달러</th>
                   <th
                     className="cursor-pointer select-none px-3 py-2 text-right font-medium hover:text-primary"
                     onClick={() => toggleSort('amount')}
                   >
-                    환산 (USD){arrow('amount')}
+                    {`환산$${arrow('amount')}`}
                   </th>
                   <th className="px-3 py-2 font-medium">계좌</th>
                   <th className="px-3 py-2 text-right font-medium">관리</th>
@@ -466,7 +482,7 @@ export default function TransactionList({
                 return (
                   <tbody key={g.key} className="border-b border-line last:border-0">
                     <tr className="bg-surface-subtle/60">
-                      <td colSpan={8} className="px-3 py-1.5">
+                      <td colSpan={11} className="px-3 py-1.5">
                         <div className="flex items-center justify-between">
                           <button
                             type="button"
@@ -526,6 +542,15 @@ export default function TransactionList({
                             {r.itemId ? (nameOf.get(r.itemId) ?? '—') : '—'}
                           </td>
                           <td className="px-3 py-2 text-ink">{r.name ?? '—'}</td>
+                          <td className="px-3 py-2 text-right font-display text-muted">
+                            {fmtColCell(r.currency, 'KRW', r.principal)}
+                          </td>
+                          <td className="px-3 py-2 text-right font-display text-muted">
+                            {fmtColCell(r.currency, 'HNL', r.principal)}
+                          </td>
+                          <td className="px-3 py-2 text-right font-display text-muted">
+                            {fmtColCell(r.currency, 'USD', r.principal)}
+                          </td>
                           <td className="px-3 py-2 text-right font-display font-bold text-ink">
                             {fmtUsd(r.amountUsd)}
                           </td>
@@ -555,7 +580,7 @@ export default function TransactionList({
                       ))}
                     {!isCollapsed && (
                       <tr className="border-t border-line bg-surface-subtle/60">
-                        <td colSpan={8} className="px-3 py-1.5 text-right">
+                        <td colSpan={11} className="px-3 py-1.5 text-right">
                           <span className="text-[11px] text-faint">월 합계</span>
                           <span className="ml-2 font-display text-[12px] font-bold text-emerald-700">
                             수입 {fmtUsd(g.inUsd)}
@@ -629,8 +654,15 @@ export default function TransactionList({
                                 {r.gubun ?? '—'}
                               </span>
                             </div>
-                            <span className="font-display text-[14px] font-bold text-ink">
-                              {fmtUsd(r.amountUsd)}
+                            <span className="text-right">
+                              <span className="block font-display text-[14px] font-bold text-ink">
+                                {fmtLocal(r.currency, r.principal)}
+                              </span>
+                              {r.currency !== 'USD' && (
+                                <span className="block font-display text-[11px] text-faint">
+                                  {fmtUsd(r.amountUsd)}
+                                </span>
+                              )}
                             </span>
                           </div>
                           <div className="mt-1 text-sm text-ink">
