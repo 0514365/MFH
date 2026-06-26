@@ -154,7 +154,7 @@ export async function getDonationsByAppId(): Promise<Map<string, DonationYearly>
 const ITEM_DB_ID = '37c15af9-28ad-811c-b32f-c7878db9b51f' // 항목 DB(카테고리)
 const ASSET_DB_ID = '37c15af9-28ad-81eb-a392-ce9226dcdbc7' // 자산 DB(계좌)
 
-export type AcctOption = { id: string; name: string; currency?: string | null }
+export type AcctOption = { id: string; name: string; currency?: string | null; category?: string | null }
 export type AcctOptions = {
   items: { 수입: AcctOption[]; 지출: AcctOption[] }
   supporters: AcctOption[]
@@ -184,7 +184,8 @@ export async function getAcctOptions(): Promise<AcctOptions | null> {
   for (const p of itemPages) {
     const name = readText(p.properties?.['이름'])
     const g = p.properties?.['구분']?.select?.name
-    if (p.id && name && (g === '수입' || g === '지출')) items[g].push({ id: p.id, name })
+    if (p.id && name && (g === '수입' || g === '지출'))
+      items[g].push({ id: p.id, name, category: p.properties?.['대분류']?.select?.name ?? null })
   }
   // 계좌는 통화(KRW/USD/HNL select) 포함 — 폼에서 통화별 기본계좌 자동선택용.
   const accounts: AcctOption[] = []

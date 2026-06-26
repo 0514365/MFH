@@ -71,6 +71,14 @@ export default function TransactionList({
     return m
   }, [options])
 
+  // 항목 id → 대분류(노션 `대분류`) — 거래 행에 소분류와 함께 표기.
+  const catOf = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const i of [...options.items['수입'], ...options.items['지출']])
+      if (i.category) m.set(i.id, i.category)
+    return m
+  }, [options])
+
   // 항목 필터 옵션 — 구분 필터에 맞춰 좁힌다.
   const itemOptions = useMemo(() => {
     if (fGubun === '수입') return options.items['수입']
@@ -539,6 +547,9 @@ export default function TransactionList({
                           <td className="px-3 py-2 text-muted">{r.date ?? '—'}</td>
                           <td className="px-3 py-2 text-ink">
                             {r.itemId ? (nameOf.get(r.itemId) ?? '—') : '—'}
+                            {r.itemId && catOf.get(r.itemId) && (
+                              <div className="text-[11px] text-faint">{catOf.get(r.itemId)}</div>
+                            )}
                           </td>
                           <td className="px-3 py-2 text-ink">{r.name ?? '—'}</td>
                           <td className="px-3 py-2 text-right font-display text-muted">
@@ -663,6 +674,9 @@ export default function TransactionList({
                           </div>
                           <div className="mt-1 text-sm text-ink">
                             {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
+                            {r.itemId && catOf.get(r.itemId) ? (
+                              <span className="text-faint"> · {catOf.get(r.itemId)}</span>
+                            ) : null}
                             {r.name ? ` · ${r.name}` : ''}
                           </div>
                           <div className="mt-0.5 text-xs text-faint">

@@ -4,7 +4,7 @@
 // 입력 폼 + 최근 거래 목록 통합(편집 모드 상태 공유). 저장/수정/삭제는 server action → 노션(SoT).
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { AcctOptions, InoutRow } from '@/lib/notion'
+import type { AcctOption, AcctOptions, InoutRow } from '@/lib/notion'
 import { saveInout, updateInout } from './actions'
 import TransactionList from './TransactionList'
 
@@ -30,6 +30,19 @@ const inp =
 const labelCls = 'mb-1 block whitespace-nowrap text-[11px] font-medium text-faint'
 // 통화별 기본환율(1 USD당 현지통화) — 통화 변경 시 자동 채움(수동 변경 가능).
 const DEFAULT_RATE: Record<'KRW' | 'USD' | 'HNL', string> = { KRW: '1400', USD: '1', HNL: '26.5' }
+// 항목 드롭다운 대분류 그룹 순서 — 노션 항목의 `대분류` select 기준.
+const CAT_ORDER = ['후원', '헌금', '기타수입', '사역', '차량', '생활', '운영/행정']
+function groupByCategory(items: AcctOption[]): [string, AcctOption[]][] {
+  const map = new Map<string, AcctOption[]>()
+  for (const it of items) {
+    const c = it.category || '기타'
+    if (!map.has(c)) map.set(c, [])
+    map.get(c)!.push(it)
+  }
+  return [...map.entries()].sort(
+    (a, b) => (CAT_ORDER.indexOf(a[0]) + 1 || 99) - (CAT_ORDER.indexOf(b[0]) + 1 || 99),
+  )
+}
 
 export default function AccountingForm({
   options,
@@ -196,10 +209,14 @@ export default function AccountingForm({
             <label className={labelCls}>항목</label>
             <select value={itemId} onChange={(e) => setItemId(e.target.value)} className={inp}>
               <option value="">선택</option>
-              {items.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.name}
-                </option>
+              {groupByCategory(items).map(([cat, list]) => (
+                <optgroup key={cat} label={cat}>
+                  {list.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
