@@ -26,9 +26,10 @@ const RIGHT_TABS: Tab[] = [
   { href: '/tasks', label: 'To-Do', icon: 'todo', match: (p) => p.startsWith('/tasks') },
 ]
 
-// 탭바를 숨길 경로(로그인·공개페이지). 스플래시는 홈 내부 SplashGate 가 처리.
+// 탭바를 숨길 경로(로그인·공개페이지·회계 브랜치). 스플래시는 홈 내부 SplashGate 가 처리.
 // '/p' 는 '/p/' 하위(공개 포트폴리오)만 매칭 — '/portfolio'·'/projects' 는 영향 없음.
-const HIDDEN_PREFIXES = ['/login', '/p']
+// '/accounting' 하위는 전용 AccountingNav(4탭)를 쓰므로 전역 탭바 숨김.
+const HIDDEN_PREFIXES = ['/login', '/p', '/accounting']
 
 // 중앙 홈 버튼 아이콘(집) — 마룬 원형 위 흰 선(currentColor 상속, Feather home 기반).
 function HomeIcon() {
