@@ -265,9 +265,9 @@ export default function TransactionList({
             onChange={toggleAllVisible}
             aria-label="전체 선택"
           />
-          <h2 className="text-[18px] font-bold text-ink">
+          <h2 className="text-[13px] font-bold text-muted">
             거래 내역
-            <span className="ml-1.5 text-[13px] font-normal text-faint">{shownCount}건</span>
+            <span className="ml-1.5 font-normal text-faint">{shownCount}건</span>
           </h2>
         </div>
         {hasFilter && (
@@ -444,7 +444,7 @@ export default function TransactionList({
           <div className="hidden overflow-hidden rounded-2xl border border-line md:block">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-line bg-surface-subtle text-left text-[11px] text-faint">
+                <tr className="border-b border-line bg-surface-subtle text-center text-[13px] font-medium text-muted">
                   <th className="w-9 px-3 py-2">
                     <input
                       ref={headRef}
@@ -464,17 +464,16 @@ export default function TransactionList({
                   </th>
                   <th className="px-3 py-2 font-medium">항목</th>
                   <th className="px-3 py-2 font-medium">이름</th>
-                  <th className="px-3 py-2 text-right font-medium">원화</th>
-                  <th className="px-3 py-2 text-right font-medium">렘피라</th>
-                  <th className="px-3 py-2 text-right font-medium">달러</th>
+                  <th className="px-3 py-2 font-medium">원화</th>
+                  <th className="px-3 py-2 font-medium">렘피라</th>
+                  <th className="px-3 py-2 font-medium">달러</th>
                   <th
-                    className="cursor-pointer select-none px-3 py-2 text-right font-medium hover:text-primary"
+                    className="cursor-pointer select-none px-3 py-2 font-medium hover:text-primary"
                     onClick={() => toggleSort('amount')}
                   >
                     {`환산$${arrow('amount')}`}
                   </th>
-                  <th className="px-3 py-2 font-medium">계좌</th>
-                  <th className="px-3 py-2 text-right font-medium">관리</th>
+                  <th className="px-3 py-2 font-medium">관리</th>
                 </tr>
               </thead>
               {groups.map((g) => {
@@ -482,7 +481,7 @@ export default function TransactionList({
                 return (
                   <tbody key={g.key} className="border-b border-line last:border-0">
                     <tr className="bg-surface-subtle/60">
-                      <td colSpan={11} className="px-3 py-1.5">
+                      <td colSpan={10} className="px-3 py-1.5">
                         <div className="flex items-center justify-between">
                           <button
                             type="button"
@@ -554,9 +553,6 @@ export default function TransactionList({
                           <td className="px-3 py-2 text-right font-display font-bold text-ink">
                             {fmtUsd(r.amountUsd)}
                           </td>
-                          <td className="px-3 py-2 text-muted">
-                            {r.accountId ? (nameOf.get(r.accountId) ?? '—') : '—'}
-                          </td>
                           <td className="px-3 py-2">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
@@ -580,7 +576,7 @@ export default function TransactionList({
                       ))}
                     {!isCollapsed && (
                       <tr className="border-t border-line bg-surface-subtle/60">
-                        <td colSpan={11} className="px-3 py-1.5 text-right">
+                        <td colSpan={10} className="px-3 py-1.5 text-right">
                           <span className="text-[11px] text-faint">월 합계</span>
                           <span className="ml-2 font-display text-[12px] font-bold text-emerald-700">
                             수입 {fmtUsd(g.inUsd)}
