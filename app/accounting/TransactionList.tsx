@@ -1,6 +1,6 @@
 'use client'
-// MFH-ACCOUNTING-TXLIST-V2
-// 거래 내역 — 월별 그룹화 + 월별 수입/지출 합계 + 필터(구분·항목·계좌·이름) + 정렬(날짜·금액).
+// MFH-ACCOUNTING-TXLIST-V3
+// 거래 내역 — 월별 그룹화 + 월별 수입/지출 합계 + 필터(구분·대분류·항목·통화·계좌·기간·이름) + 정렬(날짜·금액).
 // 행별 수정·삭제 + 다중선택 → 일괄 삭제 / 통합 수정(항목·계좌). 데이터는 노션(SoT) 전체 read, 변경은 server action.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AcctOptions, InoutRow, InoutPatch } from '@/lib/notion'
@@ -51,6 +51,10 @@ export default function TransactionList({
   const [fGubun, setFGubun] = useState<GubunFilter>('전체')
   const [fItemId, setFItemId] = useState('')
   const [fAccountId, setFAccountId] = useState('')
+  const [fCat, setFCat] = useState('')
+  const [fCur, setFCur] = useState('')
+  const [fFrom, setFFrom] = useState('')
+  const [fTo, setFTo] = useState('')
   const [q, setQ] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
@@ -79,6 +83,14 @@ export default function TransactionList({
     return m
   }, [options])
 
+  // 대분류 필터 옵션 — 항목의 `대분류` 고유값(폼과 동일 순서).
+  const catOptions = useMemo(() => {
+    const ORDER = ['후원', '헌금', '기타수입', '사역', '차량', '생활', '운영/행정']
+    const s = new Set<string>()
+    for (const i of [...options.items['수입'], ...options.items['지출']]) if (i.category) s.add(i.category)
+    return [...s].sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99))
+  }, [options])
+
   // 항목 필터 옵션 — 구분 필터에 맞춰 좁힌다.
   const itemOptions = useMemo(() => {
     if (fGubun === '수입') return options.items['수입']
@@ -93,6 +105,10 @@ export default function TransactionList({
       if (fGubun !== '전체' && r.gubun !== fGubun) return false
       if (fItemId && r.itemId !== fItemId) return false
       if (fAccountId && r.accountId !== fAccountId) return false
+      if (fCat && (!r.itemId || catOf.get(r.itemId) !== fCat)) return false
+      if (fCur && r.currency !== fCur) return false
+      if (fFrom && (r.date ?? '') < fFrom) return false
+      if (fTo && (r.date ?? '') > fTo) return false
       if (ql && !(r.name ?? '').toLowerCase().includes(ql)) return false
       return true
     })
@@ -128,17 +144,25 @@ export default function TransactionList({
       }
       return { key, rows, inUsd, outUsd }
     })
-  }, [recent, fGubun, fItemId, fAccountId, q, sortKey, sortDir])
+  }, [recent, fGubun, fItemId, fAccountId, fCat, fCur, fFrom, fTo, q, sortKey, sortDir, catOf])
 
   const visibleIds = useMemo(() => groups.flatMap((g) => g.rows.map((r) => r.id)), [groups])
   const shownCount = visibleIds.length
-  const hasFilter = fGubun !== '전체' || !!fItemId || !!fAccountId || !!q.trim()
+  const hasFilter =
+    fGubun !== '전체' ||
+    !!fItemId ||
+    !!fAccountId ||
+    !!fCat ||
+    !!fCur ||
+    !!fFrom ||
+    !!fTo ||
+    !!q.trim()
 
   // 필터·정렬이 바뀌면 선택을 초기화(보이지 않는 선택에 작업되는 혼란 방지).
   useEffect(() => {
     setSelected(new Set())
     setBulkOpen(false)
-  }, [fGubun, fItemId, fAccountId, q, sortKey, sortDir])
+  }, [fGubun, fItemId, fAccountId, fCat, fCur, fFrom, fTo, q, sortKey, sortDir])
 
   // 선택 행 분석 — 통합 수정 대상(수입·지출만), 구분 혼합 여부.
   const selRows = useMemo(() => recent.filter((r) => selected.has(r.id)), [recent, selected])
@@ -183,6 +207,10 @@ export default function TransactionList({
     setFGubun('전체')
     setFItemId('')
     setFAccountId('')
+    setFCat('')
+    setFCur('')
+    setFFrom('')
+    setFTo('')
     setQ('')
   }
   function toggleRow(id: string) {
@@ -314,6 +342,14 @@ export default function TransactionList({
             </button>
           ))}
         </div>
+        <select value={fCat} onChange={(e) => setFCat(e.target.value)} className={`${ctl} min-w-[88px]`}>
+          <option value="">분류 전체</option>
+          {catOptions.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
         <select value={fItemId} onChange={(e) => setFItemId(e.target.value)} className={`${ctl} min-w-[96px]`}>
           <option value="">항목 전체</option>
           {itemOptions.map((i) => (
@@ -321,6 +357,12 @@ export default function TransactionList({
               {i.name}
             </option>
           ))}
+        </select>
+        <select value={fCur} onChange={(e) => setFCur(e.target.value)} className={`${ctl} min-w-[72px]`}>
+          <option value="">통화 전체</option>
+          <option value="KRW">KRW</option>
+          <option value="USD">USD</option>
+          <option value="HNL">HNL</option>
         </select>
         <select
           value={fAccountId}
@@ -353,6 +395,25 @@ export default function TransactionList({
           >
             {sortDir === 'asc' ? '오름 ↑' : '내림 ↓'}
           </button>
+        </div>
+        {/* 기간 — 시작·종료(날짜 범위) */}
+        <div className="flex w-full items-center gap-1.5 sm:w-auto">
+          <span className="text-[11px] text-faint">기간</span>
+          <input
+            type="date"
+            value={fFrom}
+            onChange={(e) => setFFrom(e.target.value)}
+            className={`${ctl} flex-1 sm:flex-none`}
+            aria-label="시작일"
+          />
+          <span className="text-faint">~</span>
+          <input
+            type="date"
+            value={fTo}
+            onChange={(e) => setFTo(e.target.value)}
+            className={`${ctl} flex-1 sm:flex-none`}
+            aria-label="종료일"
+          />
         </div>
       </div>
 
