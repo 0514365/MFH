@@ -172,9 +172,9 @@ export function mapCsvRows(text: string, options: AcctOptions): MappedResult {
       ? (options.accounts.find((a) => a.id === accountId)?.name ?? '')
       : ''
 
-    // 후원자 — 수입·후원금이고 이름이 후원자명과 일치하면 자동 연결(선택).
+    // 후원자 — 수입·후원 대분류이고 이름이 후원자명과 일치하면 자동 연결(선택).
     let supporterId: string | null = null
-    if (gubun === '수입' && item?.name === '후원금' && name) {
+    if (gubun === '수입' && item?.category === '후원' && name) {
       supporterId = options.supporters.find((s) => s.name === name)?.id ?? null
     }
 

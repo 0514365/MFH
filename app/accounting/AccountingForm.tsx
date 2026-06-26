@@ -70,11 +70,11 @@ export default function AccountingForm({
   const [err, setErr] = useState('')
 
   const items = options.items[gubun]
-  const donationId = useMemo(
-    () => options.items['수입'].find((i) => i.name === '후원금')?.id ?? '',
-    [options],
-  )
-  const isDonation = gubun === '수입' && itemId === donationId
+  // 후원자 콤보·자동연결 대상 — 항목의 대분류가 '후원'(정기·일시후원·목적헌금)일 때.
+  const isDonation = useMemo(() => {
+    if (gubun !== '수입' || !itemId) return false
+    return options.items['수입'].find((i) => i.id === itemId)?.category === '후원'
+  }, [gubun, itemId, options])
   const usd = currency === 'USD'
   const amountUsd = useMemo(() => {
     const p = Number(principal)
