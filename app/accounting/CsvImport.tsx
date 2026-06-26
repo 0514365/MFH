@@ -54,7 +54,7 @@ export default function CsvImport({ options }: { options: AcctOptions }) {
 
   if (!open) {
     return (
-      <div className="mb-4">
+      <div className="mb-4 flex justify-end">
         <button
           type="button"
           onClick={() => setOpen(true)}

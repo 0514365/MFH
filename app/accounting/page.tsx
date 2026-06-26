@@ -35,20 +35,28 @@ export default async function AccountingPage() {
     <>
       <AccountingSummary recent={recent} balances={balances} />
 
-      {/* 빠른 이동 — 기록(주요 CTA·accent) / 내역 */}
-      <div className="mb-5 grid grid-cols-2 gap-3">
+      {/* 빠른 이동 — 새 기록(주요 CTA·accent) + 거래내역·분석 */}
+      <div className="mb-5 space-y-3">
         <Link
           href="/accounting/entry"
           className="flex h-11 items-center justify-center rounded-xl bg-accent text-sm font-bold text-white transition active:scale-[0.98]"
         >
           + 새 기록
         </Link>
-        <Link
-          href="/accounting/ledger"
-          className="flex h-11 items-center justify-center rounded-xl border border-line bg-surface text-sm font-medium text-ink transition hover:border-primary active:scale-[0.98]"
-        >
-          전체 내역
-        </Link>
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            href="/accounting/ledger"
+            className="flex h-11 items-center justify-center rounded-xl border border-line bg-surface text-sm font-medium text-ink transition hover:border-primary active:scale-[0.98]"
+          >
+            거래내역
+          </Link>
+          <Link
+            href="/accounting/report"
+            className="flex h-11 items-center justify-center rounded-xl border border-line bg-surface text-sm font-medium text-ink transition hover:border-primary active:scale-[0.98]"
+          >
+            분석
+          </Link>
+        </div>
       </div>
 
       {/* 최근 거래 5건 */}
