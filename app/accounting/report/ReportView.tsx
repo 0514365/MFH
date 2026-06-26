@@ -1,6 +1,7 @@
 'use client'
-// MFH-ACCOUNTING-REPORT-V1
-// 회계 리포트 — 연도 선택 + 항목별 수입/지출 + 후원자별 헌금 + 계좌 잔액. 표시 전용, 집계는 클라이언트(recent·options·balances).
+// MFH-ACCOUNTING-REPORT-V2
+// 회계 분석 — 연도 선택 + 월별(연도별) 수입/지출 추이(경량 SVG) + 대분류별 수입/지출 + 후원자별 헌금 + 계좌 잔액.
+// 표시 전용, 집계는 클라이언트(recent·options·balances). 차트는 의존성 없이 직접 SVG.
 import { useMemo, useState, type ReactNode } from 'react'
 import type { AccountBalance, AcctOptions, InoutRow } from '@/lib/notion'
 
@@ -112,6 +113,71 @@ function CategoryBarList({ groups, color }: { groups: CatGroup[]; color: string 
   )
 }
 
+type TrendBucket = { label: string; income: number; expense: number }
+
+// 월별(또는 연도별) 수입·지출 추이 — 의존성 없는 경량 SVG 그룹 막대(수입 emerald · 지출 red).
+function TrendChart({ buckets }: { buckets: TrendBucket[] }) {
+  const hasData = buckets.some((b) => b.income > 0 || b.expense > 0)
+  if (!hasData) return <p className="py-6 text-center text-xs text-faint">거래 없음</p>
+  const max = Math.max(1, ...buckets.map((b) => Math.max(b.income, b.expense)))
+  const n = buckets.length
+  const groupW = 34
+  const W = n * groupW
+  const H = 150
+  const padT = 10
+  const padB = 24
+  const chartH = H - padT - padB
+  const base = padT + chartH
+  const barW = 12
+  return (
+    <div>
+      <div className="overflow-x-auto">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          width="100%"
+          height={H}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label="월별 수입·지출 추이"
+        >
+          <line x1={0} y1={base} x2={W} y2={base} stroke="var(--line)" strokeWidth={1} />
+          {buckets.map((b, i) => {
+            const cx = i * groupW + groupW / 2
+            const ih = (b.income / max) * chartH
+            const eh = (b.expense / max) * chartH
+            return (
+              <g key={b.label}>
+                <rect
+                  x={cx - barW - 1}
+                  y={base - ih}
+                  width={barW}
+                  height={ih}
+                  rx={2}
+                  fill="#059669"
+                />
+                <rect x={cx + 1} y={base - eh} width={barW} height={eh} rx={2} fill="#dc2626" />
+                <text x={cx} y={H - 8} textAnchor="middle" fontSize={9} fill="var(--text-faint)">
+                  {b.label}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+      <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-faint">
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-sm" style={{ background: '#059669' }} />
+          수입
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-sm" style={{ background: '#dc2626' }} />
+          지출
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export default function ReportView({
   recent,
   options,
@@ -132,6 +198,38 @@ export default function ReportView({
     return [...set].sort().reverse()
   }, [recent, thisYear])
   const [year, setYear] = useState(thisYear)
+
+  // 추이 — 연도 선택 시 1~12월, '전체'면 연도별. 수입·지출 USD 합.
+  const trend = useMemo<TrendBucket[]>(() => {
+    if (year === '전체') {
+      const m = new Map<string, { income: number; expense: number }>()
+      for (const r of recent) {
+        const y = (r.date ?? '').slice(0, 4)
+        if (!y) continue
+        const g = m.get(y) ?? { income: 0, expense: 0 }
+        if (r.gubun === '수입') g.income += r.amountUsd ?? 0
+        else if (r.gubun === '지출') g.expense += r.amountUsd ?? 0
+        m.set(y, g)
+      }
+      return [...m.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([y, v]) => ({ label: `'${y.slice(2)}`, ...v }))
+    }
+    const arr: TrendBucket[] = Array.from({ length: 12 }, (_, i) => ({
+      label: String(i + 1),
+      income: 0,
+      expense: 0,
+    }))
+    for (const r of recent) {
+      const d = r.date ?? ''
+      if (d.slice(0, 4) !== year) continue
+      const mi = Number(d.slice(5, 7)) - 1
+      if (mi < 0 || mi > 11) continue
+      if (r.gubun === '수입') arr[mi].income += r.amountUsd ?? 0
+      else if (r.gubun === '지출') arr[mi].expense += r.amountUsd ?? 0
+    }
+    return arr
+  }, [recent, year])
 
   const itemName = useMemo(() => {
     const m = new Map<string, string>()
@@ -219,6 +317,13 @@ export default function ReportView({
       </div>
 
       <div className="space-y-4">
+        <Card
+          title={year === '전체' ? '연도별 추이' : '월별 추이'}
+          right={`순 ${fmtUsd(incomeTotal - expenseTotal)}`}
+          rightColor={incomeTotal - expenseTotal >= 0 ? 'text-ink' : 'text-red-700'}
+        >
+          <TrendChart buckets={trend} />
+        </Card>
         <Card title="대분류별 수입" right={fmtUsd(incomeTotal)} rightColor="text-emerald-700">
           <CategoryBarList groups={incomeGroups} color="#059669" />
         </Card>
