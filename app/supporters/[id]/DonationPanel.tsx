@@ -4,9 +4,19 @@
 import { formatUsd } from '@/lib/supporters'
 import type { DonationYearly } from '@/lib/notion'
 
+// 입금 총액은 실제 입금 통화로 표기 — 기호 + 천단위(소수 최대 2).
+const CUR_SYMBOL: Record<string, string> = { KRW: '₩', USD: '$', HNL: 'L' }
+function fmtCur(cur: string, n: number): string {
+  return `${CUR_SYMBOL[cur] ?? ''}${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+}
+
 export default function DonationPanel({ yearly }: { yearly?: DonationYearly | null }) {
   const total = yearly?.total ?? 0
   const years = yearly?.years ?? []
+  const byCurrency = yearly?.byCurrency ?? []
+  // USD 단일이면 환산 표기가 중복 → 생략.
+  const showConverted =
+    byCurrency.length > 0 && !(byCurrency.length === 1 && byCurrency[0].currency === 'USD')
 
   return (
     <section className="border-t border-line px-5 py-7">
@@ -19,9 +29,20 @@ export default function DonationPanel({ yearly }: { yearly?: DonationYearly | nu
         </div>
         <div className="text-right">
           <div className="font-display text-[8px] font-bold uppercase tracking-[0.15em] text-faint">
-            Total (USD)
+            입금 총액
           </div>
-          <div className="font-display text-[16px] font-bold text-ink">{formatUsd(total)}</div>
+          {byCurrency.length > 0 ? (
+            <div className="font-display text-[16px] font-bold leading-tight text-ink">
+              {byCurrency.map((c) => (
+                <div key={c.currency}>{fmtCur(c.currency, c.sum)}</div>
+              ))}
+            </div>
+          ) : (
+            <div className="font-display text-[16px] font-bold text-ink">{formatUsd(total)}</div>
+          )}
+          {showConverted && (
+            <div className="mt-0.5 text-[11px] font-medium text-faint">환산 {formatUsd(total)}</div>
+          )}
         </div>
       </div>
 
