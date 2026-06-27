@@ -698,66 +698,70 @@ export default function TransactionList({
                                 : 'border-line'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-start justify-between gap-3">
+                            {/* 좌: 체크박스 + 내용 */}
+                            <div className="flex min-w-0 flex-1 items-start gap-2">
                               <input
                                 type="checkbox"
-                                className={cbCls}
+                                className={`${cbCls} mt-0.5`}
                                 checked={selected.has(r.id)}
                                 onChange={() => toggleRow(r.id)}
                                 onClick={(e) => e.stopPropagation()}
                                 aria-label="선택"
                               />
-                              <span
-                                className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                                  r.gubun === '수입'
-                                    ? 'bg-emerald-50 text-emerald-700'
-                                    : r.gubun === '지출'
-                                      ? 'bg-red-50 text-red-700'
-                                      : 'bg-surface-subtle text-faint'
-                                }`}
-                              >
-                                {r.gubun ?? '—'}
-                              </span>
-                            </div>
-                            <span className="text-right">
-                              <span className="block font-display text-[14px] font-bold text-ink">
-                                {fmtLocal(r.currency, r.principal)}
-                              </span>
-                              {r.currency !== 'USD' && (
-                                <span className="block font-display text-[11px] text-faint">
-                                  {fmtUsd(r.amountUsd)}
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                          <div className="mt-1">
-                            {r.itemId && catOf.get(r.itemId) && (
-                              <div className="text-[10px] font-medium leading-tight text-faint">
-                                {catOf.get(r.itemId)}
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                      r.gubun === '수입'
+                                        ? 'bg-emerald-50 text-emerald-700'
+                                        : r.gubun === '지출'
+                                          ? 'bg-red-50 text-red-700'
+                                          : 'bg-surface-subtle text-faint'
+                                    }`}
+                                  >
+                                    {r.gubun ?? '—'}
+                                  </span>
+                                  {r.itemId && catOf.get(r.itemId) && (
+                                    <span className="text-[11px] font-medium text-faint">
+                                      {catOf.get(r.itemId)}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="mt-1 text-sm text-ink">
+                                  {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
+                                  {r.name ? ` · ${r.name}` : ''}
+                                </div>
+                                <div className="mt-0.5 text-xs text-faint">
+                                  {r.date ?? ''}
+                                  {r.accountId ? ` · ${nameOf.get(r.accountId) ?? ''}` : ''}
+                                </div>
                               </div>
-                            )}
-                            <div className="text-sm text-ink">
-                              {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
-                              {r.name ? ` · ${r.name}` : ''}
                             </div>
-                          </div>
-                          <div className="mt-0.5 text-xs text-faint">
-                            {r.date ?? ''}
-                            {r.accountId ? ` · ${nameOf.get(r.accountId) ?? ''}` : ''}
-                          </div>
-                          <div className="mt-2 flex justify-end">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onDelete(r)
-                              }}
-                              disabled={busyId === r.id}
-                              className="rounded-md border border-line px-4 py-1.5 text-[12px] text-muted transition active:scale-[0.98] disabled:opacity-40"
-                            >
-                              {busyId === r.id ? '…' : '삭제'}
-                            </button>
+                            {/* 우: 금액 + 삭제 */}
+                            <div className="flex shrink-0 flex-col items-end gap-2">
+                              <span className="text-right">
+                                <span className="block font-display text-[15px] font-bold text-ink">
+                                  {fmtLocal(r.currency, r.principal)}
+                                </span>
+                                {r.currency !== 'USD' && (
+                                  <span className="block font-display text-[11px] text-faint">
+                                    {fmtUsd(r.amountUsd)}
+                                  </span>
+                                )}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onDelete(r)
+                                }}
+                                disabled={busyId === r.id}
+                                className="rounded-md border border-line px-2.5 py-1 text-[11px] text-muted transition hover:border-accent hover:text-accent active:scale-[0.98] disabled:opacity-40"
+                              >
+                                {busyId === r.id ? '…' : '삭제'}
+                              </button>
+                            </div>
                           </div>
                         </li>
                       ))}
