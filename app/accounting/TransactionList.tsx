@@ -1,7 +1,7 @@
 'use client'
 // MFH-ACCOUNTING-TXLIST-V3
 // 거래 내역 — 월별 그룹화 + 월별 수입/지출 합계 + 필터(구분·대분류·항목·통화·계좌·기간·이름) + 정렬(날짜·금액).
-// 행별 수정·삭제 + 다중선택 → 일괄 삭제 / 통합 수정(항목·계좌). 데이터는 노션(SoT) 전체 read, 변경은 server action.
+// 행 클릭 → 수정(onEdit, 기록 페이지로 이동) · 행별 삭제 + 다중선택 → 일괄 삭제 / 통합 수정(항목·계좌). 노션(SoT) read, 변경은 server action.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AcctOptions, InoutRow, InoutPatch } from '@/lib/notion'
 import { deleteInout, bulkDeleteInout, bulkPatchInout } from './actions'
@@ -575,7 +575,8 @@ export default function TransactionList({
                       g.rows.map((r) => (
                         <tr
                           key={r.id}
-                          className={`border-t border-line ${
+                          onClick={() => onEdit(r)}
+                          className={`cursor-pointer border-t border-line transition hover:bg-surface-subtle/50 ${
                             selected.has(r.id)
                               ? 'bg-primary-soft/60'
                               : editingId === r.id
@@ -583,7 +584,7 @@ export default function TransactionList({
                                 : ''
                           }`}
                         >
-                          <td className="px-2 py-2">
+                          <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
                             <input
                               type="checkbox"
                               className={cbCls}
@@ -627,15 +628,8 @@ export default function TransactionList({
                           <td className="px-2 py-2 text-right font-display font-bold text-ink">
                             {fmtUsd(r.amountUsd)}
                           </td>
-                          <td className="px-2 py-2">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => onEdit(r)}
-                                className="rounded-md border border-line px-2 py-1 text-[11px] text-muted transition hover:border-primary hover:text-primary"
-                              >
-                                수정
-                              </button>
+                          <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end">
                               <button
                                 type="button"
                                 onClick={() => onDelete(r)}
@@ -695,7 +689,8 @@ export default function TransactionList({
                       {g.rows.map((r) => (
                         <li
                           key={r.id}
-                          className={`rounded-xl border bg-surface p-3 ${
+                          onClick={() => onEdit(r)}
+                          className={`cursor-pointer rounded-xl border bg-surface p-3 transition active:scale-[0.99] ${
                             selected.has(r.id)
                               ? 'border-primary ring-1 ring-primary/30'
                               : editingId === r.id
@@ -710,6 +705,7 @@ export default function TransactionList({
                                 className={cbCls}
                                 checked={selected.has(r.id)}
                                 onChange={() => toggleRow(r.id)}
+                                onClick={(e) => e.stopPropagation()}
                                 aria-label="선택"
                               />
                               <span
@@ -750,19 +746,15 @@ export default function TransactionList({
                             {r.date ?? ''}
                             {r.accountId ? ` · ${nameOf.get(r.accountId) ?? ''}` : ''}
                           </div>
-                          <div className="mt-2 flex gap-2">
+                          <div className="mt-2 flex justify-end">
                             <button
                               type="button"
-                              onClick={() => onEdit(r)}
-                              className="flex-1 rounded-md border border-line py-1.5 text-[12px] text-muted transition active:scale-[0.98]"
-                            >
-                              수정
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => onDelete(r)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDelete(r)
+                              }}
                               disabled={busyId === r.id}
-                              className="flex-1 rounded-md border border-line py-1.5 text-[12px] text-muted transition active:scale-[0.98] disabled:opacity-40"
+                              className="rounded-md border border-line px-4 py-1.5 text-[12px] text-muted transition active:scale-[0.98] disabled:opacity-40"
                             >
                               {busyId === r.id ? '…' : '삭제'}
                             </button>
