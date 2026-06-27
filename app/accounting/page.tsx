@@ -1,16 +1,12 @@
-// MFH-ACCOUNTING-PAGE-V4
-// 회계 요약 대시보드(요약 탭) — 이번달 수입/지출/순액·계좌잔액(AccountingSummary) + 최근 거래 5건 + 빠른 이동.
+// MFH-ACCOUNTING-PAGE-V5
+// 회계 요약 대시보드(요약 탭) — 이번달 수입/지출/순액·계좌잔액(AccountingSummary) + 빠른 이동 + Today(거래일 오늘).
 // 셸(가드·헤더·4탭 네비)은 layout.tsx 담당. 입력은 /accounting/entry, 전체 내역은 /accounting/ledger.
 import Link from 'next/link'
 import { getAcctOptions, getRecentInout, getAccountBalances } from '@/lib/notion'
 import AccountingSummary from './AccountingSummary'
+import TodayList from './TodayList'
 
 export const dynamic = 'force-dynamic'
-
-function fmtUsd(n: number | null): string {
-  if (n == null) return '—'
-  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 
 export default async function AccountingPage() {
   const [options, recent, balances] = await Promise.all([
@@ -26,13 +22,6 @@ export default async function AccountingPage() {
       </p>
     )
   }
-
-  const nameOf = new Map<string, string>()
-  for (const i of [...options.items['수입'], ...options.items['지출']]) nameOf.set(i.id, i.name)
-  // 오늘(거래일) 거래만 — 'Today' 개념.
-  const now = new Date()
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const todayTx = recent.filter((r) => (r.date ?? '') === todayStr)
 
   return (
     <>
@@ -62,57 +51,8 @@ export default async function AccountingPage() {
         </div>
       </div>
 
-      {/* 오늘(거래일) 거래 — 'Today' */}
-      <section className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-            Today
-          </span>
-          <Link
-            href="/accounting/ledger"
-            className="text-[11px] font-medium text-muted hover:text-primary"
-          >
-            전체 내역 →
-          </Link>
-        </div>
-        {todayTx.length === 0 ? (
-          <p className="py-3 text-center text-xs text-faint">오늘 거래내역 없음</p>
-        ) : (
-          <ul className="divide-y divide-line">
-            {todayTx.map((r) => (
-              <li key={r.id} className="flex items-center justify-between gap-2 py-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <span
-                    className={`shrink-0 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                      r.gubun === '수입'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : r.gubun === '지출'
-                          ? 'bg-red-50 text-red-700'
-                          : 'bg-surface-subtle text-faint'
-                    }`}
-                  >
-                    {r.gubun ?? '—'}
-                  </span>
-                  <span className="truncate text-sm text-ink">
-                    {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
-                    {r.name ? <span className="text-muted"> · {r.name}</span> : ''}
-                  </span>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span
-                    className={`font-display text-sm font-bold ${
-                      r.gubun === '지출' ? 'text-red-700' : 'text-ink'
-                    }`}
-                  >
-                    {fmtUsd(r.amountUsd)}
-                  </span>
-                  <span className="hidden text-[11px] text-faint sm:inline">{r.date ?? ''}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {/* 오늘(거래일) 거래 — 클라이언트 로컬 기준 */}
+      <TodayList recent={recent} items={options.items} />
     </>
   )
 }
