@@ -29,7 +29,10 @@ export default async function AccountingPage() {
 
   const nameOf = new Map<string, string>()
   for (const i of [...options.items['수입'], ...options.items['지출']]) nameOf.set(i.id, i.name)
-  const latest = [...recent].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')).slice(0, 5)
+  // 오늘(거래일) 거래만 — 'Today' 개념.
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const todayTx = recent.filter((r) => (r.date ?? '') === todayStr)
 
   return (
     <>
@@ -59,11 +62,11 @@ export default async function AccountingPage() {
         </div>
       </div>
 
-      {/* 최근 거래 5건 */}
+      {/* 오늘(거래일) 거래 — 'Today' */}
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <div className="mb-3 flex items-center justify-between">
           <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-            Recent
+            Today
           </span>
           <Link
             href="/accounting/ledger"
@@ -72,11 +75,11 @@ export default async function AccountingPage() {
             전체 내역 →
           </Link>
         </div>
-        {latest.length === 0 ? (
-          <p className="py-3 text-center text-xs text-faint">거래가 없습니다.</p>
+        {todayTx.length === 0 ? (
+          <p className="py-3 text-center text-xs text-faint">오늘 거래내역 없음</p>
         ) : (
           <ul className="divide-y divide-line">
-            {latest.map((r) => (
+            {todayTx.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-2 py-2">
                 <div className="flex min-w-0 items-center gap-2">
                   <span

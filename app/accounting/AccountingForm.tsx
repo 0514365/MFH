@@ -1,13 +1,13 @@
 'use client'
 // MFH-ACCOUNTING-FORM-V3
 // 회계 입력·수정·삭제 — 데스크탑 가로(스프레드시트)·모바일 세로. 조건부 콤보·환산 자동·후원자 자동연결.
-// 입력 폼 + '오늘 입력분' 컴팩트 목록(편집·삭제 인라인). 전체 내역은 /accounting/ledger.
+// 입력 폼 + '최근 입력' 5건(입력일순, 행 클릭→폼 수정, 수정 중엔 숨김). 전체 내역은 /accounting/ledger.
 // 내역에서 수정 클릭 → /accounting/entry?edit=<id> 로 진입하면 해당 거래로 폼 프리필. server action → 노션(SoT).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { AcctOption, AcctOptions, InoutRow } from '@/lib/notion'
-import { saveInout, updateInout, deleteInout } from './actions'
+import { saveInout, updateInout } from './actions'
 
 function todayLocal(): string {
   const d = new Date()
@@ -81,11 +81,12 @@ export default function AccountingForm({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
-  const [busyId, setBusyId] = useState<string | null>(null)
 
-  // 오늘 입력분만 — 폼 아래 컴팩트 목록(전체는 /accounting/ledger).
-  const today = todayLocal()
-  const todayRows = useMemo(() => recent.filter((r) => (r.date ?? '') === today), [recent, today])
+  // 최근 입력 5건 — 입력일(created_time) 기준. 방금 입력한 내역 검증용(전체는 /accounting/ledger).
+  const recent5 = useMemo(
+    () => [...recent].sort((a, b) => (b.createdTime ?? '').localeCompare(a.createdTime ?? '')).slice(0, 5),
+    [recent],
+  )
 
   const items = options.items[gubun]
   // 후원자 콤보·자동연결 대상 — 항목의 대분류가 '후원'(정기·일시후원·목적헌금)일 때.
@@ -163,23 +164,6 @@ export default function AccountingForm({
     // startEdit 은 매 렌더 새 함수 — ref 가드로 1회만 실행하므로 deps 제외.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, recent])
-
-  async function onDeleteRow(r: InoutRow) {
-    if (
-      !window.confirm(
-        `이 거래를 삭제할까요?\n${r.date ?? ''} · ${r.name ?? ''} · ${fmtUsd(r.amountUsd)}\n(노션 휴지통으로 — 복구 가능)`,
-      )
-    )
-      return
-    setBusyId(r.id)
-    setErr('')
-    const res = await deleteInout(r.id)
-    setBusyId(null)
-    if (res.ok) {
-      if (editingId === r.id) reset()
-      router.refresh()
-    } else setErr(res.error ?? '삭제 실패')
-  }
 
   async function onSave() {
     setErr('')
@@ -410,80 +394,67 @@ export default function AccountingForm({
         {err && <p className="mt-2 text-xs font-medium text-accent">{err}</p>}
       </section>
 
-      {/* 오늘 입력분 — 컴팩트 목록(편집·삭제). 전체 내역은 /accounting/ledger */}
-      <section className="mt-6">
-        <div className="mb-2 flex items-center justify-between px-1">
-          <h2 className="text-[13px] font-bold text-muted">
-            오늘 입력분<span className="ml-1.5 font-normal text-faint">{todayRows.length}건</span>
-          </h2>
-          <Link
-            href="/accounting/ledger"
-            className="text-[11px] font-medium text-muted transition hover:text-primary"
-          >
-            전체 내역 →
-          </Link>
-        </div>
-        {todayRows.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-line py-5 text-center text-xs text-faint">
-            오늘 입력한 거래가 없습니다.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {todayRows.map((r) => (
-              <li
-                key={r.id}
-                className={`rounded-xl border bg-surface p-3 ${
-                  editingId === r.id ? 'border-primary ring-1 ring-primary/30' : 'border-line'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span
-                      className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                        r.gubun === '수입'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : r.gubun === '지출'
-                            ? 'bg-red-50 text-red-700'
-                            : 'bg-surface-subtle text-faint'
-                      }`}
-                    >
-                      {r.gubun ?? '—'}
-                    </span>
-                    <span className="truncate text-sm text-ink">
-                      {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
-                      {r.name ? <span className="text-muted"> · {r.name}</span> : ''}
-                    </span>
-                  </div>
-                  <span
-                    className={`shrink-0 font-display text-sm font-bold ${
-                      r.gubun === '지출' ? 'text-red-700' : 'text-ink'
-                    }`}
-                  >
-                    {fmtUsd(r.amountUsd)}
-                  </span>
-                </div>
-                <div className="mt-2 flex gap-2">
+      {/* 최근 입력 — 방금 입력한 내역 검증용(입력일순 5건). 행 클릭 → 위 폼에서 수정. 수정 중엔 숨김 */}
+      {!editingId && (
+        <section className="mt-6">
+          <div className="mb-3 flex items-center justify-between px-1">
+            <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
+              Recent
+            </span>
+            <Link
+              href="/accounting/ledger"
+              className="text-[11px] font-medium text-muted transition hover:text-primary"
+            >
+              전체 내역 →
+            </Link>
+          </div>
+          {recent5.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-line py-5 text-center text-xs text-faint">
+              입력한 거래가 없습니다.
+            </p>
+          ) : (
+            <ul className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              {recent5.map((r) => (
+                <li key={r.id} className="border-b border-line last:border-0">
                   <button
                     type="button"
                     onClick={() => startEdit(r)}
-                    className="flex-1 rounded-md border border-line py-1.5 text-[12px] text-muted transition active:scale-[0.98]"
+                    className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left transition hover:bg-surface-subtle active:bg-surface-subtle"
                   >
-                    수정
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={`shrink-0 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                          r.gubun === '수입'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : r.gubun === '지출'
+                              ? 'bg-red-50 text-red-700'
+                              : 'bg-surface-subtle text-faint'
+                        }`}
+                      >
+                        {r.gubun ?? '—'}
+                      </span>
+                      <span className="truncate text-sm text-ink">
+                        {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
+                        {r.name ? <span className="text-muted"> · {r.name}</span> : ''}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span
+                        className={`font-display text-sm font-bold ${
+                          r.gubun === '지출' ? 'text-red-700' : 'text-ink'
+                        }`}
+                      >
+                        {fmtUsd(r.amountUsd)}
+                      </span>
+                      <span className="hidden text-[11px] text-faint sm:inline">{r.date ?? ''}</span>
+                    </div>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteRow(r)}
-                    disabled={busyId === r.id}
-                    className="flex-1 rounded-md border border-line py-1.5 text-[12px] text-muted transition active:scale-[0.98] disabled:opacity-40"
-                  >
-                    {busyId === r.id ? '…' : '삭제'}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </div>
   )
 }

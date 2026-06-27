@@ -23,7 +23,11 @@ type NotionProperty = {
   select?: { name?: string | null } | null
   formula?: { type?: string; number?: number | null; string?: string | null } | null
 }
-type NotionPage = { id?: string; properties?: Record<string, NotionProperty> }
+type NotionPage = {
+  id?: string
+  created_time?: string
+  properties?: Record<string, NotionProperty>
+}
 type NotionQueryResponse = {
   results?: NotionPage[]
   has_more?: boolean
@@ -261,6 +265,7 @@ export type InoutRow = {
   itemId: string | null
   accountId: string | null
   supporterId: string | null
+  createdTime: string | null // 노션 created_time(입력일) — '최근 입력' 정렬용
 }
 
 // 거래 목록(표시·수정·집계용) — 빈 거래 제외, 날짜 내림차순. id·수정 필드 포함. 항목·계좌 이름은 호출부가 옵션 맵으로 변환.
@@ -285,6 +290,7 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
       itemId: pr['항목']?.relation?.[0]?.id ?? null,
       accountId: pr['입금계좌']?.relation?.[0]?.id ?? pr['지불계좌']?.relation?.[0]?.id ?? null,
       supporterId: pr['후원자']?.relation?.[0]?.id ?? null,
+      createdTime: tx.created_time ?? null,
     }
   })
   const sorted = rows
