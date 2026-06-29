@@ -10,7 +10,6 @@ import {
   extractMessageDraft,
 } from '@/lib/supporters'
 import { getDonationsByAppId } from '@/lib/notion'
-import BackButton from '@/components/BackButton'
 import DeleteButton from './DeleteButton'
 import DonationPanel from './DonationPanel'
 import LogPanel from './LogPanel'
@@ -100,24 +99,8 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
   const hasInfo = s.birth_date || s.phone || s.email || s.sns || s.referrer || s.first_met_date
 
   return (
-    <main className="app-theme mx-auto max-w-md pb-10">
-      <header
-        className="sticky top-0 z-30 border-b border-line px-3 py-3"
-        style={{ background: 'var(--paper)' }}
-      >
-        <div className="flex items-center gap-2">
-          <div className="shrink-0">
-            <BackButton href="/supporters" label="목록" variant="icon-accent" />
-          </div>
-          <div className="min-w-0 flex-1 text-center">
-            <h1 className="truncate text-[18px] font-bold leading-tight tracking-tight text-ink">
-              {s.name}
-            </h1>
-          </div>
-          <span className="w-10 shrink-0" aria-hidden="true" />
-        </div>
-      </header>
-
+    <div className="-mx-4 pb-6 md:-mx-6">
+      <div className="mx-auto max-w-md">
       {/* 프로필 */}
       <section className="flex flex-col items-center px-5 pb-6 pt-6">
         {photoUrl ? (
@@ -246,6 +229,7 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
           다른 멤버님이 등록한 후원자입니다. 보기만 가능합니다.
         </p>
       )}
-    </main>
+      </div>
+    </div>
   )
 }

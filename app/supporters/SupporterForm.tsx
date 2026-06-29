@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import type { Supporter, Currency } from '@/lib/types'
 import DateField from '../journal/DateField'
-import BackButton from '@/components/BackButton'
 import { resolveOwnerId } from '@/lib/members'
 import { syncSupporter } from './actions'
 import {
@@ -198,19 +197,7 @@ export default function SupporterForm({ mode, initial }: Props) {
     'w-full rounded-xl border border-line bg-surface px-4 py-3.5 text-sm text-ink outline-none focus:border-primary'
 
   return (
-    <main className="app-theme mx-auto max-w-md px-4 pb-10 sm:max-w-2xl">
-      <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
-        <BackButton
-          href={mode === 'edit' && initial ? `/supporters/${initial.id}` : '/supporters'}
-          label=""
-          variant="text"
-        />
-        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-[15px] font-extrabold uppercase tracking-[0.2em] text-ink">
-          {mode === 'edit' ? 'Edit Supporter' : 'New Supporter'}
-        </h1>
-        <span className="w-10" aria-hidden="true" />
-      </header>
-
+    <div className="mx-auto max-w-md sm:max-w-2xl">
       <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
         {/* 사진 */}
         <div className="flex flex-col items-center">
@@ -391,6 +378,6 @@ export default function SupporterForm({ mode, initial }: Props) {
       >
         {saving ? '저장 중…' : mode === 'edit' ? 'Update Supporter' : 'Save Supporter'}
       </button>
-    </main>
+    </div>
   )
 }
