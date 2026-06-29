@@ -1,25 +1,22 @@
-import Link from 'next/link'
+// MFH-SUPPORTERS-SUMMARY-V1
+// 후원자 현황(현황 탭) — 통계 4카드 + 이번 달 생일 + 통합발송. 셸은 ./layout.tsx 담당.
+// 목록은 /supporters/list, AI 분석은 /supporters/insights 로 분리.
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import PageHeader from '@/components/PageHeader'
 import type { Supporter } from '@/lib/types'
-import { SUPPORTER_PHOTO_BUCKET, formatUsd } from '@/lib/supporters'
+import { formatUsd } from '@/lib/supporters'
 import { isMaster } from '@/lib/members'
 import { getSupporterDonationTotals } from '@/lib/notion'
-import SupportersList from './SupportersList'
-import DomainInsightPanel from '@/app/insights/DomainInsightPanel'
 import BulkMailButton from './BulkMailButton'
-import '../p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
-export default async function SupportersPage() {
+export default async function SupportersSummaryPage() {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  // 후원자 메뉴는 공개 전까지 우진(마스터)만 접근.
   if (!isMaster(user.id)) redirect('/')
 
   const { data } = await supabase
@@ -29,7 +26,7 @@ export default async function SupportersPage() {
     .order('name', { ascending: true })
   const supporters = (data ?? []) as Supporter[]
 
-  // 후원자별 헌금 USD 합계(목록 카드) — 노션 회계(SoT) 집계로 일원화.
+  // 후원자별 헌금 USD 합계 — 노션 회계(SoT) 집계로 일원화.
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
   const ymStr = today.slice(0, 7)
   const totals = await getSupporterDonationTotals()
@@ -50,43 +47,10 @@ export default async function SupportersPage() {
     .map((s) => ({ name: s.name, date: s.birth_date as string }))
     .sort((a, b) => a.date.slice(8, 10).localeCompare(b.date.slice(8, 10)))
 
-  // 프로필 사진 썸네일 signed URL 일괄(1시간). 썸네일 없으면 원본 폴백.
-  const photoPaths = Array.from(
-    new Set(
-      supporters.map((s) => s.thumb_path || s.photo_path).filter((p): p is string => !!p),
-    ),
-  )
-  const photoUrls: Record<string, string> = {}
-  if (photoPaths.length) {
-    const { data: signed } = await supabase.storage
-      .from(SUPPORTER_PHOTO_BUCKET)
-      .createSignedUrls(photoPaths, 3600)
-    const byPath: Record<string, string> = {}
-    ;(signed ?? []).forEach((s, i) => {
-      if (s.signedUrl) byPath[photoPaths[i]] = s.signedUrl
-    })
-    for (const s of supporters) {
-      const key = s.thumb_path || s.photo_path
-      if (key && byPath[key]) photoUrls[s.id] = byPath[key]
-    }
-  }
-
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8 min-[740px]:max-w-5xl">
-      <PageHeader
-        title="Supporters"
-        action={
-          <Link
-            href="/supporters/new"
-            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white"
-          >
-            + Supporter
-          </Link>
-        }
-      />
-
+    <>
       {supporters.length > 0 && (
-        <div className="mb-4 grid grid-cols-2 gap-2.5 min-[740px]:grid-cols-4">
+        <div className="mb-4 grid grid-cols-2 gap-2.5 md:grid-cols-4">
           <div className="rounded-2xl bg-surface-subtle p-3.5">
             <div className="text-[11px] text-muted">후원자</div>
             <div className="mt-1 font-display text-[20px] font-bold text-ink">
@@ -133,15 +97,15 @@ export default async function SupportersPage() {
         </div>
       )}
 
-      {supporters.length > 0 && <DomainInsightPanel domain="supporter_care" />}
-
-      <BulkMailButton emails={mailRecipients} />
-
-      <SupportersList
-        supporters={supporters}
-        photoUrls={photoUrls}
-        currentUserId={user.id}
-      />
-    </main>
+      {supporters.length === 0 ? (
+        <p className="mt-16 text-center text-sm leading-relaxed text-faint">
+          아직 후원자가 없습니다.
+          <br />
+          아래 등록 탭에서 첫 후원자를 추가해 보세요.
+        </p>
+      ) : (
+        <BulkMailButton emails={mailRecipients} />
+      )}
+    </>
   )
 }
