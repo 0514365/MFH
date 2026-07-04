@@ -53,9 +53,8 @@ export default async function PortfolioLettersPage(props: Props) {
     pdf_url: l.pdf_path
       ? supabase.storage.from('portfolio-letters').getPublicUrl(l.pdf_path).data.publicUrl
       : null,
-    mobile_url: l.mobile_path
-      ? supabase.storage.from('portfolio-letters').getPublicUrl(l.mobile_path).data.publicUrl
-      : null,
+    // 모바일 편지는 스토리지 직링크가 아니라 뷰어 라우트로 (Storage 가 html 을 text/plain 으로 서빙 — V8)
+    mobile_url: l.mobile_path ? `/letters/view/${l.id}` : null,
     cover_url: l.cover_path
       ? supabase.storage.from('portfolio-letters').getPublicUrl(l.cover_path).data.publicUrl
       : null,

@@ -206,7 +206,8 @@ export default function LetterEditor({ initial, userId }: Props) {
     const supabase = createClient();
     let url: string | null = null;
     if (letter.mobile_path) {
-      url = supabase.storage.from(BUCKET).getPublicUrl(letter.mobile_path).data.publicUrl;
+      // 뷰어 라우트 (Storage 는 html 을 text/plain 으로 서빙 — V8)
+      url = `${window.location.origin}/letters/view/${letter.id}`;
     } else if (letter.pdf_path) {
       url = supabase.storage.from(BUCKET).getPublicUrl(letter.pdf_path).data.publicUrl;
     } else if (letter.video_url) {
