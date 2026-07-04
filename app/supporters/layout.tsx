@@ -1,10 +1,10 @@
 // MFH-SUPPORTERS-LAYOUT-V1
-// 후원자 브랜치 공통 셸 — 마스터 가드 + 공통 헤더(뒤로 · 중앙 섹션타이틀 · 메인홈·회계 링크) + 4탭 하단 네비.
+// 후원자 브랜치 공통 셸 — 재정 관리자(부부) 가드 + 공통 헤더(뒤로 · 중앙 섹션타이틀 · 메인홈·회계 링크) + 4탭 하단 네비.
 // 하위 페이지(현황·명단·등록·분석·상세·수정)는 자체 헤더 없이 콘텐츠만 반환한다.
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { isMaster } from '@/lib/members'
+import { canManageFinance } from '@/lib/members'
 import SupportersBack from './SupportersBack'
 import SupportersNav from './SupportersNav'
 import SupportersTitle from './SupportersTitle'
@@ -21,7 +21,7 @@ export default async function SupportersLayout({ children }: { children: React.R
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  if (!isMaster(user.id)) redirect('/')
+  if (!canManageFinance(user.id)) redirect('/')
 
   return (
     <main className="app-theme mx-auto max-w-md px-4 pb-4 pt-2 md:max-w-5xl md:px-6">

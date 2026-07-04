@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { canEditEntry, isMaster } from '@/lib/members'
+import { canManageFinance } from '@/lib/members'
 import type { Supporter, SupporterLog } from '@/lib/types'
 import {
   ageFromBirth,
@@ -35,12 +35,12 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  if (!isMaster(user.id)) redirect('/')
+  if (!canManageFinance(user.id)) redirect('/')
 
   const { data } = await supabase.from('supporters').select('*').eq('id', params.id).maybeSingle()
   const s = data as Supporter | null
   if (!s) notFound()
-  const canEdit = canEditEntry(s.user_id, user.id)
+  const canEdit = canManageFinance(user.id)
 
   // 노션 회계(SoT)의 후원자별 헌금 연도별 집계 — 미연동(토큰 없음)/실패 시 null → "기록 없음".
   const donationsByApp = await getDonationsByAppId()

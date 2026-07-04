@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { Supporter } from '@/lib/types'
 import { SUPPORTER_PHOTO_BUCKET } from '@/lib/supporters'
-import { isMaster } from '@/lib/members'
+import { canManageFinance } from '@/lib/members'
 import SupportersList from '../SupportersList'
 
 export const dynamic = 'force-dynamic'
@@ -15,7 +15,7 @@ export default async function SupportersListPage() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  if (!isMaster(user.id)) redirect('/')
+  if (!canManageFinance(user.id)) redirect('/')
 
   const { data } = await supabase
     .from('supporters')

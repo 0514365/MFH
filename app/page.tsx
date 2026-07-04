@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { isMaster } from '@/lib/members'
+import { canManageFinance } from '@/lib/members'
 import ModuleIcon from '@/components/ModuleIcon'
 import SplashGate from './SplashGate'
 import SignOutButton from '@/components/SignOutButton'
@@ -414,7 +414,7 @@ export default async function Home() {
           />
 
           {/* 후원자 — 공개 전까지 우진(마스터)만. 관계·후원 관리 (wide) */}
-          {isMaster(user.id) && (
+          {canManageFinance(user.id) && (
             <ModuleTile
               href="/supporters"
               icon={<SupportersIcon />}
@@ -426,7 +426,7 @@ export default async function Home() {
           )}
 
           {/* 회계 입력 — 마스터만. 노션 회계(SoT)에 앱에서 직접 입력 (wide) */}
-          {isMaster(user.id) && (
+          {canManageFinance(user.id) && (
             <ModuleTile
               href="/accounting"
               icon={<AccountingIcon />}

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import type { Supporter } from '@/lib/types'
 import { formatUsd } from '@/lib/supporters'
-import { isMaster } from '@/lib/members'
+import { canManageFinance } from '@/lib/members'
 import { getSupporterDonationTotals } from '@/lib/notion'
 import BulkMailButton from './BulkMailButton'
 
@@ -17,7 +17,7 @@ export default async function SupportersSummaryPage() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  if (!isMaster(user.id)) redirect('/')
+  if (!canManageFinance(user.id)) redirect('/')
 
   const { data } = await supabase
     .from('supporters')

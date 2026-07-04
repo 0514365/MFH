@@ -11,6 +11,15 @@ export const PUBLIC_PORTFOLIO_PATH = '/p/mfh'
 // 수정·삭제할 수 있는 계정. DB 레벨은 is_master() RLS 가 함께 강제(patch91).
 export const isMaster = (uid?: string | null): boolean => uid === PORTFOLIO_OWNER_ID
 
+// 멤버 서진아 (patch73 app_members).
+export const MEMBER_SEOJINA_ID = '5564d6ee-170c-433a-85e6-62724c3f4b49'
+
+// 재정(후원자·회계) 관리자: 부부 두 계정. /supporters · /accounting 접근 게이트.
+// DB 레벨은 patch101(supporters 계열 RLS member 확대)이 함께 강제.
+export const FINANCE_MANAGER_IDS = [PORTFOLIO_OWNER_ID, MEMBER_SEOJINA_ID]
+export const canManageFinance = (uid?: string | null): boolean =>
+  !!uid && FINANCE_MANAGER_IDS.includes(uid)
+
 // 항목 편집·삭제 권한: 본인이 작성했거나(소유자) 마스터면 허용.
 export function canEditEntry(ownerId?: string | null, viewerId?: string | null): boolean {
   return !!viewerId && (ownerId === viewerId || isMaster(viewerId))
