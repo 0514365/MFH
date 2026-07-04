@@ -1,4 +1,4 @@
-// MFH-PORTFOLIO-TYPES-V7
+// MFH-PORTFOLIO-TYPES-V8
 // 포트폴리오 도메인 타입 + 헬퍼
 // V2: couple_photo_url / couple_intro (부부사진 + 부부 소개 개요, patch63) 추가.
 // V3: youtubeVideoId 에 live/ 패턴 추가(라이브 영상 썸네일 지원).
@@ -6,6 +6,8 @@
 // V5: letters.summary(최신 선교편지 요약 기도문, patch67) + LETTER_BANNER_RAMP(앰버·세피아 년도 배너) 추가.
 // V6: donation_info(후원 안내 — 푸터 후원방법 블록, patch68) 추가.
 // V7: letters.video_url(영상 편지 — PDF 없이 YouTube 영상만, patch81) + pdf_path nullable.
+// V8: letters.mobile_path(모바일 편지 HTML — 사진 임베드 단일 파일). 링크 우선순위 모바일→PDF→영상,
+//     둘 다 있으면 부 링크(letterSubLink)로 PDF 병기.
 
 export type Portfolio = {
   id: string;
@@ -201,6 +203,7 @@ export type PortfolioLetter = {
   number: string | null;     // "42" (호수)
   title: string;
   pdf_path: string | null;   // storage: portfolio-letters (영상 편지는 null — patch81)
+  mobile_path: string | null; // 모바일 편지 HTML (사진 임베드 단일 파일) — V8
   cover_path: string | null; // 표지 이미지 (선택)
   summary: string | null;    // 요약 기도문(최신호만, patch67) — 공개 "최신 선교편지" 블록 우측 칼럼
   video_url: string | null;  // 영상 편지(PDF 없이 YouTube 영상만) — patch81
@@ -267,17 +270,26 @@ export function letterBannerStyle(index: number) {
 // storage publicUrl 을 붙인 공개 편지 형태(공개 페이지가 PortfolioLetter 에 URL 을 확장).
 export type LetterWithUrls = PortfolioLetter & {
   pdf_url: string | null;
+  mobile_url: string | null;
   cover_url: string | null;
 };
 
-// 영상 편지 = PDF 없고 영상(YouTube)만 있는 편지.
-export const isVideoLetter = (l: LetterWithUrls): boolean => !l.pdf_url && !!l.video_url;
+// 영상 편지 = PDF·모바일 없고 영상(YouTube)만 있는 편지.
+export const isVideoLetter = (l: LetterWithUrls): boolean =>
+  !l.pdf_url && !l.mobile_url && !!l.video_url;
 
-// 편지 링크: PDF 우선 → 영상(YouTube watch). 표지 아래 캡션 라벨 포함.
+// 편지 주 링크: 모바일 우선 → PDF → 영상(YouTube watch). 표지 아래 캡션 라벨 포함.
 export function letterLink(l: LetterWithUrls): { href: string | null; label: string } {
+  if (l.mobile_url) return { href: l.mobile_url, label: '모바일로 보기 →' };
   if (l.pdf_url) return { href: l.pdf_url, label: 'PDF 보기 →' };
   if (l.video_url) return { href: youtubeWatchUrl(l.video_url), label: '영상 보기 →' };
   return { href: null, label: '' };
+}
+
+// 편지 부 링크: 모바일+PDF 둘 다 있을 때만 PDF 를 부 링크로 병기 (없으면 null).
+export function letterSubLink(l: LetterWithUrls): { href: string; label: string } | null {
+  if (l.mobile_url && l.pdf_url) return { href: l.pdf_url, label: 'PDF 보기 →' };
+  return null;
 }
 
 // 편지 표지: 업로드 표지 우선 → 영상 편지는 YouTube 썸네일 → 없으면 null(placeholder).

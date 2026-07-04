@@ -8,6 +8,7 @@ import {
   letterMonthLabel,
   letterCoverSrc,
   letterLink,
+  letterSubLink,
   isVideoLetter,
   type LetterWithUrls,
 } from '@/lib/portfolio';
@@ -40,9 +41,11 @@ export default function LetterFullSection({ letters }: Props) {
   );
 }
 
-// 편지 카드: 표지(3:4) + 제목 + 월·링크 라벨. 클릭 = PDF/영상.
+// 편지 카드: 표지(3:4) + 제목 + 월·링크 라벨. 클릭 = 모바일/PDF/영상(주 링크).
+// 모바일+PDF 둘 다 있으면 카드 아래 PDF 부 링크 병기(카드 <a> 밖 — 중첩 링크 방지).
 function LetterCard({ letter: l }: { letter: LetterWithUrls }) {
   const link = letterLink(l);
+  const sub = letterSubLink(l);
   const cover = letterCoverSrc(l);
   const video = isVideoLetter(l);
   const month = letterMonthLabel(l.year_month);
@@ -73,8 +76,20 @@ function LetterCard({ letter: l }: { letter: LetterWithUrls }) {
 
   if (!link.href) return <div className="pf-vcard">{inner}</div>;
   return (
-    <a href={link.href} target="_blank" rel="noopener noreferrer" className="pf-vcard">
-      {inner}
-    </a>
+    <>
+      <a href={link.href} target="_blank" rel="noopener noreferrer" className="pf-vcard">
+        {inner}
+      </a>
+      {sub && (
+        <a
+          href={sub.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 block text-[11px] font-medium text-muted hover:text-primary"
+        >
+          {sub.label}
+        </a>
+      )}
+    </>
   );
 }

@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-# MFH-IMPORT-LETTERS-V1
-# 선교편지 일괄 import: "News Letter/" 폴더의 PDF 를
-#   - portfolio-letters 버킷에 PDF + 표지 업로드
-#   - letters 테이블에 row insert (public_view=true)
+# MFH-IMPORT-LETTERS-V2
+# 선교편지 일괄 import: "News Letter/" 폴더의 PDF(+모바일 HTML) 를
+#   - portfolio-letters 버킷에 PDF + 표지 (+ 모바일 HTML) 업로드
+#   - letters 테이블에 row insert (public_view=true, mobile_path 포함)
+# V2: 폴더에 .html(모바일 편지 — 사진 임베드 단일 파일) 이 있으면 함께 업로드.
+#     이미 import 된 편지도 mobile_path 가 비어 있고 html 이 있으면 모바일만 보강(update).
+#     (요구: letters.mobile_path 컬럼 — supabase/letters-mobile-path.sql 선실행)
 #
 # 사용법:
 #   python3 scripts/import_letters.py --dry      # 미리보기 (파싱·표지추출만, 업로드/insert 없음)
@@ -80,6 +83,11 @@ def find_pdf(folder_path):
     return os.path.join(folder_path, pdfs[0]) if pdfs else None
 
 
+def find_html(folder_path):
+    htmls = sorted(f for f in os.listdir(folder_path) if f.lower().endswith((".html", ".htm")))
+    return os.path.join(folder_path, htmls[0]) if htmls else None
+
+
 def find_existing_cover(folder_path):
     for f in sorted(os.listdir(folder_path)):
         if f.lower().endswith(IMAGE_EXTS):
@@ -121,9 +129,29 @@ def get_user_id(base, key):
 
 
 def letter_exists(base, key, pdf_path):
+    # V2: 존재 시 row(id·mobile_path) 반환 — 기존 편지 모바일 보강용. 없으면 None.
     q = urllib.parse.quote(pdf_path, safe="")
-    rows = api_get(base, key, f"/rest/v1/letters?pdf_path=eq.{q}&select=id")
-    return len(rows) > 0
+    rows = api_get(base, key, f"/rest/v1/letters?pdf_path=eq.{q}&select=id,mobile_path")
+    return rows[0] if rows else None
+
+
+def update_letter(base, key, letter_id, patch):
+    data = json.dumps(patch, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(
+        f"{base}/rest/v1/letters?id=eq.{urllib.parse.quote(str(letter_id), safe='')}",
+        data=data, method="PATCH",
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req) as r:
+            return True, r.status
+    except urllib.error.HTTPError as e:
+        return False, f"{e.code} {e.read().decode()[:200]}"
 
 
 def storage_upload(base, key, storage_path, local_path, content_type):
@@ -229,19 +257,39 @@ def main():
             skipped_novid.append((name, "PDF 없음 (영상/빈 폴더)"))
             continue
         meta["pdf_local"] = pdf
+        meta["html_local"] = find_html(fp)  # V2: 모바일 편지 HTML (선택)
         meta["existing_cover"] = find_existing_cover(fp)
         targets.append(meta)
 
-    ok_count = fail_count = 0
+    ok_count = fail_count = mobile_up_count = 0
     for i, m in enumerate(targets, 1):
         pdf_path = f"{user_id}/letter-{m['date8']}.pdf"
+        mobile_path = f"{user_id}/mobile-{m['date8']}.html" if m.get("html_local") else None
 
-        # 멱등: 이미 import 된 편지면 skip
+        # 멱등: 이미 import 된 편지면 skip — 단 html 이 있고 mobile_path 가 비어 있으면 모바일만 보강(V2)
         if read_key and user_id != "<USER_ID>":
             try:
-                if letter_exists(base, read_key, pdf_path):
-                    dups.append(m["folder"])
-                    print(f"[{i}/{len(targets)}] SKIP (이미 존재)  {m['folder']}")
+                existing = letter_exists(base, read_key, pdf_path)
+                if existing:
+                    if mobile_path and not existing.get("mobile_path"):
+                        print(f"[{i}/{len(targets)}] 기존 편지 + 모바일 보강  {m['folder']}")
+                        print(f"        mobile-> {mobile_path}")
+                        if mode == "apply":
+                            ok_m, info_m = storage_upload(base, write_key, mobile_path, m["html_local"], "text/html")
+                            if not ok_m and not str(info_m).startswith("409"):
+                                print(f"        [실패] 모바일 업로드: {info_m}")
+                                fail_count += 1
+                                continue
+                            ok_u, info_u = update_letter(base, write_key, existing["id"], {"mobile_path": mobile_path})
+                            if ok_u:
+                                print(f"        [OK] mobile_path 보강 완료")
+                                mobile_up_count += 1
+                            else:
+                                print(f"        [실패] update: {info_u}")
+                                fail_count += 1
+                    else:
+                        dups.append(m["folder"])
+                        print(f"[{i}/{len(targets)}] SKIP (이미 존재)  {m['folder']}")
                     continue
             except Exception as e:
                 print(f"  [경고] 멱등 체크 실패: {e}")
@@ -260,6 +308,7 @@ def main():
         print(f"[{i}/{len(targets)}] {m['folder']}")
         print(f"        year_month={m['year_month']}  number={m['number']}  title={m['title']}  sort={m['sort_order']}")
         print(f"        pdf  -> {pdf_path}")
+        print(f"        mobile-> {mobile_path or '(없음)'}")
         print(f"        cover-> {cover_path or '(없음)'}  [{cover_src}]")
 
         if mode == "dry":
@@ -271,6 +320,11 @@ def main():
             print(f"        [실패] PDF 업로드: {info_pdf}")
             fail_count += 1
             continue
+        if mobile_path:
+            ok_m, info_m = storage_upload(base, write_key, mobile_path, m["html_local"], "text/html")
+            if not ok_m:
+                print(f"        [경고] 모바일 업로드 실패(편지는 진행): {info_m}")
+                mobile_path = None
         if cover_local:
             ct = "image/png" if cover_ext == "png" else ("image/jpeg" if cover_ext in ("jpg", "jpeg") else "application/octet-stream")
             ok_cv, info_cv = storage_upload(base, write_key, cover_path, cover_local, ct)
@@ -285,6 +339,7 @@ def main():
             "number": m["number"],
             "title": m["title"],
             "pdf_path": pdf_path,
+            "mobile_path": mobile_path,
             "cover_path": cover_path,
             "public_view": True,
             "sort_order": m["sort_order"],
@@ -301,7 +356,7 @@ def main():
     print("\n=== 요약 ===")
     print(f"대상(PDF 있음): {len(targets)}건")
     if mode == "apply":
-        print(f"insert 성공: {ok_count} / 실패: {fail_count} / 중복 skip: {len(dups)}")
+        print(f"insert 성공: {ok_count} / 모바일 보강: {mobile_up_count} / 실패: {fail_count} / 중복 skip: {len(dups)}")
     else:
         print("(dry-run — 업로드/insert 안 함. --apply 로 실행)")
     if skipped_novid:

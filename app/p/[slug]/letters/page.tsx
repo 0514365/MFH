@@ -53,6 +53,9 @@ export default async function PortfolioLettersPage(props: Props) {
     pdf_url: l.pdf_path
       ? supabase.storage.from('portfolio-letters').getPublicUrl(l.pdf_path).data.publicUrl
       : null,
+    mobile_url: l.mobile_path
+      ? supabase.storage.from('portfolio-letters').getPublicUrl(l.mobile_path).data.publicUrl
+      : null,
     cover_url: l.cover_path
       ? supabase.storage.from('portfolio-letters').getPublicUrl(l.cover_path).data.publicUrl
       : null,

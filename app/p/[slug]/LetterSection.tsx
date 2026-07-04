@@ -12,6 +12,7 @@ import {
   letterMonthLabel,
   letterCoverSrc,
   letterLink,
+  letterSubLink,
   isVideoLetter,
   type LetterWithUrls,
 } from '@/lib/portfolio';
@@ -102,22 +103,36 @@ function LatestLetter({ letter: l }: { letter: LetterWithUrls }) {
       </div>
     ) : null;
 
-  // 표지(썸네일) = PDF 또는 영상 링크. 둘 다 없으면 비링크 표지. 표지 아래 캡션으로 클릭 안내.
+  // 표지(썸네일) = 모바일/PDF/영상 주 링크. 모바일+PDF 둘 다면 캡션 아래 PDF 부 링크 병기.
   const link = letterLink(l);
+  const sub = letterSubLink(l);
   const cover = (widthClass: string) =>
     link.href ? (
-      <a
-        href={link.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={`${l.title} — ${link.label}`}
-        className={`group block flex-shrink-0 ${widthClass}`}
-      >
-        <LetterCover letter={l} className="w-full transition group-hover:opacity-90" />
-        <span className="mt-1.5 block text-center text-[11px] font-semibold text-primary">
-          {link.label}
-        </span>
-      </a>
+      <div className={`flex-shrink-0 ${widthClass}`}>
+        <a
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${l.title} — ${link.label}`}
+          className="group block"
+        >
+          <LetterCover letter={l} className="w-full transition group-hover:opacity-90" />
+          <span className="mt-1.5 block text-center text-[11px] font-semibold text-primary">
+            {link.label}
+          </span>
+        </a>
+        {sub && (
+          <a
+            href={sub.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${l.title} — ${sub.label}`}
+            className="mt-0.5 block text-center text-[11px] font-medium text-muted hover:text-primary"
+          >
+            {sub.label}
+          </a>
+        )}
+      </div>
     ) : (
       <LetterCover letter={l} className={`flex-shrink-0 ${widthClass}`} />
     );

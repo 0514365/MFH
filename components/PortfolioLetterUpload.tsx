@@ -1,13 +1,15 @@
 'use client';
 
-// MFH-PORTFOLIO-LETTER-UPLOAD-V1
-// 선교편지용 파일 업로드 (PDF 또는 표지 이미지). portfolio-letters 버킷.
-// 경로: {userId}/letter-{ts}.pdf / {userId}/cover-{ts}.{ext}
+// MFH-PORTFOLIO-LETTER-UPLOAD-V2
+// 선교편지용 파일 업로드 (PDF / 표지 이미지 / 모바일 HTML). portfolio-letters 버킷.
+// 경로: {userId}/pdf-{ts}.pdf / {userId}/cover-{ts}.{ext} / {userId}/mobile-{ts}.html
+// V2: kind 'mobile' 추가 — 사진 임베드 단일 HTML(모바일 편지). contentType text/html 로 업로드
+//     (버킷 public URL 을 브라우저가 바로 렌더).
 
 import { useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 
-type Kind = 'pdf' | 'cover';
+type Kind = 'pdf' | 'cover' | 'mobile';
 
 type Props = {
   userId: string;
@@ -40,14 +42,22 @@ export default function PortfolioLetterUpload({
       setError('이미지 파일만 업로드할 수 있습니다.');
       return;
     }
+    if (kind === 'mobile' && !/\.html?$/i.test(file.name)) {
+      setError('HTML 파일만 업로드할 수 있습니다.');
+      return;
+    }
     setBusy(true);
     try {
       const supabase = createClient();
-      const ext = kind === 'pdf' ? 'pdf' : (file.name.split('.').pop() || 'jpg');
+      const ext =
+        kind === 'pdf' ? 'pdf' : kind === 'mobile' ? 'html' : (file.name.split('.').pop() || 'jpg');
       const path = `${userId}/${kind}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from(BUCKET)
-        .upload(path, file, { upsert: false });
+        .upload(path, file, {
+          upsert: false,
+          ...(kind === 'mobile' ? { contentType: 'text/html' } : {}),
+        });
       if (upErr) {
         setError(upErr.message);
         return;
@@ -58,7 +68,8 @@ export default function PortfolioLetterUpload({
     }
   }
 
-  const accept = kind === 'pdf' ? 'application/pdf' : 'image/*';
+  const accept =
+    kind === 'pdf' ? 'application/pdf' : kind === 'mobile' ? '.html,.htm,text/html' : 'image/*';
   const filename = currentPath ? currentPath.split('/').pop() : null;
 
   return (

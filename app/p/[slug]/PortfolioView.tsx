@@ -14,7 +14,7 @@
 //     연혁은 그 아래 전체폭 접이식(grid 1열로 reflow). 모바일·태블릿(<1100)은 현행 유지.
 //     「선교사 소개」 타이틀 옆에 사역소개영상(intro_video_url) 링크 추가(전 폭 공통).
 
-import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, PortfolioLetter } from '@/lib/portfolio';
+import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, LetterWithUrls } from '@/lib/portfolio';
 import { youtubeWatchUrl } from '@/lib/portfolio';
 import BrandBar from './BrandBar';
 import VideoSummary from './VideoSummary';
@@ -23,8 +23,6 @@ import MissionaryAccordion from './MissionaryAccordion';
 import MissionaryTablet from './MissionaryTablet';
 import MissionaryDesktop from './MissionaryDesktop';
 import HistoryAccordion from './HistoryAccordion';
-
-type LetterWithUrls = PortfolioLetter & { pdf_url: string | null; cover_url: string | null };
 
 type Props = {
   portfolio: Portfolio;

@@ -48,6 +48,7 @@ export default function LetterEditor({ initial, userId }: Props) {
   const [num, setNum] = useState('');
   const [title, setTitle] = useState('');
   const [pdfPath, setPdfPath] = useState<string | null>(null);
+  const [mobilePath, setMobilePath] = useState<string | null>(null);
   const [coverPath, setCoverPath] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [summary, setSummary] = useState('');
@@ -71,6 +72,7 @@ export default function LetterEditor({ initial, userId }: Props) {
     setNum('');
     setTitle('');
     setPdfPath(null);
+    setMobilePath(null);
     setCoverPath(null);
     setVideoUrl('');
     setSummary('');
@@ -88,8 +90,8 @@ export default function LetterEditor({ initial, userId }: Props) {
       setFormError('제목을 입력하세요.');
       return;
     }
-    if (!pdfPath && !videoUrl.trim()) {
-      setFormError('PDF 파일 또는 영상 URL 중 하나는 필요합니다.');
+    if (!pdfPath && !mobilePath && !videoUrl.trim()) {
+      setFormError('PDF·모바일 HTML·영상 URL 중 하나는 필요합니다.');
       return;
     }
     if (videoUrl.trim() && !/^https?:\/\/.+/i.test(videoUrl.trim())) {
@@ -108,6 +110,7 @@ export default function LetterEditor({ initial, userId }: Props) {
           number: num.trim() || null,
           title: title.trim(),
           pdf_path: pdfPath,
+          mobile_path: mobilePath,
           cover_path: coverPath,
           video_url: videoUrl.trim() || null,
           summary: summary.trim() || null,
@@ -172,7 +175,7 @@ export default function LetterEditor({ initial, userId }: Props) {
     const supabase = createClient();
     const { error } = await supabase.from('letters').delete().eq('id', letter.id);
     if (error) return;
-    const paths = [letter.pdf_path, letter.cover_path].filter(
+    const paths = [letter.pdf_path, letter.mobile_path, letter.cover_path].filter(
       (p): p is string => !!p
     );
     if (paths.length > 0) {
@@ -202,7 +205,9 @@ export default function LetterEditor({ initial, userId }: Props) {
   async function copyUrl(letter: PortfolioLetter) {
     const supabase = createClient();
     let url: string | null = null;
-    if (letter.pdf_path) {
+    if (letter.mobile_path) {
+      url = supabase.storage.from(BUCKET).getPublicUrl(letter.mobile_path).data.publicUrl;
+    } else if (letter.pdf_path) {
       url = supabase.storage.from(BUCKET).getPublicUrl(letter.pdf_path).data.publicUrl;
     } else if (letter.video_url) {
       url = letter.video_url;
@@ -346,13 +351,20 @@ export default function LetterEditor({ initial, userId }: Props) {
               className="rounded-md border border-line bg-surface px-2 py-1.5 text-xs focus:border-primary focus:outline-none"
             />
           </div>
-          <div className="mb-2 grid grid-cols-2 gap-2">
+          <div className="mb-2 grid grid-cols-3 gap-2">
             <PortfolioLetterUpload
               userId={userId}
               kind="pdf"
               currentPath={pdfPath}
               onUploaded={setPdfPath}
               label="PDF 업로드"
+            />
+            <PortfolioLetterUpload
+              userId={userId}
+              kind="mobile"
+              currentPath={mobilePath}
+              onUploaded={setMobilePath}
+              label="모바일 HTML (선택)"
             />
             <PortfolioLetterUpload
               userId={userId}
