@@ -607,6 +607,9 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
             className={`${input} resize-y min-h-[110px] [field-sizing:content]`}
             placeholder="오늘 한 일·만난 사람·있었던 일을 사실대로 기록하세요"
           />
+          <p className="mt-1 text-[11px] leading-relaxed text-faint">
+            마크다운 지원 — **볼드** · *기울임* · # 제목 · - 목록 · 1. 번호 · &gt; 인용 · [링크](주소) · 표 · ---
+          </p>
 
           {/* 감사·묵상: 접이식. 데스크탑은 2열 칩, 모바일은 세로 스택. */}
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">

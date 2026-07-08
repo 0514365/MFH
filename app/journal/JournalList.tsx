@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { JournalEntry, Project, Task } from '@/lib/types'
 import { canEditEntry, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
 import AuthorBadge from '@/components/AuthorBadge'
+import MarkdownText, { stripMarkdown } from '@/components/MarkdownText'
 import { chip, chipOn, toggle } from '@/lib/statusChip'
 import {
   applyJournalFilter,
@@ -40,7 +41,7 @@ function EntryBody({ e }: { e: JournalEntry }) {
         )}
       </div>
       <h2 className="mt-3 text-[19px] font-bold leading-[1.3] text-ink">{e.headline || '(제목 없음)'}</h2>
-      {e.today && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted">{e.today}</p>}
+      {e.today && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted">{stripMarkdown(e.today)}</p>}
     </>
   )
 }
@@ -95,7 +96,7 @@ function EntrySummary({
     text ? (
       <div className="py-2">
         <div className="mb-1 text-xs font-semibold text-faint">{label}</div>
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">{text}</p>
+        <MarkdownText text={text} className="text-sm leading-relaxed text-ink" />
       </div>
     ) : null
   return (

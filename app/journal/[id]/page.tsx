@@ -9,6 +9,7 @@ import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
 import { collectPhotoPaths, resolveJournalPhotos } from '@/lib/journalPhotos'
 import PhotoCollage, { type CollagePhoto } from '../PhotoCollage'
+import MarkdownText from '@/components/MarkdownText'
 import DeleteButton from './DeleteButton'
 import '../../p/portfolio-theme.css'
 
@@ -47,7 +48,7 @@ function Section({
           <h3 className="text-[16px] font-bold leading-none text-ink">{koLabel}</h3>
         </div>
       </div>
-      <p className="whitespace-pre-wrap break-keep text-[15px] font-light leading-[1.75] text-ink">{text}</p>
+      <MarkdownText text={text} className="break-keep text-[15px] font-light leading-[1.75] text-ink" />
     </section>
   )
 }
