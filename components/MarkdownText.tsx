@@ -66,7 +66,8 @@ function renderInline(text: string, keyBase: string, depth = 0): ReactNode[] {
 }
 
 // ───── 블록 판별 ─────
-const RE_HEADER = /^(#{1,6})\s+(.+)$/
+// 닫는 # 허용(`# 제목 #`) — 표준 ATX 헤더처럼 끝의 #… 은 표시에서 제거.
+const RE_HEADER = /^(#{1,6})\s+(.+?)\s*#*\s*$/
 const RE_HR = /^\s*(-{3,}|\*{3,}|_{3,})\s*$/
 const RE_QUOTE = /^\s*>\s?(.*)$/
 const RE_OL = /^\s*(\d+)[.)]\s+(.+)$/
