@@ -23,6 +23,12 @@ export default function DateField({ value, onChange, placeholder }: Props) {
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onClick={(e) => {
+          // 데스크탑: 클릭만으로는 피커가 안 열림(달력 아이콘이 opacity-0에 가려짐) → 직접 오픈
+          try {
+            e.currentTarget.showPicker?.()
+          } catch {}
+        }}
         aria-label={placeholder ?? '날짜 선택'}
         className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
       />

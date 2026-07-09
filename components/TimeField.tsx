@@ -32,6 +32,12 @@ export default function TimeField({ value, onChange, placeholder, disabled }: Pr
         type="time"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onClick={(e) => {
+          // 데스크탑: 클릭만으로는 피커가 안 열림(시계 아이콘이 opacity-0에 가려짐) → 직접 오픈
+          try {
+            e.currentTarget.showPicker?.()
+          } catch {}
+        }}
         disabled={disabled}
         aria-label={placeholder ?? '시간 선택'}
         className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
