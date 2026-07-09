@@ -168,7 +168,8 @@ export default function MarkdownText({ text, className }: { text: string | null;
         i++
       }
       blocks.push(
-        <blockquote key={key++} className="my-2 border-l-[3px] border-primary/40 pl-3.5 italic text-muted">
+        // DayOne 스타일: 회색 세로바 + 기울임 없는 본문색
+        <blockquote key={key++} className="my-2 border-l-4 border-line pl-3.5 text-ink">
           {buf.map((b, j) => (
             <p key={j}>{renderInline(b, `q${key}-${j}`)}</p>
           ))}
