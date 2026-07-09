@@ -20,6 +20,11 @@
 ### B. 브랜치 정리
 - 병합 완료된 원격 브랜치 2개 삭제(`claude/objective-hertz-5010bc`, `claude/nice-gagarin-c83a3c`) → 원격은 main 만 남음.
 
+### C. 마크다운 스타일 조정 — DayOne 톤 (핸드오프 후 추가 4커밋, 우진 실기기 확인 완료)
+- **헤더 레벨** (`56acc43`): H3·H4 동일 크기(1.1em)에 색만 검정/`text-accent` 빨강 구분, H5 = 1em·볼드 아님·자간 벌림·uppercase, H6 = 알약 글상자(`bg-surface-subtle` pill). H1·H2 유지.
+- **인용문(blockquote)** (`65f2959`→`5d901a4`→`09ab56a` 최종): 세로바 4px + 글자 모두 **DayOne 색 `#98A4A6`**(RGB 152,164,166 — 우진 직접 지정) + 이탤릭. 중간에 회색→sky 톤을 거쳐 최종 확정.
+- 스타일 기준은 DayOne 앱 스크린샷 비교 — 추후 조정 시 `components/MarkdownText.tsx` 의 `HEADER_CLASS` 와 blockquote 클래스 한 곳만 수정.
+
 ---
 
 ## 배움·함정 (신규)
@@ -40,4 +45,4 @@
 
 ---
 
-*작성: 2026-07-08 세션. 일지 마크다운 렌더링(MarkdownText V1) 신설·main 배포(6d686ba + 헤더 보완). 직전 v2cm→archive.*
+*작성: 2026-07-08 세션. 일지 마크다운 렌더링(MarkdownText V1) 신설·main 배포(6d686ba + 헤더 보완). 이후 같은 세션에서 DayOne 톤 스타일 조정 4커밋(~09ab56a) 추가 배포·확인 완료. 직전 v2cm→archive.*
