@@ -82,13 +82,15 @@ function splitTableRow(line: string): string[] {
 }
 
 // 헤더 레벨별 스타일(본문 15px 기준 상대 크기).
+//  · 3·4 는 동일 크기, 색만 검정/빨강(accent)으로 구분(DayOne 2·3 방식).
+//  · 5 는 볼드 아님 + 자간 벌림, 6 은 알약 글상자(DayOne 5·6 방식).
 const HEADER_CLASS: Record<number, string> = {
   1: 'mt-4 text-[1.35em] font-bold leading-snug text-ink first:mt-0',
   2: 'mt-4 text-[1.2em] font-bold leading-snug text-ink first:mt-0',
   3: 'mt-3 text-[1.1em] font-bold leading-snug text-ink first:mt-0',
-  4: 'mt-3 text-[1em] font-bold leading-snug text-ink first:mt-0',
-  5: 'mt-2 text-[0.95em] font-bold leading-snug text-ink first:mt-0',
-  6: 'mt-2 text-[0.9em] font-bold uppercase leading-snug text-muted first:mt-0',
+  4: 'mt-3 text-[1.1em] font-bold leading-snug text-accent first:mt-0',
+  5: 'mt-2 text-[1em] font-normal uppercase leading-snug tracking-[0.14em] text-ink first:mt-0',
+  6: 'mt-2 inline-block rounded-full bg-surface-subtle px-3 py-1 text-[0.85em] font-medium uppercase leading-snug tracking-[0.08em] text-muted first:mt-0',
 }
 
 export default function MarkdownText({ text, className }: { text: string | null; className?: string }) {
