@@ -153,7 +153,7 @@ export default async function JournalDetail(props: {
   })
 
   return (
-    <main className="app-theme mx-auto max-w-md pb-10">
+    <main className="app-theme mx-auto max-w-md pb-10 min-[740px]:max-w-5xl">
       {/* 상단바 (이미지) — 좌: ‹ Log / 우: ‹ n/total › */}
       <header
         className="sticky top-0 z-30 flex items-center justify-between border-b border-line px-4 py-3"
@@ -178,7 +178,7 @@ export default async function JournalDetail(props: {
       <section className="flex flex-col gap-3.5 px-5 pb-6 pt-5">
         {/* 제목 */}
         {entry.headline && (
-          <h1 className="break-keep text-[26px] font-bold leading-[1.3] tracking-tight text-ink">
+          <h1 className="break-keep text-[26px] font-bold leading-[1.3] tracking-tight text-ink min-[740px]:text-[32px]">
             {entry.headline}
           </h1>
         )}
@@ -255,18 +255,26 @@ export default async function JournalDetail(props: {
         </div>
       )}
 
-      {/* 사진 */}
-      {collage.length > 0 && (
-        <section className="mb-8 px-5">
-          <PhotoCollage photos={collage} />
-        </section>
-      )}
-
-      {/* 4 섹션 */}
-      <Section emoji="🌿" enLabel="Today" koLabel="오늘의 기록" text={entry.today} />
-      <Section emoji="🙏" enLabel="Thanks & Answers" koLabel="감사·응답" text={entry.thanks} alt />
-      <Section emoji="💭" enLabel="Meditation" koLabel="묵상·깨달음" text={entry.meditation} />
-      <Section emoji="📌" enLabel="Prayer Requests" koLabel="기도제목" text={entry.prayer} alt />
+      {/* 사진 + 4섹션 — 데스크탑(≥740px)은 사진 좌(sticky)/본문 우 2열로 화면폭 활용 */}
+      <div
+        className={
+          collage.length > 0
+            ? 'min-[740px]:grid min-[740px]:grid-cols-[1fr_1.1fr] min-[740px]:items-start'
+            : ''
+        }
+      >
+        {collage.length > 0 && (
+          <section className="mb-8 px-5 min-[740px]:sticky min-[740px]:top-16 min-[740px]:mb-0 min-[740px]:pb-8">
+            <PhotoCollage photos={collage} />
+          </section>
+        )}
+        <div>
+          <Section emoji="🌿" enLabel="Today" koLabel="오늘의 기록" text={entry.today} />
+          <Section emoji="🙏" enLabel="Thanks & Answers" koLabel="감사·응답" text={entry.thanks} alt />
+          <Section emoji="💭" enLabel="Meditation" koLabel="묵상·깨달음" text={entry.meditation} />
+          <Section emoji="📌" enLabel="Prayer Requests" koLabel="기도제목" text={entry.prayer} alt />
+        </div>
+      </div>
 
       {/* 수정 / 삭제 */}
       {canEdit ? (
