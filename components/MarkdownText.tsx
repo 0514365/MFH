@@ -168,8 +168,8 @@ export default function MarkdownText({ text, className }: { text: string | null;
         i++
       }
       blocks.push(
-        // DayOne 스타일: 회색 세로바 + 기울임 없는 본문색
-        <blockquote key={key++} className="my-2 border-l-4 border-line pl-3.5 text-ink">
+        // DayOne 대표색(하늘색) 세로바·글자 + 이탤릭 (sky 톤은 InsightContent 기도 뱃지와 동일 계열)
+        <blockquote key={key++} className="my-2 border-l-4 border-sky-300 pl-3.5 italic text-sky-700">
           {buf.map((b, j) => (
             <p key={j}>{renderInline(b, `q${key}-${j}`)}</p>
           ))}
