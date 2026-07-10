@@ -4,20 +4,28 @@
     {
       "name": "next-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
     },
     {
       "name": "next-prod",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start"],
+      "runtimeArgs": [
+        "run",
+        "start"
+      ],
       "port": 3000
     },
     {
       "name": "letter-static",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["/Users/wbook_m1/Library/CloudStorage/Dropbox-개인용/MFH/scripts/static-server.mjs"],
+      "runtimeArgs": [
+        "/Users/wbook_m1/Library/CloudStorage/Dropbox/MFH/scripts/static-server.mjs"
+      ],
       "port": 8765
     }
   ]
