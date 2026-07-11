@@ -226,20 +226,20 @@ export default async function Home() {
 
   return (
     <SplashGate>
-      <main className="app-theme mx-auto max-w-md px-4 pb-10 pt-2 md:max-w-3xl lg:max-w-6xl lg:px-6">
+      <main className="app-theme mx-auto max-w-md px-4 pb-10 pt-2 sm:max-w-3xl lg:max-w-6xl lg:px-6">
         <header className="mb-4 flex items-center justify-between px-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-primary.svg" alt="MFH — Mission for Honduras" className="h-9 w-auto" />
           <p className="text-[11px] text-faint">{user.email}</p>
         </header>
 
-        {/* 와이드 레이아웃: 모바일=세로 스택(기존), md(iPad)=좌측 그룹 2열, lg(desktop)=좌 5(오늘·sticky) : 우 7(모듈 벤토 3열) */}
-        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:items-start lg:gap-5">
+        {/* 와이드 레이아웃: 모바일=세로 스택(기존), sm(iPad 세로 744px 포함)=좌측 그룹 2열, lg(desktop)=좌 5(오늘·sticky) : 우 7(모듈 벤토 3열) */}
+        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:gap-5">
           {/* 좌: 오늘의 정보 — 주제·QT·동향. lg 에서 스크롤해도 고정(sticky) */}
-          <div className="flex flex-col gap-3 md:grid md:grid-cols-2 lg:sticky lg:top-4 lg:col-span-5 lg:flex lg:flex-col lg:self-start">
+          <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:sticky lg:top-4 lg:col-span-5 lg:flex lg:flex-col lg:self-start">
           {/* 2026 주제 — hero. 딥 그라데이션(마룬레드→딥마룬)으로 단색 면 부담 분산 — brand 마룬 정체성 유지 */}
           <section
-            className="flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white md:col-span-2"
+            className="flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white sm:col-span-2"
             style={{ background: 'linear-gradient(150deg, #B61821 0%, #661F20 100%)' }}
           >
             <div>
@@ -331,8 +331,9 @@ export default async function Home() {
           )}
           </div>
 
-          {/* 우: 모듈 벤토 — 모바일 2열, md 4열, lg 6열(일반 타일 2칸 = 실질 3열, 하단 와이드 3+3 반반) */}
-          <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)] md:grid-cols-4 lg:col-span-7 lg:grid-cols-6">
+          {/* 우: 모듈 벤토 — 모바일 2열, sm 4열, lg 6열(일반 타일 2칸 = 실질 3열).
+              lg 행 템플릿: 타일 3행 = 1fr 스트레치 + Accounting = auto → 우측 하단이 좌측(Supporters) 하단과 정렬 */}
+          <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)] sm:grid-cols-4 lg:col-span-7 lg:grid-cols-6 lg:grid-rows-[1fr_1fr_1fr_auto]">
           {/* Log — tall (좌, 모바일만) */}
           <ModuleTile
             href="/journal"
@@ -340,7 +341,7 @@ export default async function Home() {
             title="Log"
             sub="Today's grace"
             chipClass="bg-emerald-100 text-emerald-700"
-            className="row-span-2 md:row-span-1 lg:col-span-2"
+            className="row-span-2 sm:row-span-1 lg:col-span-2"
           />
 
           {/* Insights — 우(상). 최종 업데이트 시각 */}
@@ -436,7 +437,7 @@ export default async function Home() {
             title="Portfolio"
             sub="Sharing our journey"
             chipClass="bg-indigo-100 text-indigo-700"
-            className="md:col-span-2 lg:col-span-2"
+            className="sm:col-span-2 lg:col-span-2"
           />
 
           {/* 후원자 — 공개 전까지 우진(마스터)만. 관계·후원 관리 (wide) */}
@@ -459,7 +460,7 @@ export default async function Home() {
               title="Accounting"
               sub="Stewardship & records"
               chipClass="bg-lime-100 text-lime-700"
-              className="col-span-2 md:col-span-4 lg:col-span-6"
+              className="col-span-2 sm:col-span-4 lg:col-span-6"
             />
           )}
           </div>
