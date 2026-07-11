@@ -317,6 +317,18 @@ export default async function Home() {
             <div className="mt-2 text-[15px] font-bold leading-tight text-ink">{newsTitle}</div>
             <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">{newsBody}</p>
           </Link>
+
+          {/* Supporters — lg 전용(좌측 컬럼, 동향 아래). 모바일·md 는 아래 벤토 쪽 타일이 표시 */}
+          {canManageFinance(user.id) && (
+            <ModuleTile
+              href="/supporters"
+              icon={<SupportersIcon />}
+              title="Supporters"
+              sub="Partners in mission"
+              chipClass="bg-orange-100 text-orange-700"
+              className="hidden lg:flex"
+            />
+          )}
           </div>
 
           {/* 우: 모듈 벤토 — 모바일 2열, md 4열, lg 6열(일반 타일 2칸 = 실질 3열, 하단 와이드 3+3 반반) */}
@@ -435,7 +447,7 @@ export default async function Home() {
               title="Supporters"
               sub="Partners in mission"
               chipClass="bg-orange-100 text-orange-700"
-              className="col-span-2 lg:order-last lg:col-span-3"
+              className="col-span-2 lg:hidden"
             />
           )}
 
@@ -447,7 +459,7 @@ export default async function Home() {
               title="Accounting"
               sub="Stewardship & records"
               chipClass="bg-lime-100 text-lime-700"
-              className="col-span-2 md:col-span-4 lg:col-span-3"
+              className="col-span-2 md:col-span-4 lg:col-span-6"
             />
           )}
           </div>
