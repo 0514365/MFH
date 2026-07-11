@@ -226,17 +226,20 @@ export default async function Home() {
 
   return (
     <SplashGate>
-      <main className="app-theme mx-auto max-w-md px-4 pb-10 pt-2">
+      <main className="app-theme mx-auto max-w-md px-4 pb-10 pt-2 md:max-w-3xl lg:max-w-6xl lg:px-6">
         <header className="mb-4 flex items-center justify-between px-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-primary.svg" alt="MFH — Mission for Honduras" className="h-9 w-auto" />
           <p className="text-[11px] text-faint">{user.email}</p>
         </header>
 
-        <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)]">
+        {/* 와이드 레이아웃: 모바일=세로 스택(기존), md(iPad)=좌측 그룹 2열, lg(desktop)=좌 5(오늘·sticky) : 우 7(모듈 벤토 3열) */}
+        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:items-start lg:gap-5">
+          {/* 좌: 오늘의 정보 — 주제·QT·동향. lg 에서 스크롤해도 고정(sticky) */}
+          <div className="flex flex-col gap-3 md:grid md:grid-cols-2 lg:sticky lg:top-4 lg:col-span-5 lg:flex lg:flex-col lg:self-start">
           {/* 2026 주제 — hero. 딥 그라데이션(마룬레드→딥마룬)으로 단색 면 부담 분산 — brand 마룬 정체성 유지 */}
           <section
-            className="col-span-2 flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white"
+            className="flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white md:col-span-2"
             style={{ background: 'linear-gradient(150deg, #B61821 0%, #661F20 100%)' }}
           >
             <div>
@@ -268,7 +271,7 @@ export default async function Home() {
           {/* 오늘의 QT — wide + 본문·핵심절 미리보기 (아침 묵상 → 주제 아래 최상단) */}
           <Link
             href="/qt"
-            className="col-span-2 flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99]"
+            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99]"
           >
             <div className="flex items-center justify-between">
               <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
@@ -294,7 +297,7 @@ export default async function Home() {
           {/* 온두라스 동향 — wide + 최신 브리핑 미리보기 */}
           <Link
             href="/honduras"
-            className="col-span-2 flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99]"
+            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99]"
           >
             <div className="flex items-center justify-between">
               <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
@@ -314,15 +317,18 @@ export default async function Home() {
             <div className="mt-2 text-[15px] font-bold leading-tight text-ink">{newsTitle}</div>
             <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">{newsBody}</p>
           </Link>
+          </div>
 
-          {/* Log — tall (좌) */}
+          {/* 우: 모듈 벤토 — 모바일 2열, md 4열, lg 3열 */}
+          <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)] md:grid-cols-4 lg:col-span-7 lg:grid-cols-3">
+          {/* Log — tall (좌, 모바일만) */}
           <ModuleTile
             href="/journal"
             icon={<ModuleIcon name="log" size={20} />}
             title="Log"
             sub="Today's grace"
             chipClass="bg-emerald-100 text-emerald-700"
-            className="row-span-2"
+            className="row-span-2 md:row-span-1"
           />
 
           {/* Insights — 우(상). 최종 업데이트 시각 */}
@@ -404,13 +410,14 @@ export default async function Home() {
             chipClass="bg-blue-100 text-blue-700"
           />
 
-          {/* Portfolio — 우 */}
+          {/* Portfolio — 우. md 4열에서는 wide 로 줄 정렬 */}
           <ModuleTile
             href="/portfolio"
             icon={<ModuleIcon name="portfolio" size={18} />}
             title="Portfolio"
             sub="Sharing our journey"
             chipClass="bg-indigo-100 text-indigo-700"
+            className="md:col-span-2 lg:col-span-1"
           />
 
           {/* 후원자 — 공개 전까지 우진(마스터)만. 관계·후원 관리 (wide) */}
@@ -421,7 +428,7 @@ export default async function Home() {
               title="Supporters"
               sub="Partners in mission"
               chipClass="bg-orange-100 text-orange-700"
-              className="col-span-2"
+              className="col-span-2 lg:col-span-3"
             />
           )}
 
@@ -433,9 +440,10 @@ export default async function Home() {
               title="Accounting"
               sub="Stewardship & records"
               chipClass="bg-lime-100 text-lime-700"
-              className="col-span-2"
+              className="col-span-2 md:col-span-4 lg:col-span-3"
             />
           )}
+          </div>
         </div>
 
         {/* 마일스톤 (자매앱 WorshipFlow·Brew Journal 형식).
