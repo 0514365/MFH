@@ -319,8 +319,8 @@ export default async function Home() {
           </Link>
           </div>
 
-          {/* 우: 모듈 벤토 — 모바일 2열, md 4열, lg 3열 */}
-          <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)] md:grid-cols-4 lg:col-span-7 lg:grid-cols-3">
+          {/* 우: 모듈 벤토 — 모바일 2열, md 4열, lg 6열(일반 타일 2칸 = 실질 3열, 하단 와이드 3+3 반반) */}
+          <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)] md:grid-cols-4 lg:col-span-7 lg:grid-cols-6">
           {/* Log — tall (좌, 모바일만) */}
           <ModuleTile
             href="/journal"
@@ -328,7 +328,7 @@ export default async function Home() {
             title="Log"
             sub="Today's grace"
             chipClass="bg-emerald-100 text-emerald-700"
-            className="row-span-2 md:row-span-1"
+            className="row-span-2 md:row-span-1 lg:col-span-2"
           />
 
           {/* Insights — 우(상). 최종 업데이트 시각 */}
@@ -338,6 +338,7 @@ export default async function Home() {
             title="Insights"
             sub="Light on the path"
             chipClass="bg-amber-100 text-amber-700"
+            className="lg:col-span-2"
             topRight={
               insightTime ? (
                 <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-medium text-muted">
@@ -354,6 +355,7 @@ export default async function Home() {
             title="Calendar"
             sub="Times & seasons"
             chipClass="bg-sky-100 text-sky-700"
+            className="lg:col-span-2"
           />
 
           {/* Projects — 좌. 임박·정체 등 신호 배지 */}
@@ -363,6 +365,7 @@ export default async function Home() {
             title="Projects"
             sub="The calling's path"
             chipClass="bg-violet-100 text-violet-700"
+            className="lg:col-span-2"
             topRight={<SignalBadges signals={projSignals} />}
           />
 
@@ -373,6 +376,7 @@ export default async function Home() {
             title="To-Do"
             sub="Entrusted work"
             chipClass="bg-teal-100 text-teal-700"
+            className="lg:col-span-2"
             topRight={<SignalBadges signals={tSignals} />}
           />
 
@@ -383,6 +387,7 @@ export default async function Home() {
             title="중보기도"
             sub="Prayers & blessings"
             chipClass="bg-rose-100 text-rose-700"
+            className="lg:col-span-2"
             topRight={
               unreadPrayers > 0 ? (
                 <span className="rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">
@@ -399,6 +404,7 @@ export default async function Home() {
             title="Photos"
             sub="Moments of grace"
             chipClass="bg-fuchsia-100 text-fuchsia-700"
+            className="lg:col-span-2"
           />
 
           {/* Facebook — 좌 */}
@@ -408,6 +414,7 @@ export default async function Home() {
             title="Facebook"
             sub="This week's story"
             chipClass="bg-blue-100 text-blue-700"
+            className="lg:col-span-2"
           />
 
           {/* Portfolio — 우. md 4열에서는 wide 로 줄 정렬 */}
@@ -417,7 +424,7 @@ export default async function Home() {
             title="Portfolio"
             sub="Sharing our journey"
             chipClass="bg-indigo-100 text-indigo-700"
-            className="md:col-span-2 lg:col-span-1"
+            className="md:col-span-2 lg:col-span-2"
           />
 
           {/* 후원자 — 공개 전까지 우진(마스터)만. 관계·후원 관리 (wide) */}
@@ -428,7 +435,7 @@ export default async function Home() {
               title="Supporters"
               sub="Partners in mission"
               chipClass="bg-orange-100 text-orange-700"
-              className="col-span-2 lg:col-span-3"
+              className="col-span-2 lg:order-last lg:col-span-3"
             />
           )}
 
