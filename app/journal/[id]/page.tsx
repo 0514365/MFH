@@ -255,25 +255,17 @@ export default async function JournalDetail(props: {
         </div>
       )}
 
-      {/* 사진 + 4섹션 — 데스크탑(≥740px)은 사진 좌(sticky)/본문 우 2열로 화면폭 활용 */}
-      <div
-        className={
-          collage.length > 0
-            ? 'min-[740px]:grid min-[740px]:grid-cols-[1fr_1.1fr] min-[740px]:items-start'
-            : ''
-        }
-      >
-        {collage.length > 0 && (
-          <section className="mb-8 px-5 min-[740px]:sticky min-[740px]:top-16 min-[740px]:mb-0 min-[740px]:pb-8">
-            <PhotoCollage photos={collage} />
-          </section>
-        )}
-        <div>
-          <Section emoji="🌿" enLabel="Today" koLabel="오늘의 기록" text={entry.today} />
-          <Section emoji="🙏" enLabel="Thanks & Answers" koLabel="감사·응답" text={entry.thanks} alt />
-          <Section emoji="💭" enLabel="Meditation" koLabel="묵상·깨달음" text={entry.meditation} />
-          <Section emoji="📌" enLabel="Prayer Requests" koLabel="기도제목" text={entry.prayer} alt />
-        </div>
+      {/* 사진 + 4섹션 — 사진을 상단 전체폭 밴드로, 본문은 그 아래 세로 배치 */}
+      {collage.length > 0 && (
+        <section className="mb-8 px-5">
+          <PhotoCollage photos={collage} wide />
+        </section>
+      )}
+      <div>
+        <Section emoji="🌿" enLabel="Today" koLabel="오늘의 기록" text={entry.today} />
+        <Section emoji="🙏" enLabel="Thanks & Answers" koLabel="감사·응답" text={entry.thanks} alt />
+        <Section emoji="💭" enLabel="Meditation" koLabel="묵상·깨달음" text={entry.meditation} />
+        <Section emoji="📌" enLabel="Prayer Requests" koLabel="기도제목" text={entry.prayer} alt />
       </div>
 
       {/* 수정 / 삭제 */}

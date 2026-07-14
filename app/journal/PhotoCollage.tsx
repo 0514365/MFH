@@ -1,7 +1,8 @@
 'use client'
 
-// MFH-JOURNAL-PHOTO-COLLAGE-V1
+// MFH-JOURNAL-PHOTO-COLLAGE-V2
 // 일지 사진 콜라주(1~5장) + 클릭 확대 라이트박스(좌우 이동·키보드·스와이프).
+// wide: 상세 페이지 전용 — 데스크탑(≥740px)에서 세로로 길어지지 않게 가로 밴드형으로 재배치.
 import { useCallback, useEffect, useState } from 'react'
 import { downloadFile, filenameFromPathOrUrl } from '@/lib/download'
 
@@ -49,7 +50,7 @@ function Cell({
   )
 }
 
-export default function PhotoCollage({ photos }: { photos: CollagePhoto[] }) {
+export default function PhotoCollage({ photos, wide = false }: { photos: CollagePhoto[]; wide?: boolean }) {
   const [open, setOpen] = useState<number | null>(null)
   const [touchX, setTouchX] = useState<number | null>(null)
   const [downloading, setDownloading] = useState(false)
@@ -95,12 +96,14 @@ export default function PhotoCollage({ photos }: { photos: CollagePhoto[] }) {
 
   return (
     <>
-      {n === 1 && <Cell {...cellProps(0, 'aspect-[4/3]')} />}
+      {n === 1 && (
+        <Cell {...cellProps(0, wide ? 'aspect-[4/3] min-[740px]:aspect-[16/9]' : 'aspect-[4/3]')} />
+      )}
 
       {n === 2 && (
         <div className="grid grid-cols-2 gap-1.5">
-          <Cell {...cellProps(0, 'aspect-square')} />
-          <Cell {...cellProps(1, 'aspect-square')} />
+          <Cell {...cellProps(0, wide ? 'aspect-square min-[740px]:aspect-[4/3]' : 'aspect-square')} />
+          <Cell {...cellProps(1, wide ? 'aspect-square min-[740px]:aspect-[4/3]' : 'aspect-square')} />
         </div>
       )}
 
@@ -113,14 +116,25 @@ export default function PhotoCollage({ photos }: { photos: CollagePhoto[] }) {
       )}
 
       {n === 4 && (
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className={`grid grid-cols-2 gap-1.5 ${wide ? 'min-[740px]:grid-cols-4' : ''}`}>
           {[0, 1, 2, 3].map((i) => (
             <Cell key={i} {...cellProps(i, 'aspect-square')} />
           ))}
         </div>
       )}
 
-      {n >= 5 && (
+      {n >= 5 && wide && (
+        // 데스크탑은 5장을 한 줄 밴드로, 모바일은 기존 2+3 배치를 6칸 그리드로 재현.
+        <div className="grid grid-cols-6 gap-1.5 min-[740px]:grid-cols-5">
+          <Cell {...cellProps(0, 'aspect-square col-span-3 min-[740px]:col-span-1')} />
+          <Cell {...cellProps(1, 'aspect-square col-span-3 min-[740px]:col-span-1')} />
+          <Cell {...cellProps(2, 'aspect-square col-span-2 min-[740px]:col-span-1')} />
+          <Cell {...cellProps(3, 'aspect-square col-span-2 min-[740px]:col-span-1')} />
+          <Cell {...cellProps(4, 'aspect-square col-span-2 min-[740px]:col-span-1')} />
+        </div>
+      )}
+
+      {n >= 5 && !wide && (
         <div className="space-y-1.5">
           <div className="grid grid-cols-2 gap-1.5">
             <Cell {...cellProps(0, 'aspect-square')} />
