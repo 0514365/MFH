@@ -123,6 +123,7 @@ letter-templates/issues/<YYYY-MM>/
 - 폰트: 제목 **Nanum Myeongjo** / 본문 **Pretendard** / 라벨·숫자 **Montserrat**.
 - 톤: 강렬한 마룬·원색 거부, **파스텔·차분**. 이모지 절제.
 - 로고 배치: `logo-primary`=표지헤더·마무리푸터 / `온두라스로고4`=마무리상단 / `mfh-icon`=CTA.
+- **마감(감사) 카드 고정 요소 — 연락처 QR (2026-06호부터)**: MFH 앱 QR 과 **카카오톡 QR**(`letter-templates/assets/kakao-qr.jpg` — 각 호 `photos/` 에 복사해 사용)을 함께 배치(카드뉴스=나란히, 모바일=MFH QR 아래 영역). 카카오 패널에는 **카카오 ID `woojin22`** 를 항상 기재하고, 패널 전체를 `<a href="https://qr.kakao.com/talk/hzQB2A9YlsL550oRrEI5e_yvT7k-">` 로 감싸 터치 시 카카오톡으로 연결되게 한다.
 
 **언어·톤·기조**
 - 모든 산출물 한국어. 따뜻하고 담백하게, 과장·상투어 절제.
@@ -142,6 +143,7 @@ letter-templates/issues/<YYYY-MM>/
 | 카드뉴스 마스터 | `letter-templates/mfh-cardnews.html` (4:5, 1080×1350) |
 | 모바일 마스터 | `letter-templates/mfh-mobile-letter.html` (폭 430) |
 | 로고·표지 | `letter-templates/assets/` |
+| 카카오톡 연락처 QR | `letter-templates/assets/kakao-qr.jpg` — ID `woojin22` · 터치 링크 `https://qr.kakao.com/talk/hzQB2A9YlsL550oRrEI5e_yvT7k-` |
 | 자동 수집 스크립트 | `scripts/fetch-letter-materials.mjs` V3 — 다중사진+인사이트(피드백 4신호 ★별점·[편지에담기]·[메모])+보관([보관])+중보 (`.env.local` SERVICE_ROLE_KEY) |
 | 앱 수집(보조) | `/letter-materials` (insights 페이지 진입) |
 | 품질 기준선(모바일+카드뉴스) | `letter-templates/issues/2026-06/` — `letter-mobile.html`·`letter-cardnews.html`·`MFH-2606-cardnews.pdf` (2026-06 리허설 확정본, 참고용 보존) |
