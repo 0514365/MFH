@@ -12,6 +12,7 @@ import ProjectTaskList from './ProjectTaskList'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
 import AttachmentList, { type AttItem } from '@/components/AttachmentList'
+import MarkdownText from '@/components/MarkdownText'
 import DeleteButton from './DeleteButton'
 import '../../p/portfolio-theme.css'
 
@@ -99,7 +100,7 @@ export default async function ProjectDetail(props: {
   }
 
   return (
-    <main className="app-theme mx-auto max-w-md pb-10">
+    <main className="app-theme mx-auto max-w-md pb-10 min-[740px]:max-w-5xl">
       {/* 상단바 — 일지 상세와 통일 */}
       <header
         className="sticky top-0 z-30 border-b border-line px-3 py-3"
@@ -163,85 +164,95 @@ export default async function ProjectDetail(props: {
         </div>
       </section>
 
-      {/* 설명 */}
-      {project.description && (
-        <section className="border-t border-line bg-white/50 px-5 py-7">
-          <div className="mb-3">
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-              Description
-            </div>
-            <h2 className="text-[17px] font-bold tracking-tight text-ink">프로젝트 개요</h2>
-          </div>
-          <p className="whitespace-pre-wrap break-keep text-[15px] font-light leading-[1.75] text-ink">
-            {project.description}
-          </p>
-        </section>
-      )}
-
-      {/* 첨부파일 — 이미지 썸네일 + PDF 미리보기 */}
-      {attItems.length > 0 && (
-        <section className="border-t border-line px-5 py-7">
-          <div className="mb-3">
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-muted">
-              Files
-            </div>
-            <h2 className="text-[14px] font-bold tracking-tight text-ink">첨부파일</h2>
-          </div>
-          <AttachmentList items={attItems} />
-        </section>
-      )}
-
-      {/* 진행 상황 */}
-      <section className="border-t border-line px-5 pb-7 pt-7">
-        <div className="mb-5 flex items-end justify-between">
-          <div>
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-              Progress
-            </div>
-            <h2 className="text-[19px] font-bold tracking-tight text-ink">진행 상황</h2>
-          </div>
-          <Link
-            href={`/tasks/new?project=${project.id}`}
-            className="shrink-0 rounded-full bg-accent-soft px-3.5 py-1.5 text-[12.5px] font-medium text-accent transition hover:opacity-80"
-          >
-            + 할 일 추가
-          </Link>
-        </div>
-
-        <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
-          <div className={`flex items-center gap-5 ${tlist.length > 0 ? 'border-b border-line pb-5' : ''}`}>
-            <ProgressRing done={done} total={total} size={60} />
-            <div className="min-w-0">
-              <div className="text-[18px] font-bold tracking-tight text-ink">
-                {total > 0 ? `${pct}% 완료` : '할 일 없음'}
+      {/* 본문 — 모바일 세로 스택, 데스크탑(900px↑) 개요·첨부(좌) + 진행 상황(우, 스크롤 고정) 2컬럼 */}
+      <div className="min-[900px]:grid min-[900px]:grid-cols-[minmax(0,1fr)_360px] min-[900px]:items-start min-[900px]:gap-9 min-[900px]:border-t min-[900px]:border-line min-[900px]:px-5">
+        <div className="min-w-0">
+          {/* 설명 — 일지 본문과 동일한 마크다운 렌더링 */}
+          {project.description && (
+            <section className="border-t border-line bg-white/50 px-5 py-7 min-[900px]:border-t-0 min-[900px]:bg-transparent min-[900px]:px-0">
+              <div className="mb-3">
+                <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
+                  Description
+                </div>
+                <h2 className="text-[17px] font-bold tracking-tight text-ink">프로젝트 개요</h2>
               </div>
-              <div className="mt-1 flex items-center gap-2 text-[13px] text-muted">
-                {total > 0 ? (
-                  <>
-                    <span>
-                      완료 <strong className="font-semibold text-ink">{done}</strong>
-                    </span>
-                    <span className="text-line">|</span>
-                    <span>
-                      전체 <strong className="font-semibold text-ink">{total}</strong>
-                    </span>
-                  </>
-                ) : (
-                  '연결된 할 일이 아직 없습니다'
-                )}
-              </div>
-            </div>
-          </div>
+              <MarkdownText
+                text={project.description}
+                className="break-keep text-[15px] font-light leading-[1.75] text-ink"
+              />
+            </section>
+          )}
 
-          {tlist.length > 0 ? (
-            <div className="mt-5">
-              <ProjectTaskList items={tlist} canReorder={canEdit} />
-            </div>
-          ) : (
-            <p className="mt-5 text-xs text-faint">‘+ 할 일 추가’로 이 프로젝트의 할 일을 만들어 보세요.</p>
+          {/* 첨부파일 — 이미지 썸네일 + PDF 미리보기 */}
+          {attItems.length > 0 && (
+            <section
+              className={`border-t border-line px-5 py-7 min-[900px]:px-0 ${project.description ? '' : 'min-[900px]:border-t-0'}`}
+            >
+              <div className="mb-3">
+                <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-muted">
+                  Files
+                </div>
+                <h2 className="text-[14px] font-bold tracking-tight text-ink">첨부파일</h2>
+              </div>
+              <AttachmentList items={attItems} />
+            </section>
           )}
         </div>
-      </section>
+
+        <div className="min-[900px]:sticky min-[900px]:top-[72px]">
+          {/* 진행 상황 */}
+          <section className="border-t border-line px-5 pb-7 pt-7 min-[900px]:border-t-0 min-[900px]:px-0">
+            <div className="mb-5 flex items-end justify-between">
+              <div>
+                <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
+                  Progress
+                </div>
+                <h2 className="text-[19px] font-bold tracking-tight text-ink">진행 상황</h2>
+              </div>
+              <Link
+                href={`/tasks/new?project=${project.id}`}
+                className="shrink-0 rounded-full bg-accent-soft px-3.5 py-1.5 text-[12.5px] font-medium text-accent transition hover:opacity-80"
+              >
+                + 할 일 추가
+              </Link>
+            </div>
+    
+            <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
+              <div className={`flex items-center gap-5 ${tlist.length > 0 ? 'border-b border-line pb-5' : ''}`}>
+                <ProgressRing done={done} total={total} size={60} />
+                <div className="min-w-0">
+                  <div className="text-[18px] font-bold tracking-tight text-ink">
+                    {total > 0 ? `${pct}% 완료` : '할 일 없음'}
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-[13px] text-muted">
+                    {total > 0 ? (
+                      <>
+                        <span>
+                          완료 <strong className="font-semibold text-ink">{done}</strong>
+                        </span>
+                        <span className="text-line">|</span>
+                        <span>
+                          전체 <strong className="font-semibold text-ink">{total}</strong>
+                        </span>
+                      </>
+                    ) : (
+                      '연결된 할 일이 아직 없습니다'
+                    )}
+                  </div>
+                </div>
+              </div>
+    
+              {tlist.length > 0 ? (
+                <div className="mt-5">
+                  <ProjectTaskList items={tlist} canReorder={canEdit} />
+                </div>
+              ) : (
+                <p className="mt-5 text-xs text-faint">‘+ 할 일 추가’로 이 프로젝트의 할 일을 만들어 보세요.</p>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
 
       {/* 수정 / 삭제 — 일지 상세와 통일 */}
       {canEdit ? (
