@@ -18,6 +18,7 @@ import { StatusBadge, CategoryBadge, ImportanceStars, fmtDate } from './badges'
 import { ProgressRing } from './Progress'
 import { useWideScreen } from '@/lib/useWideScreen'
 import { useSelectionMode } from '@/lib/useSelectionMode'
+import MarkdownText from '@/components/MarkdownText'
 import SelectionCheckbox from '@/components/SelectionCheckbox'
 import SelectionBar from '@/components/SelectionBar'
 import ProjectBulkPanel from './ProjectBulkPanel'
@@ -84,9 +85,10 @@ function ProjectSummary({
       </div>
 
       {p.description && (
-        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted">
-          {p.description}
-        </p>
+        <MarkdownText
+          text={p.description}
+          className="mt-3 break-keep text-sm leading-relaxed text-muted"
+        />
       )}
 
       <div className="mt-4 flex items-center gap-3">
@@ -462,7 +464,7 @@ export default function ProjectsList({
                 </div>
                 <div className="mt-1.5 font-bold text-ink">{p.title}</div>
                 {p.description && (
-                  <div className="mt-1 line-clamp-2 text-sm text-muted">{p.description}</div>
+                  <MarkdownText text={p.description} className="mt-1 line-clamp-2 text-sm text-muted" />
                 )}
               </>
             )
