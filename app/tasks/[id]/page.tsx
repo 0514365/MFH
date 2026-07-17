@@ -11,6 +11,7 @@ import { fmtTime } from '@/lib/calendar'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
 import AttachmentList, { type AttItem } from '@/components/AttachmentList'
+import MarkdownText from '@/components/MarkdownText'
 import TaskCheck from '../TaskCheck'
 import DeleteButton from './DeleteButton'
 import RecurrenceBadge from '@/components/RecurrenceBadge'
@@ -229,9 +230,10 @@ export default async function TaskDetailPage(props: {
             </div>
             <h2 className="text-[17px] font-bold tracking-tight text-ink">설명</h2>
           </div>
-          <p className="whitespace-pre-wrap break-keep text-[15px] font-light leading-[1.75] text-ink">
-            {task.description}
-          </p>
+          <MarkdownText
+            text={task.description}
+            className="break-keep text-[15px] font-light leading-[1.75] text-ink"
+          />
         </section>
       )}
 

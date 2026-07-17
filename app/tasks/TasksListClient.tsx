@@ -28,6 +28,7 @@ import {
 } from '@/lib/taskGroups'
 import TaskCheck from './TaskCheck'
 import { useSelectionMode } from '@/lib/useSelectionMode'
+import MarkdownText from '@/components/MarkdownText'
 import SelectionCheckbox from '@/components/SelectionCheckbox'
 import SelectionBar from '@/components/SelectionBar'
 import TaskBulkPanel from './TaskBulkPanel'
@@ -177,9 +178,10 @@ function TaskSummary({
       </div>
 
       {t.description && (
-        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted">
-          {t.description}
-        </p>
+        <MarkdownText
+          text={t.description}
+          className="mt-3 break-keep text-sm leading-relaxed text-muted"
+        />
       )}
 
       <div className="mt-4 divide-y divide-line border-t border-line">
@@ -703,7 +705,7 @@ export default function TasksListClient({
                   {t.title}
                 </div>
                 {t.description && (
-                  <div className="mt-1 line-clamp-2 text-sm text-muted">{t.description}</div>
+                  <MarkdownText text={t.description} className="mt-1 line-clamp-2 text-sm text-muted" />
                 )}
               </>
             )
