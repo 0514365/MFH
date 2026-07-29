@@ -168,8 +168,8 @@ export default function MarkdownText({ text, className }: { text: string | null;
         i++
       }
       blocks.push(
-        // DayOne 인용 색 RGB(152,164,166)=#98A4A6 — 세로바·글자 동일, 이탤릭
-        <blockquote key={key++} className="my-2 border-l-4 border-[#98A4A6] pl-3.5 italic text-[#98A4A6]">
+        // DayOne 인용 색 RGB(152,164,166)=#98A4A6 — 세로바·글자 동일, 이탤릭 + 볼드
+        <blockquote key={key++} className="my-2 border-l-4 border-[#98A4A6] pl-3.5 font-semibold italic text-[#98A4A6]">
           {buf.map((b, j) => (
             <p key={j}>{renderInline(b, `q${key}-${j}`)}</p>
           ))}
