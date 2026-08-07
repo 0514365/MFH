@@ -165,7 +165,12 @@ letter-templates/issues/<YYYY-MM>/
 4. designer   → 모바일 letter.html (Variant 베이스·1면1주제)   ▶ 모바일 디자인 확정
 5. designer   → 모바일 확정본 → 카드뉴스 PDF(4:5) 변환(내용 동일·레이아웃/사진 일부 조정)  ▶ 카드뉴스 확정
 6. assembler  → QA → 출력(모바일+PDF) → 포트폴리오 등록 메모   ▶ 최종 확정
+7. 팀장       → `News Letter/<YYYYMMDD>_MFH#<번호>_<제목>/` 폴더에 PDF·모바일 공유본 배치
+              → `python3 scripts/import_letters.py --dry` 확인 후 `--apply`
+              → **`letters.summary` 별도 입력**(스크립트가 안 넣음) → 공개 페이지에서 요약 노출 확인  ▶ 발행 완료
 ```
+
+**⚠ 등록 시 자주 빠지는 것 — `letters.summary`**: 공개 페이지 "최신 선교편지" 우측 칼럼에 나오는 요약이다. `import_letters.py` 는 PDF·모바일 HTML·표지만 올리고 **summary 는 넣지 않으므로** 등록 후 반드시 별도로 채운다(앱 편집 화면 또는 `letters` 테이블 PATCH). 형식은 `.claude/agents/letter-assembler.md` §3 참조 — 소식 요약 1문단 + 빈 줄 + `[온두라스]`·`[사역]`·`[가정]` 3줄. *(2026-07호 누락 → 2026-08 보강)*
 
 각 ▶ 에서 우진 승인 후 다음으로. 변경은 §5 라우팅대로.
 
