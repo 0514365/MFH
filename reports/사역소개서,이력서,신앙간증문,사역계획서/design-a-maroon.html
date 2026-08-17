@@ -1,0 +1,175 @@
+<!-- MFH-PLAN10-DRAFT-A-V1 : 브랜드 마룬 시안 (표지 + 로드맵 + 핵심 프로젝트) -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>사역계획서 · 시안 A 브랜드 마룬</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#3a3a3a; font-family:'Pretendard',sans-serif; }
+  .deck { display:flex; flex-direction:column; gap:28px; padding:28px; align-items:center; }
+  .slide { width:1280px; height:720px; position:relative; overflow:hidden; background:#fff; flex:none; }
+  .mont { font-family:'Montserrat','Pretendard',sans-serif; }
+
+  /* ---------- 표지 ---------- */
+  .cover { background:#661F20; color:#fff; display:flex; }
+  .cover-left { width:56%; padding:64px 60px; display:flex; flex-direction:column; }
+  .cover-logo { height:42px; width:auto; align-self:flex-start; }
+  .cover-kicker { margin-top:66px; font-size:14px; letter-spacing:.3em; color:#E4C9AF; font-weight:600; }
+  .cover-title { margin-top:20px; font-size:54px; font-weight:800; line-height:1.24; letter-spacing:-0.01em; }
+  .cover-title em { font-style:normal; color:#E9C8A8; }
+  .cover-sub { margin-top:18px; font-size:20px; font-weight:600; color:#F2E3D5; }
+  .cover-verse { margin-top:26px; font-size:15.5px; line-height:1.75; color:#D9B9A0; max-width:520px; }
+  .cover-verse b { color:#fff; }
+  .cover-byline { margin-top:auto; display:flex; align-items:baseline; gap:14px; }
+  .cover-byline .who { font-size:18px; font-weight:700; }
+  .cover-byline .where { font-size:13.5px; color:#D9B9A0; }
+  .cover-right { width:44%; position:relative; padding:48px 48px 48px 0; display:flex; align-items:center; }
+  .cover-photo { width:100%; height:100%; object-fit:cover; border-radius:20px; }
+  .cover-caption { position:absolute; right:64px; bottom:60px; background:rgba(30,10,10,.55); color:#fff;
+    font-size:12px; padding:6px 13px; border-radius:999px; backdrop-filter:blur(4px); }
+
+  /* ---------- 내지 공통 ---------- */
+  .inner { padding:56px 62px; display:flex; flex-direction:column; }
+  .inner-part { font-size:12.5px; letter-spacing:.26em; color:#B61821; font-weight:700; }
+  .inner-title { font-size:34px; font-weight:800; color:#661F20; letter-spacing:-0.01em; margin-top:9px; }
+  .inner-sub { font-size:16px; color:#6b6b6a; margin-top:9px; }
+  .pageno { position:absolute; right:30px; bottom:22px; font-size:12px; color:#B8B8B7; }
+
+  /* ---------- 로드맵 ---------- */
+  .steps { display:flex; gap:20px; margin-top:38px; flex:1; }
+  .step { flex:1; border-radius:20px; padding:30px 28px; display:flex; flex-direction:column; background:#FAF3EC; }
+  .step.hero { background:#661F20; color:#fff; }
+  .step .no { font-size:13px; font-weight:700; letter-spacing:.2em; color:#B61821; }
+  .step.hero .no { color:#E9C8A8; }
+  .step h3 { font-size:30px; font-weight:800; margin-top:10px; color:#661F20; }
+  .step.hero h3 { color:#fff; }
+  .step .yrs { font-size:14px; font-weight:600; color:#80807F; margin-top:4px; }
+  .step.hero .yrs { color:#D9B9A0; }
+  .step p { font-size:14.5px; line-height:1.75; margin-top:16px; color:#3d3a39; }
+  .step.hero p { color:#F2E3D5; }
+  .step ul { margin-top:14px; list-style:none; }
+  .step li { font-size:13.5px; line-height:1.65; color:#5c5957; padding-left:14px; position:relative; }
+  .step li::before { content:''; position:absolute; left:0; top:.62em; width:5px; height:5px; border-radius:50%; background:#B61821; }
+  .step.hero li { color:#EEDAC6; }
+  .step.hero li::before { background:#E9C8A8; }
+  .flow-note { margin-top:22px; background:#F4EFE9; border-radius:14px; padding:14px 20px; font-size:13.5px; color:#6b6b6a; }
+  .flow-note b { color:#661F20; }
+
+  /* ---------- 핵심 프로젝트 ---------- */
+  .proj-body { display:flex; gap:36px; margin-top:32px; flex:1; min-height:0; }
+  .proj-text { width:44%; display:flex; flex-direction:column; }
+  .proj-text p { font-size:15px; line-height:1.8; color:#3d3a39; }
+  .idents { display:flex; flex-direction:column; gap:9px; margin-top:20px; }
+  .ident { display:flex; align-items:baseline; gap:10px; background:#FAF3EC; border-radius:12px; padding:11px 16px; }
+  .ident b { font-size:14.5px; color:#661F20; white-space:nowrap; }
+  .ident span { font-size:13px; color:#6b6b6a; }
+  .stats { display:flex; gap:12px; margin-top:20px; }
+  .stat { flex:1; background:#661F20; border-radius:16px; padding:16px 15px 13px; color:#fff; }
+  .stat .num { font-size:26px; font-weight:800; color:#E9C8A8; letter-spacing:-.01em; }
+  .stat .lbl { font-size:12px; color:#D9B9A0; margin-top:5px; line-height:1.45; }
+  .proj-photos { width:56%; min-height:0; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:minmax(0,1.25fr) minmax(0,1fr); gap:13px; }
+  .proj-photos img { width:100%; height:100%; min-height:0; object-fit:cover; border-radius:15px; }
+  .proj-photos .wide { grid-column:1/3; }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- 1. 표지 -->
+  <section class="slide cover">
+    <div class="cover-left">
+      <img class="cover-logo" src="../../2026 Brand Kit/logo-white-2026-05-24.png" alt="MFH">
+      <div class="cover-kicker mont">MISSION FOR HONDURAS · 2026–2036 사역계획서</div>
+      <h1 class="cover-title">한 아이에서<br>온두라스까지</h1>
+      <div class="cover-sub">Zapotal, 다음 세대를 위한 꿈의 공간</div>
+      <p class="cover-verse">"보라 내가 새 일을 행하리니 이제 나타낼 것이라 …<br><b>내가 광야에 길을 사막에 강을 내리니</b>" — 이사야 43:19</p>
+      <div class="cover-byline"><span class="who">온두라스 선교사 김우진 · 서진아</span><span class="where">산페드로술라, 온두라스</span></div>
+    </div>
+    <div class="cover-right">
+      <img class="cover-photo" src="../2026-H1/assets/l2606-p09-23.jpeg" alt="말씀을 적는 아이">
+      <span class="cover-caption">화이트보드에 말씀을 적는 Zapotal의 아이 — 마태복음 4:4</span>
+    </div>
+  </section>
+
+  <!-- 2. 10개년 로드맵 -->
+  <section class="slide inner">
+    <div>
+      <div class="inner-part mont">VISION · 10개년 로드맵</div>
+      <h2 class="inner-title">세 걸음 — 짓다 · 기르다 · 맡기다</h2>
+      <div class="inner-sub">공간이 서면 사람이 자라고, 사람이 자라면 자립 교회가 섭니다</div>
+    </div>
+    <div class="steps">
+      <div class="step hero">
+        <div class="no mont">STEP 1 · BUILD</div>
+        <h3>짓다</h3>
+        <div class="yrs mont">2026 – 2029</div>
+        <p>10년 계획의 모태 — Zapotal 예배당과 방과후학교를 세웁니다.</p>
+        <ul>
+          <li>착공 2026. 11 · 완공 2027. 6</li>
+          <li>방과후학교 개원(2028, 정원 50명)</li>
+          <li>UNAH 정식 교양과목 추진</li>
+        </ul>
+      </div>
+      <div class="step">
+        <div class="no mont">STEP 2 · GROW</div>
+        <h3>기르다</h3>
+        <div class="yrs mont">2029 – 2034</div>
+        <p>완성된 공간을 사람으로 채웁니다.</p>
+        <ul>
+          <li>어린이–청소년–청년 성장 트랙</li>
+          <li>현지 교사·사역자 양성</li>
+          <li>단기선교 수용 허브화</li>
+        </ul>
+      </div>
+      <div class="step">
+        <div class="no mont">STEP 3 · ENTRUST</div>
+        <h3>맡기다</h3>
+        <div class="yrs mont">2034 – 2036</div>
+        <p>현지 지도자에게 사역을 이양합니다.</p>
+        <ul>
+          <li>예배·교육·행정 단계 이양</li>
+          <li>재정 자립 구조</li>
+          <li>2036. 2 파송 20주년 — 자립 선교 모델 완성</li>
+        </ul>
+      </div>
+    </div>
+    <div class="flow-note"><b>확산 구조</b> · Zapotal Center → 아이 → 가정 → 지역사회 → 온두라스 — 변화는 안에서 밖으로 번집니다.</div>
+    <div class="pageno mont">06 · MISSION FOR HONDURAS</div>
+  </section>
+
+  <!-- 3. 핵심 프로젝트 -->
+  <section class="slide inner">
+    <div>
+      <div class="inner-part mont">CORE PROJECT · Zapotal 꿈의 공간</div>
+      <h2 class="inner-title">빈 땅 위에, 무너지지 않을 믿음의 집을</h2>
+      <div class="inner-sub">1층 예배당 151.77㎡ · 2층 방과후학교 교실 3실 — 부지·도면 완료, 시공 견적 단계</div>
+    </div>
+    <div class="proj-body">
+      <div class="proj-text">
+        <p>2020년 마당 예배로 시작된 더좋은교회의 아이들은 6년째 선교사 가정 마당에서 예배드리고 있습니다. 2024년 부지를 매입하고 2026년 7월 최종 도면을 완성했습니다. 이제 시공만 남았습니다.</p>
+        <div class="idents">
+          <div class="ident"><b>안전한 요람</b><span>폭력·범죄의 위험에서 아이들을 보호하는 공간</span></div>
+          <div class="ident"><b>배움의 중심</b><span>다음 세대 리더를 길러내는 교육·문화 공간</span></div>
+          <div class="ident"><b>회복의 거점</b><span>예배와 교육으로 가정이 회복되는 지역 선교의 중심</span></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="num mont">$100K</div><div class="lbl">총예산<br>(기확보 $30K)</div></div>
+          <div class="stat"><div class="num mont">2026.11</div><div class="lbl">착공 목표</div></div>
+          <div class="stat"><div class="num mont">2027.6</div><div class="lbl">완공·헌당 목표</div></div>
+        </div>
+      </div>
+      <div class="proj-photos">
+        <img class="wide" src="../2026-H1/assets/l2606-p11-27.jpeg" alt="새 예배당 조감도">
+        <img src="../2026-H1/assets/crop-site-photo.jpg" alt="부지">
+        <img src="../2026-H1/assets/crop-zapotal-worship.jpg" alt="어린이 예배" style="object-position:center bottom">
+      </div>
+    </div>
+    <div class="pageno mont">08 · MISSION FOR HONDURAS</div>
+  </section>
+
+</div>
+</body>
+</html>

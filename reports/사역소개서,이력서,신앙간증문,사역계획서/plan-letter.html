@@ -1,0 +1,300 @@
+<!-- MFH-PLAN10-LETTER-V2 : 2026-2036 사역계획서 · 레터 세로 문서형 · 흑백 + 최소 컬러 · 합니다체 · 확대 폰트 -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>한 아이에서 온두라스까지 — 2026–2036 사역계획서 (문서형)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --ink:#1a1a1a; --sub:#555; --faint:#8a8a8a; --line:#c9c9c9; --hard:#1a1a1a;
+    --accent:#661F20; /* 최소 사용: 장 번호·강조·소규모 룰 */
+  }
+  body { background:#4a4a4a; font-family:'Pretendard',sans-serif; color:var(--ink); }
+  .mont { font-family:'Montserrat','Pretendard',sans-serif; }
+  .doc { display:flex; flex-direction:column; gap:24px; padding:24px; align-items:center; }
+  .page { width:8.5in; height:11in; background:#fff; position:relative; flex:none; overflow:hidden;
+    padding:0.85in 0.9in 0.95in; display:flex; flex-direction:column; }
+  @media print {
+    @page { size:8.5in 11in; margin:0; }
+    body { background:none; }
+    .doc { gap:0; padding:0; }
+    .page { page-break-after:always; }
+  }
+
+  /* ---------- 러닝 푸터 ---------- */
+  .foot { position:absolute; left:0.9in; right:0.9in; bottom:0.45in; display:flex; justify-content:space-between;
+    border-top:0.6px solid var(--line); padding-top:8px; font-size:8.5pt; color:var(--faint); }
+  .foot .pg b { color:var(--ink); }
+
+  /* ---------- 표지 ---------- */
+  .cover { justify-content:flex-start; }
+  .cover-logo { height:0.42in; align-self:flex-start; }
+  .cover-mid { margin-top:2.5in; }
+  .kicker { font-size:10pt; letter-spacing:.28em; color:var(--sub); font-weight:600; }
+  .cover h1 { margin-top:16pt; font-size:33pt; font-weight:800; line-height:1.3; letter-spacing:-0.01em; }
+  .cover .sub { margin-top:12pt; font-size:14.5pt; font-weight:600; color:var(--sub); }
+  .cover .rule { margin-top:24pt; width:0.55in; height:2.6px; background:var(--accent); }
+  .cover .verse { margin-top:22pt; font-size:11pt; line-height:1.8; color:var(--sub); }
+  .cover .verse b { color:var(--ink); font-weight:700; }
+  .cover-bottom { margin-top:auto; border-top:0.6px solid var(--line); padding-top:14px; display:flex; justify-content:space-between; align-items:baseline; }
+  .cover-bottom .who { font-size:11.5pt; font-weight:700; }
+  .cover-bottom .meta { font-size:9pt; color:var(--faint); }
+
+  /* ---------- 본문 공통 ---------- */
+  .chap { display:flex; align-items:baseline; gap:12px; margin-bottom:7pt; }
+  .chap.mid { margin-top:26pt; } /* 본문 중간에 오는 장 타이틀 위 간격 확대 */
+  .chap .no { font-size:20pt; font-weight:800; color:var(--accent); }
+  .chap h2 { font-size:17.5pt; font-weight:800; letter-spacing:-0.01em; }
+  .chap-rule { height:1.4px; background:var(--hard); margin-bottom:15pt; }
+  .sec { font-size:12pt; font-weight:800; margin:15pt 0 7pt; }
+  .sec .n { color:var(--accent); margin-right:6px; }
+  p.b { font-size:11pt; line-height:1.78; margin-bottom:8pt; }
+  p.b b { font-weight:700; }
+  .note { font-size:9.5pt; color:var(--faint); line-height:1.65; margin-top:4pt; }
+
+  ul.d { list-style:none; margin:2pt 0 8pt; }
+  ul.d li { font-size:11pt; line-height:1.72; padding-left:13pt; position:relative; margin-bottom:3pt; }
+  ul.d li::before { content:'–'; position:absolute; left:2pt; color:var(--faint); }
+  ul.d li b { font-weight:700; }
+
+  /* ---------- 표: 가로 괘선 리포트 스타일 ---------- */
+  table { width:100%; border-collapse:collapse; margin:4pt 0 6pt; }
+  th { font-size:9.5pt; font-weight:700; text-align:left; padding:5.5pt 8pt; border-top:1.4px solid var(--hard); border-bottom:0.8px solid var(--hard); }
+  td { font-size:10.5pt; line-height:1.6; padding:6pt 8pt; border-bottom:0.6px solid var(--line); vertical-align:top; }
+  tr:last-child td { border-bottom:1.2px solid var(--hard); }
+  td.k { font-weight:700; white-space:nowrap; width:1.5in; }
+  td.c { text-align:center; white-space:nowrap; }
+  td.num { font-weight:700; }
+  .acc { color:var(--accent); font-weight:700; }
+
+  /* 비전 선언 인용 블록 */
+  .decl { border-left:2.6px solid var(--accent); padding:6pt 0 6pt 15pt; margin:11pt 0 13pt; }
+  .decl p { font-size:12.5pt; line-height:1.72; font-weight:700; }
+  .decl p b { color:var(--accent); }
+
+  /* 동역 3형태 */
+  .pars { display:flex; gap:15pt; margin-top:9pt; }
+  .par { flex:1; border-top:1.4px solid var(--hard); padding-top:9pt; }
+  .par .en { font-size:8pt; letter-spacing:.12em; font-weight:700; color:var(--faint); }
+  .par .t { font-size:12.5pt; font-weight:800; margin-top:4pt; }
+  .par p { font-size:10.3pt; line-height:1.72; color:var(--ink); margin-top:7pt; }
+
+  .closing { margin-top:auto; text-align:center; }
+  .closing .v { font-size:10pt; color:var(--sub); line-height:1.7; }
+  .closing .v b { color:var(--accent); }
+  .closing .s { margin-top:11pt; font-size:11pt; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <!-- P1 표지 -->
+  <section class="page cover">
+    <img class="cover-logo" src="../../2026 Brand Kit/logo-primary-2026-05-24.png" alt="Mission for Honduras">
+    <div class="cover-mid">
+      <div class="kicker mont">MISSION FOR HONDURAS · 2026–2036 사역계획서</div>
+      <h1>한 아이에서<br>온두라스까지</h1>
+      <div class="sub">Zapotal, 다음 세대를 위한 꿈의 공간</div>
+      <div class="rule"></div>
+      <p class="verse">"보라 내가 새 일을 행하리니 이제 나타낼 것이라 …<br><b>내가 광야에 길을 사막에 강을 내리니</b>" — 이사야 43:19</p>
+    </div>
+    <div class="cover-bottom">
+      <span class="who">온두라스 선교사 김우진 · 서진아</span>
+      <span class="meta">Mission for Honduras · 산페드로술라, 온두라스 · 2026년 8월</span>
+    </div>
+  </section>
+
+  <!-- P2 : 1 계획 요약 -->
+  <section class="page">
+    <div class="chap"><span class="no mont">1</span><h2>계획 요약 (Executive Summary)</h2></div>
+    <div class="chap-rule"></div>
+    <table>
+      <tr><td class="k">사역 주체</td><td>김우진 · 서진아 선교사 (Mission for Honduras)</td></tr>
+      <tr><td class="k">소속 · 파송</td><td>SEED 국제선교회 소속(2026. 8 합류) · 대한예수교장로회 한성노회 이룸교회(2016. 2 파송)</td></tr>
+      <tr><td class="k">사역지</td><td>온두라스 산페드로술라 — Zapotal · Las Brisas</td></tr>
+      <tr><td class="k">계획 기간</td><td>2026 – 2036 (10개년)</td></tr>
+      <tr><td class="k">핵심 프로젝트</td><td>Zapotal 교회·방과후학교 건축 — 착공 2026. 11 · 완공 2027. 6 목표</td></tr>
+      <tr><td class="k">10년 로드맵</td><td>1기 짓다(2026–2029) → 2기 기르다(2029–2034) → 3기 맡기다(2034–2036)</td></tr>
+      <tr><td class="k">최종 목표</td><td>현지 교회가 스스로 성장하며 지역을 섬기는 자립 선교 모델 완성</td></tr>
+      <tr><td class="k">요청 사항</td><td>기도의 동역 · 재정의 동역 · 소문의 동역 (7장)</td></tr>
+      <tr><td class="k">보고 체계</td><td>월간 기도편지 · 반기 사역 보고서 · 상시 공개 기록(MFH앱)</td></tr>
+    </table>
+    <p class="b" style="margin-top:8pt;">2016년 파송 이후 10년의 사역 기반 위에서, 2026년의 세 가지 전환 — 8년 자비량을 마친 <b>전임 사역 전환</b>(6월), <b>SEED 국제선교회 합류</b>(8월), <b>Zapotal 예배당 최종 도면 완성</b>(7월) — 을 출발점으로 삼습니다. 본 계획은 안정적인 예배·교육 공간(모태)을 세우고(짓다), 그 공간에서 다음 세대 리더를 길러(기르다), 현지 지도자에게 사역을 이양하는(맡기다) 10년의 여정을 담고 있습니다.</p>
+    <div class="foot mont"><span>MISSION FOR HONDURAS · 2026–2036 사역계획서</span><span class="pg"><b>2</b> / 7</span></div>
+  </section>
+
+  <!-- P3 : 2 비전 + 3 핵심 프로젝트 (도입·개요) -->
+  <section class="page">
+    <div class="chap"><span class="no mont">2</span><h2>비전 — 한 아이에서 온두라스까지</h2></div>
+    <div class="chap-rule"></div>
+    <div class="decl"><p>우리의 비전은 빈 땅 위에 건물을 세우는 것을 넘어,<br>아이들의 마음속에 <b>무너지지 않을 믿음의 집</b>을 세우는 것입니다.</p></div>
+    <p class="b">변화는 안에서 밖으로 번집니다. Zapotal 센터에서 한 아이가 말씀으로 서면, 그 아이를 통해 가정이 회복되고, 회복된 가정들이 지역사회를 바꾸며, 그 흐름이 온두라스의 미래에 닿습니다.</p>
+    <p class="b"><b>확산 구조</b> · Zapotal Center → 아이(Child) → 가정(Family) → 지역사회(Community) → 온두라스(Honduras)</p>
+    <p class="b"><b>최종 목표 — 자립 선교 모델</b> · 10년의 끝에 세우려는 것은 선교사가 없어도 스스로 예배하고, 가르치고, 지역을 섬기는 현지 교회입니다. 건물(1기)과 사람(2기)은 이양(3기)을 위한 준비이며, 파송 20주년(2036. 2)에 그 완성을 보고하는 것이 본 계획의 종착점입니다.</p>
+
+    <div class="chap mid"><span class="no mont">3</span><h2>핵심 프로젝트 — Zapotal 꿈의 공간</h2></div>
+    <div class="chap-rule"></div>
+    <p class="b">2020년 마당 예배로 시작된 더좋은교회의 아이들은 개척 6년차인 지금도 선교사 가정 마당에서 예배드리고 있습니다. 2024년 부지를 매입하고 2026년 7월 최종 도면을 완성했습니다. 이제 시공만 남았습니다. <b>본 계획의 모태(母胎)는 이 건축입니다</b> — 예배는 이미 마당에서 드려지고 있습니다. 이 공간은 그 예배가 뿌리내릴 터전이 되고, 그 터전에서 다음 세대가 자랍니다.</p>
+    <div class="sec"><span class="n mont">3-1</span>프로젝트 개요</div>
+    <table>
+      <tr><td class="k">프로젝트명</td><td>Zapotal 더좋은교회 및 방과후학교 (Iglesia de Mejor Pacto el Zapotal)</td></tr>
+      <tr><td class="k">위치</td><td>온두라스 산페드로술라 Zapotal</td></tr>
+      <tr><td class="k">부지</td><td>409㎡ (약 123평) — 2024. 4 매입 완료</td></tr>
+      <tr><td class="k">규모</td><td>지상 2층 — 1층 예배당 151.77㎡ · 2층 방과후학교 교실 3실</td></tr>
+      <tr><td class="k">진행</td><td>설계 확정(2026. 6) → 최종 도면 완성(2026. 7. 31) → 시공 견적 단계</td></tr>
+      <tr><td class="k">일정</td><td>착공 2026. 11 · 완공·헌당 2027. 6 말 목표</td></tr>
+      <tr><td class="k">재정</td><td>총예산 $100,000 · 기확보 $30,000 · <span class="acc">모금 목표 $70,000</span></td></tr>
+    </table>
+    <div class="foot mont"><span>MISSION FOR HONDURAS · 2026–2036 사역계획서</span><span class="pg"><b>3</b> / 7</span></div>
+  </section>
+
+  <!-- P4 : 3-2 정체성 + 3-3 로드맵 + 3-4 예산 -->
+  <section class="page">
+    <div class="sec" style="margin-top:0;"><span class="n mont">3-2</span>시설의 세 가지 정체성</div>
+    <ul class="d">
+      <li><b>안전한 요람</b> (A Safe Cradle) — 아이들을 폭력·범죄의 위험에서 보호하고 믿음의 세대로 양육하는 공간</li>
+      <li><b>배움의 중심</b> (A Hub of Learning) — 방과후학교·문화 교육으로 다음 세대 리더를 길러내는 공간</li>
+      <li><b>회복의 거점</b> (A Center for Restoration) — 예배와 교육을 통해 가정이 복음 안에서 회복되는 지역 선교의 중심지</li>
+    </ul>
+
+    <div class="sec"><span class="n mont">3-3</span>건축 로드맵</div>
+    <table>
+      <tr><th style="width:0.55in;">단계</th><th>내용</th><th style="width:1.15in;">시기</th><th style="width:0.85in;">상태</th></tr>
+      <tr><td class="c">1</td><td>부지 매입 — 409㎡ (123평)</td><td>2024. 4</td><td class="c">완료</td></tr>
+      <tr><td class="c">2</td><td>설계 확정 — 조감도·평면도</td><td>2026. 6</td><td class="c">완료</td></tr>
+      <tr><td class="c">3</td><td>최종 도면 완성</td><td>2026. 7. 31</td><td class="c">완료</td></tr>
+      <tr><td class="c">4</td><td>건축업자 견적 · 계약</td><td>2026. 9–10</td><td class="c">진행 중</td></tr>
+      <tr><td class="c">5</td><td>착공</td><td class="num">2026. 11</td><td class="c">예정</td></tr>
+      <tr><td class="c">6</td><td>완공 · 헌당</td><td class="num">2027. 6 말</td><td class="c">예정</td></tr>
+    </table>
+    <p class="note">계약 등 주요 결정은 김우진 선교사 귀국(2026. 8. 31) 후 진행하며, 시공 감리와 재정 집행 내역은 정기 보고에 포함합니다.</p>
+
+    <div class="sec"><span class="n mont">3-4</span>건축 예산</div>
+    <table>
+      <tr><th style="width:1.5in;">구분</th><th style="width:1.4in;">금액 (USD)</th><th>비고</th></tr>
+      <tr><td class="k">총 소요액</td><td class="num">100,000</td><td>시공·마감·집기 포함 (부지 매입은 2024. 4 기집행)</td></tr>
+      <tr><td class="k">기확보액</td><td class="num">30,000</td><td>2026. 8 현재</td></tr>
+      <tr><td class="k">모금 목표액</td><td class="num acc">70,000</td><td>착공(2026. 11) 전 확보 목표</td></tr>
+    </table>
+    <div class="foot mont"><span>MISSION FOR HONDURAS · 2026–2036 사역계획서</span><span class="pg"><b>4</b> / 7</span></div>
+  </section>
+
+  <!-- P5 : 4 10개년 로드맵 -->
+  <section class="page">
+    <div class="chap"><span class="no mont">4</span><h2>10개년 로드맵 — 짓다 · 기르다 · 맡기다</h2></div>
+    <div class="chap-rule"></div>
+    <p class="b">마당에서 시작된 사역이 터전을 얻고(짓다), 그 터전에서 사람이 자라며(기르다), 자란 사람에게 사역을 맡깁니다(맡기다).</p>
+
+    <div class="sec"><span class="n mont">4-1</span>1기 「짓다」 (Build) · 2026–2029 — 모태를 세우는 시간</div>
+    <table>
+      <tr><th style="width:0.75in;">연차</th><th>목표</th></tr>
+      <tr><td class="c num">2026</td><td>건축업자 계약(9–10월) · 착공(11월) · 성경공부 1기 완주(9. 27 성경의 날) · SEED 정회원(10월)</td></tr>
+      <tr><td class="c num">2027</td><td>완공·헌당(6월 말) · 방과후학교 개원 준비(교사·커리큘럼·운영 규정) · UNAH 한국어 정식 교양과목 편성 추진 · 김우진 신학 과정 시작</td></tr>
+      <tr><td class="c num">2028</td><td>방과후학교 개원 — 정원 50명 · 운영 정착</td></tr>
+      <tr><td class="c num">2029</td><td>방과후학교 안정화 · 현지 교사 참여 확대 · 1기 결산 보고</td></tr>
+    </table>
+
+    <div class="sec"><span class="n mont">4-2</span>2기 「기르다」 (Grow) · 2029–2034 — 공간을 사람으로 채우는 시간</div>
+    <ul class="d">
+      <li>방과후학교 정규 운영 — 정원 50명, 학습·문화·신앙 통합 커리큘럼</li>
+      <li>어린이 → 청소년 → 청년으로 이어지는 신앙 성장 트랙 구축 (주일학교–제자반–리더반)</li>
+      <li>현지 교사·사역자 양성 — 방과후학교 교사진의 현지인 비율 단계적 확대</li>
+      <li>단기선교팀 수용 허브화 — 숙소·통역·후속 심방 체계 상설화</li>
+      <li>한국문화학교 확장 — ICAS·UNAH 연계, 한국어·문화 교육을 전도 접점으로</li>
+    </ul>
+
+    <div class="sec"><span class="n mont">4-3</span>3기 「맡기다」 (Entrust) · 2034–2036 — 자립 선교 모델의 완성</div>
+    <ul class="d">
+      <li>현지 지도자에게 예배·교육·행정을 단계적으로 이양</li>
+      <li>재정 자립 구조 확립 — 현지 헌금·자체 운영 수입의 비중 확대</li>
+      <li>Zapotal 모델(공간+교육+이양)의 타 지역 확산 타당성 검토</li>
+      <li><b>2036. 2 파송 20주년 — 자립 선교 모델 완성 보고</b></li>
+    </ul>
+
+    <div class="sec"><span class="n mont">4-4</span>단계 전환의 기준</div>
+    <p class="b">연차는 목표이며, 전환의 실질 기준은 다음과 같습니다. 1기→2기: 헌당과 방과후학교 개원. 2기→3기: 현지 교사·사역자가 핵심 사역을 주도할 수 있는 역량 확인. 건축 등 외부 요인으로 지연될 경우 기간을 순연하되 순서는 유지합니다.</p>
+    <div class="foot mont"><span>MISSION FOR HONDURAS · 2026–2036 사역계획서</span><span class="pg"><b>5</b> / 7</span></div>
+  </section>
+
+  <!-- P6 : 5 상시 트랙 + 6 운영과 책무 -->
+  <section class="page">
+    <div class="chap"><span class="no mont">5</span><h2>상시 사역 트랙 (전 기간 병행)</h2></div>
+    <div class="chap-rule"></div>
+    <table>
+      <tr><th style="width:1.35in;">트랙</th><th>내용</th><th style="width:2.15in;">10년 방향</th></tr>
+      <tr><td class="k">Las Brisas 교회</td><td>위임 교회 — 주일 예배·주일학교·가정 심방·목요예배</td><td>현지 리더십과 협력 심화 · 자립 병행</td></tr>
+      <tr><td class="k">성경공부</td><td>사복음서 12주 24회 (자체 제작 한글·스페인어 교재)</td><td>연 단위 커리큘럼 체계화 · 성경의 날 연례화</td></tr>
+      <tr><td class="k">UNAH 한국어</td><td>국립대 교양 강좌(2025~) — 대학 안의 청년 접점</td><td>2027 정식 교양과목 편성 추진</td></tr>
+      <tr><td class="k">단기선교 호스팅</td><td>2026. 7 실적 — 25명 1팀</td><td>정례 수용 체계화 · 완공 후 센터 기반 확대</td></tr>
+      <tr><td class="k">긴급 구호</td><td>수해·전염병·허리케인 대응 경험(2017·2020)</td><td>재난 시 즉시 전환 가능한 상비 체계 유지</td></tr>
+    </table>
+
+    <div class="chap mid"><span class="no mont">6</span><h2>운영과 책무</h2></div>
+    <div class="chap-rule"></div>
+
+    <div class="sec"><span class="n mont">6-1</span>소속과 팀 사역</div>
+    <p class="b">SEED 국제선교회(1990년 북미주 설립, 40여 개 선교지·선교사 200여 명)의 정회원으로서 본부와 선임 선교사의 멘토링 구조 안에서 사역합니다. SEED의 4대 가치 — 예수님의 성품 · 기도 사역 · 개인적 제자양육 · 팀 사역과 협력 — 를 사역 운영의 기준으로 삼습니다. <b>"선교는 교회가 함께 합니다"</b>라는 SEED의 정신에 따라, 후원 교회를 사역의 관람자가 아닌 동역의 주체로 세웁니다.</p>
+
+    <div class="sec"><span class="n mont">6-2</span>보고 체계</div>
+    <table>
+      <tr><th style="width:1.85in;">채널</th><th style="width:0.95in;">주기</th><th>내용</th></tr>
+      <tr><td class="k">기도편지 (MFH #YYMM)</td><td>월 1회</td><td>온두라스 소식 · 사역 보고 · 가정 근황 · 기도제목</td></tr>
+      <tr><td class="k">사역 보고서</td><td>반기 1회</td><td>반기 결산 — 사역 성과 · 재정 집행 · 다음 계획</td></tr>
+      <tr><td class="k">MFH 앱</td><td>상시</td><td>mfh-snowy.vercel.app — 사역 일지·프로젝트 진행·지난 편지 전체 공개</td></tr>
+      <tr><td class="k">화상 · 방문 보고</td><td>요청 시</td><td>후원 교회 대상</td></tr>
+    </table>
+
+    <div class="foot mont"><span>MISSION FOR HONDURAS · 2026–2036 사역계획서</span><span class="pg"><b>6</b> / 7</span></div>
+  </section>
+
+  <!-- P7 : 6-3 + 7 동역 요청 + 연락처 -->
+  <section class="page">
+    <div class="sec" style="margin-top:0;"><span class="n mont">6-3</span>재정 책무</div>
+    <ul class="d">
+      <li>사역비 · 생활비 · 건축비 계정 분리 기록, 영수증 보관</li>
+      <li>건축 헌금은 <b>건축 목적 외 전용 금지</b></li>
+      <li>반기 보고서에 재정 집행 내역 포함 · 요청 시 세부 내역 제출</li>
+    </ul>
+
+    <div class="chap mid"><span class="no mont">7</span><h2>동역 요청</h2></div>
+    <div class="chap-rule"></div>
+    <p class="b">본 계획은 혼자 이룰 수 없습니다. 세 가지 동역을 요청합니다.</p>
+    <div class="pars">
+      <div class="par">
+        <div class="en mont">PARTNERSHIP IN PRAYER</div>
+        <div class="t">기도의 동역</div>
+        <p>건축의 전 과정이 안전하고 순조롭게 진행되도록, 그리고 그 공간에서 자랄 다음 세대를 위해 기도해 주시기를 요청합니다. 매월 기도편지로 구체적인 제목을 나눕니다.</p>
+      </div>
+      <div class="par">
+        <div class="en mont">PARTNERSHIP IN FINANCE</div>
+        <div class="t">재정의 동역</div>
+        <p>벽돌 한 장, 책상 하나가 아이들의 미래를 세우는 밑거름이 됩니다. 건축 헌금(일시)과 사역 후원(정기)의 두 방식이 있습니다.</p>
+      </div>
+      <div class="par">
+        <div class="en mont">PARTNERSHIP IN SHARING</div>
+        <div class="t">소문의 동역</div>
+        <p>이 비전을 주변 교회와 성도들에게 알려, 더 많은 동역자가 연결되도록 다리가 되어 주시기를 요청합니다. 단기선교팀 파송도 소문의 동역의 한 형태입니다.</p>
+      </div>
+    </div>
+
+    <div class="sec" style="margin-top:24pt;">연락처</div>
+    <table>
+      <tr><td class="k">이메일</td><td>honduras0691@gmail.com</td></tr>
+      <tr><td class="k">사역 기록</td><td>https://mfh-snowy.vercel.app</td></tr>
+      <tr><td class="k">영상</td><td>Mission for Honduras TV (YouTube)</td></tr>
+      <tr><td class="k">커뮤니티</td><td>facebook.com/groups/forhonduras</td></tr>
+    </table>
+
+    <div class="closing">
+      <p class="v">"보라 내가 새 일을 행하리니 이제 나타낼 것이라 … <b>내가 광야에 길을, 사막에 강을 내리니</b>" — 이사야 43:19</p>
+      <p class="s">Mission for Honduras · 김우진 · 서진아 선교사</p>
+    </div>
+    <div class="foot mont"><span>MISSION FOR HONDURAS · 2026–2036 사역계획서</span><span class="pg"><b>7</b> / 7</span></div>
+  </section>
+
+</div>
+</body>
+</html>
