@@ -39,6 +39,9 @@ async function main() {
   const { data: journals, error } = await sb
     .from('journal_entries')
     .select('id,entry_date,category,headline,today,thanks,meditation,prayer,place_name,photos')
+    // 비공개·비밀글 제외(patch102 — service role 은 RLS 우회라 명시 필터 필요).
+    .eq('is_private', false)
+    .eq('is_secret', false)
     .gte('entry_date', pStart)
     .lte('entry_date', pEnd)
     .order('entry_date', { ascending: true })

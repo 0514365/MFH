@@ -28,17 +28,39 @@ import {
   type JournalBulkPatch,
 } from '@/lib/bulkUpdate'
 
+// 비공개·비밀글 배지(patch102). 비밀글은 RLS 로 작성자·마스터에게만 행이 오므로 마스터 화면에서만 보인다.
+function PrivacyBadges({ e }: { e: JournalEntry }) {
+  if (!e.is_secret && !e.is_private) return null
+  return (
+    <>
+      {e.is_secret && (
+        <span className="shrink-0 rounded-lg bg-accent-soft px-2.5 py-1 text-[11px] font-bold tracking-wide text-accent">
+          🙈 비밀글
+        </span>
+      )}
+      {e.is_private && (
+        <span className="shrink-0 rounded-lg bg-surface-subtle px-2.5 py-1 text-[11px] font-bold tracking-wide text-muted">
+          🔒 비공개
+        </span>
+      )}
+    </>
+  )
+}
+
 // 일지 카드 본문(날짜 + 카테고리 칩 + 제목 + 발췌). 사진·메타칩·기도후보는 renderItem 에서.
 function EntryBody({ e }: { e: JournalEntry }) {
   return (
     <>
       <div className="flex items-center justify-between gap-2">
         <span className="font-display text-sm font-bold tracking-tight text-muted">{e.entry_date}</span>
-        {e.category && (
-          <span className="shrink-0 rounded-lg bg-surface-subtle px-2.5 py-1 text-[11px] font-bold tracking-wide text-primary">
-            {e.category}
-          </span>
-        )}
+        <span className="flex shrink-0 items-center gap-1.5">
+          <PrivacyBadges e={e} />
+          {e.category && (
+            <span className="shrink-0 rounded-lg bg-surface-subtle px-2.5 py-1 text-[11px] font-bold tracking-wide text-primary">
+              {e.category}
+            </span>
+          )}
+        </span>
       </div>
       <h2 className="mt-3 text-[19px] font-bold leading-[1.3] text-ink">{e.headline || '(제목 없음)'}</h2>
       {e.today && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted">{stripMarkdown(e.today)}</p>}
@@ -121,6 +143,7 @@ function EntrySummary({
                 기도후보
               </span>
             )}
+            <PrivacyBadges e={e} />
           </div>
           <h2 className="mt-1.5 text-lg font-bold text-ink">{e.headline || '(제목 없음)'}</h2>
         </div>

@@ -56,6 +56,9 @@ export type JournalEntry = {
   meditation: string | null
   prayer: string | null
   prayer_candidate: boolean
+  // 비공개: 편지·페이스북 수집 제외(멤버 읽기는 유지). 비밀글: 마스터 전용 — 타계정 SELECT 차단(patch102).
+  is_private: boolean
+  is_secret: boolean
   // 다중 사진(최대 5장). 저장은 이 컬럼을 사용.
   photos: JournalPhoto[] | null
   // 단일 사진 레거시 컬럼 — 읽기 fallback 용으로 보존(patch82 로 photos 로 이전됨).

@@ -9,7 +9,7 @@ import CategorySelect from '@/components/CategorySelect'
 import LinkedPicker, { type PickerItem } from '@/components/LinkedPicker'
 import AuthorSelect from '@/components/AuthorSelect'
 import BackButton from '@/components/BackButton'
-import { resolveOwnerId } from '@/lib/members'
+import { isMaster, resolveOwnerId } from '@/lib/members'
 import { haversineMeters } from '@/lib/geo'
 import { MAX_JOURNAL_PHOTOS } from '@/lib/types'
 import type { JournalEntry, JournalPhoto, Project, Task } from '@/lib/types'
@@ -81,6 +81,9 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
   const [meditation, setMeditation] = useState(initial?.meditation ?? '')
   const [prayer, setPrayer] = useState(initial?.prayer ?? '')
   const [prayerCandidate, setPrayerCandidate] = useState(initial?.prayer_candidate ?? false)
+  // 비공개: 전 계정 / 비밀글: 마스터 계정에만 토글 노출(patch102 RLS 가 DB 레벨로도 강제).
+  const [isPrivate, setIsPrivate] = useState(initial?.is_private ?? false)
+  const [isSecret, setIsSecret] = useState(initial?.is_secret ?? false)
   const [projectId, setProjectId] = useState(initial?.project_id ?? '')
   const [taskId, setTaskId] = useState(initial?.task_id ?? '')
   const [intercessionId, setIntercessionId] = useState<string | null>(
@@ -389,6 +392,9 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
       meditation: meditation.trim() || null,
       prayer: prayer.trim() || null,
       prayer_candidate: prayerCandidate,
+      is_private: isPrivate,
+      // 비밀글 지정은 마스터만 — 비마스터 편집 시 기존 값 유지(RLS 도 동일 규칙 강제).
+      is_secret: isMaster(user.id) ? isSecret : (initial?.is_secret ?? false),
       project_id: projectId || null,
       task_id: taskId || null,
       intercession_id: intercessionId,
@@ -659,6 +665,29 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
               />
               이번 달 편지 후보로 표시
             </label>
+          </div>
+
+          {/* 공개 설정: 비공개(전 계정) + 비밀글(마스터 전용 토글) */}
+          <div className="mt-4 rounded-2xl bg-surface-subtle p-4">
+            <label className="mb-1 block text-sm font-bold text-primary">🔒 공개 설정</label>
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                checked={isPrivate}
+                onChange={(e) => setIsPrivate(e.target.checked)}
+              />
+              비공개 — 선교편지·페이스북 추천에서 제외
+            </label>
+            {isMaster(meId) && (
+              <label className="mt-2 flex items-center gap-2 text-sm text-muted">
+                <input
+                  type="checkbox"
+                  checked={isSecret}
+                  onChange={(e) => setIsSecret(e.target.checked)}
+                />
+                비밀글 — 내 계정에서만 보임 (편지·페이스북·인사이트 제외)
+              </label>
+            )}
           </div>
         </div>
 

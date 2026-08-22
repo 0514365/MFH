@@ -73,6 +73,8 @@ async function main() {
   const { data: jData, error: jErr } = await sb
     .from('journal_entries')
     .select('id,entry_date,category,headline,place_name,photos')
+    // 비밀글 사진은 캡션 대상 제외 — 캡션이 공유 산출물(인사이트 입력)로 흐르는 것 방지(patch102).
+    .eq('is_secret', false)
     .not('photos', 'is', null)
     .order('entry_date', { ascending: true })
   if (jErr) {

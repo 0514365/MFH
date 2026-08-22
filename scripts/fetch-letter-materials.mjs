@@ -72,7 +72,12 @@ const arg = process.argv[2]
 
 // ── 분포 모드 ──
 if (!arg || arg === '--list') {
-  const { data, error } = await sb.from('journal_entries').select('entry_date,photo_path,photos')
+  // 비공개·비밀글은 편지 재료에서 제외(patch102 — service role 은 RLS 우회라 명시 필터 필요).
+  const { data, error } = await sb
+    .from('journal_entries')
+    .select('entry_date,photo_path,photos')
+    .eq('is_private', false)
+    .eq('is_secret', false)
   if (error) {
     console.error('조회 오류:', error.message)
     process.exit(1)
@@ -111,6 +116,9 @@ const { data: rows, error } = await sb
   .select(
     'entry_date,category,headline,today,thanks,meditation,prayer,prayer_candidate,place_name,photos,photo_path,photo_taken_at,intercession_id',
   )
+  // 비공개·비밀글은 편지 재료에서 제외(patch102).
+  .eq('is_private', false)
+  .eq('is_secret', false)
   .gte('entry_date', start)
   .lte('entry_date', end)
   .order('entry_date', { ascending: true })

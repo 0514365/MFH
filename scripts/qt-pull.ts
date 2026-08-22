@@ -115,6 +115,8 @@ async function main() {
   const { data: journals } = await sb
     .from('journal_entries')
     .select('entry_date,category,headline,today,thanks,meditation,prayer,prayer_candidate,place_name')
+    // 비밀글은 공유 산출물(QT)에서 제외 — 타계정 유출 방지(patch102).
+    .eq('is_secret', false)
     .gte('entry_date', since)
     .order('entry_date', { ascending: false })
   const { data: projects } = await sb

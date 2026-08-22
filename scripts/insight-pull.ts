@@ -59,6 +59,8 @@ async function main() {
   const { data: journals, error: jErr } = await sb
     .from('journal_entries')
     .select('entry_date,category,headline,today,thanks,meditation,prayer,prayer_candidate,place_name,photos')
+    // 비밀글은 공유 산출물(인사이트)에서 제외 — 타계정 유출 방지(patch102). 비공개는 포함(편지·페북만 제외).
+    .eq('is_secret', false)
     .gte('entry_date', pStart)
     .lte('entry_date', pEnd)
     .order('entry_date', { ascending: true })
