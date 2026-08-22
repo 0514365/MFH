@@ -45,12 +45,15 @@ export default function JournalFlagsToggle({
   flags,
   canEdit,
   showSecret,
+  variant = 'compact',
 }: {
   id: string
   flags: Flags
   canEdit: boolean
   // 비밀글 토글 노출 여부(마스터 뷰어).
   showSecret: boolean
+  // compact: 라벨+컬러 체크박스(목록 카드 — 배지가 상태를 따로 보여줌) / pill: 컬러 채움 필(상세).
+  variant?: 'compact' | 'pill'
 }) {
   const router = useRouter()
   const [cur, setCur] = useState<Flags>(flags)
@@ -90,8 +93,9 @@ export default function JournalFlagsToggle({
     router.refresh()
   }
 
-  // ON = 컬러 채움 필(흰 아이콘·흰 글자) / OFF = 연한 외곽선 + 흐린 글자 — 상태 대비를 크게(모바일 가독).
-  // 비활성(배타 규칙·권한 없음)인 OFF 항목만 흐리게, ON 항목은 읽기전용이어도 선명하게 유지.
+  // compact(목록): 라벨 + 컬러 체크박스 — 심플. ON 상태는 카드 상단 배지가 따로 보여준다.
+  // pill(상세): ON = 컬러 채움 필(흰 아이콘·흰 글자 + ✓) / OFF = 연한 외곽선 — 상태 대비 큼(모바일 가독).
+  // 비활성(배타 규칙·권한 없음)인 항목은 흐리게(pill 은 ON 이면 읽기전용이어도 선명 유지).
   const Item = ({
     kind,
     label,
@@ -107,6 +111,24 @@ export default function JournalFlagsToggle({
   }) => {
     const checked = cur[kind]
     const off = disabled || !canEdit
+    if (variant === 'compact')
+      return (
+        <button
+          type="button"
+          onClick={() => toggle(kind)}
+          disabled={busy || off}
+          aria-pressed={checked}
+          className={`flex items-center gap-1 ${off ? 'opacity-40' : ''}`}
+        >
+          <span className={`text-[11px] font-semibold ${checked ? 'text-ink' : 'text-faint'}`}>{label}</span>
+          <span
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border bg-surface"
+            style={{ borderColor: color, background: checked ? color : undefined, color: checked ? '#fff' : color }}
+          >
+            {icon}
+          </span>
+        </button>
+      )
     return (
       <button
         type="button"

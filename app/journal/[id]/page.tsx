@@ -244,6 +244,7 @@ export default async function JournalDetail(props: {
           }}
           canEdit={canEdit}
           showSecret={isMaster(user.id)}
+          variant="pill"
         />
       </section>
 
