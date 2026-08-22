@@ -84,6 +84,19 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
   // 비공개: 전 계정 / 비밀글: 마스터 계정에만 토글 노출(patch102 RLS 가 DB 레벨로도 강제).
   const [isPrivate, setIsPrivate] = useState(initial?.is_private ?? false)
   const [isSecret, setIsSecret] = useState(initial?.is_secret ?? false)
+
+  // 배타 규칙: 비밀글 ON → 비공개·기도후보 해제+비활성 / 비공개 ON → 기도후보 해제+비활성.
+  function changeSecret(v: boolean) {
+    setIsSecret(v)
+    if (v) {
+      setIsPrivate(false)
+      setPrayerCandidate(false)
+    }
+  }
+  function changePrivate(v: boolean) {
+    setIsPrivate(v)
+    if (v) setPrayerCandidate(false)
+  }
   const [projectId, setProjectId] = useState(initial?.project_id ?? '')
   const [taskId, setTaskId] = useState(initial?.task_id ?? '')
   const [intercessionId, setIntercessionId] = useState<string | null>(
@@ -657,35 +670,44 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
               className={`${input} min-h-[64px] [field-sizing:content]`}
               placeholder="예: 자포탈 교회 건축 / 가정 평강"
             />
-            <label className="mt-2 flex items-center gap-2 text-sm text-muted">
+          </div>
+
+          {/* 기도후보·비공개·비밀글 — 한 섹션, 명칭+체크박스만(배타 규칙은 changeSecret/changePrivate). */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl bg-surface-subtle p-4">
+            <label
+              className={`flex items-center gap-2 text-sm ${
+                isPrivate || isSecret ? 'text-faint opacity-50' : 'text-muted'
+              }`}
+            >
               <input
                 type="checkbox"
                 checked={prayerCandidate}
+                disabled={isPrivate || isSecret}
                 onChange={(e) => setPrayerCandidate(e.target.checked)}
               />
-              이번 달 편지 후보로 표시
+              기도후보
             </label>
-          </div>
-
-          {/* 공개 설정: 비공개(전 계정) + 비밀글(마스터 전용 토글) */}
-          <div className="mt-4 rounded-2xl bg-surface-subtle p-4">
-            <label className="mb-1 block text-sm font-bold text-primary">🔒 공개 설정</label>
-            <label className="flex items-center gap-2 text-sm text-muted">
+            <label
+              className={`flex items-center gap-2 text-sm ${
+                isSecret ? 'text-faint opacity-50' : 'text-muted'
+              }`}
+            >
               <input
                 type="checkbox"
                 checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
+                disabled={isSecret}
+                onChange={(e) => changePrivate(e.target.checked)}
               />
-              비공개 — 선교편지·페이스북 추천에서 제외
+              비공개
             </label>
             {isMaster(meId) && (
-              <label className="mt-2 flex items-center gap-2 text-sm text-muted">
+              <label className="flex items-center gap-2 text-sm text-muted">
                 <input
                   type="checkbox"
                   checked={isSecret}
-                  onChange={(e) => setIsSecret(e.target.checked)}
+                  onChange={(e) => changeSecret(e.target.checked)}
                 />
-                비밀글 — 내 계정에서만 보임 (편지·페이스북·인사이트 제외)
+                비밀글
               </label>
             )}
           </div>

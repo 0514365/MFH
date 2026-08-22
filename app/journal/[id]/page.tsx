@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { getMembersMap, canEditEntry, PORTFOLIO_OWNER_ID } from '@/lib/members'
+import { getMembersMap, canEditEntry, isMaster, PORTFOLIO_OWNER_ID } from '@/lib/members'
 import type { JournalEntry } from '@/lib/types'
 import { applyJournalFilter, parseJournalFilter } from '@/lib/journalFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
@@ -9,6 +9,7 @@ import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
 import { collectPhotoPaths, resolveJournalPhotos } from '@/lib/journalPhotos'
 import PhotoCollage, { type CollagePhoto } from '../PhotoCollage'
+import JournalFlagsToggle from '../JournalFlagsToggle'
 import MarkdownText from '@/components/MarkdownText'
 import DeleteButton from './DeleteButton'
 import '../../p/portfolio-theme.css'
@@ -232,15 +233,18 @@ export default async function JournalDetail(props: {
               <span className="max-w-[140px] truncate">{supporterName}</span>
             </Link>
           )}
-          {entry.prayer_candidate && (
-            <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
-              <span className="shrink-0" style={{ color: '#B61821' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M10 2.5h4v6h6v4h-6v9h-4v-9H4v-4h6z" /></svg>
-              </span>
-              기도후보
-            </span>
-          )}
         </div>
+        {/* 기도후보·비공개·비밀글 토글(목록 카드와 동일) — 편집 권한 없으면 비활성 표시만. */}
+        <JournalFlagsToggle
+          id={entry.id}
+          flags={{
+            prayer_candidate: entry.prayer_candidate,
+            is_private: entry.is_private,
+            is_secret: entry.is_secret,
+          }}
+          canEdit={canEdit}
+          showSecret={isMaster(user.id)}
+        />
       </section>
 
       {/* 중보기도 연계 카드 */}

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import type { JournalEntry, Project, Task } from '@/lib/types'
-import { canEditEntry, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
+import { canEditEntry, isMaster, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
 import AuthorBadge from '@/components/AuthorBadge'
 import MarkdownText, { stripMarkdown } from '@/components/MarkdownText'
 import { chip, chipOn, toggle } from '@/lib/statusChip'
@@ -20,7 +20,7 @@ import { useSelectionMode } from '@/lib/useSelectionMode'
 import SelectionCheckbox from '@/components/SelectionCheckbox'
 import SelectionBar from '@/components/SelectionBar'
 import JournalBulkPanel from './JournalBulkPanel'
-import PrayerCandidateToggle from './PrayerCandidateToggle'
+import JournalFlagsToggle, { flagIcon } from './JournalFlagsToggle'
 import PhotoCollage, { type CollagePhoto } from './PhotoCollage'
 import {
   bulkUpdateJournals,
@@ -28,19 +28,19 @@ import {
   type JournalBulkPatch,
 } from '@/lib/bulkUpdate'
 
-// 비공개·비밀글 배지(patch102). 비밀글은 RLS 로 작성자·마스터에게만 행이 오므로 마스터 화면에서만 보인다.
+// 비공개·비밀글 배지(patch102) — 라인 아이콘. 비밀글은 RLS 로 작성자·마스터에게만 행이 오므로 마스터 화면에서만 보인다.
 function PrivacyBadges({ e }: { e: JournalEntry }) {
   if (!e.is_secret && !e.is_private) return null
   return (
     <>
       {e.is_secret && (
-        <span className="shrink-0 rounded-lg bg-accent-soft px-2.5 py-1 text-[11px] font-bold tracking-wide text-accent">
-          🙈 비밀글
+        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-primary-soft px-2.5 py-1 text-[11px] font-bold tracking-wide text-primary">
+          {flagIcon.eyeOff} 비밀글
         </span>
       )}
       {e.is_private && (
-        <span className="shrink-0 rounded-lg bg-surface-subtle px-2.5 py-1 text-[11px] font-bold tracking-wide text-muted">
-          🔒 비공개
+        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-surface-subtle px-2.5 py-1 text-[11px] font-bold tracking-wide text-muted">
+          {flagIcon.lock} 비공개
         </span>
       )}
     </>
@@ -436,10 +436,16 @@ export default function JournalList({
             {projTitle && <MetaChip icon={metaIcon.project} label={projTitle} iconColor={META_ICON_COLOR.project} />}
             {taskTitle && <MetaChip icon={metaIcon.task} label={taskTitle} iconColor={META_ICON_COLOR.task} />}
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-faint">기도후보</span>
-            <PrayerCandidateToggle id={e.id} candidate={e.prayer_candidate} />
-          </div>
+          <JournalFlagsToggle
+            id={e.id}
+            flags={{
+              prayer_candidate: e.prayer_candidate,
+              is_private: e.is_private,
+              is_secret: e.is_secret,
+            }}
+            canEdit={canEditEntry(e.user_id, currentUserId)}
+            showSecret={isMaster(currentUserId)}
+          />
         </div>
       </li>
     )
