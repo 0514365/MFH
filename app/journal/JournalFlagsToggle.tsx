@@ -10,6 +10,13 @@ import { createClient } from '@/lib/supabase-browser'
 
 type Flags = { prayer_candidate: boolean; is_private: boolean; is_secret: boolean }
 
+// 플래그별 컬러 — 메타칩 어스톤 컨셉(hex 직접)과 동일 방식. 배지(JournalList)와 공유.
+export const FLAG_COLOR = {
+  prayer: '#B61821', // 기도후보 — accent 레드
+  private: '#B08A4A', // 비공개 — 골드
+  secret: '#661F20', // 비밀글 — 딥 마룬(primary)
+} as const
+
 // 라인 아이콘(스트로크) — 앱 메타칩 아이콘 컨셉과 통일.
 export const flagIcon = {
   prayer: (
@@ -83,18 +90,19 @@ export default function JournalFlagsToggle({
     router.refresh()
   }
 
+  // 미체크 = 컬러 테두리·컬러 아이콘 / 체크 = 컬러 채움·흰 아이콘 (항목별 고유색).
   const Item = ({
     kind,
     label,
     icon,
     disabled,
-    onColor,
+    color,
   }: {
     kind: keyof Flags
     label: string
     icon: React.ReactNode
     disabled: boolean
-    onColor: string // 체크 시 채움색 클래스 세트
+    color: string
   }) => {
     const checked = cur[kind]
     const off = disabled || !canEdit
@@ -108,9 +116,8 @@ export default function JournalFlagsToggle({
       >
         <span className={`text-[11px] font-semibold ${checked ? 'text-ink' : 'text-faint'}`}>{label}</span>
         <span
-          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
-            checked ? onColor : 'border-line bg-surface text-transparent'
-          }`}
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border bg-surface"
+          style={{ borderColor: color, background: checked ? color : undefined, color: checked ? '#fff' : color }}
         >
           {icon}
         </span>
@@ -125,14 +132,14 @@ export default function JournalFlagsToggle({
         label="기도후보"
         icon={flagIcon.prayer}
         disabled={cur.is_private || cur.is_secret}
-        onColor="border-accent bg-accent text-white"
+        color={FLAG_COLOR.prayer}
       />
       <Item
         kind="is_private"
         label="비공개"
         icon={flagIcon.lock}
         disabled={cur.is_secret}
-        onColor="border-muted bg-muted text-white"
+        color={FLAG_COLOR.private}
       />
       {showSecret && (
         <Item
@@ -140,7 +147,7 @@ export default function JournalFlagsToggle({
           label="비밀글"
           icon={flagIcon.eyeOff}
           disabled={false}
-          onColor="border-primary bg-primary text-white"
+          color={FLAG_COLOR.secret}
         />
       )}
     </span>

@@ -20,7 +20,7 @@ import { useSelectionMode } from '@/lib/useSelectionMode'
 import SelectionCheckbox from '@/components/SelectionCheckbox'
 import SelectionBar from '@/components/SelectionBar'
 import JournalBulkPanel from './JournalBulkPanel'
-import JournalFlagsToggle, { flagIcon } from './JournalFlagsToggle'
+import JournalFlagsToggle, { flagIcon, FLAG_COLOR } from './JournalFlagsToggle'
 import PhotoCollage, { type CollagePhoto } from './PhotoCollage'
 import {
   bulkUpdateJournals,
@@ -34,12 +34,18 @@ function PrivacyBadges({ e }: { e: JournalEntry }) {
   return (
     <>
       {e.is_secret && (
-        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-primary-soft px-2.5 py-1 text-[11px] font-bold tracking-wide text-primary">
+        <span
+          className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold tracking-wide"
+          style={{ color: FLAG_COLOR.secret, background: 'rgba(102,31,32,0.09)' }}
+        >
           {flagIcon.eyeOff} 비밀글
         </span>
       )}
       {e.is_private && (
-        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-surface-subtle px-2.5 py-1 text-[11px] font-bold tracking-wide text-muted">
+        <span
+          className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold tracking-wide"
+          style={{ color: FLAG_COLOR.private, background: 'rgba(176,138,74,0.13)' }}
+        >
           {flagIcon.lock} 비공개
         </span>
       )}
