@@ -90,7 +90,8 @@ export default function JournalFlagsToggle({
     router.refresh()
   }
 
-  // 미체크 = 컬러 테두리·컬러 아이콘 / 체크 = 컬러 채움·흰 아이콘 (항목별 고유색).
+  // ON = 컬러 채움 필(흰 아이콘·흰 글자) / OFF = 연한 외곽선 + 흐린 글자 — 상태 대비를 크게(모바일 가독).
+  // 비활성(배타 규칙·권한 없음)인 OFF 항목만 흐리게, ON 항목은 읽기전용이어도 선명하게 유지.
   const Item = ({
     kind,
     label,
@@ -112,15 +113,24 @@ export default function JournalFlagsToggle({
         onClick={() => toggle(kind)}
         disabled={busy || off}
         aria-pressed={checked}
-        className={`flex items-center gap-1 ${off ? 'opacity-40' : ''}`}
+        className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold transition ${
+          off && !checked ? 'opacity-35' : ''
+        }`}
+        style={
+          checked
+            ? { background: color, borderColor: color, color: '#fff' }
+            : { borderColor: 'var(--line)', background: 'var(--surface)', color: 'var(--text-faint)' }
+        }
       >
-        <span className={`text-[11px] font-semibold ${checked ? 'text-ink' : 'text-faint'}`}>{label}</span>
-        <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border bg-surface"
-          style={{ borderColor: color, background: checked ? color : undefined, color: checked ? '#fff' : color }}
-        >
+        <span className="shrink-0" style={checked ? undefined : { color }}>
           {icon}
         </span>
+        {label}
+        {checked && (
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        )}
       </button>
     )
   }
