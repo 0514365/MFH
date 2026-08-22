@@ -28,11 +28,19 @@ import {
   type JournalBulkPatch,
 } from '@/lib/bulkUpdate'
 
-// 비공개·비밀글 배지(patch102) — 라인 아이콘. 비밀글은 RLS 로 작성자·마스터에게만 행이 오므로 마스터 화면에서만 보인다.
+// 기도후보·비공개·비밀글 배지 — 토글과 동일 컬러·라인 아이콘. 비밀글은 RLS 로 작성자·마스터에게만 행이 온다.
 function PrivacyBadges({ e }: { e: JournalEntry }) {
-  if (!e.is_secret && !e.is_private) return null
+  if (!e.is_secret && !e.is_private && !e.prayer_candidate) return null
   return (
     <>
+      {e.prayer_candidate && (
+        <span
+          className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold tracking-wide"
+          style={{ color: FLAG_COLOR.prayer, background: 'rgba(182,24,33,0.08)' }}
+        >
+          {flagIcon.prayer} 기도후보
+        </span>
+      )}
       {e.is_secret && (
         <span
           className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold tracking-wide"
@@ -142,11 +150,6 @@ function EntrySummary({
             {e.category && (
               <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
                 {e.category}
-              </span>
-            )}
-            {e.prayer_candidate && (
-              <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] text-primary">
-                기도후보
               </span>
             )}
             <PrivacyBadges e={e} />
