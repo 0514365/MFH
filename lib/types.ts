@@ -179,3 +179,45 @@ export type SupporterLog = {
   journal_id: string | null // Phase B: 일지 연계
   created_at: string
 }
+
+// ── 성경통독(patch103) ─────────────────────────────────────────────
+// 계획 — 계정별, 활성 1개. 배분 알고리즘·라벨은 lib/bible/plan.ts.
+export type ReadingPlan = {
+  id: string
+  user_id: string
+  title: string
+  start_date: string
+  end_date: string
+  exclude_weekdays: number[] // JS getDay 기준 0=일 … 6=토
+  read_order: 'ot_first' | 'nt_first'
+  split_mode: 'chapters' | 'chars'
+  total_days: number
+  total_chapters: number
+  total_chars: number
+  is_active: boolean
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+// 일정 하루 1행 + 읽음 기록.
+export type ReadingPlanDay = {
+  id: string
+  plan_id: string
+  user_id: string
+  day_no: number
+  read_date: string
+  start_seq: number
+  end_seq: number
+  chapters: number
+  chars: number
+  range_label: string
+  done: boolean
+  read_on: string | null // 'YYYY-MM-DD'
+  read_time: string | null // 'HH:MM' (DB time → 앱에서 앞 5자만 사용)
+  read_minutes: number | null
+  grace: string | null
+  prayer_candidate: boolean
+  journal_entry_id: string | null
+  updated_at: string
+}

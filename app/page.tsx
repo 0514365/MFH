@@ -6,8 +6,9 @@ import { canManageFinance } from '@/lib/members'
 import ModuleIcon from '@/components/ModuleIcon'
 import SplashGate from './SplashGate'
 import SignOutButton from '@/components/SignOutButton'
-import type { YearTheme } from '@/lib/types'
+import type { ReadingPlan, YearTheme } from '@/lib/types'
 import type { Highlight } from './honduras/BriefingView'
+import BibleHomeCard, { type HomeDay } from './bible/BibleHomeCard'
 import { projectSignals, taskSignals, type Signal, type SignalKind } from '@/lib/signals'
 import pkg from '../package.json'
 import './p/portfolio-theme.css'
@@ -132,7 +133,7 @@ export default async function Home() {
   // 신호 계산 기준일 — 온두라스 현지(다른 페이지와 동일 기준).
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
 
-  const [themeQ, prayerQ, newsQ, qtQ, projQ, taskQ, insightQ] = await Promise.all([
+  const [themeQ, prayerQ, newsQ, qtQ, projQ, taskQ, insightQ, bibleQ] = await Promise.all([
     supabase.from('year_themes').select('*').eq('year', year).maybeSingle(),
     supabase.from('intercessions').select('id', { count: 'exact', head: true }).eq('is_read', false),
     supabase
@@ -157,7 +158,21 @@ export default async function Home() {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    // 성경통독 — 본인 활성 계획 1개(RLS 본인 전용)
+    supabase.from('reading_plans').select('*').eq('is_active', true).maybeSingle(),
   ])
+
+  // 통독 일정(활성 계획의 전체 일차 — 진행률·오늘 분량·밀림 계산용, 가벼운 컬럼만)
+  const biblePlan = (bibleQ.data ?? null) as ReadingPlan | null
+  const bibleDays: HomeDay[] = biblePlan
+    ? (((
+        await supabase
+          .from('reading_plan_days')
+          .select('id, day_no, read_date, done, chapters, chars, range_label')
+          .eq('plan_id', biblePlan.id)
+          .order('day_no', { ascending: true })
+      ).data ?? []) as HomeDay[])
+    : []
 
   const theme = themeQ.data as YearTheme | null
   const goals: string[] = theme && Array.isArray(theme.goals) ? (theme.goals as string[]) : []
@@ -239,7 +254,7 @@ export default async function Home() {
           <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:sticky lg:top-4 lg:col-span-5 lg:flex lg:flex-col lg:self-start">
           {/* 2026 주제 — hero. 딥 그라데이션(마룬레드→딥마룬)으로 단색 면 부담 분산 — brand 마룬 정체성 유지 */}
           <section
-            className="flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white sm:col-span-2"
+            className="flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white sm:order-1 sm:col-span-2 lg:order-none"
             style={{ background: 'linear-gradient(150deg, #B61821 0%, #661F20 100%)' }}
           >
             <div>
@@ -271,7 +286,7 @@ export default async function Home() {
           {/* 오늘의 QT — wide + 본문·핵심절 미리보기 (아침 묵상 → 주제 아래 최상단) */}
           <Link
             href="/qt"
-            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99]"
+            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99] sm:order-3 lg:order-none"
           >
             <div className="flex items-center justify-between">
               <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
@@ -294,10 +309,16 @@ export default async function Home() {
             </div>
           </Link>
 
+          {/* 성경통독 — 오늘 분량·진행률·바로 체크 (QT 아래) */}
+          {/* sm(iPad) 2열: 통독을 주제 바로 아래 wide 로 올리고 QT·동향을 한 줄에. 모바일·lg 는 DOM 순서(주제→QT→통독→동향). */}
+          <div className="sm:order-2 sm:col-span-2 lg:order-none lg:col-auto">
+            <BibleHomeCard plan={biblePlan} days={bibleDays} today={today} />
+          </div>
+
           {/* 온두라스 동향 — wide + 최신 브리핑 미리보기 */}
           <Link
             href="/honduras"
-            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99]"
+            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99] sm:order-4 lg:order-none"
           >
             <div className="flex items-center justify-between">
               <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-accent">

@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MFH 성경통독 화면 미리보기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --primary:#661F20; --accent:#B61821; --primary-soft:#F1E4E4; --accent-soft:#FAE3E4;
+    --paper:#FAF8F7; --surface:#FFFFFF; --subtle:#F2EEEC; --line:#E5DFDC;
+    --ink:#221C1C; --muted:#80807F; --faint:#A8A6A4;
+    --done:#E1F5EE; --on-done:#0F6E56; --prog:#E6F1FB; --on-prog:#0C447C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#EEEAE7;font-family:Pretendard,-apple-system,sans-serif;color:var(--ink);padding:28px 20px 60px}
+  .display{font-family:Montserrat,Pretendard,sans-serif}
+  h1{font-family:Montserrat,Pretendard;font-size:22px;color:var(--primary);margin:0 0 4px}
+  .lead{font-size:13px;color:var(--muted);margin:0 0 24px}
+  .row{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+  .shot{width:390px;flex:none}
+  .shot h2{font-size:14px;margin:0 0 8px;color:var(--primary)}
+  .shot h2 span{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+  .phone{background:var(--paper);border-radius:36px;border:8px solid #1c1a1a;padding:14px 14px 18px;min-height:700px;box-shadow:0 12px 40px -18px rgba(0,0,0,.5)}
+  .note{font-size:12px;color:var(--muted);line-height:1.55;margin-top:10px;padding-left:4px}
+  .note b{color:var(--primary)}
+  /* app atoms */
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 10px}
+  .logo{display:flex;align-items:flex-end;gap:8px}
+  .mark{width:36px;height:36px;border-radius:10px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Montserrat;font-weight:800;font-size:12px}
+  .title{font-family:Montserrat;font-weight:800;font-size:22px;color:var(--primary);line-height:1}
+  .email{font-size:11px;color:var(--faint)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:16px}
+  .soft{background:var(--primary-soft);border:none}
+  .eyebrow{font-family:Montserrat;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
+  .pill{display:inline-block;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:600}
+  .pill.white{background:rgba(255,255,255,.65);color:var(--primary)}
+  .pill.red{background:var(--accent);color:#fff;font-family:Montserrat}
+  .pill.done{background:var(--done);color:var(--on-done)}
+  .pill.prog{background:var(--prog);color:var(--on-prog)}
+  .pill.warn{background:#FFF1E6;color:#B45309}
+  .bar{height:6px;border-radius:999px;background:rgba(255,255,255,.7);overflow:hidden;margin-top:10px}
+  .soft .bar{background:rgba(102,31,32,.12)}
+  .bar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+  .big{font-size:19px;font-weight:700;line-height:1.2;margin-top:8px}
+  .sub{font-size:12px;color:var(--muted);margin-top:4px}
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .tile{display:flex;flex-direction:column;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:14px;height:104px}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .chip{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .tile .t{font-family:Montserrat;font-size:15px;font-weight:700;color:var(--primary);line-height:1.1;margin-top:10px}
+  .tile .s{font-size:11px;color:var(--muted);margin-top:2px}
+  .hero{border-radius:24px;padding:20px;color:#fff;background:linear-gradient(150deg,#B61821 0%,#661F20 100%)}
+  .hero .eyebrow{color:rgba(255,255,255,.6)}
+  .hero .big{font-size:20px}
+  .check{width:44px;height:44px;border-radius:14px;border:2px solid #e6c9cb;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:transparent;flex:none}
+  .check.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .check.sm{width:26px;height:26px;border-radius:8px;font-size:14px}
+  .rowline{display:flex;align-items:center;gap:12px}
+  .rowline .grow{flex:1;min-width:0}
+  .input{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:11px 14px;font-size:14px;color:var(--ink)}
+  .input.ph{color:var(--faint)}
+  .label{font-size:12px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+  .seg{display:flex;gap:6px}
+  .seg span{flex:1;text-align:center;border:1px solid var(--line);border-radius:999px;padding:8px 0;font-size:13px;background:var(--surface);color:var(--muted)}
+  .seg span.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .days{display:flex;gap:6px}
+  .days span{flex:1;text-align:center;border:1px solid var(--line);border-radius:10px;padding:8px 0;font-size:13px;background:var(--surface)}
+  .days span.off{background:var(--subtle);color:var(--faint);text-decoration:line-through}
+  .kv{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:13px;margin-top:8px}
+  .kv b{font-weight:700;color:var(--primary)}
+  .kv small{color:var(--muted)}
+  .btn{display:block;text-align:center;background:var(--accent);color:#fff;border-radius:14px;padding:13px;font-weight:700;font-size:15px;margin-top:16px}
+  .btn.ghost{background:transparent;color:var(--primary);border:1px solid var(--line);font-weight:600}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);font-size:13px}
+  .item .d{width:52px;flex:none;color:var(--muted);font-size:12px}
+  .item .d.sun{color:var(--accent)}
+  .item .r{flex:1;min-width:0;font-weight:600}
+  .item .m{color:var(--faint);font-size:11px;flex:none}
+  .item.dim{opacity:.55}
+  .sect{display:flex;align-items:baseline;justify-content:space-between;margin:18px 0 8px}
+  .sect h3{font-size:14px;margin:0;color:var(--primary)}
+  .sect a{font-size:12px;color:var(--accent);font-weight:600}
+  .toggle{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;border:1px solid var(--line);color:var(--muted)}
+  .toggle.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .meta span{font-size:11px;color:var(--muted);background:var(--subtle);border-radius:8px;padding:3px 8px}
+  .meta span u{text-decoration:none;color:var(--primary);font-weight:600;border-bottom:1px dashed var(--faint)}
+  .nav{margin-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:flex-end;padding:8px 6px 0;color:var(--faint);font-size:18px}
+  .nav .home{width:48px;height:48px;border-radius:50%;background:#b61821;color:#fff;display:flex;align-items:center;justify-content:center;transform:translateY(-16px);box-shadow:0 6px 14px -6px rgba(0,0,0,.5)}
+  .tag{font-size:11px;color:var(--faint);margin-top:10px}
+  .legend{margin:26px 0 0;font-size:12px;color:var(--muted);line-height:1.6;max-width:900px}
+  .legend b{color:var(--primary)}
+  .month{display:flex;justify-content:space-between;align-items:center;background:var(--subtle);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--primary);margin-top:8px}
+  .month small{color:var(--muted);font-weight:500}
+</style>
+</head>
+<body>
+<h1>성경통독 · 화면 미리보기</h1>
+<p class="lead">MFH 앱 톤(마룬 팔레트 · Montserrat/Pretendard · 24px 라운드 카드) 기준 목업. 데이터는 예시(오늘 2026-09-02, 계획 「2026 하반기 통독」 9/1~12/31 · 토요일 제외 · 글자 균등).</p>
+
+<div class="row">
+
+  <!-- 1. 홈 -->
+  <div class="shot">
+    <h2>① 홈 <span>QT 카드 아래에 통독 카드 추가</span></h2>
+    <div class="phone">
+      <div class="hdr"><div class="logo"><div class="mark">MFH</div></div><div class="email">honduras0691@gmail.com</div></div>
+      <div class="stack">
+        <div class="hero">
+          <div class="eyebrow">2026 주제</div>
+          <div class="big">복음의 뿌리를 깊이 내리는 해</div>
+        </div>
+        <div class="card soft">
+          <div class="rowline" style="justify-content:space-between"><div class="eyebrow">오늘의 QT · Daily Bread</div><span class="pill white">9/2 05:02</span></div>
+          <div class="big" style="font-size:17px">하나님의 위로를 전하는 사람</div>
+        </div>
+
+        <!-- 통독 카드 (신규) -->
+        <div class="card soft" style="outline:2px dashed var(--accent);outline-offset:3px">
+          <div class="rowline" style="justify-content:space-between">
+            <div class="eyebrow">성경통독 · Bible in a Year</div>
+            <span class="pill white">2 / 100일 · 2%</span>
+          </div>
+          <div class="rowline" style="margin-top:8px">
+            <div class="grow">
+              <div class="sub" style="margin:0">오늘 읽을 분량 · 9/2 (수)</div>
+              <div class="big" style="margin-top:2px">창세기 12~23장</div>
+              <div class="sub">12장 · 13,480자 · 약 27분</div>
+            </div>
+            <div class="check">✓</div>
+          </div>
+          <div class="bar"><i style="width:2%"></i></div>
+          <div class="rowline" style="justify-content:space-between;margin-top:8px">
+            <span class="sub" style="margin:0">2026 하반기 통독 · 12/25 완독 예정</span>
+            <span class="pill done">일정대로</span>
+          </div>
+        </div>
+
+        <div class="card soft">
+          <div class="rowline" style="justify-content:space-between"><div class="eyebrow">온두라스 동향 · Today in Honduras</div><span class="pill white">9/2 06:10</span></div>
+          <div class="big" style="font-size:15px">우기 폭우로 북부 지역 침수 피해</div>
+        </div>
+        <div class="tiles">
+          <div class="tile"><div class="chip" style="background:#D1FAE5;color:#047857">✎</div><div><div class="t">Log</div><div class="s">Today's grace</div></div></div>
+          <div class="tile"><div class="chip" style="background:#FEF3C7;color:#B45309">✦</div><div><div class="t">Insights</div><div class="s">Light on the path</div></div></div>
+        </div>
+      </div>
+      <div class="nav"><span>✦</span><span>✎</span><span class="home">⌂</span><span>▣</span><span>☑</span></div>
+    </div>
+    <p class="note"><b>계정별</b> 활성 계획 1개를 표시. 카드 전체 탭 → <b>/bible</b>. 우측 체크 버튼으로 홈에서 바로 "읽음" 처리(은혜 한 줄은 /bible 에서). 계획이 없으면 「통독 계획 세우기」 링크 카드. 밀리면 배지가 <span class="pill warn">3일 밀림</span> 으로 바뀜.</p>
+  </div>
+
+  <!-- 2. /bible 메인 -->
+  <div class="shot">
+    <h2>② /bible <span>오늘 분량 · 읽음 체크 · 일정</span></h2>
+    <div class="phone">
+      <div class="hdr"><div class="logo"><div class="mark">M</div><div class="title">성경통독</div></div><span class="pill" style="background:var(--surface);border:1px solid var(--line);color:var(--muted);padding:6px 10px">계획 관리</span></div>
+
+      <div class="card" style="background:linear-gradient(150deg,#B61821 0%,#661F20 100%);border:none;color:#fff">
+        <div class="eyebrow" style="color:rgba(255,255,255,.6)">2026 하반기 통독</div>
+        <div class="rowline" style="justify-content:space-between;align-items:flex-end;margin-top:6px">
+          <div class="big" style="margin:0;font-size:26px" ><span class="display">2</span><span style="font-size:14px;opacity:.7"> / 100일</span></div>
+          <div style="text-align:right;font-size:12px;opacity:.85">읽은 장 <b>11</b> / 1,189<br/>완독 예정 12/25</div>
+        </div>
+        <div class="bar"><i style="width:2%;background:#fff"></i></div>
+        <div class="rowline" style="gap:6px;margin-top:10px">
+          <span class="pill" style="background:rgba(255,255,255,.2);color:#fff">일정대로</span>
+          <span class="pill" style="background:rgba(255,255,255,.2);color:#fff">9/1 시작 · 토 제외</span>
+          <span class="pill" style="background:rgba(255,255,255,.2);color:#fff">글자 균등</span>
+        </div>
+      </div>
+
+      <div class="sect"><h3>오늘 · 9/2 (수)</h3><a>일정 보기 ↓</a></div>
+      <div class="card">
+        <div class="rowline">
+          <div class="grow">
+            <div class="big" style="margin:0">창세기 12~23장</div>
+            <div class="sub">12장 · 13,480자 · 약 27분</div>
+          </div>
+          <div class="check on">✓</div>
+        </div>
+        <div class="meta">
+          <span>읽은 날 <u>2026. 9. 2</u></span>
+          <span>시각 <u>오후 9:14</u></span>
+          <span>소요 <u>27</u>분</span>
+        </div>
+        <div class="label">오늘의 한 줄 은혜 <span style="font-weight:400;color:var(--faint)">(선택)</span></div>
+        <div class="input">아브람처럼 "본토 친척 아비 집"을 떠나온 우리 가정을 기억하게 하심</div>
+        <div class="rowline" style="justify-content:space-between;margin-top:10px">
+          <span class="toggle on">✚ 기도제목에 포함</span>
+          <span style="font-size:11px;color:var(--faint)">→ 일지(성경통독)에 기도후보로 저장</span>
+        </div>
+      </div>
+
+      <div class="sect"><h3>밀린 분량</h3><span style="font-size:12px;color:var(--faint)">없음</span></div>
+
+      <div class="sect"><h3>일정</h3><a>전체 펼치기</a></div>
+      <div class="month">9월 <small>26일 · 1~355장</small></div>
+      <div class="list" style="margin-top:8px">
+        <div class="item dim"><div class="check sm on">✓</div><div class="d">9/1 (화)</div><div class="r">창세기 1~11장</div><div class="m">11장</div></div>
+        <div class="item" style="border-color:var(--accent)"><div class="check sm on">✓</div><div class="d">9/2 (수)</div><div class="r">창세기 12~23장</div><div class="m">12장</div></div>
+        <div class="item"><div class="check sm">✓</div><div class="d">9/3 (목)</div><div class="r">창세기 24~31장</div><div class="m">8장</div></div>
+        <div class="item"><div class="check sm">✓</div><div class="d">9/4 (금)</div><div class="r">창세기 32~41장</div><div class="m">10장</div></div>
+        <div class="item"><div class="check sm">✓</div><div class="d sun">9/6 (일)</div><div class="r">창세기 42~50장</div><div class="m">9장</div></div>
+        <div class="item"><div class="check sm">✓</div><div class="d">9/7 (월)</div><div class="r">출애굽기 1~11장</div><div class="m">11장</div></div>
+      </div>
+      <div class="month" style="opacity:.6">10월 <small>27일 · 356~730장</small></div>
+      <div class="nav"><span>✦</span><span>✎</span><span class="home">⌂</span><span>▣</span><span>☑</span></div>
+    </div>
+    <p class="note">체크 ON → <b>읽은 날·시각 = 지금(온두라스 시간)</b>, <b>소요 분 = 예상값(글자수÷500)</b> 자동 입력. 점선 밑줄 값은 탭해서 수동 수정. 밀린 날은 「밀린 분량」 섹션에 모아 빠르게 체크. 월별 아코디언, 일요일은 빨강(README 규칙).</p>
+  </div>
+
+  <!-- 3. /bible/new -->
+  <div class="shot">
+    <h2>③ /bible/new <span>계획 수립 + 실시간 미리보기</span></h2>
+    <div class="phone">
+      <div class="hdr"><div class="logo"><div class="mark">M</div><div class="title">통독 계획</div></div></div>
+
+      <div class="label">타이틀</div>
+      <div class="input">2027 성경 1독</div>
+
+      <div class="label">기간</div>
+      <div class="rowline"><div class="input grow">2027. 01. 01</div><span style="color:var(--faint)">~</span><div class="input grow">2027. 12. 31</div></div>
+
+      <div class="label">읽기 제외 요일 <span style="font-weight:400;color:var(--faint)">(탭해서 끄기)</span></div>
+      <div class="days"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="off">토</span><span class="off">일</span></div>
+
+      <div class="label">읽기 순서</div>
+      <div class="seg"><span class="on">구약부터</span><span>신약부터</span></div>
+
+      <div class="label">배분 방식</div>
+      <div class="seg"><span>장 균등</span><span class="on">글자 균등 (권장)</span></div>
+
+      <div class="card soft" style="margin-top:16px">
+        <div class="eyebrow">미리보기</div>
+        <div class="kv">
+          <div><small>읽는 날</small><br/><b>261일</b> <small>/ 365일</small></div>
+          <div><small>완독일</small><br/><b>2027. 12. 31 (금)</b></div>
+          <div><small>하루 평균</small><br/><b>4.6장 · 5,223자</b></div>
+          <div><small>예상 시간</small><br/><b>약 10분</b> <small>(500자/분)</small></div>
+          <div><small>최다 · 최소</small><br/><b>19장 · 1장</b></div>
+          <div><small>편차</small><br/><b>4,220 ~ 6,226자</b></div>
+        </div>
+        <div class="sub" style="margin-top:10px">첫날 창세기 1~4장 · 마지막날 요한계시록 19~22장</div>
+      </div>
+
+      <div class="btn">계획 저장 · 일정 생성</div>
+      <div class="btn ghost">취소</div>
+      <div class="tag">저장 시 261행 일정이 계정에 생성되고 활성 계획으로 지정됩니다(기존 활성 계획은 보관).</div>
+      <div class="nav"><span>✦</span><span>✎</span><span class="home">⌂</span><span>▣</span><span>☑</span></div>
+    </div>
+    <p class="note">입력값이 바뀔 때마다 브라우저에서 즉시 재계산(글자 균등 = README 6-2 DP, 365일×1,189장×45 ≈ 0.5초 이내). 기본값 = 다음 해 1/1~12/31, 제외 없음, 구약부터, 글자 균등.</p>
+  </div>
+
+  <!-- 4. /bible/plans -->
+  <div class="shot">
+    <h2>④ /bible/plans <span>계획 목록 · 활성 전환</span></h2>
+    <div class="phone">
+      <div class="hdr"><div class="logo"><div class="mark">M</div><div class="title">계획 관리</div></div><span class="pill red" style="padding:8px 12px;font-size:12px">+ 새 계획</span></div>
+      <div class="stack">
+        <div class="card" style="border-color:var(--accent)">
+          <div class="rowline" style="justify-content:space-between"><b>2026 하반기 통독</b><span class="pill prog">활성</span></div>
+          <div class="sub">2026.9.1 ~ 12.31 · 토 제외 · 구약부터 · 글자 균등</div>
+          <div class="bar" style="background:var(--subtle)"><i style="width:2%"></i></div>
+          <div class="rowline" style="justify-content:space-between;margin-top:8px"><span class="sub" style="margin:0">2/100일 · 11장 읽음</span><span style="font-size:12px;color:var(--faint)">삭제</span></div>
+        </div>
+        <div class="card">
+          <div class="rowline" style="justify-content:space-between"><b>2027 성경 1독</b><span class="pill" style="background:var(--subtle);color:var(--muted)">대기</span></div>
+          <div class="sub">2027.1.1 ~ 12.31 · 토·일 제외 · 구약부터 · 글자 균등</div>
+          <div class="rowline" style="justify-content:space-between;margin-top:10px"><span class="toggle">활성으로 전환</span><span style="font-size:12px;color:var(--faint)">삭제</span></div>
+        </div>
+        <div class="card" style="opacity:.7">
+          <div class="rowline" style="justify-content:space-between"><b>2025 신약 통독</b><span class="pill done">완독</span></div>
+          <div class="sub">2025.10.1 ~ 12.31 · 신약부터 · 장 균등</div>
+          <div class="rowline" style="justify-content:space-between;margin-top:10px"><span class="sub" style="margin:0">78/78일 · 2025.12.30 완독</span><span style="font-size:12px;color:var(--faint)">보기</span></div>
+        </div>
+      </div>
+      <div class="nav"><span>✦</span><span>✎</span><span class="home">⌂</span><span>▣</span><span>☑</span></div>
+    </div>
+    <p class="note">계정당 <b>활성 계획 1개</b>(DB partial unique). 완독(모든 날 체크) 시 자동으로 「완독」 상태. 삭제는 확인 후 일정·기록 함께 삭제(연결된 일지는 남김).</p>
+  </div>
+
+</div>
+
+<p class="legend">
+<b>범위 표기 규칙</b>: 같은 권 → 「창세기 1~15장」, 권이 바뀌면 → 「베드로후서 3장 ~ 요한계시록 6장」(README 8절). 홈·목록에서는 공간이 좁으면 약어(「벧후 3 ~ 계 6」, lib/bibleAbbr.ts 재사용).<br/>
+<b>상태 배지</b>: 일정대로(밀린 날 0) · N일 밀림(오늘 이전 미체크 일수) · 완독.<br/>
+<b>기도제목 포함</b>: 토글 ON 시 일지(Log)에 분류 「성경통독」, 머릿말 = 범위, 기도 = 은혜 한 줄, 기도후보 ON 으로 자동 생성 → 기존 선교편지 기도제목 수집 흐름에 그대로 합류. OFF 로 되돌리면 그 자동 일지는 삭제.
+</p>
+</body>
+</html>
