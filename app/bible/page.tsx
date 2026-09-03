@@ -132,7 +132,7 @@ export default async function BiblePage() {
           <ul className="flex flex-col gap-1.5">
             {overdueDays.map((d) => (
               <li key={d.id} className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2 text-[13px]">
-                <DayCheck id={d.id} done={d.done} chars={d.chars} />
+                <DayCheck id={d.id} done={d.done} chars={d.chars} method={d.read_method} />
                 <span className="w-[54px] shrink-0 text-[12px] text-muted">{shortDate(d.read_date)}</span>
                 <span className="min-w-0 flex-1 truncate font-semibold text-ink">{d.range_label}</span>
                 <span className="shrink-0 text-[11px] text-faint">{d.chapters}장</span>

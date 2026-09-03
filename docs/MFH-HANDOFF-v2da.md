@@ -39,7 +39,12 @@
 
 **홈 레이아웃**: sm(iPad 2열)에서 통독 카드를 주제 바로 아래 wide(`sm:order-2 sm:col-span-2`)로, QT·동향을 한 줄에. 모바일·lg 는 DOM 순서(주제→QT→통독→동향). `lg:order-none` 으로 리셋.
 
-### 4. 기타
+### 4. 통독 방법(patch104 — ★ 콘솔 실행 필요)
+- `supabase/patch104-bible-read-method.sql`: `reading_plan_days.read_method` text (`aloud` 낭독 / `audio` 오디오 듣기 / `aloud_audio` 낭독+듣기 / null 미선택), check 제약.
+- DayCard 에 「방법」 칩 3개(체크 전후 언제든 선택, 같은 칩 재탭 = 해제, 즉시 저장). 예상 소요 분 = 방법별 속도(낭독·듣기 280자/분, 미선택 = 묵독 500자/분, `lib/bible/checkin.ts` `READ_METHODS`). 읽음 상태에서 소요 분이 자동값 그대로면 방법 변경 시 재계산.
+- DayCheck(홈·목록)는 저장된 방법으로 소요 분 추정. ScheduleList 읽은 행에 방법 짧은 라벨 표시.
+
+### 5. 기타
 - 화면 목업(승인용): `docs/mfh-bible-reading-mockup.html`.
 - 하단 탭바(BottomNav) 변경 없음 — 홈 카드로 진입.
 
@@ -47,7 +52,7 @@
 
 ## 다음 과제
 
-1. **우진**: Supabase 콘솔에서 `patch103-bible-reading.sql` 실행 → 커밋·푸시 승인 → Vercel 배포 후 실기기 확인(홈 카드·/bible/new 미리보기·체크·기도제목 일지 생성).
+1. **우진**: Supabase 콘솔에서 `patch103-bible-reading.sql` → `patch104-bible-read-method.sql` 순서로 실행 → 커밋·푸시 승인 → Vercel 배포 후 실기기 확인(홈 카드·/bible/new 미리보기·체크·기도제목 일지 생성).
 2. 실사용 후 조정 후보: 밀린 분량 **재분배**(남은 날에 미읽은 장 재배분), 구약·신약 병행 읽기(README 10절), 통독 완료 시 `completed_at` 자동 기록(현재는 진행률 100% 로 판정만).
 3. 버전: 새 모듈 추가 = MINOR 후보(3.5.0) — 우진이 "버전" 꺼낼 때 제안.
 4. v2cy 이월: 건축 예산 개정판, 예수소망교회 건 재개 여부.

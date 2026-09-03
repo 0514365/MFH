@@ -216,6 +216,8 @@ export type ReadingPlanDay = {
   read_on: string | null // 'YYYY-MM-DD'
   read_time: string | null // 'HH:MM' (DB time → 앱에서 앞 5자만 사용)
   read_minutes: number | null
+  // 통독 방법(patch104): 낭독 / 오디오 듣기 / 낭독+듣기. null = 미선택.
+  read_method: 'aloud' | 'audio' | 'aloud_audio' | null
   grace: string | null
   prayer_candidate: boolean
   journal_entry_id: string | null

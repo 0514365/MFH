@@ -1,4 +1,4 @@
-// MFH-BIBLE-HOME-CARD-V1
+// MFH-BIBLE-HOME-CARD-V2
 // 홈 좌측(오늘의 정보) 통독 카드 — 서버 컴포넌트. 활성 계획의 오늘(또는 다음) 분량·진행률·상태 배지 + 바로 읽음 체크(DayCheck).
 // 카드 본문은 /bible 링크, 체크 버튼은 별도(링크 안에 버튼 중첩 회피). 계획 없으면 계획 세우기 안내 카드.
 import Link from 'next/link'
@@ -6,7 +6,7 @@ import { estimateMinutes, longDate, planProgress, progressBadge, shortDate } fro
 import type { ReadingPlan, ReadingPlanDay } from '@/lib/types'
 import DayCheck from './DayCheck'
 
-export type HomeDay = Pick<ReadingPlanDay, 'id' | 'day_no' | 'read_date' | 'done' | 'chapters' | 'chars' | 'range_label'>
+export type HomeDay = Pick<ReadingPlanDay, 'id' | 'day_no' | 'read_date' | 'done' | 'chapters' | 'chars' | 'range_label' | 'read_method'>
 
 const BADGE_CLS = {
   done: 'bg-status-done text-on-status-done',
@@ -65,7 +65,7 @@ export default function BibleHomeCard({ plan, days, today }: { plan: ReadingPlan
             <div className="text-[17px] font-bold leading-tight text-ink">{progress.completed ? '완독' : '읽을 분량 없음'}</div>
           )}
         </Link>
-        {focus && <DayCheck id={focus.id} done={focus.done} chars={focus.chars} size="lg" />}
+        {focus && <DayCheck id={focus.id} done={focus.done} chars={focus.chars} method={focus.read_method} size="lg" />}
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-primary/10">
         <div className="h-full rounded-full bg-accent" style={{ width: `${progress.pct}%` }} />

@@ -1,22 +1,24 @@
 'use client'
 
-// MFH-BIBLE-DAY-CHECK-V1
+// MFH-BIBLE-DAY-CHECK-V2
 // 읽음 체크 버튼(즉시 update 패턴, TaskCheck 와 동일 UX). size: lg=오늘 카드/홈, sm=일정 목록.
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import { setDayDone } from '@/lib/bible/checkin'
+import { setDayDone, type ReadMethod } from '@/lib/bible/checkin'
 
 export default function DayCheck({
   id,
   done,
   chars,
+  method = null,
   size = 'sm',
   onChanged,
 }: {
   id: string
   done: boolean
   chars: number
+  method?: ReadMethod | null // 저장된 통독 방법 — 예상 소요 분 계산에 사용
   size?: 'sm' | 'lg'
   onChanged?: (done: boolean) => void
 }) {
@@ -29,7 +31,7 @@ export default function DayCheck({
     const next = !checked
     setChecked(next)
     setBusy(true)
-    const { error } = await setDayDone(createClient(), id, next, chars)
+    const { error } = await setDayDone(createClient(), id, next, chars, method)
     setBusy(false)
     if (error) {
       setChecked(!next)

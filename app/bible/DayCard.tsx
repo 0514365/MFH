@@ -1,8 +1,8 @@
 'use client'
 
-// MFH-BIBLE-DAY-CARD-V1
+// MFH-BIBLE-DAY-CARD-V2
 // 오늘(또는 다음) 읽을 분량 카드 — 큰 읽음 체크 + 읽은 날/시각/소요 분(자동 입력·수동 수정) + 한 줄 은혜 + 기도제목 포함.
-//   · 체크: lib/bible/checkin 규칙(즉시 저장).
+//   · 체크: lib/bible/checkin 규칙(즉시 저장). 통독 방법(낭독/오디오 듣기/낭독+듣기) 칩 — 선택 즉시 저장, 소요 분 자동값이 수정 전이면 방법 속도로 재계산.
 //   · 은혜: blur/Enter 시 저장. 기도제목 연결 중이면 일지의 prayer 도 함께 갱신.
 //   · 기도제목 포함 ON: 일지(분류 '성경통독', 머릿말 '통독 · 범위', prayer=은혜, 기도후보) 생성 후 journal_entry_id 연결.
 //     OFF: 그 자동 일지 삭제 + 연결 해제. 은혜가 비어 있으면 ON 불가.
@@ -12,8 +12,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import DateField from '@/app/journal/DateField'
 import TimeField from '@/components/TimeField'
-import { hm, setDayDone, todayHn } from '@/lib/bible/checkin'
-import { estimateMinutes, shortDate } from '@/lib/bible/plan'
+import { estimateByMethod, hm, READ_METHODS, setDayDone, todayHn, type ReadMethod } from '@/lib/bible/checkin'
+import { shortDate } from '@/lib/bible/plan'
 import type { ReadingPlanDay } from '@/lib/types'
 
 export const BIBLE_JOURNAL_CATEGORY = '성경통독'
@@ -31,6 +31,7 @@ export default function DayCard({ day, heading }: Props) {
   const [readOn, setReadOn] = useState(day.read_on ?? '')
   const [readTime, setReadTime] = useState(hm(day.read_time))
   const [minutes, setMinutes] = useState(day.read_minutes != null ? String(day.read_minutes) : '')
+  const [method, setMethod] = useState<ReadMethod | null>(day.read_method ?? null)
   const [grace, setGrace] = useState(day.grace ?? '')
   const [savedGrace, setSavedGrace] = useState(day.grace ?? '')
   const [prayer, setPrayer] = useState(day.prayer_candidate)
@@ -44,6 +45,7 @@ export default function DayCard({ day, heading }: Props) {
     setReadOn(day.read_on ?? '')
     setReadTime(hm(day.read_time))
     setMinutes(day.read_minutes != null ? String(day.read_minutes) : '')
+    setMethod(day.read_method ?? null)
     setPrayer(day.prayer_candidate)
     setJournalId(day.journal_entry_id)
   }, [day])
@@ -58,7 +60,7 @@ export default function DayCard({ day, heading }: Props) {
     const next = !done
     setBusy(true)
     setDone(next)
-    const { payload, error } = await setDayDone(supabase, day.id, next, day.chars)
+    const { payload, error } = await setDayDone(supabase, day.id, next, day.chars, method)
     setBusy(false)
     if (error) {
       setDone(!next)
@@ -79,6 +81,19 @@ export default function DayCard({ day, heading }: Props) {
     if (error) alert('저장 실패: ' + error.message)
     else router.refresh()
     return !error
+  }
+
+  // 통독 방법 선택(같은 칩 다시 탭 = 해제). 읽음 상태에서 소요 분이 이전 자동값 그대로면 새 방법 속도로 재계산.
+  async function chooseMethod(m: ReadMethod) {
+    const next = method === m ? null : m
+    setMethod(next)
+    const fields: Partial<ReadingPlanDay> = { read_method: next }
+    if (done && (minutes === '' || Number(minutes) === estimateByMethod(day.chars, method))) {
+      const est = estimateByMethod(day.chars, next)
+      setMinutes(String(est))
+      fields.read_minutes = est
+    }
+    await patch(fields)
   }
 
   async function saveGrace() {
@@ -174,7 +189,7 @@ export default function DayCard({ day, heading }: Props) {
           </div>
           <div className="mt-0.5 text-[20px] font-bold leading-tight text-ink">{day.range_label}</div>
           <div className="mt-1 text-[12px] text-muted">
-            {day.chapters}장 · {day.chars.toLocaleString()}자 · 약 {estimateMinutes(day.chars)}분
+            {day.chapters}장 · {day.chars.toLocaleString()}자 · 약 {estimateByMethod(day.chars, method)}분
           </div>
         </div>
         <button
@@ -189,6 +204,27 @@ export default function DayCard({ day, heading }: Props) {
         >
           ✓
         </button>
+      </div>
+
+      {/* 통독 방법 — 체크 전후 언제든 선택. 미선택 = 묵독 기준 시간 */}
+      <div className="mt-3 flex items-center gap-1.5">
+        <span className="shrink-0 text-[10px] text-faint">방법</span>
+        {READ_METHODS.map((m) => {
+          const on = method === m.value
+          return (
+            <button
+              key={m.value}
+              type="button"
+              onClick={() => chooseMethod(m.value)}
+              aria-pressed={on}
+              className={`flex-1 rounded-full border px-2 py-1.5 text-[11px] font-semibold transition ${
+                on ? 'border-primary bg-primary text-white' : 'border-line bg-surface text-muted hover:border-primary'
+              }`}
+            >
+              {m.label}
+            </button>
+          )
+        })}
       </div>
 
       {done && (

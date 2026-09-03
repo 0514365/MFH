@@ -1,9 +1,10 @@
 'use client'
 
-// MFH-BIBLE-SCHEDULE-LIST-V1
+// MFH-BIBLE-SCHEDULE-LIST-V2
 // 전체 일정 — 월별 아코디언(오늘이 속한 달만 기본 펼침). 행 = 읽음 체크 + 날짜(일요일 빨강) + 범위 + 장수, 은혜 한 줄 미리보기.
 import { useMemo, useState } from 'react'
 import DayCheck from './DayCheck'
+import { methodLabel } from '@/lib/bible/checkin'
 import { shortDate, weekdayOf } from '@/lib/bible/plan'
 import type { ReadingPlanDay } from '@/lib/types'
 
@@ -84,13 +85,14 @@ export default function ScheduleList({ days, today }: { days: ReadingPlanDay[]; 
                           isToday ? 'border-accent' : 'border-line'
                         } ${d.done ? 'opacity-60' : ''}`}
                       >
-                        <DayCheck id={d.id} done={d.done} chars={d.chars} />
+                        <DayCheck id={d.id} done={d.done} chars={d.chars} method={d.read_method} />
                         <span className={`w-[54px] shrink-0 text-[12px] ${sun ? 'text-accent' : 'text-muted'}`}>{shortDate(d.read_date)}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-semibold text-ink">{d.range_label}</span>
                           {d.grace && <span className="block truncate text-[11px] text-muted">{d.grace}</span>}
                         </span>
                         <span className="shrink-0 text-[11px] text-faint">
+                          {d.done && d.read_method && <span className="mr-1 text-[10px] text-muted">{methodLabel(d.read_method, true)}</span>}
                           {overdue && <span className="mr-1 rounded-full bg-[#FFF1E6] px-1.5 py-0.5 text-[10px] font-semibold text-[#B45309]">밀림</span>}
                           {d.chapters}장
                         </span>
