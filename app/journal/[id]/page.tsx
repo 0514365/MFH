@@ -160,7 +160,7 @@ export default async function JournalDetail(props: {
         className="sticky top-0 z-30 flex items-center justify-between border-b border-line px-4 py-3"
         style={{ background: 'var(--paper)' }}
       >
-        <BackButton href="/journal" label="" variant="text" />
+        <BackButton href={navQuery ? `/journal?${navQuery}` : '/journal'} label="" variant="text" />
         <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-display text-[16px] font-semibold uppercase tracking-[0.06em] text-muted">
           {fmtDateEn(entry.entry_date)}
         </span>

@@ -108,7 +108,7 @@ export default async function ProjectDetail(props: {
       >
         <div className="flex items-center gap-2">
           <div className="shrink-0">
-            <BackButton href="/projects" label="목록" variant="icon-accent" />
+            <BackButton href={navQuery ? `/projects?${navQuery}` : '/projects'} label="목록" variant="icon-accent" />
           </div>
           <div className="min-w-0 flex-1 text-center">
             <h1 className="truncate text-[18px] font-bold leading-tight tracking-tight text-ink">

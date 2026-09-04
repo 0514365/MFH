@@ -1,9 +1,9 @@
-// MFH-BACK-BUTTON-V2
+// MFH-BACK-BUTTON-V3
 'use client'
 
-// 세부/편집 화면 → 목록 뒤로가기. 동그라미 배경 아이콘(헤더 캘린더·인사이트 아이콘과 통일).
-// router.back() 으로 직전 URL(필터 쿼리 포함)로 정확히 복귀한다.
-// 히스토리가 없을 때(상세 URL 직접 진입·북마크·새 탭)는 fallback href 로 이동.
+// 세부/편집 화면 → 상위 화면(목록·상세) 이동. 동그라미 배경 아이콘(헤더 캘린더·인사이트 아이콘과 통일).
+// 항상 href 로 push 한다 — router.back() 은 편집 저장 후·이전/다음 이동 후에 직전 화면(편집 폼·이전 항목)으로
+// 되돌아가 "상위로 나가기" 와 어긋났다. 목록 필터를 유지하려면 호출부가 href 에 쿼리를 붙인다.
 import { useRouter } from 'next/navigation'
 
 export default function BackButton({
@@ -18,12 +18,6 @@ export default function BackButton({
   const router = useRouter()
 
   function goBack() {
-    // 앱 내 내비게이션으로 진입했으면 직전 URL(필터 쿼리 포함)로 복귀.
-    // 히스토리가 없으면(상세 URL 직접 진입·북마크·새 탭) 목록으로 push.
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back()
-      return
-    }
     router.push(href)
   }
 

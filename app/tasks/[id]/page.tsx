@@ -146,7 +146,7 @@ export default async function TaskDetailPage(props: {
       >
         <div className="flex items-center gap-2">
           <div className="shrink-0">
-            <BackButton href="/tasks" label="목록" variant="icon-accent" />
+            <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label="목록" variant="icon-accent" />
           </div>
           <div className="min-w-0 flex-1 text-center">
             <h1
