@@ -1,11 +1,9 @@
 'use client'
 
-// MFH-BIBLE-SCHEDULE-LIST-V2
-// 전체 일정 — 월별 아코디언(오늘이 속한 달만 기본 펼침). 행 = 읽음 체크 + 날짜(일요일 빨강) + 범위 + 장수, 은혜 한 줄 미리보기.
+// MFH-BIBLE-SCHEDULE-LIST-V3
+// 전체 일정 — 월별 아코디언(오늘이 속한 달만 기본 펼침). 행 = DayRow(체크 + 날짜·범위·은혜, 탭하면 인라인 편집 카드). 편집은 한 행만 펼침.
 import { useMemo, useState } from 'react'
-import DayCheck from './DayCheck'
-import { methodLabel } from '@/lib/bible/checkin'
-import { shortDate, weekdayOf } from '@/lib/bible/plan'
+import DayRow from './DayRow'
 import type { ReadingPlanDay } from '@/lib/types'
 
 type MonthGroup = { key: string; label: string; days: ReadingPlanDay[]; done: number; chapters: number }
@@ -31,6 +29,7 @@ export default function ScheduleList({ days, today }: { days: ReadingPlanDay[]; 
   const todayKey = today.slice(0, 7)
   const [open, setOpen] = useState<Set<string>>(() => new Set(groups.some((g) => g.key === todayKey) ? [todayKey] : groups[0] ? [groups[0].key] : []))
   const [allOpen, setAllOpen] = useState(false)
+  const [openId, setOpenId] = useState<string | null>(null)
 
   function toggle(key: string) {
     setOpen((prev) => {
@@ -74,31 +73,9 @@ export default function ScheduleList({ days, today }: { days: ReadingPlanDay[]; 
               </button>
               {isOpen && (
                 <ul className="mt-2 flex flex-col gap-1.5">
-                  {g.days.map((d) => {
-                    const isToday = d.read_date === today
-                    const overdue = !d.done && d.read_date < today
-                    const sun = weekdayOf(d.read_date) === 0
-                    return (
-                      <li
-                        key={d.id}
-                        className={`flex items-center gap-2.5 rounded-xl border bg-surface px-3 py-2 text-[13px] ${
-                          isToday ? 'border-accent' : 'border-line'
-                        } ${d.done ? 'opacity-60' : ''}`}
-                      >
-                        <DayCheck id={d.id} done={d.done} chars={d.chars} method={d.read_method} />
-                        <span className={`w-[54px] shrink-0 text-[12px] ${sun ? 'text-accent' : 'text-muted'}`}>{shortDate(d.read_date)}</span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate font-semibold text-ink">{d.range_label}</span>
-                          {d.grace && <span className="block truncate text-[11px] text-muted">{d.grace}</span>}
-                        </span>
-                        <span className="shrink-0 text-[11px] text-faint">
-                          {d.done && d.read_method && <span className="mr-1 text-[10px] text-muted">{methodLabel(d.read_method, true)}</span>}
-                          {overdue && <span className="mr-1 rounded-full bg-[#FFF1E6] px-1.5 py-0.5 text-[10px] font-semibold text-[#B45309]">밀림</span>}
-                          {d.chapters}장
-                        </span>
-                      </li>
-                    )
-                  })}
+                  {g.days.map((d) => (
+                    <DayRow key={d.id} day={d} today={today} open={openId === d.id} onToggle={() => setOpenId((cur) => (cur === d.id ? null : d.id))} />
+                  ))}
                 </ul>
               )}
             </div>

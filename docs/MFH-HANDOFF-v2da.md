@@ -44,7 +44,12 @@
 - DayCard 에 「방법」 칩 3개(체크 전후 언제든 선택, 같은 칩 재탭 = 해제, 즉시 저장). 예상 소요 분 = 방법별 속도(낭독·듣기 280자/분, 미선택 = 묵독 500자/분, `lib/bible/checkin.ts` `READ_METHODS`). 읽음 상태에서 소요 분이 자동값 그대로면 방법 변경 시 재계산.
 - DayCheck(홈·목록)는 저장된 방법으로 소요 분 추정. ScheduleList 읽은 행에 방법 짧은 라벨 표시.
 
-### 5. 기타
+### 5. 이전 기록 수정(우진 요청, 배포 확인 후 추가)
+- `DayRow.tsx`(신규): 일정·밀린 분량 공용 행. 체크 버튼 + 본문 버튼(탭 → 아래에 `DayCard` 인라인 펼침, 재탭 = 닫기, 한 행만 펼침). 편집 규칙은 DayCard 하나로 통일(읽은 날·시각·소요 분·방법·은혜·기도제목).
+- `ScheduleList.tsx` V3·`OverdueList.tsx`(신규) 가 DayRow 사용. `/bible/page.tsx` 밀린 분량 ul → OverdueList.
+- 실기기 확인: patch103·104 적용 후 홈 카드·계획 수립·체크·방법·기도제목 일지 **모두 성공**(우진 2026-09-03).
+
+### 6. 기타
 - 화면 목업(승인용): `docs/mfh-bible-reading-mockup.html`.
 - 하단 탭바(BottomNav) 변경 없음 — 홈 카드로 진입.
 

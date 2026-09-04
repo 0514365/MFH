@@ -1,5 +1,5 @@
-// MFH-BIBLE-PAGE-V1
-// /bible — 성경통독 메인. 활성 계획의 진행 요약 + 오늘(또는 다음) 분량 카드 + 밀린 분량 + 월별 일정.
+// MFH-BIBLE-PAGE-V2
+// /bible — 성경통독 메인. 활성 계획의 진행 요약 + 오늘(또는 다음) 분량 카드 + 밀린 분량 + 월별 일정(행 탭 = 이전 기록 수정).
 // 계획이 없으면 안내 카드(/bible/new). 데이터 = reading_plans(활성 1개) + reading_plan_days(전체).
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -8,7 +8,7 @@ import PageHeader from '@/components/PageHeader'
 import { longDate, planProgress, progressBadge, READ_ORDER_LABEL, shortDate, SPLIT_MODE_LABEL, WEEKDAY_KR } from '@/lib/bible/plan'
 import type { ReadingPlan, ReadingPlanDay } from '@/lib/types'
 import DayCard from './DayCard'
-import DayCheck from './DayCheck'
+import OverdueList from './OverdueList'
 import ScheduleList from './ScheduleList'
 import '../p/portfolio-theme.css'
 
@@ -128,18 +128,7 @@ export default async function BiblePage() {
           <h3 className="text-[14px] font-bold text-primary">밀린 분량</h3>
           <span className="text-[12px] text-faint">{overdueDays.length === 0 ? '없음' : `${overdueDays.length}일`}</span>
         </div>
-        {overdueDays.length > 0 && (
-          <ul className="flex flex-col gap-1.5">
-            {overdueDays.map((d) => (
-              <li key={d.id} className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2 text-[13px]">
-                <DayCheck id={d.id} done={d.done} chars={d.chars} method={d.read_method} />
-                <span className="w-[54px] shrink-0 text-[12px] text-muted">{shortDate(d.read_date)}</span>
-                <span className="min-w-0 flex-1 truncate font-semibold text-ink">{d.range_label}</span>
-                <span className="shrink-0 text-[11px] text-faint">{d.chapters}장</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <OverdueList days={overdueDays} today={today} />
       </div>
 
       {/* 전체 일정 */}
