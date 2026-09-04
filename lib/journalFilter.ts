@@ -1,4 +1,4 @@
-// MFH-JOURNAL-FILTER-V2
+// MFH-JOURNAL-FILTER-V3
 // 일지 목록 필터/검색/정렬 순수함수. 목록(JournalList)과 상세(journal/[id]) 가 공유한다.
 // URL 쿼리 <-> 필터 상태 직렬화 + 결정적(deterministic) 정렬을 한곳에 둔다.
 // 일지는 status 가 없으므로 축 = 분류(category) · 기도후보(prayer) · 텍스트(q) · 날짜범위(df/dt) · 정렬(날짜).
@@ -6,6 +6,10 @@
 import { splitCsv, sanitizeDate, compareCreatedDesc, type ParamsLike } from '@/lib/filterUtils'
 
 export type JournalSortKey = 'date'
+
+// fCategory 에 넣는 센티널 — "사역 분류가 없는 일지"(category null/빈값) 필터.
+// URL 에는 cat=_none 으로 직렬화되며 실제 분류명과 겹치지 않도록 밑줄 접두를 쓴다.
+export const JOURNAL_CATEGORY_NONE = '_none'
 
 export type JournalFilter = {
   q: string // 통합 텍스트 검색어
@@ -91,7 +95,12 @@ export function applyJournalFilter<T extends FilterableEntry>(entries: T[], f: J
   const q = f.q.trim().toLowerCase()
   // 잘못 입력된 역순(from > to) 은 결과 0 으로 자연 처리(별도 swap 하지 않음).
   let list = entries.filter((e) => {
-    if (f.fCategory.length && !(e.category && f.fCategory.includes(e.category))) return false
+    if (f.fCategory.length) {
+      const matched = e.category
+        ? f.fCategory.includes(e.category)
+        : f.fCategory.includes(JOURNAL_CATEGORY_NONE)
+      if (!matched) return false
+    }
     if (f.fAuthor.length && !(e.user_id && f.fAuthor.includes(e.user_id))) return false
     if (f.prayerOnly && !e.prayer_candidate) return false
     if (f.dateFrom && e.entry_date < f.dateFrom) return false

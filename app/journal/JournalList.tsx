@@ -10,6 +10,7 @@ import AuthorBadge from '@/components/AuthorBadge'
 import MarkdownText, { stripMarkdown } from '@/components/MarkdownText'
 import { chip, chipOn, toggle } from '@/lib/statusChip'
 import {
+  JOURNAL_CATEGORY_NONE,
   applyJournalFilter,
   buildJournalQuery,
   parseJournalFilter,
@@ -241,6 +242,9 @@ export default function JournalList({
       ).sort(),
     [entries],
   )
+
+  // 사역 분류가 비어 있는 일지가 하나라도 있으면 '분류 없음' 칩 노출.
+  const hasUncategorized = useMemo(() => entries.some((e) => !e.category), [entries])
 
   // 카드 메타 칩용 id → 제목 매핑.
   const projMap = useMemo(
@@ -602,7 +606,7 @@ export default function JournalList({
               ))}
             </div>
           )}
-          {categoryOpts.length > 0 && (
+          {(categoryOpts.length > 0 || hasUncategorized) && (
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="mr-1 text-[11px] font-semibold text-faint">분류</span>
               {categoryOpts.map((c) => (
@@ -615,6 +619,15 @@ export default function JournalList({
                   {c}
                 </button>
               ))}
+              {hasUncategorized && (
+                <button
+                  type="button"
+                  onClick={() => setFCategory((a) => toggle(a, JOURNAL_CATEGORY_NONE))}
+                  className={`${chip} ${fCategory.includes(JOURNAL_CATEGORY_NONE) ? chipOn : ''}`}
+                >
+                  분류 없음
+                </button>
+              )}
             </div>
           )}
         </div>
