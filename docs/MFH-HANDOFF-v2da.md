@@ -49,7 +49,11 @@
 - `ScheduleList.tsx` V3·`OverdueList.tsx`(신규) 가 DayRow 사용. `/bible/page.tsx` 밀린 분량 ul → OverdueList.
 - 실기기 확인: patch103·104 적용 후 홈 카드·계획 수립·체크·방법·기도제목 일지 **모두 성공**(우진 2026-09-03).
 
-### 6. 기타
+### 6. 기록 보존·수정 흐름 정정(우진 피드백)
+- **최초 완료 기록 보존**: 체크 ON 시 read_on/read_time/read_minutes 가 이미 있으면 그대로 두고(없을 때만 자동 입력), OFF 시에도 지우지 않음 → 다시 체크해도 처음 시각 유지. 시각은 사용자가 직접 바꿀 때만 변경(`lib/bible/checkin.ts` V3 `checkPayload(next, target)`; DayCheck 는 `target` prop 으로 기존 기록 전달).
+- **DayCard V3 두 모드**: `live`(오늘/다음 카드 — 즉시 저장, 기존) / `record`(DayRow 펼침 — 읽기 전용 요약 → 「수정」 → 편집 폼(로컬 초안) → 「수정 완료」 일괄 저장 / 「취소」). 기도제목 일지 동기화는 `syncJournal()` 한 함수로 통일(생성·갱신·삭제).
+
+### 7. 기타
 - 화면 목업(승인용): `docs/mfh-bible-reading-mockup.html`.
 - 하단 탭바(BottomNav) 변경 없음 — 홈 카드로 진입.
 

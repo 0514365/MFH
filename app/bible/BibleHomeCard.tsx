@@ -6,7 +6,7 @@ import { estimateMinutes, longDate, planProgress, progressBadge, shortDate } fro
 import type { ReadingPlan, ReadingPlanDay } from '@/lib/types'
 import DayCheck from './DayCheck'
 
-export type HomeDay = Pick<ReadingPlanDay, 'id' | 'day_no' | 'read_date' | 'done' | 'chapters' | 'chars' | 'range_label' | 'read_method'>
+export type HomeDay = Pick<ReadingPlanDay, 'id' | 'day_no' | 'read_date' | 'done' | 'chapters' | 'chars' | 'range_label' | 'read_method' | 'read_on' | 'read_time' | 'read_minutes'>
 
 const BADGE_CLS = {
   done: 'bg-status-done text-on-status-done',
@@ -65,7 +65,7 @@ export default function BibleHomeCard({ plan, days, today }: { plan: ReadingPlan
             <div className="text-[17px] font-bold leading-tight text-ink">{progress.completed ? '완독' : '읽을 분량 없음'}</div>
           )}
         </Link>
-        {focus && <DayCheck id={focus.id} done={focus.done} chars={focus.chars} method={focus.read_method} size="lg" />}
+        {focus && <DayCheck target={focus} done={focus.done} size="lg" />}
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-primary/10">
         <div className="h-full rounded-full bg-accent" style={{ width: `${progress.pct}%` }} />

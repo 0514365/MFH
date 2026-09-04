@@ -168,7 +168,7 @@ export default async function Home() {
     ? (((
         await supabase
           .from('reading_plan_days')
-          .select('id, day_no, read_date, done, chapters, chars, range_label, read_method')
+          .select('id, day_no, read_date, done, chapters, chars, range_label, read_method, read_on, read_time, read_minutes')
           .eq('plan_id', biblePlan.id)
           .order('day_no', { ascending: true })
       ).data ?? []) as HomeDay[])

@@ -1,7 +1,7 @@
 'use client'
 
-// MFH-BIBLE-DAY-ROW-V1
-// 일정·밀린 분량 공용 행 — [체크] 날짜 | 범위·은혜 | 방법·밀림·장수. 본문을 탭하면 아래에 DayCard(편집)가 펼쳐진다.
+// MFH-BIBLE-DAY-ROW-V2
+// 일정·밀린 분량 공용 행 — [체크] 날짜 | 범위·은혜 | 방법·밀림·장수. 본문을 탭하면 아래에 DayCard(record 모드: 요약 → 「수정」 → 「수정 완료」)가 펼쳐진다.
 // 이전 기록 수정(읽은 날·시각·소요 분·방법·은혜·기도제목)은 모두 DayCard 가 담당 → 한 곳에서 같은 규칙.
 import DayCard from './DayCard'
 import DayCheck from './DayCheck'
@@ -28,7 +28,7 @@ export default function DayRow({ day: d, today, open, onToggle }: Props) {
           open ? 'border-primary' : isToday ? 'border-accent' : 'border-line'
         } ${d.done && !open ? 'opacity-60' : ''}`}
       >
-        <DayCheck id={d.id} done={d.done} chars={d.chars} method={d.read_method} />
+        <DayCheck target={d} done={d.done} />
         <button
           type="button"
           onClick={onToggle}
@@ -64,7 +64,7 @@ export default function DayRow({ day: d, today, open, onToggle }: Props) {
       </div>
       {open && (
         <div className="mt-1.5 pl-2">
-          <DayCard key={d.id} day={d} heading={d.done ? '기록 수정' : '기록'} />
+          <DayCard key={d.id} day={d} heading="기록" mode="record" />
         </div>
       )}
     </li>
