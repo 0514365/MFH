@@ -1,7 +1,9 @@
 'use client';
 
-// MFH-PORTFOLIO-LETTER-EDITOR-V5
+// MFH-PORTFOLIO-LETTER-EDITOR-V6
 // 선교편지 관리 (편집 페이지).
+// V6: 요약 기도문 저장 신뢰성 — update 를 .select() 로 되돌려 받아 0건(권한·세션)·오류를 alert 로 표시,
+//     성공 시 DB 값으로 상태 갱신 + router.refresh() 로 서버 데이터 재조회 + '저장됨' 표시. (2026-08호에서 저장 미반영 사고)
 // V5: 영상 편지(video_url, patch81) — PDF 없이 YouTube 영상만 등록 가능(PDF·영상 중 하나 필수).
 // V4: 요약 기도문에 "인사이트 불러오기" — 최근 인사이트(prayer 우선)를 골라 summary 에 삽입(읽기 연계).
 // V3: 외곽 제목 제거 — AccordionSection("선교편지 관리") 안에 들어감.
@@ -12,6 +14,7 @@
 // 디자인 사양: MFH-PORTFOLIO-DESIGN.md v4 §5-5
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import type { PortfolioLetter } from '@/lib/portfolio';
 import { letterMonthLabel } from '@/lib/portfolio';
@@ -61,6 +64,8 @@ export default function LetterEditor({ initial, userId }: Props) {
   const [summaryEditId, setSummaryEditId] = useState<string | null>(null);
   const [summaryDraft, setSummaryDraft] = useState('');
   const [summarySaving, setSummarySaving] = useState(false);
+  const [summarySavedId, setSummarySavedId] = useState<string | null>(null);
+  const router = useRouter();
 
   // 인사이트 불러오기 (요약 기도문 연계)
   const [insightPicks, setInsightPicks] = useState<InsightPick[] | null>(null);
@@ -152,19 +157,34 @@ export default function LetterEditor({ initial, userId }: Props) {
 
   async function saveSummary(letter: PortfolioLetter) {
     setSummarySaving(true);
+    setSummarySavedId(null);
     try {
       const supabase = createClient();
       const next = summaryDraft.trim() || null;
-      const { error } = await supabase
+      // .select() 로 갱신된 행을 되돌려 받아야 RLS 로 0건 갱신된 경우(오류 없이 조용히 실패)를 잡을 수 있다.
+      const { data, error } = await supabase
         .from('letters')
         .update({ summary: next })
-        .eq('id', letter.id);
-      if (error) return;
+        .eq('id', letter.id)
+        .select('id, summary');
+      if (error) {
+        alert(`요약 저장 실패: ${error.message}\n(로그인 세션이 만료됐으면 새로고침 후 다시 시도해 주세요.)`);
+        return;
+      }
+      if (!data || data.length === 0) {
+        alert(
+          '요약이 저장되지 않았습니다. 이 편지의 소유 계정으로 로그인되어 있는지 확인해 주세요. (갱신된 행 0건)'
+        );
+        return;
+      }
+      const saved = data[0].summary ?? null;
       setLetters((prev) =>
-        prev.map((l) => (l.id === letter.id ? { ...l, summary: next } : l))
+        prev.map((l) => (l.id === letter.id ? { ...l, summary: saved } : l))
       );
       setSummaryEditId(null);
       setSummaryDraft('');
+      setSummarySavedId(letter.id);
+      router.refresh();
     } finally {
       setSummarySaving(false);
     }
@@ -481,6 +501,11 @@ export default function LetterEditor({ initial, userId }: Props) {
                   >
                     {l.summary ? '🙏 요약' : '＋요약'}
                   </button>
+                  {summarySavedId === l.id && (
+                    <span className="text-[11px] font-medium" style={{ color: 'var(--accent)' }}>
+                      저장됨
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => togglePublic(l)}

@@ -1,11 +1,11 @@
 # MFH 핸드오프 v2dc (세션 종료)
 
-> 이전: `v2db`(일지 필터·뒤로가기 정정). 이번 세션(2026-09-06~08): **선교편지 2026년 8월호(MFH #2608 「다시 온두라스로」) 5-에이전트 제작 → 발행 완료.** 앱 코드 변경 없음(앱 버전 3.4.0 유지). 커밋 없음(우진 승인 대기).
+> 이전: `v2db`(일지 필터·뒤로가기 정정). 이번 세션(2026-09-06~08): **선교편지 2026년 8월호(MFH #2608 「다시 온두라스로」) 5-에이전트 제작 → 발행 완료** + 발행 도구 2종(summary·OG) + LetterEditor V6(요약 저장 신뢰성). 앱 버전 3.4.0 유지(버전 제안은 우진이 "버전" 꺼낼 때 — 누적: 통독 모듈·UX 정정·편지 도구·V6 → MINOR 3.5.0 후보). 커밋 3건 push 완료.
 
 ---
 
 ## 현재 위치 (한 줄)
-**8월호 발행 완료 — import insert + `letters.summary` 입력 + 공개 페이지 노출 확인까지 끝.** 다음 = 9월호(자료 기준 기간 9/2~) 또는 앱 이월 과제.
+**8월호 발행 완료(import·summary·OG 이미지·공유 링크 확인) + 요약 저장 버그 수정 배포 확인.** 다음 = 9월호(자료 기준 기간 9/2~, 런북 §8 신규 단계 OG·summary 스크립트 적용) 또는 앱 이월 과제.
 
 ---
 
@@ -28,12 +28,12 @@
 - 실명·금액·교회명 비공개 원칙(5면), KCPC 헌금 금액 미언급, 후원 협력 교회는 "SEED 선교회를 통해 연결된 교회들" 고정 문안.
 
 ## 다음 과제
-1. **앱 버그 후보**: `app/portfolio/LetterEditor.tsx` 인라인 summary 저장이 `if (error) return;` 으로 오류를 삼킴 — 우진이 앱에서 저장했는데 DB 미반영(원인 미확인: RLS update 정책 또는 세션). 오류 표시 추가 + 원인 확인 필요(우진 승인 후).
+1. **요약 기도문 저장 신뢰성(LetterEditor V6)** — 2026-09-08 수정: update 를 `.select()` 로 되돌려 받아 오류·0건(RLS/세션)을 alert 로 표시, 성공 시 DB 값 반영 + `router.refresh()` + "저장됨" 표시. tsc·build 통과. **배포·실기기 확인 완료(우진 "성공", 2026-09-08).** (진단: auth 사용자 2명 존재 — 편지 소유는 `6920f3d8…`; 다른 계정으로 로그인 시 편지 목록 자체가 안 보이므로 소유 불일치는 아님. 원 사고의 정확한 원인은 미확인 → 이제 alert 로 드러남.)
 2. `scripts/fetch-private-entries.mjs`·8월호 산출물(issues 폴더는 gitignore) 커밋 여부 — 우진 승인 후 commit(`feat: letter 2608 tooling + writer rule`).
 3. 공유본 빌드(dump-dom + 폰트 이식 + 임베드)와 OG 이미지 생성(og.html 템플릿 → 헤드리스 렌더)을 `letter-templates/tools/` 스크립트로 정리. `import_letters.py` 에 og 업로드 통합도 후보.
 4. 이월: 통독 실사용 조정(v2da), 버전 제안 3.5.0(우진이 "버전" 꺼낼 때), 건축 예산 개정판·예수소망교회 건(v2cy).
 
 ## 유의 사항
-- 미커밋 잔여물(이전 세션 무관): `flyers/dongsan-2026-07/`, `applications/`, `reports/2026-H1/06-sermon-manuscript.md`, `scripts/measure-usage.ts` . 이번 세션 커밋 `e01984c` 이후 추가 변경(2차 커밋): `scripts/set-letter-summary.mjs`·`scripts/upload-letter-og.mjs`(신규), `docs/MFH-LETTER-AGENTS.md`, `.claude/agents/letter-assembler.md`, 이 핸드오프.
+- 미커밋 잔여물(이전 세션 무관): `flyers/dongsan-2026-07/`, `applications/`, `reports/2026-H1/06-sermon-manuscript.md`, `scripts/measure-usage.ts` . 이번 세션 커밋: `e01984c`(편지 도구·writer 규칙·핸드오프) → `de9f396`(summary·OG 스크립트·발행 절차) → 3차(LetterEditor V6 + 핸드오프 최종).
 - `_preview/`·`review/`·`photos-extra/`·`letter-cardnews.pre-card04.html` 은 작업 부산물(issues 폴더 gitignore).
 - 핸드오프 아카이브: `v2db` → `docs/archive/` 이동 완료.
