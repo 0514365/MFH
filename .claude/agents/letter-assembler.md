@@ -35,16 +35,17 @@ tools: Read, Write, Bash
   ```
 
 **`summary` 는 필수다** — 공개 페이지 "최신 선교편지" 블록 우측 칼럼에 그대로 출력된다(`letters.summary`, patch67). **비우면 그 자리가 통째로 비어 보인다.**
-- 형식(2026-06호 확정본 기준):
+- 형식(2026-08호 확정 · **간결하게**):
   ```
-  <그달 소식 요약 3~4문장 — 누가·무엇을·어디까지>
+  <예고편 3문장 이내(약 200자) — 그달 최대 사건으로 시작, 누가·무엇을·어디까지>
 
   [온두라스] <한 줄>
-  [사역] <한 줄 — 사역 항목을 쉼표로 이어 붙임>
+  [사역] <한 줄 — 사역 항목을 쉼표로 압축>
   [가정] <한 줄>
   ```
-- 대괄호 라벨 3줄은 마무리 카드 기도제목을 **한 줄씩** 압축한 것(마침표 없이 "~도록/~을" 종결).
-- ⚠️ **`scripts/import_letters.py` 는 summary 를 넣지 않는다**(폴더의 PDF·HTML만 업로드). 등록 후 **앱 편집 화면 또는 `letters` 테이블 PATCH 로 별도 입력**해야 한다. 등록 완료 보고 전에 공개 페이지에서 요약이 실제로 보이는지 확인할 것. *(2026-07호에서 누락 발생 — 2026-08 보강)*
+- 대괄호 라벨 3줄은 마무리 카드 기도제목을 **주제별 한 줄로 압축**한 것(마침표 없이 "~을/~를" 종결). 첫 문장은 카톡·FB 링크 미리보기 설명문으로도 쓰이므로 짧고 구체적으로. 마무리 카드 기도문을 그대로 옮기지 않는다(2026-08호 1차본 681자 → 확정본 412자).
+- **OG 이미지도 발행 필수 산출물**: `issues/<월>/og.html` → `og-<date8>.jpg`(1200×630) — 원칙은 `docs/MFH-LETTER-AGENTS.md` §8 ⚠ 항목. assembler 는 QA 에서 og 파일 존재·규격을 점검하고 release-notes 에 기재한다.
+- ⚠️ **`scripts/import_letters.py` 는 summary 를 넣지 않고, 앱 편집 화면 저장은 오류를 삼켜 미반영될 수 있다**(2026-08호 실증). 그래서 assembler 는 summary 를 **`letter-templates/issues/<월>/summary.txt` 파일로 출력**(release-notes 에도 동일 텍스트 병기)하고, 우진 확정 후 **팀장이 `node scripts/set-letter-summary.mjs --set <호수> <summary.txt>` 로 입력**한다. 등록 완료 보고 전에 `--get <호수>` 와 공개 페이지에서 요약이 실제로 보이는지 확인할 것. *(2026-07호 누락 → 2026-08 스크립트화)*
 
 ## 4. 내장 규칙 (= QA 검수 기준)
 - **정치 중립**: 온두라스 정치·정당·인물 거명이 없는지. 있으면 **반려**.
@@ -86,5 +87,5 @@ tools: Read, Write, Bash
 2. 지적사항이 있으면 팀장에게 보고 → 해당 에이전트(writer/designer) 재호출. 통과면 다음.
 3. **PDF 출력(현재 수동)**: `open letter-templates/issues/<월>/letter.html` 로 브라우저에 띄운 뒤, 우진이 `Cmd+P → PDF로 저장`(용지 1080×1350, 여백 없음, 배경 그래픽 켜기). 저장명 `MFH-XXXX.pdf`.
    - (참고) 자동 PDF가 필요하면 puppeteer 도입은 **별도 작업** — 현재 미설치.
-4. `portfolio-note.md` 작성 — 앱 `/portfolio` 선교편지 관리에 입력할 정보(년월·호수·제목·요약기도문·표지·PDF). 실제 업로드는 앱 UI에서 우진이 수행(RLS·앱 경로 권장, DB 직접 insert 안 함).
+4. `release-notes.md` + **`summary.txt`** 작성 — 등록 정보(년월·호수·제목·표지·PDF) 와 `letters.summary` 확정용 텍스트. PDF·모바일 등록은 팀장이 `scripts/import_letters.py --apply`, summary 는 팀장이 `scripts/set-letter-summary.mjs --set` (둘 다 우진 "발행 진행" 승인 후).
 5. 팀장에게 최종 보고 → 우진 확정으로 그달 편지 완료.

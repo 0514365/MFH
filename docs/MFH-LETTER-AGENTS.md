@@ -168,10 +168,19 @@ letter-templates/issues/<YYYY-MM>/
 6. assembler  → QA → 출력(모바일+PDF) → 포트폴리오 등록 메모   ▶ 최종 확정
 7. 팀장       → `News Letter/<YYYYMMDD>_MFH#<번호>_<제목>/` 폴더에 PDF·모바일 공유본 배치
               → `python3 scripts/import_letters.py --dry` 확인 후 `--apply`
-              → **`letters.summary` 별도 입력**(스크립트가 안 넣음) → 공개 페이지에서 요약 노출 확인  ▶ 발행 완료
+              → **OG 이미지(Claude)**: designer/팀장이 `issues/<월>/og.html` → `og-<date8>.jpg`(1200×630) 생성 ▶ 우진 확정 ▶
+                `node scripts/upload-letter-og.mjs <date8> letter-templates/issues/<월>/og-<date8>.jpg`
+              → **summary 입력(Claude)**: assembler 가 만든 `summary.txt` 를 우진이 확정 ▶ 팀장이
+                `node scripts/set-letter-summary.mjs --set <호수> letter-templates/issues/<월>/summary.txt`
+                → `--get <호수>` 로 저장 확인 → 공개 페이지 "최신 선교편지" 우측 칼럼 + 공유 링크 `curl | grep og:` 로 OG 확인  ▶ 발행 완료
+              → 공유 링크 = `https://mfh-snowy.vercel.app/letters/view/<letter.id>` (upload-letter-og 출력 · 공개 페이지 "모바일로 보기")
 ```
 
-**⚠ 등록 시 자주 빠지는 것 — `letters.summary`**: 공개 페이지 "최신 선교편지" 우측 칼럼에 나오는 요약이다. `import_letters.py` 는 PDF·모바일 HTML·표지만 올리고 **summary 는 넣지 않으므로** 등록 후 반드시 별도로 채운다(앱 편집 화면 또는 `letters` 테이블 PATCH). 형식은 `.claude/agents/letter-assembler.md` §3 참조 — 소식 요약 1문단 + 빈 줄 + `[온두라스]`·`[사역]`·`[가정]` 3줄. *(2026-07호 누락 → 2026-08 보강)*
+**⚠ `letters.summary` 는 Claude 가 스크립트로 넣는다 (2026-08호부터 확정 절차)**: 공개 페이지 "최신 선교편지" 우측 칼럼 요약. `import_letters.py` 는 summary 를 넣지 않고, **앱 편집 화면 저장은 오류를 삼켜 반영 안 될 수 있다**(2026-08호에서 우진이 앱에서 저장했으나 DB 미반영 → 스크립트로 해결). 따라서 ① assembler 가 `issues/<월>/summary.txt` 작성(형식: 소식 요약 1문단 + 빈 줄 + `[온두라스]`·`[사역]`·`[가정]` 3줄, `.claude/agents/letter-assembler.md` §3) ② 우진 확정 ③ 팀장이 `scripts/set-letter-summary.mjs --set` 으로 입력 ④ `--get` + 공개 페이지로 확인. *(2026-07호 누락 → 2026-08 스크립트화)*
+
+**summary 형식(2026-08호 확정 · 간결)**: 공개 페이지 우측 칼럼과 **카톡·FB 링크 미리보기 설명문(첫 문장)** 에 쓰인다. **예고편 3문장 이내(약 200자)** + 빈 줄 + **`[온두라스]`·`[사역]`·`[가정]` 각 한 줄**(주제별 압축, 마침표 없이 "~을/~를" 종결). 첫 문장은 그달 최대 사건으로 시작. 마무리 카드 기도문을 그대로 옮기지 않는다(길면 칼럼이 늘어짐).
+
+**⚠ 공유 링크 OG 이미지 — 발행 필수 산출물 (2026-08호 확정)**: 뷰어 라우트(`app/letters/view/[id]`)는 스토리지의 `og-<date8>.jpg`(1200×630) 가 있으면 그것을, 없으면 세로 표지를 카드에 넣어 **잘려 보인다**. 매호 `issues/<월>/og.html` 로 만들어 `scripts/upload-letter-og.mjs` 로 올린다. **디자인 원칙**: 표지 사진 가로 크롭(얼굴 안 잘리게 `object-position` 조정) · 좌상단 `MFH #호수` 마룬 배지 · 우상단 흰 로고(`assets/logo-white.png`) · 하단 30% 어두운 그라데이션 위에 "YYYY년 N월 · 선교편지 · 김우진 · 서진아 선교사" → 제목(Nanum Myeongjo 800, 76px) → 부제(Pretendard 28px) · 최하단 브랜드 레드 바 10px · 텍스트는 사람 얼굴 위에 얹지 않는다. 폰트는 7월호 공유본의 `@font-face`(base64) 를 이식(헤드리스 렌더에서 Google Fonts 미로드). 기준 파일: `letter-templates/issues/2026-08/og.html`. 카톡·FB 는 이전 미리보기를 캐시하므로 재공유 전 공유 디버거에서 초기화.
 
 각 ▶ 에서 우진 승인 후 다음으로. 변경은 §5 라우팅대로.
 
