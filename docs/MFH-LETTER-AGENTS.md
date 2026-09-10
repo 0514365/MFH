@@ -172,11 +172,15 @@ letter-templates/issues/<YYYY-MM>/
                 `node scripts/upload-letter-og.mjs <date8> letter-templates/issues/<월>/og-<date8>.jpg`
               → **summary 입력(Claude)**: assembler 가 만든 `summary.txt` 를 우진이 확정 ▶ 팀장이
                 `node scripts/set-letter-summary.mjs --set <호수> letter-templates/issues/<월>/summary.txt`
-                → `--get <호수>` 로 저장 확인 → 공개 페이지 "최신 선교편지" 우측 칼럼 + 공유 링크 `curl | grep og:` 로 OG 확인  ▶ 발행 완료
+                → `--get <호수>` 로 저장 확인 → 공개 페이지 "최신 선교편지" 우측 칼럼 + 공유 링크 `curl | grep og:` 로 OG 확인
+              → **자료 기간 종료일 입력(Claude)**: `node scripts/set-letter-summary.mjs --period <호수> <YYYY-MM-DD>` (materials.md 의 "기간:" 종료일)
+                → 앱 letter 인사이트(2100 루틴)가 그 다음날부터를 "직전 호 이후"로 분석해 다음 호 방향을 잡는다  ▶ 발행 완료
               → 공유 링크 = `https://mfh-snowy.vercel.app/letters/view/<letter.id>` (upload-letter-og 출력 · 공개 페이지 "모바일로 보기")
 ```
 
 **⚠ `letters.summary` 는 Claude 가 스크립트로 넣는다 (2026-08호부터 확정 절차)**: 공개 페이지 "최신 선교편지" 우측 칼럼 요약. `import_letters.py` 는 summary 를 넣지 않고, **앱 편집 화면 저장은 오류를 삼켜 반영 안 될 수 있다**(2026-08호에서 우진이 앱에서 저장했으나 DB 미반영 → 스크립트로 해결). 따라서 ① assembler 가 `issues/<월>/summary.txt` 작성(형식: 소식 요약 1문단 + 빈 줄 + `[온두라스]`·`[사역]`·`[가정]` 3줄, `.claude/agents/letter-assembler.md` §3) ② 우진 확정 ③ 팀장이 `scripts/set-letter-summary.mjs --set` 으로 입력 ④ `--get` + 공개 페이지로 확인. *(2026-07호 누락 → 2026-08 스크립트화)*
+
+**`letters.period_end` (2026-09 신설)**: 자료 기준 기간 종료일. 앱 letter 인사이트(`scripts/insight-pull.ts` V3)는 90일 데이터를 흐름·맥락으로, 직전 호 summary 를 보고·종결 소재의 제외 기준으로, 이 날짜 **다음날부터 오늘까지**의 기록을 새 재료로 삼아 "직전 호 종합 → 다음 호 방향 제안 → 초안 개요 → 자료 공백" 을 낸다(이전엔 90일 창만 보아 직전 호 소재가 중복되고 흐름 변화가 반영되지 않았음). 미입력이면 `year_month` 다음달 1일로 폴백. 컬럼 생성 SQL은 `supabase/letters-period-end.sql`(8·7월호 백필 포함). collector 는 이 인사이트를 "이번 호 출발점"으로 받되 기준 기간은 여전히 우진과 확정한다.
 
 **summary 형식(2026-08호 확정 · 간결)**: 공개 페이지 우측 칼럼과 **카톡·FB 링크 미리보기 설명문(첫 문장)** 에 쓰인다. **예고편 3문장 이내(약 200자)** + 빈 줄 + **`[온두라스]`·`[사역]`·`[가정]` 각 한 줄**(주제별 압축, 마침표 없이 "~을/~를" 종결). 첫 문장은 그달 최대 사건으로 시작. 마무리 카드 기도문을 그대로 옮기지 않는다(길면 칼럼이 늘어짐).
 
