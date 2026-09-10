@@ -10,7 +10,7 @@ MFH 인사이트를 데이터 기반으로 생성해 Supabase 에 저장한다. 
 
 1. **작업지시서 받기** — 다음을 실행한다:
    `npx tsx scripts/insight-pull.ts $ARGUMENTS`
-   인자가 없으면 기본 90일·7도메인. `--domains overall,journal,project,task,prayer,fruit` 처럼 부분집합을 주면 **그 도메인만** 작업지시서에 실린다(아침 루틴은 letter 제외). stderr 의 한 줄 요약은 무시하고, **stdout 전체가 작업지시서**다.
+   인자가 없으면 기본 90일·7도메인. `--domains overall,journal,project,task,prayer,fruit` 처럼 부분집합을 주면 **그 도메인만** 작업지시서에 실린다(일일 루틴은 2100 하나, 7도메인 전체). stderr 의 한 줄 요약은 무시하고, **stdout 전체가 작업지시서**다.
 
 2. **분석·작성** — 작업지시서를 **그대로 충실히 따라** 작업지시서에 실린 도메인(기본 7개: overall · journal · project · task · prayer · fruit · letter) 인사이트를 각각 작성한다. 작업지시서에 없는 도메인은 쓰지 않는다.
    작업지시서에 내장된 가드레일을 **절대 위반하지 않는다**:

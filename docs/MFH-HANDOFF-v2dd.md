@@ -21,10 +21,10 @@
 - `supabase/letters-period-end.sql` — `letters.period_end date` 신설 + 8월호(2026-09-01)·7월호(2026-07-31) 백필. **우진 실행 완료(2026-09-10)**, `--list` 로 반영 확인.
 - `scripts/set-letter-summary.mjs` **V2** — `--period <호수> <YYYY-MM-DD>` 추가, `--list/--get` 에 period_end 표시, 컬럼 미존재 시 안내.
 - `.claude/commands/insight-update.md` — `--domains` 부분집합 처리(작업지시서에 실린 도메인만 작성), letter 규칙 재작성, allowed-tools 에서 WebSearch 제거.
-- 루틴(`~/.claude/scheduled-tasks/`, repo 밖): **0600** = `/insight-update --domains overall,journal,project,task,prayer,fruit`(letter 제외), **2100** = 7도메인(letter 포함, 하루 기록 마감 후). 비서·캡션 단계는 동일.
+- 루틴(`~/.claude/scheduled-tasks/`, repo 밖): **인사이트 루틴은 2100(실행 22:10) 하나만 사용** — 7도메인(letter 포함, 하루 기록 마감 후) + 비서 + 캡션. `insight-update-0600` 은 우진이 삭제 예정(2026-09-10 결정; 세션 중 letter 제외 6도메인으로 바꿔 두었으나 폐기 대상).
 - `docs/MFH-LETTER-AGENTS.md` §8 — 발행 마지막 단계에 `set-letter-summary.mjs --period` 입력 추가, `period_end` 설명 항목 신설.
 
-**검증**: tsc 통과. `--domains letter` 로 pull → 작성 → push 2회 실행(1차 구조, 2차 재설계 구조). 현재 DB letter 행 = PERIOD 2026-09-01~09-10, ★ 「앞서 길을 여시는 하나님」(9/7 건축업자 미팅+의료팀 학교 장소 동일일 → 훈련 배움·사사기 4장 묵상과 연결), 대안 「여호와를 기뻐하는 사역으로」(도입용)·「다음 세대를 세우는 자리」(10월호 후보), 자료 공백 5개. SQL 실행 전 생성이라 기준일이 폴백(9/1)이었고, 다음 2100 루틴부터 9/2~ 로 잡힘.
+**검증**: tsc 통과. `--domains letter` 로 pull → 작성 → push 2회 실행(1차 구조, 2차 재설계 구조). 현재 DB letter 행 = PERIOD 2026-09-01~09-10, ★ 「앞서 길을 여시는 하나님」(9/7 건축업자 미팅+의료팀 학교 장소 동일일 → 훈련 배움·사사기 4장 묵상과 연결), 대안 「여호와를 기뻐하는 사역으로」(도입용)·「다음 세대를 세우는 자리」(10월호 후보), 자료 공백 5개. SQL 실행 전 생성이라 기준일이 폴백(9/1)이었고, 다음 2100 루틴부터 9/2~ 로 잡힘. 0600 루틴은 삭제(위 참조)되므로 letter 인사이트는 하루 1회 갱신.
 
 ## 다음 과제
 1. **letter 프롬프트 실사용 관찰** — 2100 루틴 결과를 며칠 보고 우진이 개선점 도출. 후보 관찰점: 방향 제안 근거의 깊이, 자료 공백 질문의 유용성, 온두라스 소식(브리핑만 사용)의 적정 분량, `honduras_news` 정치 섹션 제외가 과한지.
