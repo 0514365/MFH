@@ -28,7 +28,7 @@ export type JournalPhoto = {
   caption?: string | null
 }
 
-export const MAX_JOURNAL_PHOTOS = 5
+export const MAX_JOURNAL_PHOTOS = 15
 
 // 첨부파일 1개. tasks.attachments / projects.attachments jsonb 배열의 요소.
 // 이미지(image/*) 또는 PDF(application/pdf). 미리보기는 상세 페이지에서 signed URL 로.
