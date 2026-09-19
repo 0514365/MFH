@@ -1,9 +1,10 @@
 'use client'
-// MFH-ACCOUNTING-SUMMARY-V1
+// MFH-ACCOUNTING-SUMMARY-V2
 // 메인 요약 — 이번달 수입/지출/순액(브라우저 로컬월 기준) + 계좌별 잔액·총자산(자산 DB `잔액(USD)` read).
-// 표시 전용. 데이터는 page.tsx 가 노션에서 read 후 전달.
-import { useMemo } from 'react'
+// 데이터는 page.tsx 가 노션에서 read 후 전달. Balances 카드 '+ 계좌' → AccountAddForm(노션 자산 DB 에 계좌 추가).
+import { useMemo, useState } from 'react'
 import type { AccountBalance, InoutRow } from '@/lib/notion'
+import AccountAddForm from './AccountAddForm'
 
 function fmtUsd(n: number): string {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -32,6 +33,7 @@ export default function AccountingSummary({
   }, [recent, ym])
   const net = income - expense
   const total = balances.reduce((s, b) => s + b.balanceUsd, 0)
+  const [adding, setAdding] = useState(false)
 
   return (
     <section className="mb-5 grid gap-3 md:grid-cols-2">
@@ -67,9 +69,20 @@ export default function AccountingSummary({
           <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
             Balances
           </span>
-          <span className="text-[11px] text-faint">
-            총자산 <b className="font-display text-ink">{fmtUsd(total)}</b>
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-faint">
+              총자산 <b className="font-display text-ink">{fmtUsd(total)}</b>
+            </span>
+            {!adding && (
+              <button
+                type="button"
+                onClick={() => setAdding(true)}
+                className="rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-muted transition hover:border-primary hover:text-primary"
+              >
+                + 계좌
+              </button>
+            )}
+          </div>
         </div>
         {balances.length === 0 ? (
           <p className="py-2 text-center text-xs text-faint">계좌 정보 없음</p>
@@ -86,6 +99,7 @@ export default function AccountingSummary({
             ))}
           </ul>
         )}
+        {adding && <AccountAddForm onClose={() => setAdding(false)} />}
       </div>
     </section>
   )

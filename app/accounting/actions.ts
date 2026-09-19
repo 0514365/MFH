@@ -1,6 +1,6 @@
 'use server'
-// MFH-ACCOUNTING-ACTIONS-V2
-// 회계 입력·수정·삭제 server action — 재정 관리자(부부) 권한 확인 후 노션 입출금기록 write/update/archive. 노션 SoT.
+// MFH-ACCOUNTING-ACTIONS-V3
+// 회계 입력·수정·삭제 + 계좌 추가 server action — 재정 관리자(부부) 권한 확인 후 노션 입출금기록·자산 DB write/update/archive. 노션 SoT.
 import { createClient } from '@/lib/supabase-server'
 import { canManageFinance } from '@/lib/members'
 import {
@@ -8,8 +8,10 @@ import {
   updateInoutRecord,
   deleteInoutRecord,
   patchInoutFields,
+  createAccount,
   type InoutInput,
   type InoutPatch,
+  type AccountInput,
 } from '@/lib/notion'
 import { revalidatePath } from 'next/cache'
 
@@ -99,4 +101,16 @@ export async function bulkPatchInout(
   }
   if (done > 0) revalidatePath('/accounting')
   return { ok: done === targets.length, done, error }
+}
+
+// 계좌 추가 — 자산 DB 에 계좌 1건 생성(입금·지불 공용). 성공 시 요약·기록 콤보 즉시 반영.
+export async function saveAccount(input: AccountInput): Promise<{ ok: boolean; error?: string }> {
+  if (!(await isFinanceUser())) return { ok: false, error: '권한이 없습니다' }
+  const res = await createAccount(input)
+  if (res.ok) {
+    revalidatePath('/accounting')
+    revalidatePath('/accounting/entry')
+    revalidatePath('/accounting/report')
+  }
+  return res
 }

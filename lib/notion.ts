@@ -253,6 +253,50 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
   return out
 }
 
+export type AccountInput = {
+  name: string
+  currency: 'KRW' | 'USD' | 'HNL'
+  info?: string | null // 계좌정보(계좌번호·용도 등, 선택)
+}
+
+// 자산 DB 에 계좌 1건 생성(write) — 입금계좌·지불계좌 공용. 유형은 '현금' 고정. 이름 중복 시 거부.
+export async function createAccount(a: AccountInput): Promise<{ ok: boolean; error?: string }> {
+  const token = process.env.NOTION_TOKEN
+  if (!token) return { ok: false, error: 'NOTION_TOKEN 미설정' }
+  const name = a.name.trim()
+  if (!name) return { ok: false, error: '계좌 이름을 입력하세요' }
+  const existing = await queryAll(ASSET_DB_ID, token)
+  if (!existing) return { ok: false, error: '노션 계좌 조회 실패' }
+  if (existing.some((p) => readText(p.properties?.['이름']) === name))
+    return { ok: false, error: `'${name}' 계좌가 이미 있습니다` }
+  const properties: Record<string, unknown> = {
+    이름: { title: [{ text: { content: name } }] },
+    통화: { select: { name: a.currency } },
+    유형: { select: { name: '현금' } },
+  }
+  const info = a.info?.trim()
+  if (info) properties['계좌정보'] = { rich_text: [{ text: { content: info } }] }
+  try {
+    const res = await fetch(`${NOTION_API}/pages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Notion-Version': NOTION_VERSION,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ parent: { database_id: ASSET_DB_ID }, properties }),
+      cache: 'no-store',
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      return { ok: false, error: `노션 저장 실패 (${res.status}) ${txt.slice(0, 160)}` }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : '네트워크 오류' }
+  }
+}
+
 export type InoutRow = {
   id: string
   gubun: string | null
