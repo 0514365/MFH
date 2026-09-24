@@ -2,6 +2,7 @@
 
 // MFH-PORTFOLIO-LETTER-EDITOR-V6
 // 선교편지 관리 (편집 페이지).
+// V7: 인사 카드(kind='card', letters-kind.sql) — 성탄·신년·추석 카드. 목록에 표시되되 최신호에서 제외.
 // V6: 요약 기도문 저장 신뢰성 — update 를 .select() 로 되돌려 받아 0건(권한·세션)·오류를 alert 로 표시,
 //     성공 시 DB 값으로 상태 갱신 + router.refresh() 로 서버 데이터 재조회 + '저장됨' 표시. (2026-08호에서 저장 미반영 사고)
 // V5: 영상 편지(video_url, patch81) — PDF 없이 YouTube 영상만 등록 가능(PDF·영상 중 하나 필수).
@@ -56,6 +57,7 @@ export default function LetterEditor({ initial, userId }: Props) {
   const [videoUrl, setVideoUrl] = useState('');
   const [summary, setSummary] = useState('');
   const [pub, setPub] = useState(true);
+  const [isCard, setIsCard] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -80,6 +82,7 @@ export default function LetterEditor({ initial, userId }: Props) {
     setMobilePath(null);
     setCoverPath(null);
     setVideoUrl('');
+    setIsCard(false);
     setSummary('');
     setPub(true);
     setFormError(null);
@@ -119,6 +122,7 @@ export default function LetterEditor({ initial, userId }: Props) {
           cover_path: coverPath,
           video_url: videoUrl.trim() || null,
           summary: summary.trim() || null,
+          kind: isCard ? 'card' : 'letter',
           public_view: pub,
           sort_order: maxSort + 10,
         })
@@ -433,6 +437,14 @@ export default function LetterEditor({ initial, userId }: Props) {
             />
             공개 (포트폴리오에 노출)
           </label>
+          <label className="mb-2 flex items-center gap-2 text-xs text-muted">
+            <input
+              type="checkbox"
+              checked={isCard}
+              onChange={(e) => setIsCard(e.target.checked)}
+            />
+            인사 카드 (성탄·신년·추석 등 — 목록에만 표시, ‘최신 선교편지’에서 제외)
+          </label>
           {formError && <p className="mb-2 text-[11px] text-danger">{formError}</p>}
           <div className="flex gap-2">
             <button
@@ -472,7 +484,7 @@ export default function LetterEditor({ initial, userId }: Props) {
                 <div className="flex items-center justify-between">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <span className="text-base text-primary" aria-hidden>
-                    {l.video_url && !l.pdf_path ? '▶' : '📄'}
+                    {l.kind === 'card' ? '🎴' : l.video_url && !l.pdf_path ? '▶' : '📄'}
                   </span>
                   <div className="min-w-0">
                     {l.number && (

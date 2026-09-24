@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# MFH-IMPORT-LETTERS-V2
+# MFH-IMPORT-LETTERS-V3
+# V3: 폴더에 `.card` 마커 파일이 있으면 kind='card'(인사 카드 — 최신호 제외, letters-kind.sql 선실행).
+#     폴더명 번호가 비면(`YYYYMMDD_MFH#_제목`) number=null.
 # 선교편지 일괄 import: "News Letter/" 폴더의 PDF(+모바일 HTML) 를
 #   - portfolio-letters 버킷에 PDF + 표지 (+ 모바일 HTML) 업로드
 #   - letters 테이블에 row insert (public_view=true, mobile_path 포함)
@@ -62,7 +64,7 @@ def parse_folder(name):
     date8 = m.group(1)
     rest = m.group(2)
     parts = rest.split("_", 1)
-    number = parts[0].strip()
+    number = parts[0].strip() or None
     title = parts[1].strip() if len(parts) > 1 else ""
     year, month, day = date8[:4], date8[4:6], date8[6:8]
     year_month = f"{year}-{month}"
@@ -259,6 +261,7 @@ def main():
         meta["pdf_local"] = pdf
         meta["html_local"] = find_html(fp)  # V2: 모바일 편지 HTML (선택)
         meta["existing_cover"] = find_existing_cover(fp)
+        meta["kind"] = "card" if os.path.exists(os.path.join(fp, ".card")) else "letter"  # V3
         targets.append(meta)
 
     ok_count = fail_count = mobile_up_count = 0
@@ -306,7 +309,7 @@ def main():
         cover_path = f"{user_id}/cover-{m['date8']}.{cover_ext}" if cover_local else None
 
         print(f"[{i}/{len(targets)}] {m['folder']}")
-        print(f"        year_month={m['year_month']}  number={m['number']}  title={m['title']}  sort={m['sort_order']}")
+        print(f"        year_month={m['year_month']}  number={m['number']}  title={m['title']}  sort={m['sort_order']}  kind={m['kind']}")
         print(f"        pdf  -> {pdf_path}")
         print(f"        mobile-> {mobile_path or '(없음)'}")
         print(f"        cover-> {cover_path or '(없음)'}  [{cover_src}]")
@@ -343,6 +346,7 @@ def main():
             "cover_path": cover_path,
             "public_view": True,
             "sort_order": m["sort_order"],
+            "kind": m["kind"],
         }
         ok_in, info_in = insert_letter(base, write_key, row)
         if ok_in:

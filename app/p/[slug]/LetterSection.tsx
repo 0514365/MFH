@@ -1,4 +1,5 @@
-// MFH-PORTFOLIO-LETTER-SECTION-V10
+// MFH-PORTFOLIO-LETTER-SECTION-V11
+// V11: 인사 카드(kind='card')는 최신 선교편지·연도 대표 표지에서 제외(latestIssue) — 목록에는 그대로.
 // 공개 페이지 선교편지 섹션. ① 최신 선교편지(표지 + 요약 기도문) ② 년도별 카드 그리드.
 // V9: 년도 목록을 접이식 → 사역영상식 카드 그리드. 카드 클릭 → /p/[slug]/letters#year-YYYY.
 // V10: 타이틀을 다른 섹션과 동일 위상(pf-section-head + 영어 부제)으로 통일.
@@ -14,6 +15,7 @@ import {
   letterLink,
   letterSubLink,
   isVideoLetter,
+  latestIssue,
   type LetterWithUrls,
 } from '@/lib/portfolio';
 
@@ -23,7 +25,7 @@ export default function LetterSection({ letters, slug }: Props) {
   if (letters.length === 0) return null;
 
   const groups = groupLettersByYear(letters);
-  const latest = letters[0];
+  const latest = latestIssue(letters) ?? letters[0];
 
   return (
     <section className="mt-8 min-[740px]:mt-10">
@@ -52,7 +54,7 @@ export default function LetterSection({ letters, slug }: Props) {
       {/* 작은 고정폭 썸네일(최신편지 표지보다 작게) + 한 행 캡션 */}
       <div className="mt-4 flex flex-wrap gap-x-4 gap-y-5">
         {groups.map((g) => {
-          const rep = g.letters[0]; // 그 해 대표(최신) 편지 표지
+          const rep = latestIssue(g.letters) ?? g.letters[0]; // 그 해 대표(최신) 편지 표지 — 인사 카드 제외
           const cover = letterCoverSrc(rep);
           return (
             <Link

@@ -282,9 +282,11 @@ async function main() {
     let latest: LatestLetter | null = null
     let periodEndAvailable = true
     {
+      // 인사 카드(kind='card', letters-kind.sql)는 최신호에서 제외. kind 컬럼이 없으면 r2 fallback.
       const r1 = await sb
         .from('letters')
         .select(`${baseCols},period_end`)
+        .eq('kind', 'letter')
         .order('year_month', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(1)

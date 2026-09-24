@@ -207,6 +207,7 @@ export type PortfolioLetter = {
   cover_path: string | null; // 표지 이미지 (선택)
   summary: string | null;    // 요약 기도문(최신호만, patch67) — 공개 "최신 선교편지" 블록 우측 칼럼
   video_url: string | null;  // 영상 편지(PDF 없이 YouTube 영상만) — patch81
+  kind: 'letter' | 'card';   // letter=월간 편지 / card=인사 카드(최신호 제외) — letters-kind.sql
   public_view: boolean;
   sort_order: number;
   created_at: string;
@@ -226,6 +227,11 @@ export function letterMonthLabel(yearMonth: string | null | undefined): string {
   if (!m) return '';
   const mon = parseInt(m[1], 10);
   return mon >= 1 && mon <= 12 ? `${mon}월` : '';
+}
+
+// 인사 카드(kind='card')는 목록에는 두되 "최신 선교편지"에서 제외. 카드뿐이면 첫 항목 fallback.
+export function latestIssue<T extends Pick<PortfolioLetter, 'kind'>>(letters: T[]): T | undefined {
+  return letters.find((l) => l.kind !== 'card') ?? letters[0];
 }
 
 // 편지 배열 → 년도별 그룹 (최신 년도 우선). 각 그룹 내부는 입력 정렬 유지.
