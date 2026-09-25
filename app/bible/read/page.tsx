@@ -1,4 +1,4 @@
-// MFH-BIBLE-READ-V1
+// MFH-BIBLE-READ-V1 (09-25 PC 폭: ≥1024px max-w-4xl — 아이패드는 2xl 유지)
 // /bible/read?day=<day_no> — 통독 하루치 「본문 읽기」. Manna app/(app)/bible/read/page.tsx V2 이식.
 // ?day 없으면 오늘(없으면 다음) 일차. 버전 = 쿠키 bible_ver(기본 개역개정).
 // 선택 버전에 빠진 장이 하나라도 있으면 하루치 전체를 개역개정으로 폴백 + 안내 1줄.
@@ -29,7 +29,7 @@ const NAV_BTN = 'rounded-xl border border-line px-3 py-2 text-[12px] font-medium
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8 min-[740px]:max-w-2xl">
+    <main className="app-theme mx-auto max-w-md px-5 pb-8 min-[740px]:max-w-2xl lg:max-w-4xl">
       <PageHeader title="본문 읽기" />
       {children}
     </main>

@@ -1,4 +1,4 @@
-// MFH-QT-PASSAGE-ACCORDION-V3
+// MFH-QT-PASSAGE-ACCORDION-V3 (09-25 폰트: VerseText 기본 크기 공유 — 명시 textClassName 제거)
 // 본문 소스를 성서유니온 프록시(/api/qt/passage) → bible_texts(/api/bible/passage)로 교체. Manna PassageAccordion V2 이식.
 //   버전 3단(개역개정·새한글·ESV, 쿠키 bible_ver 를 통독 /bible/read 와 공유) · 소제목은 절 위 별도 블록(VerseText) ·
 //   새한글·ESV 미비 구간은 개역개정 폴백 안내. 펼칠 때만 1회 호출(저장 없음). 접이식 껍데기(원형 caret)는 V2 그대로.
@@ -131,7 +131,6 @@ export default function PassageAccordion({ book, range, label }: { book: string;
                       key={`${v.chapter}:${v.verse}`}
                       label={showChapter ? `${v.chapter}:${num}` : num}
                       body={v.body}
-                      textClassName="text-[16.5px] leading-[1.8] text-ink"
                     />
                   )
                 })}

@@ -20,7 +20,7 @@ export default async function QtDetailPage(props: { params: Promise<{ id: string
   const row = data as QtRow | null
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-8">
+    <main className="mx-auto max-w-2xl px-5 py-8 lg:max-w-4xl">
       <PageHeader title="QT" />
 
       {/* 네비: 목록 / 오늘 */}

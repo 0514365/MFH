@@ -32,6 +32,7 @@
 | 통독 | `app/bible/read/page.tsx` **V1** · `app/bible/read/VersionSelect.tsx` **V1** · `app/bible/DayCard.tsx` **V4** | `/bible/read?day=N`(없으면 오늘→다음→1). 활성 계획·일정 조회는 `app/bible/page.tsx` 와 동일 쿼리. 버전 쿠키 → `getChapterTexts`, 빠진 장 있으면 하루치 전체 개역개정 폴백+안내. 이전/다음 일차·통독 링크. DayCard 메타 줄 우측 「본문 읽기 →」 |
 | QT | `app/api/bible/passage/route.ts` **V1** · `app/qt/PassageAccordion.tsx` **V3** · `app/qt/QtView.tsx` **V5** · `app/api/qt/passage/route.ts` **삭제** | API: `getUser()` 없으면 401, `book&range&ver` → `{served, verses}`, 범위 내 장 하나라도 비면 개역개정 폴백, `Cache-Control: private, max-age=3600`. 접이식: 껍데기(원형 caret) V2 유지, 안쪽 = 버전 세그먼트 + VerseText + 폴백 안내 + 재시도. 쿠키는 **첫 펼침 때** 읽음(SSR 불일치 방지, Manna 와 차이) |
 | 환경 | `.env.local` `BIBLE_DIR=../Manna/Bible` · `.gitignore` `/Bible/` | |
+| UI 2차(09-25 실기기 피드백) | `components/VerseText.tsx` **V2** · `app/qt/PassageAccordion.tsx` · `app/bible/read/page.tsx` · `app/qt/page.tsx` · `app/qt/[id]/page.tsx` | 본문 폰트 확대: `VERSE_TEXT_CLS` 폰·패드 17.5px / ≥740px 18.5px(행간 1.85), 소제목 14/15px, 절 번호 12px — 통독·QT 접이식 공유. PC 폭: `/bible/read`·`/qt`·`/qt/[id]` 에 `lg:max-w-4xl`(≥1024px 896px, 아이패드 2xl 유지) |
 
 ## 시딩·검증 결과 (2026-09-25)
 - `--dry` 리포트 = 사양 §2-2 기준값과 일치: 새한글 1,189/1,189 · 결함 장 0 · 없는 장 0 · 마지막 절 차이 3(왕상22 54/53 · 행19 40/41 · 계12 18/17) · 시 행 되돌림 1,309 · 잘린 숫자 되붙임 20 · ESV fill 1,063절 · ESV 본문 없는 절 17 제외(NA28 생략).
@@ -39,10 +40,10 @@
 - 표본 12절 정상: 창41:1 「2년이 지났다」 · 막14:1 「2일 뒤면」 · 행4:4 · 요일1:1 · 요삼1:1 · 계22:21 · 마17:21 「(없음)」 · 행16:17 · 요일3:1 · 계20:1 「<1,000년 동안 다스림>」 · 신6:18-19 합절 · ESV 창1:1.
 - 로컬 dev: 비로그인 `/api/bible/passage` → 401 · `/bible/read` → `/login` 307 · `/api/qt/passage` → 404(삭제 확인).
 - `npx tsc --noEmit` 통과. `npm run build` 는 `docs/bible-qt-kit/` 잡음 제외 시 통과(새 라우트 2 생성). `git status` 에 `Bible/` 없음.
-- **미검증(로그인 필요)**: `/bible/read?day=1` 3버전 전환·폴백 안내·이전/다음, `/qt` 접이식 DB 본문 + 쿠키 공유. 우진이 브라우저 패널에서 로그인 후 확인 예정(또는 배포 후 실기기).
+- **실기기 검증 완료(09-25, 우진)**: PC·아이패드·아이폰에서 `/bible/read`(Day 22 여호수아 15~24장, 새한글) · `/qt` 접이식(삿 11:12-28, 새한글·소제목 블록·`11:12` 첫 절 표기) 정상. 피드백 = 본문 폰트 약간 크게(3기기) + PC 사용폭 확대 → UI 2차 반영.
 
 ## 다음 과제
-1. **실기기 검증**(배포 후): `/bible/read?day=1` 3버전 전환·폴백 안내·이전/다음, `/qt` 접이식 DB 본문·버전 쿠키 공유, 하단 「내부 열람용」 문구. 우진이 로그인 화면 검증 대신 바로 push 선택(09-25).
+1. UI 2차(폰트·PC 폭) 배포 후 3기기 재확인 → 추가 조정 필요 시 `VERSE_TEXT_CLS` 한 곳만 수정.
 2. 버전 3.6.0 제안(우진이 "버전" 꺼낼 때).
 3. 원자료 보정이 Manna 에서 생기면 MFH 는 `npx tsx scripts/bible-seed.ts <ver>` 재시딩만.
 4. 이월(v2dd~v2dg): letter 프롬프트 실사용 관찰(최신호 = kind letter 기준 로그 확인) · 9월호 제작(`#2609`, `set-letter-summary.mjs --period 2609`) · 인사 카드 kind 토글 UI · 회계 계좌 후속 · 공유본 빌드/OG 스크립트화.
