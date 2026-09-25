@@ -1,7 +1,8 @@
-// MFH-QT-VIEW-V4
-// Variant 시안 기반 리스킨 + 재배치 순서(본문카드 → 핵심절 → 본문읽기 → 본문설명 → 묵상 → 적용 → 기도 → 버튼 → 푸터).
-// 기능 보존: 접이식 2개(client; 본문읽기=실시간 /api/qt/passage), 성서유니온 외부 링크, 묵상일지 버튼 라우팅, 데이터 바인딩.
-// 저작권: 성경 본문 전체·성서유니온 묵상 해설 미저장. 본문은 접이식에서 실시간 로드.
+// MFH-QT-VIEW-V5
+// 본문 읽기 접이식을 bible_texts(/api/bible/passage, 버전 3단) 로 교체 — PassageAccordion V3 props { book, range, label }.
+// MFH-QT-VIEW-V4 — Variant 시안 기반 리스킨 + 재배치 순서(본문카드 → 핵심절 → 본문읽기 → 본문설명 → 묵상 → 적용 → 기도 → 버튼 → 푸터).
+// 기능 보존: 접이식 2개(client), 성서유니온 외부 링크, 묵상일지 버튼 라우팅, 데이터 바인딩.
+// 저작권: 성서유니온 묵상 해설 미저장. 본문은 자체 bible_texts(멤버 내부 열람용)에서 접이식 펼칠 때 로드.
 import Link from 'next/link'
 import { shortRef } from '@/lib/bibleAbbr'
 import PassageAccordion from './PassageAccordion'
@@ -127,7 +128,7 @@ export default function QtView({ row }: { row: QtRow }) {
       )}
 
       {/* 본문 읽기 (재배치: 핵심절 아래) */}
-      <PassageAccordion date={row.qt_date} refLabel={refShort} />
+      <PassageAccordion book={book} range={range} label={refShort} />
 
       {/* 본문 설명 */}
       {commentary.length > 0 && <CommentaryAccordion items={commentary} />}

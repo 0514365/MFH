@@ -32,3 +32,6 @@ flyers/**/*.png
 flyers/**/*.jpg
 flyers/**/*.jpeg
 flyers/**/*.pdf
+
+# 인앱 성경 본문 원자료 로컬 복사 대비(정본은 ../Manna/Bible, BIBLE_DIR)
+/Bible/

@@ -1,5 +1,6 @@
 'use client'
 
+// MFH-BIBLE-DAY-CARD-V4 — 머리 메타 줄에 「본문 읽기 →」(/bible/read?day=N) 링크 추가(live·record 공통).
 // MFH-BIBLE-DAY-CARD-V3
 // 하루 분량 카드 — 두 모드.
 //   · live   (오늘/다음 카드): 큰 읽음 체크 + 방법·은혜·기도제목 즉시 저장(기존 방식).
@@ -274,8 +275,13 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
             {heading} · {shortDate(day.read_date)} · {day.day_no}일차
           </div>
           <div className="mt-0.5 text-[20px] font-bold leading-tight text-ink">{day.range_label}</div>
-          <div className="mt-1 text-[12px] text-muted">
-            {day.chapters}장 · {day.chars.toLocaleString()}자 · 약 {minutesEst}분
+          <div className="mt-1 flex items-center justify-between gap-2 text-[12px] text-muted">
+            <span>
+              {day.chapters}장 · {day.chars.toLocaleString()}자 · 약 {minutesEst}분
+            </span>
+            <Link href={`/bible/read?day=${day.day_no}`} className="shrink-0 font-semibold text-accent">
+              본문 읽기 →
+            </Link>
           </div>
         </div>
         {!isRecord && (
