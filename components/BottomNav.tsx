@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-BOTTOM-NAV-V2
+// MFH-BOTTOM-NAV-V3
 // 하단 고정 탭바 — 5버튼: [Insights] [Log] [홈(중앙·돌출)] [Projects] [To-Do].
 // 중앙 홈 = 마룬 원형 FAB(탭바 위로 돌출) + 흰 집 아이콘, 라벨 없음. 현재 홈이면 ring 강조.
 // 양옆 4탭: 활성=text-primary / 비활성=text-muted. 색은 ModuleIcon currentColor 상속.
@@ -76,7 +76,13 @@ export default function BottomNav() {
       />
       <nav
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)' }}
+        style={{
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)',
+          // iPad/iOS 모멘텀 스크롤 중 fixed 탭바가 콘텐츠와 함께 밀리는 현상 방지 — 독립 합성 레이어로 고정.
+          transform: 'translate3d(0, 0, 0)',
+          WebkitBackfaceVisibility: 'hidden',
+          willChange: 'transform',
+        }}
       >
         <ul className="mx-auto flex max-w-md items-end justify-around px-2 pt-1.5">
           {LEFT_TABS.map((tab) => (
