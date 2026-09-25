@@ -1,11 +1,11 @@
 # MFH 핸드오프 v2dh (세션 종료)
 
-> 이전: `v2dg`(추석 카드·letters.kind). 이번 세션(2026-09-25): **Manna 인앱 성경 본문(bible_texts) 이식** — patch105 · 3버전 시딩 · 통독 「본문 읽기」(`/bible/read`) · QT 접이식 DB 교체(성서유니온 본문 프록시 제거). 사양 = `docs/MANNA-TO-MFH-BIBLE-TEXTS.md`. 앱 버전 3.5.0 유지(MINOR 3.6.0 후보).
+> 이전: `v2dg`(추석 카드·letters.kind). 이번 세션(2026-09-25): **Manna 인앱 성경 본문(bible_texts) 이식** — patch105 · 3버전 시딩 · 통독 「본문 읽기」(`/bible/read`) · QT 접이식 DB 교체(성서유니온 본문 프록시 제거). 사양 = `docs/MANNA-TO-MFH-BIBLE-TEXTS.md`. 앱 버전 **3.5.0 → 3.6.0**(MINOR: 새 화면 `/bible/read` + 인앱 본문 모듈. 이월 후보 letter 렌즈 재설계·period_end·사진 15장·계좌 추가·letters.kind 도 이 버전에 흡수).
 
 ---
 
 ## 현재 위치 (한 줄)
-**patch105 실행·3버전 시딩(93,268행) 완료 · 코드 전 단계 tsc/build 통과 · 커밋·푸시(Vercel 배포) 완료.** 다음 = 실기기에서 `/bible/read` 3버전 전환·QT 접이식 확인.
+**인앱 성경 본문 이식 완료·배포·3기기 검증 성공(UI 2차 포함) · 버전 3.6.0.** 다음 = 이월 과제(letter 프롬프트 관찰 · 9월호 제작).
 
 ---
 
@@ -17,7 +17,7 @@
 | RLS | `bible_texts member read` = `is_member(auth.uid())`(patch73). insert/update/delete 정책 없음(service role 시딩만) |
 | QT 접이식 | 성서유니온 본문 프록시 `/api/qt/passage` **삭제**, `/api/bible/passage`(DB) 로 완전 교체. `scripts/qt-pull.ts` 의 SU 본문 fetch(핵심절 대조)는 유지 |
 | 열람 범위 | 본문은 부부 멤버 **내부 열람 한정**. 공개 페이지(`/p/…`)·repo·공개 URL 노출 금지. 화면 하단 「<버전명> · 내부 열람용」 |
-| 버전 | 전 단계 완료 후 MINOR 1회 → 3.6.0 제안(우진이 "버전" 꺼낼 때. 이월 후보 letter 렌즈·계좌·kind 도 흡수) |
+| 버전 | **3.6.0 확정**(09-25, `package.json` — 홈 footer 자동 반영) |
 
 (이전 핸드오프의 "docs/MFH-CONTEXT 결정 기록" 은 `MFH-CONTEXT` 가 5/28 이후 미갱신 `.rtfd` 라 여기 기록으로 갈음.)
 
@@ -43,8 +43,7 @@
 - **실기기 검증 완료(09-25, 우진)**: PC·아이패드·아이폰에서 `/bible/read`(Day 22 여호수아 15~24장, 새한글) · `/qt` 접이식(삿 11:12-28, 새한글·소제목 블록·`11:12` 첫 절 표기) 정상. 피드백 = 본문 폰트 약간 크게(3기기) + PC 사용폭 확대 → UI 2차 반영.
 
 ## 다음 과제
-1. UI 2차(폰트·PC 폭) 배포 후 3기기 재확인 → 추가 조정 필요 시 `VERSE_TEXT_CLS` 한 곳만 수정.
-2. 버전 3.6.0 제안(우진이 "버전" 꺼낼 때).
+1. UI 2차(폰트·PC 폭) 3기기 확인 **성공**(09-25). 추가 조정 필요 시 `VERSE_TEXT_CLS` 한 곳만 수정.
 3. 원자료 보정이 Manna 에서 생기면 MFH 는 `npx tsx scripts/bible-seed.ts <ver>` 재시딩만.
 4. 이월(v2dd~v2dg): letter 프롬프트 실사용 관찰(최신호 = kind letter 기준 로그 확인) · 9월호 제작(`#2609`, `set-letter-summary.mjs --period 2609`) · 인사 카드 kind 토글 UI · 회계 계좌 후속 · 공유본 빌드/OG 스크립트화.
 
