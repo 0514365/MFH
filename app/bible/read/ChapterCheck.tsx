@@ -1,11 +1,11 @@
 'use client'
 
-// MFH-BIBLE-CHAPTER-CHECK-V1
+// MFH-BIBLE-CHAPTER-CHECK-V2 (chapSeq 변경 시 busy 초기화)
 // 「읽기표 체크 후 다음장」 버튼(장 단위) + 이 장의 최근 읽은 날·총 읽은 횟수.
 //   · 클릭: bible_chapter_reads 에 1행 추가(patch108) → 이 장으로 하루치가 모두 채워지면 reading_plan_days.done ON(lib/bible/checkin 규칙)
 //     → 다음 장(없으면 다음 일차 첫 장, 그것도 없으면 /bible)으로 이동.
 //   · 같은 장을 다시 체크해도 행이 쌓여 "총 N회" 가 늘어난다(재독 기록).
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { relativeKo, setDayDone, type CheckTarget } from '@/lib/bible/checkin'
@@ -24,6 +24,12 @@ export default function ChapterCheck({ chapSeq, planId, day, dayComplete, nextHr
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+
+  // 장이 바뀌면(다음 장 이동) 진행 상태 초기화 — 부모가 key 로 재마운트하지만 이중 안전장치.
+  useEffect(() => {
+    setBusy(false)
+    setMsg(null)
+  }, [chapSeq])
 
   async function check() {
     if (busy) return

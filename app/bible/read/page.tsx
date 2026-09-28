@@ -1,3 +1,4 @@
+// MFH-BIBLE-READ-V3.1 (ChapterCheck key=일차+장 — 다음 장으로 이동 시 「기록 중…」 상태가 남지 않게 재마운트)
 // MFH-BIBLE-READ-V3 — 장 단위 읽기(?day=N&ch=K) + 「읽기표 체크 후 다음장」 + 장별 최근 읽은 날·총 횟수(patch108 bible_chapter_reads).
 // /bible/read?day=<day_no>&ch=<일차 내 순번 1-based> — 통독 하루치를 한 장씩 읽는다.
 //   · ?day 없으면 오늘(없으면 다음) 일차. ?ch 없으면 이 계획에서 아직 체크하지 않은 첫 장(모두 체크했으면 1).
@@ -228,6 +229,7 @@ export default async function BibleReadPage({ searchParams }: { searchParams: Pr
 
       {/* 읽기표 체크 + 기록 요약 */}
       <ChapterCheck
+        key={`${day.id}-${chapSeq}`}
         chapSeq={chapSeq}
         planId={plan.id}
         day={{
