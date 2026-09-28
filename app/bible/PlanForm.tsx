@@ -1,7 +1,8 @@
 'use client'
 
-// MFH-BIBLE-PLAN-FORM-V1
-// 통독 계획 수립 폼 — 타이틀·기간·제외 요일·읽기 순서·배분 방식 + 실시간 미리보기(buildSchedule).
+// MFH-BIBLE-PLAN-FORM-V2
+// 통독 계획 수립 폼 — 타이틀·기간·제외 요일·통독 범위(전체/구약만/신약만)·읽기 순서·배분 방식 + 실시간 미리보기(buildSchedule).
+// 범위가 부분(구약만/신약만)이면 읽기 순서 선택은 숨김(정경 순). 총 장수·글자수는 범위 기준으로 저장(patch107 scope).
 // 저장: 기존 활성 계획 비활성화 → reading_plans insert → reading_plan_days 일괄 insert(200행 단위) → /bible.
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -12,13 +13,15 @@ import {
   buildSchedule,
   longDate,
   READ_ORDER_LABEL,
+  READ_SCOPE_LABEL,
+  scopeTotals,
   SPLIT_MODE_LABEL,
   WEEKDAY_KR,
   weekdayOf,
   type ReadOrder,
+  type ReadScope,
   type SplitMode,
 } from '@/lib/bible/plan'
-import { TOTAL_CHAPTERS, TOTAL_CHARS } from '@/lib/bible/data'
 
 const input = 'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
 const label = 'mb-1 mt-4 block text-xs font-semibold text-muted'
@@ -56,9 +59,17 @@ function Segmented<T extends string>({
   )
 }
 
+// 범위별 기본 타이틀·기본 기간(일수−1) — 사용자가 직접 고치지 않았을 때만 범위 변경에 따라 갱신.
+// 전체·구약 = 1년(365일), 신약 = 90일(260장, 하루 약 3장).
+const SCOPE_TITLE: Record<ReadScope, string> = { all: '성경 1독', ot: '구약 1독', nt: '신약 1독' }
+const SCOPE_SPAN: Record<ReadScope, number> = { all: 364, ot: 364, nt: 89 }
+const defaultTitle = (year: string, scope: ReadScope) => `${year} ${SCOPE_TITLE[scope]}`
+
 export default function PlanForm({ today }: { today: string }) {
   const router = useRouter()
-  const [title, setTitle] = useState(`${today.slice(0, 4)} 성경 1독`)
+  const year = today.slice(0, 4)
+  const [scope, setScope] = useState<ReadScope>('all')
+  const [title, setTitle] = useState(defaultTitle(year, 'all'))
   const [start, setStart] = useState(today)
   const [end, setEnd] = useState(addDays(today, 364))
   const [exclude, setExclude] = useState<number[]>([])
@@ -68,9 +79,15 @@ export default function PlanForm({ today }: { today: string }) {
   const [msg, setMsg] = useState<string | null>(null)
 
   const preview = useMemo(
-    () => buildSchedule({ start, end, excludeWeekdays: exclude, order, mode }),
-    [start, end, exclude, order, mode],
+    () => buildSchedule({ start, end, excludeWeekdays: exclude, order, mode, scope }),
+    [start, end, exclude, order, mode, scope],
   )
+
+  function changeScope(next: ReadScope) {
+    if (title === defaultTitle(year, scope)) setTitle(defaultTitle(year, next))
+    if (end === addDays(start, SCOPE_SPAN[scope])) setEnd(addDays(start, SCOPE_SPAN[next]))
+    setScope(next)
+  }
 
   function toggleDay(d: number) {
     setExclude((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()))
@@ -119,10 +136,11 @@ export default function PlanForm({ today }: { today: string }) {
         end_date: end,
         exclude_weekdays: exclude,
         read_order: order,
+        scope,
         split_mode: mode,
         total_days: preview.stats.readingDays,
-        total_chapters: TOTAL_CHAPTERS,
-        total_chars: TOTAL_CHARS,
+        total_chapters: preview.stats.totalChapters,
+        total_chars: preview.stats.totalChars,
         is_active: true,
       })
       .select('id')
@@ -160,6 +178,7 @@ export default function PlanForm({ today }: { today: string }) {
   }
 
   const excludedLabel = WEEKDAY_ORDER.filter((d) => exclude.includes(d)).map((d) => WEEKDAY_KR[d])
+  const totals = scopeTotals(scope)
 
   return (
     <div>
@@ -197,12 +216,27 @@ export default function PlanForm({ today }: { today: string }) {
         })}
       </div>
 
-      <label className={label}>읽기 순서</label>
+      <label className={label}>통독 범위</label>
       <Segmented
-        value={order}
-        onChange={setOrder}
-        options={(Object.keys(READ_ORDER_LABEL) as ReadOrder[]).map((v) => ({ value: v, label: READ_ORDER_LABEL[v] }))}
+        value={scope}
+        onChange={changeScope}
+        options={(Object.keys(READ_SCOPE_LABEL) as ReadScope[]).map((v) => ({ value: v, label: READ_SCOPE_LABEL[v] }))}
       />
+      <p className="mt-1.5 text-[11px] leading-snug text-faint">
+        {READ_SCOPE_LABEL[scope]} {totals.chapters.toLocaleString()}장 · {totals.chars.toLocaleString()}자
+        {scope !== 'all' && ' — 정경 순으로 읽습니다.'}
+      </p>
+
+      {scope === 'all' && (
+        <>
+          <label className={label}>읽기 순서</label>
+          <Segmented
+            value={order}
+            onChange={setOrder}
+            options={(Object.keys(READ_ORDER_LABEL) as ReadOrder[]).map((v) => ({ value: v, label: READ_ORDER_LABEL[v] }))}
+          />
+        </>
+      )}
 
       <label className={label}>배분 방식</label>
       <Segmented

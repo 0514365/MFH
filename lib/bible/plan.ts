@@ -1,7 +1,8 @@
-// MFH-BIBLE-PLAN-V1
+// MFH-BIBLE-PLAN-V2
 // 성경통독 계획 알고리즘(순수 함수, 서버·클라이언트 공용).
 //   · readingDates      — 시작~종료일 중 제외 요일을 뺀 읽기 가능일
-//   · orderedChapters   — 읽기 순서(구약부터 / 신약부터)로 1,189장 나열
+//   · orderedChapters   — 통독 범위(전체 / 구약만 / 신약만) + 읽기 순서(구약부터 / 신약부터)로 장 나열
+//                         전체 1,189장 · 구약 929장 · 신약 260장. seq 는 범위·순서별 목록 인덱스(DB start_seq/end_seq)
 //   · splitByChapters   — 장수 균등 분배(README 6-1)
 //   · splitByChars      — 글자수 균등 분배(README 6-2, 편차제곱합 최소 DP)
 //   · buildSchedule     — 위를 조합해 하루 1행 일정 + 통계 생성(계획 저장·미리보기 공용)
@@ -10,11 +11,25 @@
 import { BIBLE_BOOKS, CHAPTER_CHARS, TOTAL_CHAPTERS, type BibleBook } from './data'
 
 export type ReadOrder = 'ot_first' | 'nt_first'
+export type ReadScope = 'all' | 'ot' | 'nt'
 export type SplitMode = 'chapters' | 'chars'
 
 export const READ_ORDER_LABEL: Record<ReadOrder, string> = {
   ot_first: '구약부터',
   nt_first: '신약부터',
+}
+export const READ_SCOPE_LABEL: Record<ReadScope, string> = {
+  all: '신구약 전체',
+  ot: '구약만',
+  nt: '신약만',
+}
+// 범위·순서 요약 한 토막 — 전체면 순서("구약부터"), 부분이면 범위("구약만"). 배지·조건 요약 공용.
+export function scopeOrderLabel(scope: ReadScope, order: ReadOrder): string {
+  return scope === 'all' ? READ_ORDER_LABEL[order] : READ_SCOPE_LABEL[scope]
+}
+// DB 행 → 범위. patch107 이전 행(컬럼 없음)은 전체로 간주.
+export function planScope(p: { scope?: ReadScope | null }): ReadScope {
+  return p.scope === 'ot' || p.scope === 'nt' ? p.scope : 'all'
 }
 export const SPLIT_MODE_LABEL: Record<SplitMode, string> = {
   chapters: '장 균등',
@@ -53,13 +68,20 @@ function canonical(): Omit<ChapterRef, 'seq'>[] {
   return out
 }
 
-// 읽기 순서로 정렬된 1,189장. 신약부터 = 마태복음~계시록 뒤에 창세기~말라기.
-export function orderedChapters(order: ReadOrder): ChapterRef[] {
+// 통독 범위·읽기 순서로 정렬된 장 목록. 전체 = 1,189장(신약부터 = 마태복음~계시록 뒤에 창세기~말라기),
+// 구약만 = 929장, 신약만 = 260장(부분 범위는 순서와 무관하게 정경 순). seq 는 이 목록의 인덱스.
+export function orderedChapters(order: ReadOrder, scope: ReadScope = 'all'): ChapterRef[] {
   const base = canonical()
-  const list = order === 'nt_first'
-    ? [...base.filter((c) => c.book.testament === 'nt'), ...base.filter((c) => c.book.testament === 'ot')]
-    : base
+  const ot = base.filter((c) => c.book.testament === 'ot')
+  const nt = base.filter((c) => c.book.testament === 'nt')
+  const list = scope === 'ot' ? ot : scope === 'nt' ? nt : order === 'nt_first' ? [...nt, ...ot] : base
   return list.map((c, seq) => ({ seq, ...c }))
+}
+
+// 범위별 총 장수·글자수(계획 저장 total_chapters/total_chars · 진행률 분모).
+export function scopeTotals(scope: ReadScope): { chapters: number; chars: number } {
+  const list = orderedChapters('ot_first', scope)
+  return { chapters: list.length, chars: list.reduce((a, c) => a + c.chars, 0) }
 }
 
 // ── 날짜 ───────────────────────────────────────────────────────────────────
@@ -170,8 +192,8 @@ export function rangeLabel(first: ChapterRef, last: ChapterRef, short = false): 
 }
 
 // DB 행(start_seq/end_seq)에서 라벨 재계산 — 짧은 표기 등 표시 변형용.
-export function labelFromSeq(order: ReadOrder, startSeq: number, endSeq: number, short = false): string {
-  const list = orderedChapters(order)
+export function labelFromSeq(order: ReadOrder, startSeq: number, endSeq: number, short = false, scope: ReadScope = 'all'): string {
+  const list = orderedChapters(order, scope)
   return rangeLabel(list[startSeq], list[endSeq], short)
 }
 
@@ -183,6 +205,7 @@ export type ScheduleInput = {
   excludeWeekdays: number[]
   order: ReadOrder
   mode: SplitMode
+  scope?: ReadScope // 기본 전체
 }
 
 export type ScheduleDay = {
@@ -198,6 +221,8 @@ export type ScheduleDay = {
 export type ScheduleStats = {
   readingDays: number
   calendarDays: number
+  totalChapters: number // 범위 내 총 장수
+  totalChars: number // 범위 내 총 글자수
   avgChapters: number
   avgChars: number
   avgMinutes: number
@@ -222,10 +247,11 @@ export function buildSchedule(input: ScheduleInput): ScheduleResult {
   const dates = readingDates(input.start, input.end, input.excludeWeekdays)
   const n = dates.length
   if (n === 0) return { ok: false, error: '읽을 수 있는 날이 없습니다. 제외 요일을 줄여 주세요.' }
-  if (n > TOTAL_CHAPTERS) {
-    return { ok: false, error: `읽는 날(${n}일)이 총 장수(${TOTAL_CHAPTERS}장)보다 많습니다. 기간을 줄여 주세요.` }
+  const list = orderedChapters(input.order, input.scope ?? 'all')
+  const total = list.length
+  if (n > total) {
+    return { ok: false, error: `읽는 날(${n}일)이 총 장수(${total}장)보다 많습니다. 기간을 줄여 주세요.` }
   }
-  const list = orderedChapters(input.order)
   const charsArr = list.map((c) => c.chars)
   const segs = input.mode === 'chapters' ? splitByChapters(list.length, n) : splitByChars(charsArr, n)
 
@@ -253,7 +279,9 @@ export function buildSchedule(input: ScheduleInput): ScheduleResult {
   const stats: ScheduleStats = {
     readingDays: n,
     calendarDays,
-    avgChapters: Math.round((TOTAL_CHAPTERS / n) * 10) / 10,
+    totalChapters: total,
+    totalChars,
+    avgChapters: Math.round((total / n) * 10) / 10,
     avgChars,
     avgMinutes: estimateMinutes(avgChars),
     minChapters: Math.min(...chArr),

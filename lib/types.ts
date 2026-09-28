@@ -190,6 +190,8 @@ export type ReadingPlan = {
   end_date: string
   exclude_weekdays: number[] // JS getDay 기준 0=일 … 6=토
   read_order: 'ot_first' | 'nt_first'
+  // 통독 범위(patch107): all=신구약 전체 / ot=구약만 / nt=신약만. 이전 행은 undefined → 전체(planScope 로 읽기).
+  scope?: 'all' | 'ot' | 'nt'
   split_mode: 'chapters' | 'chars'
   total_days: number
   total_chapters: number
@@ -198,6 +200,16 @@ export type ReadingPlan = {
   completed_at: string | null
   created_at: string
   updated_at: string
+}
+
+// 장별 읽음 기록(patch108) — 한 장을 읽을 때마다 1행. chap_seq = 정경 순서(1..1189).
+export type BibleChapterRead = {
+  id: string
+  user_id: string
+  chap_seq: number
+  plan_id: string | null
+  plan_day_id: string | null
+  read_at: string
 }
 
 // 일정 하루 1행 + 읽음 기록.

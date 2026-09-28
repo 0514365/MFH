@@ -1,4 +1,4 @@
-// MFH-BIBLE-NEW-PAGE-V1
+// MFH-BIBLE-NEW-PAGE-V2
 // /bible/new — 통독 계획 수립. 폼·미리보기·저장은 PlanForm(client).
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
@@ -22,7 +22,7 @@ export default async function BibleNewPage() {
   return (
     <main className="app-theme mx-auto max-w-md px-5 pb-8">
       <PageHeader title="통독 계획" action={<BackButton href="/bible" variant="chip" label="통독" />} />
-      <p className="-mt-1 mb-4 text-xs text-muted">1년 1독을 기본으로, 기간·요일·순서·배분을 정하면 하루 분량을 자동 계산합니다.</p>
+      <p className="-mt-1 mb-4 text-xs text-muted">1년 1독을 기본으로, 기간·요일·범위(전체/구약/신약)·순서·배분을 정하면 하루 분량을 자동 계산합니다.</p>
       <PlanForm today={today} />
     </main>
   )

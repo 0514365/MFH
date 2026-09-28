@@ -1,11 +1,11 @@
-// MFH-BIBLE-PAGE-V2
+// MFH-BIBLE-PAGE-V3 (통독 범위 배지: 전체면 읽기 순서, 구약만/신약만이면 범위)
 // /bible — 성경통독 메인. 활성 계획의 진행 요약 + 오늘(또는 다음) 분량 카드 + 밀린 분량 + 월별 일정(행 탭 = 이전 기록 수정).
 // 계획이 없으면 안내 카드(/bible/new). 데이터 = reading_plans(활성 1개) + reading_plan_days(전체).
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
-import { longDate, planProgress, progressBadge, READ_ORDER_LABEL, shortDate, SPLIT_MODE_LABEL, WEEKDAY_KR } from '@/lib/bible/plan'
+import { longDate, planProgress, planScope, progressBadge, scopeOrderLabel, shortDate, SPLIT_MODE_LABEL, WEEKDAY_KR } from '@/lib/bible/plan'
 import type { ReadingPlan, ReadingPlanDay } from '@/lib/types'
 import DayCard from './DayCard'
 import OverdueList from './OverdueList'
@@ -103,7 +103,7 @@ export default async function BiblePage() {
             {shortDate(plan.start_date)} 시작{excluded.length ? ` · ${excluded.join('·')} 제외` : ''}
           </span>
           <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">
-            {READ_ORDER_LABEL[plan.read_order]} · {SPLIT_MODE_LABEL[plan.split_mode]}
+            {scopeOrderLabel(planScope(plan), plan.read_order)} · {SPLIT_MODE_LABEL[plan.split_mode]}
           </span>
         </div>
       </section>

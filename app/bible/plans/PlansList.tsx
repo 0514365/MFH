@@ -1,11 +1,11 @@
 'use client'
 
-// MFH-BIBLE-PLANS-LIST-V1
+// MFH-BIBLE-PLANS-LIST-V2 (조건 요약에 통독 범위 반영)
 // 통독 계획 카드 목록 — 상태(활성/대기/완독)·진행률·조건 요약. 활성 전환(다른 활성 해제 후 지정)·삭제(확인).
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import { longDate, READ_ORDER_LABEL, SPLIT_MODE_LABEL, WEEKDAY_KR, type PlanProgress } from '@/lib/bible/plan'
+import { longDate, planScope, scopeOrderLabel, SPLIT_MODE_LABEL, WEEKDAY_KR, type PlanProgress } from '@/lib/bible/plan'
 import type { ReadingPlan } from '@/lib/types'
 
 export type PlanCard = { plan: ReadingPlan; progress: PlanProgress }
@@ -17,7 +17,7 @@ export function planCondition(p: ReadingPlan): string {
   const parts = [
     `${longDate(p.start_date)} ~ ${longDate(p.end_date)}`,
     ex.length ? `${ex.join('·')} 제외` : '제외 없음',
-    READ_ORDER_LABEL[p.read_order],
+    scopeOrderLabel(planScope(p), p.read_order),
     SPLIT_MODE_LABEL[p.split_mode],
   ]
   return parts.join(' · ')
