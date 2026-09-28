@@ -1,9 +1,10 @@
+// MFH-MODULE-ICON-V2 — bible(펼친 성경) 추가(/bible/study 홈 타일).
 // MFH-MODULE-ICON-V1
 // 5개 홈 모듈 인라인 SVG 아이콘. 색은 currentColor 상속(활성=text-primary / 비활성=text-muted / 다크모드 자동).
 // 24×24 viewBox, line(outline), round. 날짜 점만 fill=currentColor.
 import type { ReactElement, SVGProps } from 'react'
 
-export type ModuleIconName = 'log' | 'projects' | 'todo' | 'calendar' | 'insights' | 'portfolio' | 'photos'
+export type ModuleIconName = 'log' | 'projects' | 'todo' | 'calendar' | 'insights' | 'portfolio' | 'photos' | 'bible'
 
 type Props = SVGProps<SVGSVGElement> & {
   name: ModuleIconName
@@ -73,6 +74,12 @@ const PATHS: Record<ModuleIconName, ReactElement> = {
       <rect x="3" y="5" width="18" height="14" rx="2.5" />
       <circle cx="8.5" cy="10" r="1.5" />
       <path d="M21 16 l-5 -5 L5 19" />
+    </>
+  ),
+  bible: (
+    <>
+      <path d="M12 6.5 C10 4.8 7 4.3 3 4.8 V19.3 C7 18.8 10 19.3 12 21 C14 19.3 17 18.8 21 19.3 V4.8 C17 4.3 14 4.8 12 6.5 Z" />
+      <path d="M12 6.5 V21" />
     </>
   ),
 }

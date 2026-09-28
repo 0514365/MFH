@@ -354,7 +354,7 @@ export default async function Home() {
 
           {/* 우: 모듈 벤토 — 모바일 2열, sm 4열, lg 6열(일반 타일 2칸 = 실질 3열).
               lg 행 템플릿: 타일 3행 = 1fr 스트레치 + Accounting = auto → 우측 하단이 좌측(Supporters) 하단과 정렬 */}
-          <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)] sm:grid-cols-4 lg:col-span-7 lg:grid-cols-6 lg:grid-rows-[1fr_1fr_1fr_auto]">
+          <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)] sm:grid-cols-4 lg:col-span-7 lg:grid-cols-6 lg:grid-rows-[1fr_1fr_1fr_auto_auto]">
           {/* Log — tall (좌, 모바일만) */}
           <ModuleTile
             href="/journal"
@@ -451,14 +451,24 @@ export default async function Home() {
             className="lg:col-span-2"
           />
 
-          {/* Portfolio — 우. md 4열에서는 wide 로 줄 정렬 */}
+          {/* Bible — 우. 읽기·검색·번역 비교(/bible/study) */}
+          <ModuleTile
+            href="/bible/study"
+            icon={<ModuleIcon name="bible" size={18} />}
+            title="Bible"
+            sub="Read · Search · Compare"
+            chipClass="bg-yellow-100 text-yellow-700"
+            className="lg:col-span-2"
+          />
+
+          {/* Portfolio — 좌(다음 줄). sm 4열에서는 wide 로 줄 정렬 */}
           <ModuleTile
             href="/portfolio"
             icon={<ModuleIcon name="portfolio" size={18} />}
             title="Portfolio"
             sub="Sharing our journey"
             chipClass="bg-indigo-100 text-indigo-700"
-            className="sm:col-span-2 lg:col-span-2"
+            className="sm:col-span-2 lg:col-span-6"
           />
 
           {/* 후원자 — 공개 전까지 우진(마스터)만. 관계·후원 관리 (wide) */}
