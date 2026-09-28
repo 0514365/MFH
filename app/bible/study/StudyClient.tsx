@@ -1,5 +1,7 @@
 'use client'
 
+// MFH-BIBLE-STUDY-CLIENT-V2 — 높이 = 100svh(작은 뷰포트: 브라우저 UI 가 보일 때 기준) − 탭바(76px+safe-area).
+//   dvh 는 모바일에서 주소창 상태에 따라 탭바 뒤까지 늘어나 패널 하단(이전 장·다음 장)이 가려졌음. 규칙은 globals.css .bible-study-main(svh 미지원 시 vh).
 // MFH-BIBLE-STUDY-CLIENT-V1 — /bible/study 본체(LOGOS 식 2패널 리더).
 //   패널 A·B(각자 버전) + 연결(🔗) 토글 + 패널 1개/2개 토글 + 찾기 시트(구절·내용·최근·즐겨찾기).
 //   배치: 모바일·아이패드 세로 = 위아래, 가로 = 좌우, 데스크탑(lg) = 좌우. 각 패널이 자체 스크롤.
@@ -100,7 +102,7 @@ export default function StudyClient({ initialVer, initialLoc }: { initialVer: Bi
   )
 
   return (
-    <main className="app-theme mx-auto flex max-w-md flex-col px-5 min-[740px]:max-w-3xl lg:max-w-6xl" style={{ height: 'calc(100dvh - 76px - env(safe-area-inset-bottom))' }}>
+    <main className="app-theme mx-auto flex max-w-md flex-col px-5 min-[740px]:max-w-3xl lg:max-w-6xl bible-study-main">
       <PageHeader
         title="Bible"
         action={

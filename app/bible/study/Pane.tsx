@@ -1,5 +1,6 @@
 'use client'
 
+// MFH-BIBLE-STUDY-PANE-V2 (본문 하단 여백 pb-5 — 이전 장·다음 장 행이 끝에 붙지 않게)
 // MFH-BIBLE-STUDY-PANE-V1 — /bible/study 본문 패널 1개(LOGOS 타일 대응).
 //   헤더: [버전 select] [책 장 → 찾기 시트] [☆ 즐겨찾기] [‹ ›]  /  본문: 장 단위, 자체 스크롤 컨테이너.
 //   연결 스크롤: 스크롤 중 최상단 절을 감지해 onTopVerse 로 보고. 부모가 다른 패널의 scrollToVerse(imperative) 를 호출.
@@ -166,7 +167,7 @@ const Pane = forwardRef<PaneHandle, Props>(function Pane(
       </div>
 
       {/* 본문 */}
-      <div ref={boxRef} onScroll={onScroll} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div ref={boxRef} onScroll={onScroll} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-3 pb-5" style={{ WebkitOverflowScrolling: 'touch' }}>
         {fallback && (
           <p className="mb-2 rounded-xl bg-accent-soft px-3 py-1.5 text-[11px] text-primary">
             {BIBLE_VERSION_LABEL[ver]}은 이 장이 아직 준비 중이라 개역개정으로 표시합니다.

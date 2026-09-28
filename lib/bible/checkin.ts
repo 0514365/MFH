@@ -1,4 +1,4 @@
-// MFH-BIBLE-CHECKIN-V3
+// MFH-BIBLE-CHECKIN-V4 (relativeKo 추가 — 장별 읽음 기록 「최근 읽은 날」 표기)
 // 읽음 체크 공용 로직(client) — 홈 카드·/bible 오늘 카드·일정 목록이 같은 규칙으로 저장.
 //   · 체크 ON  : done=true. 기록이 비어 있을 때만 read_on=오늘(온두라스)·read_time=지금·read_minutes=예상(방법별 속도) 자동 입력.
 //                이미 기록이 있으면(다시 체크) 최초 완료 기록 보존 — 사용자가 직접 바꿀 때만 변경.
@@ -88,4 +88,25 @@ export function timeKo(t: string | null | undefined): string {
   const h = Number(hh)
   if (Number.isNaN(h)) return v
   return `${h < 12 ? '오전' : '오후'} ${h % 12 === 0 ? 12 : h % 12}:${mm}`
+}
+
+// 상대 시각 표기 — "방금 전" / "12분 전" / "3시간 전" / "어제" / "9월 20일" / "2025. 9. 20".
+export function relativeKo(iso: string, now: Date = new Date()): string {
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return ''
+  const sec = Math.max(0, Math.round((now.getTime() - t) / 1000))
+  if (sec < 60) return '방금 전'
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}분 전`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}시간 전`
+  const dayNow = new Date(now.toLocaleDateString('en-CA', { timeZone: HN_TZ }))
+  const dayThen = new Date(new Date(t).toLocaleDateString('en-CA', { timeZone: HN_TZ }))
+  const days = Math.round((dayNow.getTime() - dayThen.getTime()) / 86400000)
+  if (days <= 1) return '어제'
+  if (days < 7) return `${days}일 전`
+  const d = new Date(t)
+  const y = Number(d.toLocaleDateString('en-CA', { timeZone: HN_TZ }).slice(0, 4))
+  const parts = d.toLocaleDateString('en-CA', { timeZone: HN_TZ }).split('-').map(Number)
+  return y === dayNow.getUTCFullYear() ? `${parts[1]}월 ${parts[2]}일` : `${parts[0]}. ${parts[1]}. ${parts[2]}`
 }

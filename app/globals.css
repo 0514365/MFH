@@ -78,3 +78,15 @@ body::before {
     visibility: hidden;
   }
 }
+
+/* /bible/study 2패널 리더 높이 — 화면(작은 뷰포트) − 하단 탭바(76px + safe-area).
+   .app-theme 의 min-height:100vh 가 이 높이를 덮어써 패널이 탭바 뒤까지 늘어났으므로 main.bible-study-main 으로 특이도를 높여 min-height 를 푼다. */
+main.bible-study-main {
+  min-height: 0;
+  height: calc(100vh - 76px - env(safe-area-inset-bottom, 0px));
+}
+@supports (height: 100svh) {
+  main.bible-study-main {
+    height: calc(100svh - 76px - env(safe-area-inset-bottom, 0px));
+  }
+}
