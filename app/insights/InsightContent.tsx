@@ -1,4 +1,4 @@
-// MFH-INSIGHT-CONTENT-V3
+// MFH-INSIGHT-CONTENT-V4
 // 인사이트·비서 본문 표시 포매터 — 기존 raw whitespace-pre-wrap 출력을 대체.
 //  · 내용(텍스트)은 바꾸지 않고 "표시만" 정리한다 → 기존 저장분에도 즉시 적용.
 //  · 공통: **볼드** → 볼드(기호 제거), 【…부…】 줄 → 볼드 제목.
@@ -6,6 +6,7 @@
 //  · 비서(project_assist·task_assist) 마무리 줄(**라벨** · 본문) → 흰 박스 + accent 칩으로 한 번 더 강조.
 //  · 기도제목 라벨(사역/가정/나라) → '나라'는 '온두라스'로, 순서는 온두라스→사역→가정으로 재정렬.
 //    prayer 는 라벨 칩 + 본문 아래 줄, 그 외 도메인은 흰 박스 + accent '기도제목' 칩으로 음영 강조(비서 "이번 주 우선"과 동일 톤). 중복 "기도제목" 제목 줄은 생략.
+//  · 라벨 줄 바로 다음의 "요약 · …" 줄은 그 라벨의 간결문(brief)으로 붙여, prayer 에서는 본문 아래 연한 박스로 표시(없으면 생략 — 기존 저장분 호환).
 //  · fruit 는 '6월 9일,' 같은 앞머리 날짜를 볼드로 띄우고 내용은 다음 줄에.
 import type { ReactNode } from 'react'
 import type { InsightDomain } from '@/lib/insightExport'
@@ -20,13 +21,19 @@ const PRAYER_BADGE: Record<string, string> = {
   가정: 'bg-rose-100 text-rose-700',
 }
 
-type PrayerItem = { label: string; body: string }
+type PrayerItem = { label: string; body: string; brief?: string }
 
 // 기도제목 라벨 줄("사역 · …" 또는 "- 가정 · …") → {label, body}. 라벨 직후 '·'/':' 구분자 필수(오탐 방지).
 function matchPrayer(line: string): PrayerItem | null {
   const m = line.match(/^\s*-?\s*(온두라스|나라|사역|가정)\s*[·:]\s*(.+)$/)
   if (!m) return null
   return { label: m[1] === '나라' ? '온두라스' : m[1], body: m[2].trim() }
+}
+
+// 기도제목 요약 줄("요약 · …") → 간결문. 라벨 줄 바로 다음 줄에서만 유효.
+function matchPrayerBrief(line: string): string | null {
+  const m = line.match(/^\s*-?\s*(요약|간결)\s*[·:]\s*(.+)$/)
+  return m ? m[2].trim() : null
 }
 
 // fruit 날짜 줄("- 6월 9일, …") → {date, body}.
@@ -74,8 +81,13 @@ export default function InsightContent({
       while (i < lines.length) {
         const pm = matchPrayer(lines[i])
         if (!pm) break
-        group.push(pm)
         i++
+        const brief = i < lines.length ? matchPrayerBrief(lines[i]) : null
+        if (brief) {
+          pm.brief = brief
+          i++
+        }
+        group.push(pm)
       }
       const ordered = [...group].sort(
         (a, b) => (PRAYER_RANK[a.label] ?? 9) - (PRAYER_RANK[b.label] ?? 9),
@@ -89,6 +101,11 @@ export default function InsightContent({
                   {it.label}
                 </span>
                 <p className="mt-1">{renderInline(it.body, key * 100 + j)}</p>
+                {it.brief && (
+                  <p className="mt-1.5 rounded-lg bg-surface-subtle px-3 py-2 text-sm text-muted">
+                    {renderInline(it.brief, key * 100 + j + 50)}
+                  </p>
+                )}
               </div>
             ))}
           </div>,
