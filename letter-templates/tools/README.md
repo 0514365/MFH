@@ -2,6 +2,14 @@
 
 2026-06 리허설에서 확립한 디자인 R&D·출력 자동화를 정리한 것. 다음 호부터 이 흐름으로 진행한다.
 
+## build-mobile-share.py (2026-09 신설)
+모바일 `letter.html` → **단일파일 공유본**(외부 리소스 0 · 실기기·카톡 전달용). 그달 본문 글자로 Nanum Myeongjo·Montserrat(Google Fonts `text=`)·Pretendard(dynamic subset 청크) 를 새로 받아 base64 내장, Tailwind CDN 생성 CSS 를 headless Chrome 으로 추출해 인라인, `photos-web/` 사진 내장.
+
+```bash
+python3 letter-templates/tools/build-mobile-share.py letter-templates/issues/2026-09/letter.html letter-templates/issues/2026-09/MFH-2609-mobile-share.html
+```
+- ⚠ 직전 호 공유본의 `@font-face` 를 복사해 쓰지 말 것 — 그 호 글자만 들어 있어 새 글자가 깨진다(2609 실기기 확인).
+
 ## build-letter.py
 9장 통합 letter HTML 하나를 받아 검토·출력물을 자동 생성한다.
 

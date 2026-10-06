@@ -67,6 +67,8 @@ tools: Read, Write, Edit
 ---
 
 ## 작업 절차
+> ★**2026년 디자인 고정 (2026-10 우진 지시)**: 2026년 남은 호는 시안 2~3개를 만들지 않는다. 직전 호 `issues/<직전월>/letter.html`·`letter-cardnews.html`·`og.html`(7·8월호 디자인)을 복제해 **내용·사진·면 수만** 교체한다. 색·레이아웃·폰트 변주 금지. 아래 1~6 의 '시안·변주' 단계는 2027년부터 다시 적용.
+
 1. `manuscript.md`·`image-map.md`·`photo-index.md` 정독, `photos/` 파일 확인.
 2. 마스터 `mfh-cardnews.html` 을 기반으로 복제.
 3. 지시받은 변주(색·레이아웃)로 시안 1개 작성 → `variants/letter-<X>.html`. (팀장이 변주별로 병렬 호출)
