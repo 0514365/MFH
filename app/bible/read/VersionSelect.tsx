@@ -1,6 +1,6 @@
 'use client'
 
-// MFH-BIBLE-VERSION-SELECT-V1 — 본문 버전 3단(개역개정·새한글·ESV). 쿠키(bible_ver) 저장 후 서버 재렌더.
+// MFH-BIBLE-VERSION-SELECT-V2 — 본문 버전 4단(개역개정·새한글·ESV·RVR1960). 쿠키(bible_ver) 저장 후 서버 재렌더.
 // Manna VersionSelect V1 이식(SegmentedTabs → 인라인 세그먼트, DayCard 방법 칩과 같은 스타일). QT 접이식과 쿠키 공유.
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'

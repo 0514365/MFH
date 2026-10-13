@@ -1,6 +1,6 @@
-// MFH-BIBLE-SEED-V1 — Manna scripts/bible-seed.ts V3 이식(docs/MANNA-TO-MFH-BIBLE-TEXTS.md). 원자료는 BIBLE_DIR(.env.local, 기본 ./Bible).
+// MFH-BIBLE-SEED-V2 — RVR1960(rvr) 추가(docs/MANNA-TO-MFH-RVR1960.md, Manna bible-seed V4). V1 = Manna V3 이식(docs/MANNA-TO-MFH-BIBLE-TEXTS.md). 원자료는 BIBLE_DIR(.env.local, 기본 ./Bible).
 // Bible/ 원자료(repo 미포함) → bible_texts(patch105) 시딩(service role).
-// 사용: npx tsx scripts/bible-seed.ts [nkrv|nkt|esv|all] [--dry]
+// 사용: npx tsx scripts/bible-seed.ts [nkrv|nkt|esv|rvr|all] [--dry]
 //   --dry = 파싱·검증 리포트만(DB 안 씀). 시딩은 버전 단위 delete 후 insert(재시딩 안전).
 // 전제: 이 Mac(textutil·iconv 계열은 TextDecoder 로 대체) · repo 루트 실행 · patch105 실행 완료.
 // 원자료 형식:
@@ -10,6 +10,7 @@
 //             (UTF-8 합본 2개를 이어 읽음. "책명 N장" / "[소제목]" → 다음 절 앞에 <소제목> / "N 본문" / 이어지는 줄)
 //             요한1·2·3서는 "[요한1서 N]" 표지만 있고 책명이 정식(요한일서)과 달라 NKT_BOOK_ALIAS 로 맞춘다.
 //             본문이 빈 절(원자료에서 절 본문이 소실된 곳)이 있는 장은 결함 장으로 제외 → 개역개정 폴백. 정경에 없는 장은 리포트만.
+//   RVR1960   <BIBLE_DIR>/rvr1960.txt (UTF-8, "BB C:V 본문", BB = 정경 순서 01~66). 원천 PDF·추출기는 Manna(scripts/rvr-extract.py).
 //             원자료 결함 보정: ① 시 행이 소제목과 같은 [ ] 로 감싸져 있음(원본 HTML 도 <h2>) → isNktPoetry 로 판별해 직전 절 줄로
 //             ② 애가 2~5장 제목이 "[예레미야애가 N]" ③ 같은 장이 두 번(삼하 1장) → 두 번째 블록은 건너뛴다
 //   ESV       <BIBLE_DIR>/영어성경 ESV Bible.rtf (textutil 변환. "Gen 1:1 body" + 줄바꿈 연속. "|"→I, 2kKi→2Ki)
@@ -308,6 +309,20 @@ function parseEsv(): Row[] {
   return rows.filter((r) => r.body).sort((a, b) => a.chap_seq - b.chap_seq || a.verse - b.verse)
 }
 
+// ── RVR1960 ────────────────────────────────────────────────────────────────
+function parseRvr(): Row[] {
+  const file = join(BIBLE_DIR, 'rvr1960.txt')
+  if (!existsSync(file)) throw new Error('rvr1960.txt 없음 — Manna 에서 python3 scripts/rvr-extract.py')
+  const rows: Row[] = []
+  for (const line of readFileSync(file, 'utf8').split('\n')) {
+    if (!line.trim()) continue
+    const m = /^(\d{2}) (\d+):(\d+) (.+)$/.exec(line)
+    if (!m) throw new Error(`RVR 형식 불명: ${line.slice(0, 60)}`)
+    rows.push(makeRow('rvr', Number(m[1]), Number(m[2]), Number(m[3]), null, m[4]))
+  }
+  return rows
+}
+
 // ── 검증 리포트 ─────────────────────────────────────────────────────────────
 function report(v: BibleVersion, rows: Row[]) {
   const chapters = new Set(rows.map((r) => r.chap_seq))
@@ -331,10 +346,10 @@ async function main() {
   const args = process.argv.slice(2)
   const dry = args.includes('--dry')
   const target = args.find((a) => !a.startsWith('--')) ?? 'all'
-  const parsers: Record<string, () => Row[]> = { nkrv: parseNkrv, nkt: parseNkt, esv: parseEsv }
+  const parsers: Record<string, () => Row[]> = { nkrv: parseNkrv, nkt: parseNkt, esv: parseEsv, rvr: parseRvr }
   const versions = target === 'all' ? (Object.keys(parsers) as BibleVersion[]) : [target as BibleVersion]
   if (versions.some((v) => !parsers[v])) {
-    console.error('사용법: npx tsx scripts/bible-seed.ts [nkrv|nkt|esv|all] [--dry]')
+    console.error('사용법: npx tsx scripts/bible-seed.ts [nkrv|nkt|esv|rvr|all] [--dry]')
     process.exit(1)
   }
 

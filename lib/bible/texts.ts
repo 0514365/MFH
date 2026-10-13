@@ -1,17 +1,18 @@
-// MFH-BIBLE-TEXTS-V1 — 인앱 성경 본문(patch105 bible_texts) 조회 + 버전 상수 + 절 범위 조회(QT 「본문 읽기」용). Manna lib/bible/texts.ts V2 이식.
+// MFH-BIBLE-TEXTS-V2 — 스페인어 RVR1960(rvr) 버전 추가(patch109). V1 = 인앱 성경 본문(patch105 bible_texts) 조회 + 버전 상수 + 절 범위 조회(QT 「본문 읽기」용). Manna lib/bible/texts.ts V2 이식.
 // 본문 원자료는 repo 밖(../Manna/Bible, BIBLE_DIR) — 시딩은 scripts/bible-seed.ts(service role)만. 읽기 = 멤버 RLS(is_member).
 // 읽기 화면은 정경 순서 장 번호(chap_seq 1..1189)로 조회한다. 계획의 start_seq/end_seq(읽기 순서)와 다름에 주의.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { BIBLE_BOOKS } from './data'
 import type { ChapterRef } from './plan'
 
-export const BIBLE_VERSIONS = ['nkrv', 'nkt', 'esv'] as const
+export const BIBLE_VERSIONS = ['nkrv', 'nkt', 'esv', 'rvr'] as const
 export type BibleVersion = (typeof BIBLE_VERSIONS)[number]
 
 export const BIBLE_VERSION_LABEL: Record<BibleVersion, string> = {
   nkrv: '개역개정',
   nkt: '새한글',
   esv: 'ESV',
+  rvr: 'RVR1960',
 }
 
 // 본문 버전 쿠키 — 다크 모드(theme)와 같은 방식. 기본 개역개정.
