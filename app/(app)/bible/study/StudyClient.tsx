@@ -102,7 +102,7 @@ export default function StudyClient({ initialVer, initialLoc }: { initialVer: Bi
   )
 
   return (
-    <main className="app-theme mx-auto flex max-w-md flex-col px-5 min-[740px]:max-w-3xl lg:max-w-6xl bible-study-main">
+    <main className="app-theme mx-auto flex max-w-md flex-col px-5 @xl:max-w-3xl @4xl:max-w-6xl bible-study-main">
       <PageHeader
         title="Bible"
         action={
@@ -124,7 +124,7 @@ export default function StudyClient({ initialVer, initialLoc }: { initialVer: Bi
         }
       />
 
-      <div className={`flex min-h-0 flex-1 gap-2 pb-2 ${single ? 'flex-col' : 'portrait:flex-col landscape:flex-row lg:flex-row'}`}>
+      <div className={`flex min-h-0 flex-1 gap-2 pb-2 ${single ? 'flex-col' : 'portrait:flex-col landscape:flex-row @4xl:flex-row'}`}>
         {([0, 1] as const).map((i) =>
           single && i === 1 ? null : (
             <Pane

@@ -80,7 +80,7 @@ Manna = 내 그룹 · 승인 대기 · 내 걸음 · 이번 주. MFH 는 **"오�
 
 → **A 추천.** 이동 대상: `page.tsx journal projects tasks insights calendar qt bible photos intercessions honduras facebook portfolio supporters accounting theme`. 남는 것: `layout.tsx globals.css icon.png api auth login p letters`(`/letters/view/[id]` 는 공개 편지 뷰어 라우트). `SplashGate` 는 `/p` 와 공유하므로 `components/` 로 이동.
 
-`/accounting`·`/supporters` 는 셸 안에 들어가되 자체 4탭 서브 네비는 유지(모바일). md 이상에서는 그 서브 네비를 상단 세그먼트로 바꾸는 건 후속.
+`/accounting`·`/supporters` 는 셸 안. 자체 4탭 서브 네비는 <md 하단 탭바(중앙 홈 FAB 포함) · md+ 헤더 아래 상단 세그먼트(홈 FAB 없음 — 사이드바가 홈 담당). 한 파일(`*Nav.tsx`)이 두 형태를 export.
 
 ---
 
@@ -107,7 +107,7 @@ Manna = 내 그룹 · 승인 대기 · 내 걸음 · 이번 주. MFH 는 **"오�
 | b ✅ | 라우트 그룹 `app/(app)/` 이동 + `AppShell`(좌 레일/사이드바 · 우 패널 자리) + `SideNav` · `BottomNav` md 숨김 | 3단 골격(보조 패널은 자리만) |
 | c ✅ | `AsidePanel` 4섹션 + `lib/aside.ts` 서버 조회 · 홈 QT·동향 카드 `lg:hidden` | 우측 완성 |
 | d ✅ | `@tailwindcss/container-queries` + AppShell 본문 열 `@container` · 홈·일지·프로젝트·할 일·인사이트 73곳 치환(`sm:`/`min-[740px]:` → `@xl:` 576 · `lg:` → `@4xl:` 896). `<Page>` 래퍼는 도입 안 함 | iPad 가로 본문 최적화 |
-| e | 회계·후원자 서브 네비 md+ 상단 세그먼트 · 나머지 페이지 폭 치환 | 마무리 |
+| e ✅ | 회계·후원자 4탭 → md+ 상단 세그먼트(`AccountingSegments`/`SupportersSegments`, 하단 탭바 `md:hidden`) · bible·qt·calendar·photos·portfolio·accounting·supporters 75곳 치환(`md:` → `@2xl:` 672 · `min-[480px]:` → `@md:` 448 추가) | 마무리 |
 
 각 단계 끝에 `npx tsc --noEmit` + `npm run build`, 실기기(iPad 가로·데스크탑) 확인 후 다음 단계.
 

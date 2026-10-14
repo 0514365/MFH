@@ -296,7 +296,7 @@ export default function TransactionList({
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
-            className={`${cbCls} md:hidden`}
+            className={`${cbCls} @2xl:hidden`}
             checked={allChecked}
             onChange={toggleAllVisible}
             aria-label="전체 선택"
@@ -382,7 +382,7 @@ export default function TransactionList({
           placeholder="이름 검색"
           className={`${ctl} min-w-[120px] flex-1`}
         />
-        <div className="flex h-8 items-center gap-1 md:hidden">
+        <div className="flex h-8 items-center gap-1 @2xl:hidden">
           <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className={ctl}>
             <option value="date">날짜순</option>
             <option value="amount">금액순</option>
@@ -397,13 +397,13 @@ export default function TransactionList({
           </button>
         </div>
         {/* 기간 — 시작·종료(날짜 범위) */}
-        <div className="flex w-full items-center gap-1.5 sm:w-auto">
+        <div className="flex w-full items-center gap-1.5 @xl:w-auto">
           <span className="text-[11px] text-faint">기간</span>
           <input
             type="date"
             value={fFrom}
             onChange={(e) => setFFrom(e.target.value)}
-            className={`${ctl} flex-1 sm:flex-none`}
+            className={`${ctl} flex-1 @xl:flex-none`}
             aria-label="시작일"
           />
           <span className="text-faint">~</span>
@@ -411,7 +411,7 @@ export default function TransactionList({
             type="date"
             value={fTo}
             onChange={(e) => setFTo(e.target.value)}
-            className={`${ctl} flex-1 sm:flex-none`}
+            className={`${ctl} flex-1 @xl:flex-none`}
             aria-label="종료일"
           />
         </div>
@@ -510,7 +510,7 @@ export default function TransactionList({
       ) : (
         <>
           {/* 데스크탑 — 월별 그룹 테이블 */}
-          <div className="hidden overflow-hidden rounded-2xl border border-line md:block">
+          <div className="hidden overflow-hidden rounded-2xl border border-line @2xl:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line bg-surface-subtle text-center text-[13px] font-medium text-muted">
@@ -663,7 +663,7 @@ export default function TransactionList({
           </div>
 
           {/* 모바일 — 월별 그룹 카드 */}
-          <div className="space-y-4 md:hidden">
+          <div className="space-y-4 @2xl:hidden">
             {groups.map((g) => {
               const isCollapsed = collapsed.has(g.key)
               return (

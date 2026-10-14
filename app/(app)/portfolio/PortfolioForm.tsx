@@ -137,8 +137,8 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
               aria-label="공개 페이지 보기"
               className="flex-shrink-0 rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-soft"
             >
-              <span className="min-[480px]:hidden">페이지 ↗</span>
-              <span className="hidden min-[480px]:inline">공개 페이지 ↗</span>
+              <span className="@md:hidden">페이지 ↗</span>
+              <span className="hidden @md:inline">공개 페이지 ↗</span>
             </a>
           )}
           <button

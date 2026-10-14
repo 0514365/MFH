@@ -296,7 +296,7 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
       )}
 
       {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 text-center text-[11px] font-semibold md:text-xs">
+      <div className="grid grid-cols-7 text-center text-[11px] font-semibold @2xl:text-xs">
         {DOW_LABELS.map((d, i) => (
           <div key={d} className={`py-1.5 ${i === 0 ? 'text-accent' : 'text-faint'}`}>
             {d}
@@ -325,12 +325,12 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
                   type="button"
                   key={c.key}
                   onClick={() => setSelected(c.key)}
-                  className={`flex min-h-[60px] flex-col items-center gap-1 py-1.5 transition md:min-h-[72px] ${
+                  className={`flex min-h-[60px] flex-col items-center gap-1 py-1.5 transition @2xl:min-h-[72px] ${
                     ci > 0 ? 'border-l border-line' : ''
                   } ${isSel && !isToday ? 'bg-primary-soft' : ''} ${!c.inMonth ? 'bg-surface-subtle/40' : ''}`}
                 >
                   <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold md:text-sm ${numColor} ${
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold @2xl:text-sm ${numColor} ${
                       isToday ? 'bg-accent' : isSel ? 'ring-1 ring-ink' : ''
                     }`}
                   >
@@ -432,14 +432,14 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
                     {it.time && <span className="mt-0.5 block text-[11px] text-muted">{fmtTime(it.time)}</span>}
                   </span>
                   <span
-                    className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold sm:inline ${statusBadgeCls(
+                    className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold @xl:inline ${statusBadgeCls(
                       it.status,
                     )}`}
                   >
                     {STATUS_META[normalizeStatus(it.status)].label}
                   </span>
                   {it.category && (
-                    <span className="hidden shrink-0 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] text-muted sm:inline">
+                    <span className="hidden shrink-0 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] text-muted @xl:inline">
                       {it.category}
                     </span>
                   )}

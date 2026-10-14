@@ -38,9 +38,9 @@ const PRIMARY_BTN = 'rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold t
 export default function FinderSheet({ open, tab, ver, current, onTab, onClose, onGo }: Props) {
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 min-[740px]:items-center" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 @xl:items-center" onClick={onClose} role="dialog" aria-modal="true">
       <div
-        className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-paper shadow-2xl min-[740px]:max-h-[85vh] min-[740px]:rounded-3xl"
+        className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-paper shadow-2xl @xl:max-h-[85vh] @xl:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 상단: 닫기 + 탭 */}

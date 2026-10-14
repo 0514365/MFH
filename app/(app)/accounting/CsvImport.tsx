@@ -67,7 +67,7 @@ export default function CsvImport({ options }: { options: AcctOptions }) {
   }
 
   return (
-    <section className="mb-4 rounded-2xl border border-line bg-surface p-4 md:p-5">
+    <section className="mb-4 rounded-2xl border border-line bg-surface p-4 @2xl:p-5">
       <div className="mb-3 flex items-center justify-between">
         <div className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
           CSV 일괄입력

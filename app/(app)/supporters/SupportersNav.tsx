@@ -1,4 +1,5 @@
 'use client'
+// MFH-SUPPORTERS-NAV-V3 — md 이상 하단 탭바 숨김 + SupportersSegments(상단 세그먼트) export(셸 e 단계).
 // MFH-SUPPORTERS-NAV-V2
 // 후원자 브랜치 전용 하단 탭바 — 5버튼: [현황][명단] [홈(중앙·돌출)] [등록][분석].
 // 중앙 홈 = 마룬 원형 FAB(탭바 위로 돌출) + 흰 집 아이콘, 라벨 없음 — 메인 홈 BottomNav 와 동일 패턴.
@@ -133,12 +134,12 @@ export default function SupportersNav() {
     <>
       {/* fixed 탭바 높이만큼 스페이서(safe-area 포함) */}
       <div
-        className="h-[68px]"
+        className="h-[68px] md:hidden"
         style={{ height: 'calc(68px + env(safe-area-inset-bottom))' }}
         aria-hidden="true"
       />
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface md:hidden"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 6px)' }}
       >
         <ul className="mx-auto flex max-w-md items-end justify-around px-2 pt-1.5">
@@ -161,5 +162,34 @@ export default function SupportersNav() {
         </ul>
       </nav>
     </>
+  )
+}
+
+// md 이상(셸 사이드바 있음): 같은 4탭을 헤더 아래 상단 세그먼트로. 중앙 홈 FAB 는 없음(사이드바가 홈 담당). <md 숨김.
+export function SupportersSegments() {
+  const pathname = usePathname() ?? ''
+  const tabs = [...LEFT_TABS, ...RIGHT_TABS]
+  return (
+    <nav aria-label="Supporters 섹션" className="mb-4 hidden md:block">
+      <ul className="flex gap-1 rounded-xl bg-surface-subtle p-1">
+        {tabs.map((tab) => {
+          const active = isActive(pathname, tab.href)
+          return (
+            <li key={tab.href} className="flex-1">
+              <Link
+                href={tab.href}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-semibold transition ${
+                  active ? 'bg-surface text-primary shadow-soft' : 'text-muted hover:text-ink'
+                }`}
+              >
+                <span className="[&>svg]:h-[18px] [&>svg]:w-[18px]">{tab.icon}</span>
+                {tab.label}
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </nav>
   )
 }

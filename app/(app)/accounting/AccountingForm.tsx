@@ -196,7 +196,7 @@ export default function AccountingForm({
   return (
     <div>
       {/* 입력 / 수정 폼 */}
-      <section className="rounded-2xl border border-line bg-surface p-4 md:p-5">
+      <section className="rounded-2xl border border-line bg-surface p-4 @2xl:p-5">
         <div className="mb-3 flex items-center justify-between">
           <div className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
             {editingId ? 'Edit entry · 수정 중' : 'New entry'}
@@ -212,9 +212,9 @@ export default function AccountingForm({
           )}
         </div>
 
-        <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-end md:gap-2">
+        <div className="flex flex-col gap-2.5 @2xl:flex-row @2xl:flex-wrap @2xl:items-end @2xl:gap-2">
           {/* 구분 토글 */}
-          <div className="md:w-[92px] md:shrink-0">
+          <div className="@2xl:w-[92px] @2xl:shrink-0">
             <label className={labelCls}>구분</label>
             <div className="flex h-9 overflow-hidden rounded-lg border border-line text-sm">
               <button
@@ -241,7 +241,7 @@ export default function AccountingForm({
           </div>
 
           {/* 날짜 — 표시는 yyyy-mm-dd 고정(OS 로캘 무관), 네이티브 피커는 투명 오버레이로 */}
-          <div className="md:w-[130px] md:shrink-0">
+          <div className="@2xl:w-[130px] @2xl:shrink-0">
             <label className={labelCls}>날짜</label>
             <div className="relative">
               <div className={`${inp} flex items-center`} aria-hidden="true">
@@ -259,7 +259,7 @@ export default function AccountingForm({
           </div>
 
           {/* 항목 */}
-          <div className="md:w-[104px] md:shrink-0">
+          <div className="@2xl:w-[104px] @2xl:shrink-0">
             <label className={labelCls}>항목</label>
             <select value={itemId} onChange={(e) => setItemId(e.target.value)} className={inp}>
               <option value="">선택</option>
@@ -276,7 +276,7 @@ export default function AccountingForm({
           </div>
 
           {/* 이름 (후원금이면 후원자 콤보 + 자유입력) */}
-          <div className="md:min-w-0 md:flex-1">
+          <div className="@2xl:min-w-0 @2xl:flex-1">
             <label className={labelCls}>적요{isDonation ? ' · 후원자' : ''}</label>
             <input
               list={isDonation ? 'acct-sup-list' : undefined}
@@ -295,10 +295,10 @@ export default function AccountingForm({
           </div>
 
           {/* 적요까지 1행, 통화부터 2행 — 데스크탑 강제 줄바꿈 */}
-          <div className="hidden basis-full md:block" aria-hidden="true" />
+          <div className="hidden basis-full @2xl:block" aria-hidden="true" />
 
           {/* 통화 */}
-          <div className="md:w-[78px] md:shrink-0">
+          <div className="@2xl:w-[78px] @2xl:shrink-0">
             <label className={labelCls}>통화</label>
             <select
               value={currency}
@@ -312,7 +312,7 @@ export default function AccountingForm({
           </div>
 
           {/* 금액(현지) */}
-          <div className="md:w-[120px] md:shrink-0">
+          <div className="@2xl:w-[120px] @2xl:shrink-0">
             <label className={labelCls}>금액</label>
             <input
               type="text"
@@ -324,7 +324,7 @@ export default function AccountingForm({
           </div>
 
           {/* 환율 — 천단위 쉼표 표시(raw 저장) */}
-          <div className="md:w-[88px] md:shrink-0">
+          <div className="@2xl:w-[88px] @2xl:shrink-0">
             <label className={labelCls}>환율</label>
             <input
               type="text"
@@ -337,7 +337,7 @@ export default function AccountingForm({
           </div>
 
           {/* 환산(USD, 자동) */}
-          <div className="md:w-[112px] md:shrink-0">
+          <div className="@2xl:w-[112px] @2xl:shrink-0">
             <label className={labelCls}>환산 $</label>
             <div className="flex h-9 items-center justify-end rounded-lg border border-dashed border-line bg-surface-subtle px-2 text-sm text-muted">
               {amountUsd
@@ -347,7 +347,7 @@ export default function AccountingForm({
           </div>
 
           {/* 계좌 */}
-          <div className="md:w-[140px] md:shrink-0">
+          <div className="@2xl:w-[140px] @2xl:shrink-0">
             <label className={labelCls}>{gubun === '수입' ? '입금계좌' : '지불계좌'}</label>
             <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={inp}>
               <option value="">선택</option>
@@ -361,7 +361,7 @@ export default function AccountingForm({
 
           {/* 후원자 연결 — 후원 항목일 때, 적요명으로 자동 연결되며 수동 변경 가능 */}
           {isDonation && (
-            <div className="md:min-w-0 md:flex-1">
+            <div className="@2xl:min-w-0 @2xl:flex-1">
               <label className={labelCls}>후원자 연결</label>
               <select
                 value={supporterId}
@@ -379,7 +379,7 @@ export default function AccountingForm({
           )}
 
           {/* 저장 / 수정 */}
-          <div className="md:w-[72px] md:shrink-0">
+          <div className="@2xl:w-[72px] @2xl:shrink-0">
             <button
               type="button"
               onClick={onSave}
@@ -446,7 +446,7 @@ export default function AccountingForm({
                       >
                         {fmtUsd(r.amountUsd)}
                       </span>
-                      <span className="hidden text-[11px] text-faint sm:inline">{r.date ?? ''}</span>
+                      <span className="hidden text-[11px] text-faint @xl:inline">{r.date ?? ''}</span>
                     </div>
                   </button>
                 </li>

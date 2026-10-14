@@ -338,7 +338,7 @@ export default function PhotoGalleryClient({
                 <span className="text-[17px] font-semibold tracking-tight text-ink">{cat}</span>
                 <span className="text-[12px] font-medium text-muted">{list.length}</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-3 gap-2 @xl:grid-cols-4">
                 {list.map((p) => {
                   const on = selected.has(p.path)
                   const badge = SOURCE_CFG[p.source].label

@@ -77,7 +77,7 @@ export default async function BiblePage() {
   const lastDate = days.length ? days[days.length - 1].read_date : plan.end_date
 
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8 min-[740px]:max-w-2xl">
+    <main className="app-theme mx-auto max-w-md px-5 pb-8 @xl:max-w-2xl">
       <PageHeader title="성경통독" action={manageAction} />
 
       {/* 진행 요약 — 홈 주제 hero 와 같은 마룬 그라데이션 */}

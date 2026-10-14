@@ -87,7 +87,7 @@ export default function SupportersList({ supporters, photoUrls }: Props) {
           조건에 맞는 후원자가 없습니다.
         </p>
       ) : (
-        <ul className="space-y-3 min-[740px]:grid min-[740px]:grid-cols-2 min-[740px]:gap-3 min-[740px]:space-y-0">
+        <ul className="space-y-3 @xl:grid @xl:grid-cols-2 @xl:gap-3 @xl:space-y-0">
           {filtered.map((s) => {
             const age = ageFromBirth(s.birth_date)
             const meta = [s.affiliation, s.role, s.region, age != null ? `${age}세` : null]

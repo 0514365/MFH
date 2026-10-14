@@ -50,7 +50,7 @@ export default async function SupportersSummaryPage() {
   return (
     <>
       {supporters.length > 0 && (
-        <div className="mb-4 grid grid-cols-2 gap-2.5 md:grid-cols-4">
+        <div className="mb-4 grid grid-cols-2 gap-2.5 @2xl:grid-cols-4">
           <div className="rounded-2xl bg-surface-subtle p-3.5">
             <div className="text-[11px] text-muted">후원자</div>
             <div className="mt-1 font-display text-[20px] font-bold text-ink">

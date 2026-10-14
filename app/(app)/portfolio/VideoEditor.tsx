@@ -413,7 +413,7 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
 
       {/* 영상 추가 폼 */}
       <div className="mb-4 rounded-md border border-line bg-surface-subtle p-3">
-        <div className="mb-2 grid grid-cols-1 gap-2 min-[740px]:grid-cols-[1fr_120px]">
+        <div className="mb-2 grid grid-cols-1 gap-2 @xl:grid-cols-[1fr_120px]">
           <select
             value={fCat}
             onChange={(e) => setFCat(e.target.value)}
@@ -542,7 +542,7 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
 
                 {editing && (
                   <div className="mt-2 border-t border-line pt-2">
-                    <div className="mb-2 grid grid-cols-1 gap-2 min-[740px]:grid-cols-[1fr_120px]">
+                    <div className="mb-2 grid grid-cols-1 gap-2 @xl:grid-cols-[1fr_120px]">
                       <select
                         value={eCat}
                         onChange={(e) => setECat(e.target.value)}

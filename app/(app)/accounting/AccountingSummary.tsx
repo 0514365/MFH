@@ -36,7 +36,7 @@ export default function AccountingSummary({
   const [adding, setAdding] = useState(false)
 
   return (
-    <section className="mb-5 grid gap-3 md:grid-cols-2">
+    <section className="mb-5 grid gap-3 @2xl:grid-cols-2">
       {/* 이번달 */}
       <div className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <div className="mb-3 flex items-center justify-between">

@@ -184,7 +184,7 @@ export default function HistoryEditor({ initial, userId }: Props) {
               key={r.id ?? `new-${i}`}
               className="rounded-md border border-line bg-surface-subtle p-3"
             >
-              <div className="grid grid-cols-1 gap-2 min-[740px]:grid-cols-[1fr_2fr]">
+              <div className="grid grid-cols-1 gap-2 @xl:grid-cols-[1fr_2fr]">
                 <input
                   type="text"
                   value={r.period_text}

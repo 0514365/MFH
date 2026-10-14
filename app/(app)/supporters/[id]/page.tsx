@@ -99,7 +99,7 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
   const hasInfo = s.birth_date || s.phone || s.email || s.sns || s.referrer || s.first_met_date
 
   return (
-    <div className="-mx-4 pb-6 md:-mx-6">
+    <div className="-mx-4 pb-6 @2xl:-mx-6">
       <div className="mx-auto max-w-md">
       {/* 프로필 */}
       <section className="flex flex-col items-center px-5 pb-6 pt-6">

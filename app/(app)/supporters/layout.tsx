@@ -1,3 +1,4 @@
+// MFH-SUPPORTERS-LAYOUT-V2 — md 이상 상단 세그먼트 네비(셸 e 단계). 본문 폭은 컨테이너 쿼리(@2xl).
 // MFH-SUPPORTERS-LAYOUT-V1
 // 후원자 브랜치 공통 셸 — 재정 관리자(부부) 가드 + 공통 헤더(뒤로 · 중앙 섹션타이틀 · 메인홈·회계 링크) + 하단 네비(4탭 + 중앙 홈).
 // 하위 페이지(현황·명단·등록·분석·상세·수정)는 자체 헤더 없이 콘텐츠만 반환한다.
@@ -6,7 +7,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { canManageFinance } from '@/lib/members'
 import SupportersBack from './SupportersBack'
-import SupportersNav from './SupportersNav'
+import SupportersNav, { SupportersSegments } from './SupportersNav'
 import SupportersTitle from './SupportersTitle'
 import '@/app/p/portfolio-theme.css'
 
@@ -24,9 +25,9 @@ export default async function SupportersLayout({ children }: { children: React.R
   if (!canManageFinance(user.id)) redirect('/')
 
   return (
-    <main className="app-theme mx-auto max-w-md px-4 pb-4 pt-2 md:max-w-5xl md:px-6">
+    <main className="app-theme mx-auto max-w-md px-4 pb-4 pt-2 @2xl:max-w-5xl @2xl:px-6">
       <header
-        className="sticky top-0 z-30 -mx-4 mb-4 border-b border-line px-4 py-3 md:-mx-6 md:px-6"
+        className="sticky top-0 z-30 -mx-4 mb-4 border-b border-line px-4 py-3 @2xl:-mx-6 @2xl:px-6"
         style={{ background: 'var(--paper)' }}
       >
         <div className="relative flex items-center">
@@ -80,6 +81,9 @@ export default async function SupportersLayout({ children }: { children: React.R
           </div>
         </div>
       </header>
+
+      {/* md 이상: 상단 세그먼트(하단 탭바 대체) */}
+      <SupportersSegments />
 
       {children}
 

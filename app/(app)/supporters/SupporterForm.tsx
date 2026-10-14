@@ -197,7 +197,7 @@ export default function SupporterForm({ mode, initial }: Props) {
     'w-full rounded-xl border border-line bg-surface px-4 py-3.5 text-sm text-ink outline-none focus:border-primary'
 
   return (
-    <div className="mx-auto max-w-md sm:max-w-2xl">
+    <div className="mx-auto max-w-md @xl:max-w-2xl">
       <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
         {/* 사진 */}
         <div className="flex flex-col items-center">
