@@ -83,7 +83,7 @@ async function main() {
     sb.from('acct_accounts').select('id, name, currency, card_last4').eq('is_active', true).order('sort_order'),
     sb.from('merchant_rules').select('merchant, item_id, name, account_id'),
   ])
-  // 계좌 자동 지정 — 1순위 카드 끝자리(acct_accounts.card_last4: 4956·7697=신용카드 계좌, 1568=Ficohsa(달러) 직불),
+  // 계좌 자동 지정 — 1순위 카드 끝자리(acct_accounts.card_last4: 4956·7697=신용카드 계좌, 3070=Ficohsa(달러) 직불),
   // 2순위 통화 기본계좌(HNL/USD). KRW 결제는 계좌 미지정(앱에서 선택).
   const accByCard = new Map<string, string>()
   const accByCur = new Map<string, string>()
