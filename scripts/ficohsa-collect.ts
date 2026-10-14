@@ -1,4 +1,4 @@
-// MFH-FICOHSA-COLLECT-V1
+// MFH-FICOHSA-COLLECT-V2 — 카드 끝자리 → 계좌 자동 지정(patch104)
 // Mac 메시지(chat.db)의 Ficohsa 카드 거래 문자 → card_tx_inbox(승인대기) 수집.
 //   · 대상: handle 'FICOHSA', 본문 'FICO: Transaccion TC xxxx*****NNNN por HNL|USD|KRW 1,234.56 en 상점, si no la reconoce …'
 //   · 범위: 마지막 수집(card_tx_inbox.max(sms_at)) 이후. 첫 실행은 START_DATE(기본 2026-09-01) 이후.
@@ -80,13 +80,17 @@ async function main() {
 
   // 옵션: 계좌(통화 기본값) · 상점 사전
   const [{ data: accounts }, { data: rules }] = await Promise.all([
-    sb.from('acct_accounts').select('id, name, currency').eq('is_active', true).order('sort_order'),
+    sb.from('acct_accounts').select('id, name, currency, card_last4').eq('is_active', true).order('sort_order'),
     sb.from('merchant_rules').select('merchant, item_id, name, account_id'),
   ])
-  // 통화 기본계좌 — 카드 결제라 HNL→Ficohsa(렘피라)·USD→Ficohsa(달러). KRW 결제(해외 원화 청구)는 계좌 미지정(앱에서 선택).
+  // 계좌 자동 지정 — 1순위 카드 끝자리(acct_accounts.card_last4: 4956·7697=신용카드 계좌, 1568=Ficohsa(달러) 직불),
+  // 2순위 통화 기본계좌(HNL/USD). KRW 결제는 계좌 미지정(앱에서 선택).
+  const accByCard = new Map<string, string>()
   const accByCur = new Map<string, string>()
-  for (const a of accounts ?? [])
+  for (const a of accounts ?? []) {
+    if (a.card_last4) accByCard.set(String(a.card_last4), a.id)
     if ((a.currency === 'HNL' || a.currency === 'USD') && !accByCur.has(a.currency)) accByCur.set(a.currency, a.id)
+  }
   const ruleOf = new Map<string, { item_id: string; name: string | null; account_id: string | null }>()
   for (const r of rules ?? []) ruleOf.set(r.merchant, r)
 
@@ -114,7 +118,7 @@ async function main() {
       status: 'pending',
       suggested_item_id: rule?.item_id ?? null,
       suggested_name: rule?.name ?? null,
-      suggested_account_id: rule?.account_id ?? accByCur.get(cur) ?? null,
+      suggested_account_id: accByCard.get(card) ?? rule?.account_id ?? accByCur.get(cur) ?? null,
     })
   }
   const withRule = rows.filter((r) => r.suggested_item_id).length

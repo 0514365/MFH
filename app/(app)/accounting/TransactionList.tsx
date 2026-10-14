@@ -1,5 +1,5 @@
 'use client'
-// MFH-ACCOUNTING-TXLIST-V3
+// MFH-ACCOUNTING-TXLIST-V4 — 구분 이체(출금 → 입금) 필터·표시(patch104)
 // 거래 내역 — 월별 그룹화 + 월별 수입/지출 합계 + 필터(구분·대분류·항목·통화·계좌·기간·이름) + 정렬(날짜·금액).
 // 행 클릭 → 수정(onEdit, 기록 페이지로 이동) · 행별 삭제 + 다중선택 → 일괄 삭제 / 통합 수정(항목·계좌). 노션(SoT) read, 변경은 server action.
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -30,7 +30,7 @@ function monthLabel(key: string): string {
 }
 
 type SortKey = 'date' | 'amount'
-type GubunFilter = '전체' | '수입' | '지출'
+type GubunFilter = '전체' | '수입' | '지출' | '이체'
 
 const ctl =
   'h-8 rounded-lg border border-line bg-surface px-2 text-xs text-ink outline-none transition focus:border-primary'
@@ -104,7 +104,7 @@ export default function TransactionList({
     const filtered = recent.filter((r) => {
       if (fGubun !== '전체' && r.gubun !== fGubun) return false
       if (fItemId && r.itemId !== fItemId) return false
-      if (fAccountId && r.accountId !== fAccountId) return false
+      if (fAccountId && r.accountId !== fAccountId && r.toAccountId !== fAccountId) return false
       if (fCat && (!r.itemId || catOf.get(r.itemId) !== fCat)) return false
       if (fCur && r.currency !== fCur) return false
       if (fFrom && (r.date ?? '') < fFrom) return false
@@ -320,7 +320,7 @@ export default function TransactionList({
       {/* 필터 바 */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="flex h-8 overflow-hidden rounded-lg border border-line text-xs">
-          {(['전체', '수입', '지출'] as const).map((g) => (
+          {(['전체', '수입', '지출', '이체'] as const).map((g) => (
             <button
               key={g}
               type="button"
@@ -334,7 +334,9 @@ export default function TransactionList({
                     ? 'bg-emerald-100 font-bold text-emerald-700'
                     : g === '지출'
                       ? 'bg-red-100 font-bold text-red-700'
-                      : 'bg-primary-soft font-bold text-primary'
+                      : g === '이체'
+                        ? 'bg-sky-100 font-bold text-sky-700'
+                        : 'bg-primary-soft font-bold text-primary'
                   : 'text-faint'
               }`}
             >
@@ -600,7 +602,9 @@ export default function TransactionList({
                                   ? 'bg-emerald-50 text-emerald-700'
                                   : r.gubun === '지출'
                                     ? 'bg-red-50 text-red-700'
-                                    : 'bg-surface-subtle text-faint'
+                                    : r.gubun === '이체'
+                                      ? 'bg-sky-50 text-sky-700'
+                                      : 'bg-surface-subtle text-faint'
                               }`}
                             >
                               {r.gubun ?? '—'}
@@ -613,7 +617,11 @@ export default function TransactionList({
                                 {catOf.get(r.itemId)}
                               </div>
                             )}
-                            {r.itemId ? (nameOf.get(r.itemId) ?? '—') : '—'}
+                            {r.gubun === '이체'
+                              ? `${nameOf.get(r.accountId ?? '') ?? '?'} → ${nameOf.get(r.toAccountId ?? '') ?? '?'}`
+                              : r.itemId
+                                ? (nameOf.get(r.itemId) ?? '—')
+                                : '—'}
                           </td>
                           <td className="px-2 py-2 text-ink">{r.name ?? '—'}</td>
                           <td className="px-2 py-2 text-right font-display text-muted">
@@ -717,7 +725,9 @@ export default function TransactionList({
                                         ? 'bg-emerald-50 text-emerald-700'
                                         : r.gubun === '지출'
                                           ? 'bg-red-50 text-red-700'
-                                          : 'bg-surface-subtle text-faint'
+                                          : r.gubun === '이체'
+                                            ? 'bg-sky-50 text-sky-700'
+                                            : 'bg-surface-subtle text-faint'
                                     }`}
                                   >
                                     {r.gubun ?? '—'}
@@ -729,12 +739,16 @@ export default function TransactionList({
                                   )}
                                 </div>
                                 <div className="mt-1 text-sm text-ink">
-                                  {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
+                                  {r.gubun === '이체'
+                                    ? `${nameOf.get(r.accountId ?? '') ?? '?'} → ${nameOf.get(r.toAccountId ?? '') ?? '?'}`
+                                    : r.itemId
+                                      ? (nameOf.get(r.itemId) ?? '')
+                                      : ''}
                                   {r.name ? ` · ${r.name}` : ''}
                                 </div>
                                 <div className="mt-0.5 text-xs text-faint">
                                   {r.date ?? ''}
-                                  {r.accountId ? ` · ${nameOf.get(r.accountId) ?? ''}` : ''}
+                                  {r.gubun !== '이체' && r.accountId ? ` · ${nameOf.get(r.accountId) ?? ''}` : ''}
                                 </div>
                               </div>
                             </div>

@@ -1,4 +1,4 @@
-// MFH-ACCOUNTING-DB-V1
+// MFH-ACCOUNTING-DB-V2 — 이체(출금→입금계좌) 지원(patch104)
 // 회계 장부 데이터 계층(Supabase SoT) — 서버 전용(서버 컴포넌트·server action 에서만 import).
 // 2026-10 노션 A안 → Supabase 이전. 함수 이름·시그니처는 구 lib/notion.ts 와 동일하게 유지(호출부 import 경로만 교체).
 // 테이블: acct_items(항목) · acct_accounts(계좌) · acct_inout(거래) — supabase/patch102-accounting.sql.
@@ -74,14 +74,22 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
       .eq('is_active', true)
       .order('sort_order')
       .order('name'),
-    sb.from('acct_inout').select('gubun, account_id, amount_usd').not('account_id', 'is', null),
+    sb.from('acct_inout').select('gubun, account_id, to_account_id, amount_usd'),
   ])
   if (acc.error || tx.error) return null
+  // 수입 +계좌 · 지출 −계좌 · 이체 −출금계좌 +입금계좌
   const sum = new Map<string, number>()
+  const add = (id: string | null, v: number) => {
+    if (id) sum.set(id, (sum.get(id) ?? 0) + v)
+  }
   for (const t of tx.data ?? []) {
-    if (!t.account_id) continue
     const amt = num(t.amount_usd) ?? 0
-    sum.set(t.account_id, (sum.get(t.account_id) ?? 0) + (t.gubun === '수입' ? amt : -amt))
+    if (t.gubun === '수입') add(t.account_id, amt)
+    else if (t.gubun === '지출') add(t.account_id, -amt)
+    else if (t.gubun === '이체') {
+      add(t.account_id, -amt)
+      add(t.to_account_id, amt)
+    }
   }
   return (acc.data ?? []).map((a) => ({
     id: a.id,
@@ -97,7 +105,7 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
   let q = sb
     .from('acct_inout')
     .select(
-      'id, gubun, date, name, currency, principal, rate, amount_usd, item_id, account_id, supporter_id, created_at',
+      'id, gubun, date, name, currency, principal, rate, amount_usd, item_id, account_id, to_account_id, supporter_id, created_at',
     )
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
@@ -116,6 +124,7 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
       amountUsd: num(r.amount_usd),
       itemId: r.item_id,
       accountId: r.account_id,
+      toAccountId: r.to_account_id,
       supporterId: r.supporter_id,
       createdTime: r.created_at,
     }),
@@ -125,17 +134,19 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
 // ===== write =====
 
 function toRow(p: InoutInput) {
+  const transfer = p.gubun === '이체'
   return {
     gubun: p.gubun,
     date: p.date,
-    item_id: p.itemId,
-    name: p.name || '(무제)',
+    item_id: transfer ? null : p.itemId,
+    name: p.name || (transfer ? '이체' : '(무제)'),
     currency: p.currency,
     principal: p.principal,
     rate: p.rate,
     amount_usd: p.amountUsd,
     account_id: p.accountId ?? null,
-    supporter_id: p.supporterId ?? null,
+    to_account_id: transfer ? (p.toAccountId ?? null) : null,
+    supporter_id: transfer ? null : (p.supporterId ?? null),
   }
 }
 

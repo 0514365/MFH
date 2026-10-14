@@ -3,7 +3,7 @@
 // 2026-10 노션 → Supabase 이전 시 lib/notion.ts 의 타입을 그대로 옮김(이름·필드 호환).
 
 export type Currency = 'KRW' | 'USD' | 'HNL'
-export type Gubun = '수입' | '지출'
+export type Gubun = '수입' | '지출' | '이체' // 이체 = 출금계좌(accountId) → 입금계좌(toAccountId), 항목 없음, 집계 제외
 export type InoutSource = 'manual' | 'csv' | 'sms' | 'notion'
 
 export type AcctOption = { id: string; name: string; currency?: string | null; category?: string | null }
@@ -24,13 +24,14 @@ export type AccountInput = {
 export type InoutInput = {
   gubun: Gubun
   date: string // YYYY-MM-DD
-  itemId: string // 항목 id
+  itemId: string // 항목 id(이체는 '')
   name: string
   currency: Currency
   principal: number // 원금(현지통화)
   rate: number // 환율(1 USD당 현지통화)
   amountUsd: number // 금액(USD) = 원금 ÷ 환율
-  accountId?: string | null
+  accountId?: string | null // 수입=입금계좌 · 지출=지불계좌 · 이체=출금계좌
+  toAccountId?: string | null // 이체 입금계좌
   supporterId?: string | null
   source?: InoutSource // 미지정 = manual
 }
@@ -46,6 +47,7 @@ export type InoutRow = {
   amountUsd: number | null
   itemId: string | null
   accountId: string | null
+  toAccountId: string | null // 이체 입금계좌
   supporterId: string | null
   createdTime: string | null // 입력 시각 — '최근 입력' 정렬용
 }

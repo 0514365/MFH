@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V4 — 구분 '이체'(출금계좌 → 입금계좌, 항목 없음) 추가(patch104)
 // MFH-ACCOUNTING-FORM-V3
 // 회계 입력·수정·삭제 — 데스크탑 가로(스프레드시트)·모바일 세로. 조건부 콤보·환산 자동·후원자 자동연결.
 // 입력 폼 + '최근 입력' 5건(입력일순, 행 클릭→폼 수정, 수정 중엔 숨김). 전체 내역은 /accounting/ledger.
@@ -62,6 +63,7 @@ export default function AccountingForm({
   const nameOf = useMemo(() => {
     const m = new Map<string, string>()
     for (const i of [...options.items['수입'], ...options.items['지출']]) m.set(i.id, i.name)
+    for (const a of options.accounts) m.set(a.id, a.name)
     return m
   }, [options])
   // 통화 매칭 기본계좌(자산 DB 통화 select) — 없으면 빈 선택.
@@ -69,7 +71,9 @@ export default function AccountingForm({
     (cur: string) => options.accounts.find((a) => a.currency === cur)?.id ?? '',
     [options],
   )
-  const [gubun, setGubun] = useState<'수입' | '지출'>('수입')
+  const [gubun, setGubun] = useState<'수입' | '지출' | '이체'>('수입')
+  const [toAccountId, setToAccountId] = useState('')
+  const isTransfer = gubun === '이체'
   const [date, setDate] = useState(todayLocal)
   const [itemId, setItemId] = useState('')
   const [name, setName] = useState('')
@@ -88,7 +92,7 @@ export default function AccountingForm({
     [recent],
   )
 
-  const items = options.items[gubun]
+  const items = isTransfer ? [] : options.items[gubun]
   // 후원자 콤보·자동연결 대상 — 항목의 대분류가 '후원'(정기·일시후원·목적헌금)일 때.
   const isDonation = useMemo(() => {
     if (gubun !== '수입' || !itemId) return false
@@ -110,6 +114,7 @@ export default function AccountingForm({
     setPrincipal('')
     setRate(DEFAULT_RATE[currency])
     setAccountId(accountByCurrency(currency))
+    setToAccountId('')
     setSupporterId('')
     setErr('')
   }, [currency, accountByCurrency])
@@ -138,7 +143,8 @@ export default function AccountingForm({
 
   function startEdit(r: InoutRow) {
     setErr('')
-    setGubun(r.gubun === '지출' ? '지출' : '수입')
+    setGubun(r.gubun === '지출' ? '지출' : r.gubun === '이체' ? '이체' : '수입')
+    setToAccountId(r.toAccountId ?? '')
     setDate(r.date ?? todayLocal())
     setItemId(r.itemId ?? '')
     setName(r.name ?? '')
@@ -167,20 +173,23 @@ export default function AccountingForm({
 
   async function onSave() {
     setErr('')
-    if (!itemId) return setErr('항목을 선택하세요')
+    if (!isTransfer && !itemId) return setErr('항목을 선택하세요')
+    if (isTransfer && (!accountId || !toAccountId)) return setErr('출금계좌와 입금계좌를 선택하세요')
+    if (isTransfer && accountId === toAccountId) return setErr('출금계좌와 입금계좌가 같습니다')
     if (!principal || Number(principal) <= 0) return setErr('금액을 입력하세요')
     if (!usd && (!rate || Number(rate) <= 0)) return setErr('환율을 입력하세요')
     const payload = {
       gubun,
       date,
-      itemId,
+      itemId: isTransfer ? '' : itemId,
       name: name.trim(),
       currency,
       principal: Number(principal),
       rate: usd ? 1 : Number(rate),
       amountUsd: Math.round(amountUsd * 100) / 100,
       accountId: accountId || null,
-      supporterId: supporterId || null,
+      toAccountId: isTransfer ? toAccountId || null : null,
+      supporterId: isTransfer ? null : supporterId || null,
     }
     setSaving(true)
     const res = editingId ? await updateInout(editingId, payload) : await saveInout(payload)
@@ -214,7 +223,7 @@ export default function AccountingForm({
 
         <div className="flex flex-col gap-2.5 @2xl:flex-row @2xl:flex-wrap @2xl:items-end @2xl:gap-2">
           {/* 구분 토글 */}
-          <div className="@2xl:w-[92px] @2xl:shrink-0">
+          <div className="@2xl:w-[138px] @2xl:shrink-0">
             <label className={labelCls}>구분</label>
             <div className="flex h-9 overflow-hidden rounded-lg border border-line text-sm">
               <button
@@ -237,6 +246,17 @@ export default function AccountingForm({
               >
                 지출
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGubun('이체')
+                  setItemId('')
+                  setSupporterId('')
+                }}
+                className={`flex flex-1 items-center justify-center ${gubun === '이체' ? 'bg-sky-100 font-bold text-sky-700' : 'text-faint'}`}
+              >
+                이체
+              </button>
             </div>
           </div>
 
@@ -258,7 +278,8 @@ export default function AccountingForm({
             </div>
           </div>
 
-          {/* 항목 */}
+          {/* 항목 (이체는 없음) */}
+          {!isTransfer && (
           <div className="@2xl:w-[104px] @2xl:shrink-0">
             <label className={labelCls}>항목</label>
             <select value={itemId} onChange={(e) => setItemId(e.target.value)} className={inp}>
@@ -274,6 +295,7 @@ export default function AccountingForm({
               ))}
             </select>
           </div>
+          )}
 
           {/* 이름 (후원금이면 후원자 콤보 + 자유입력) */}
           <div className="@2xl:min-w-0 @2xl:flex-1">
@@ -282,7 +304,7 @@ export default function AccountingForm({
               list={isDonation ? 'acct-sup-list' : undefined}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={isDonation ? '후원자 (단체·무명 직접)' : ''}
+              placeholder={isDonation ? '후원자 (단체·무명 직접)' : isTransfer ? '예: 9월 카드대금 상환' : ''}
               className={inp}
             />
             {isDonation && (
@@ -346,9 +368,9 @@ export default function AccountingForm({
             </div>
           </div>
 
-          {/* 계좌 */}
+          {/* 계좌 — 수입=입금 · 지출=지불 · 이체=출금 */}
           <div className="@2xl:w-[140px] @2xl:shrink-0">
-            <label className={labelCls}>{gubun === '수입' ? '입금계좌' : '지불계좌'}</label>
+            <label className={labelCls}>{gubun === '수입' ? '입금계좌' : gubun === '이체' ? '출금계좌' : '지불계좌'}</label>
             <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={inp}>
               <option value="">선택</option>
               {options.accounts.map((a) => (
@@ -358,6 +380,23 @@ export default function AccountingForm({
               ))}
             </select>
           </div>
+
+          {/* 이체 입금계좌 */}
+          {isTransfer && (
+            <div className="@2xl:w-[140px] @2xl:shrink-0">
+              <label className={labelCls}>입금계좌</label>
+              <select value={toAccountId} onChange={(e) => setToAccountId(e.target.value)} className={inp}>
+                <option value="">선택</option>
+                {options.accounts
+                  .filter((a) => a.id !== accountId)
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
 
           {/* 후원자 연결 — 후원 항목일 때, 적요명으로 자동 연결되며 수동 변경 가능 */}
           {isDonation && (
@@ -428,13 +467,19 @@ export default function AccountingForm({
                             ? 'bg-emerald-50 text-emerald-700'
                             : r.gubun === '지출'
                               ? 'bg-red-50 text-red-700'
-                              : 'bg-surface-subtle text-faint'
+                              : r.gubun === '이체'
+                                ? 'bg-sky-50 text-sky-700'
+                                : 'bg-surface-subtle text-faint'
                         }`}
                       >
                         {r.gubun ?? '—'}
                       </span>
                       <span className="truncate text-sm text-ink">
-                        {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
+                        {r.gubun === '이체'
+                          ? `${nameOf.get(r.accountId ?? '') ?? ''} → ${nameOf.get(r.toAccountId ?? '') ?? ''}`
+                          : r.itemId
+                            ? (nameOf.get(r.itemId) ?? '')
+                            : ''}
                         {r.name ? <span className="text-muted"> · {r.name}</span> : ''}
                       </span>
                     </div>
