@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase-server';
 import type { Portfolio, PortfolioHistory, PortfolioVideo, PortfolioVideoCategory, PortfolioLetter } from '@/lib/portfolio';
 import PortfolioView from './PortfolioView';
 import PrayerCta from './PrayerCta';
-import SplashGate from '@/app/SplashGate';
+import SplashGate from '@/components/SplashGate';
 import OwnerBar from '@/components/OwnerBar';
 
 type Props = { params: Promise<{ slug: string }> };

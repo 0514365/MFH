@@ -90,3 +90,14 @@ main.bible-study-main {
     height: calc(100svh - 76px - env(safe-area-inset-bottom, 0px));
   }
 }
+/* md 이상은 하단 탭바가 없고(셸 사이드바) 본문이 셸 열 안에 있으므로 탭바 높이를 빼지 않는다. */
+@media (min-width: 768px) {
+  main.bible-study-main {
+    height: 100vh;
+  }
+  @supports (height: 100svh) {
+    main.bible-study-main {
+      height: 100svh;
+    }
+  }
+}
