@@ -62,6 +62,10 @@
 
 ## 3. 단계 b — 카드 문자 수집 + 승인대기
 
+> ✅ **2026-10-14 구현.** patch103 적용 → 상점 사전 시드 56건(`scripts/ficohsa-seed-rules.ts`) → 첫 수집 125건(2026-09-01~, 추천 104 · 새 상점 21) → `/accounting/inbox` + 기록 탭 배너 + `/api/accounting/inbox-notify`(웹푸시).
+> **수집 스케줄은 launchd 가 아니라 Claude 데스크탑 예약 작업 `ficohsa-collect-2200`(매일 22:00)** — launchd 가 띄운 프로세스는 `~/Library/CloudStorage`(Dropbox)·`chat.db` 접근이 TCC 로 거부됨(`Operation not permitted`, 실측). 기존 insight/news/qt 루틴과 같은 방식. Mac 이 꺼져 있으면 Claude 앱 다음 실행 시 수행.
+> `sms_key` = `카드끝4-YYYYMMDDHHMMSS-원금` (같은 초에 같은 카드 2건 — 학비 분할 등 — 실측 2쌍 있어 금액 포함). KRW 결제(해외 원화 청구)도 수집, 계좌는 미지정·환율은 앱에서 입력.
+
 ### b-1. 스키마 `supabase/patch103-card-inbox.sql`
 
 | 테이블 | 핵심 컬럼 |
@@ -69,11 +73,11 @@
 | `card_tx_inbox` | id · user_id · sms_key(unique, `카드끝자리-YYYYMMDDHHMMSS`) · sms_at · card_last4 · currency · principal · merchant · raw_text · status(pending/approved/ignored) · suggested_item_id · suggested_name · suggested_account_id · inout_id(승인 후) · created_at |
 | `merchant_rules` | id · user_id · merchant(unique) · item_id · name(적요) · account_id · hit_count · last_used_at |
 
-### b-2. 수집 `scripts/ficohsa-collect.ts` + launchd
+### b-2. 수집 `scripts/ficohsa-collect.ts` + 예약 작업
 
 - chat.db 조회(마지막 수집 `sms_at` 이후) → 정규식 파싱 → `merchant_rules` 조회로 추천 채움 → `card_tx_inbox` upsert(sms_key).
 - 계좌 기본값: HNL→`Ficohsa(렘피라)`, USD→`Ficohsa(달러)`(카드별 분리는 규칙으로 덮어쓰기 가능).
-- `~/Library/LaunchAgents/com.mfh.ficohsa-collect.plist` — 매일 22:00, Mac 꺼져 있으면 다음 기동 시 실행. AI 호출 없음(규칙 기반).
+- ~~launchd~~ → Claude 데스크탑 예약 작업(22:00). 스크립트 자체는 규칙 기반(AI 분류 없음).
 - 시작 기준일 2026-09-01. 그 이전 문자는 옵션 플래그로만 적재.
 
 ### b-3. 앱 `/accounting/inbox` (승인대기)
@@ -95,4 +99,4 @@
 
 | 날짜 | 결정 |
 |---|---|
-| 2026-10-14 | 장부 저장소 Supabase 이전(a) → 인박스(b) 순. 수집 매일 22:00 launchd. 환율 기본 26.5(마지막 승인값). HNL→Ficohsa(렘피라)/USD→Ficohsa(달러). 시작 2026-09-01. 노션 장부는 읽기전용 백업 보존. |
+| 2026-10-14 | 장부 저장소 Supabase 이전(a) → 인박스(b) 순. 수집 매일 22:00(Claude 예약 작업, launchd 는 TCC 로 불가). 환율 기본 26.5(마지막 승인값). HNL→Ficohsa(렘피라)/USD→Ficohsa(달러), KRW 는 미지정. 시작 2026-09-01. 노션 장부는 읽기전용 백업 보존. 인박스 진입 = 기록 탭 배너. |

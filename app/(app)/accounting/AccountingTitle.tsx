@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 const TITLES: Record<string, string> = {
   '/accounting': '회계관리',
   '/accounting/entry': '기록',
+  '/accounting/inbox': '승인대기',
   '/accounting/ledger': '거래내역',
   '/accounting/report': '분석',
 }

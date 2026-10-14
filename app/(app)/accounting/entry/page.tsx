@@ -1,16 +1,18 @@
-// MFH-ACCOUNTING-ENTRY-PAGE-V2
-// 회계 기록(기록 탭) — CSV 일괄입력 + 입력·수정 폼 + 거래 목록(편집). 셸은 ../layout.tsx 담당.
-// TODO(단계 d): 목록을 '오늘 입력분'으로 좁히고, 전체 내역은 /accounting/ledger 에서 수정 → 여기로 이동(?edit=id).
+// MFH-ACCOUNTING-ENTRY-PAGE-V3
+// 회계 기록(기록 탭) — 승인대기 배너(카드 문자) + CSV 일괄입력 + 입력·수정 폼 + 최근 입력. 셸은 ../layout.tsx 담당.
 import { getAcctOptions, getRecentInout } from '@/lib/accounting-db'
+import { getInboxPendingCount } from '@/lib/card-inbox-db'
 import AccountingForm from '../AccountingForm'
 import CsvImport from '../CsvImport'
+import InboxBanner from '../InboxBanner'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AccountingEntryPage() {
-  const [options, recent] = await Promise.all([
+  const [options, recent, pending] = await Promise.all([
     getAcctOptions(),
     getRecentInout().then((r) => r ?? []),
+    getInboxPendingCount(),
   ])
 
   if (!options) {
@@ -23,6 +25,7 @@ export default async function AccountingEntryPage() {
 
   return (
     <>
+      <InboxBanner count={pending} />
       <CsvImport options={options} />
       <AccountingForm options={options} recent={recent} />
     </>

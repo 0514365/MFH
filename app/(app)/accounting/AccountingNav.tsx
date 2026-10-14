@@ -87,6 +87,8 @@ const RIGHT_TABS: Tab[] = [
 // 활성 판정 — 정확 매칭(요약 '/accounting' 은 하위 경로에 끌려가지 않게 exact, 나머지는 prefix).
 function isActive(pathname: string, href: string): boolean {
   if (href === '/accounting') return pathname === '/accounting'
+  // 승인대기(/accounting/inbox)는 기록 탭 소속으로 표시.
+  if (href === '/accounting/entry' && pathname.startsWith('/accounting/inbox')) return true
   return pathname === href || pathname.startsWith(href + '/')
 }
 

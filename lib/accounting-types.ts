@@ -59,3 +59,26 @@ export type DonationYearly = {
 }
 
 export type ActionResult = { ok: boolean; error?: string }
+
+// ===== 카드 문자 승인대기 인박스(card_tx_inbox) =====
+export type InboxRow = {
+  id: string
+  smsKey: string
+  smsAt: string // ISO
+  cardLast4: string
+  currency: string
+  principal: number
+  merchant: string
+  suggestedItemId: string | null
+  suggestedName: string | null
+  suggestedAccountId: string | null
+}
+
+// 승인 입력 — 행 id + 사용자가 확정한 값. amount_usd 는 서버에서 principal ÷ rate 로 계산.
+export type InboxApproveInput = {
+  id: string
+  itemId: string
+  name: string
+  accountId: string | null
+  rate: number
+}
