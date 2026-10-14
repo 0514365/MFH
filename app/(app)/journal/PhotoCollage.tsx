@@ -97,13 +97,13 @@ export default function PhotoCollage({ photos, wide = false }: { photos: Collage
   return (
     <>
       {n === 1 && (
-        <Cell {...cellProps(0, wide ? 'aspect-[4/3] min-[740px]:aspect-[16/9]' : 'aspect-[4/3]')} />
+        <Cell {...cellProps(0, wide ? 'aspect-[4/3] @xl:aspect-[16/9]' : 'aspect-[4/3]')} />
       )}
 
       {n === 2 && (
         <div className="grid grid-cols-2 gap-1.5">
-          <Cell {...cellProps(0, wide ? 'aspect-square min-[740px]:aspect-[4/3]' : 'aspect-square')} />
-          <Cell {...cellProps(1, wide ? 'aspect-square min-[740px]:aspect-[4/3]' : 'aspect-square')} />
+          <Cell {...cellProps(0, wide ? 'aspect-square @xl:aspect-[4/3]' : 'aspect-square')} />
+          <Cell {...cellProps(1, wide ? 'aspect-square @xl:aspect-[4/3]' : 'aspect-square')} />
         </div>
       )}
 
@@ -116,7 +116,7 @@ export default function PhotoCollage({ photos, wide = false }: { photos: Collage
       )}
 
       {n === 4 && (
-        <div className={`grid grid-cols-2 gap-1.5 ${wide ? 'min-[740px]:grid-cols-4' : ''}`}>
+        <div className={`grid grid-cols-2 gap-1.5 ${wide ? '@xl:grid-cols-4' : ''}`}>
           {[0, 1, 2, 3].map((i) => (
             <Cell key={i} {...cellProps(i, 'aspect-square')} />
           ))}
@@ -125,12 +125,12 @@ export default function PhotoCollage({ photos, wide = false }: { photos: Collage
 
       {n >= 5 && wide && (
         // 데스크탑은 5장을 한 줄 밴드로, 모바일은 기존 2+3 배치를 6칸 그리드로 재현.
-        <div className="grid grid-cols-6 gap-1.5 min-[740px]:grid-cols-5">
-          <Cell {...cellProps(0, 'aspect-square col-span-3 min-[740px]:col-span-1')} />
-          <Cell {...cellProps(1, 'aspect-square col-span-3 min-[740px]:col-span-1')} />
-          <Cell {...cellProps(2, 'aspect-square col-span-2 min-[740px]:col-span-1')} />
-          <Cell {...cellProps(3, 'aspect-square col-span-2 min-[740px]:col-span-1')} />
-          <Cell {...cellProps(4, 'aspect-square col-span-2 min-[740px]:col-span-1')} />
+        <div className="grid grid-cols-6 gap-1.5 @xl:grid-cols-5">
+          <Cell {...cellProps(0, 'aspect-square col-span-3 @xl:col-span-1')} />
+          <Cell {...cellProps(1, 'aspect-square col-span-3 @xl:col-span-1')} />
+          <Cell {...cellProps(2, 'aspect-square col-span-2 @xl:col-span-1')} />
+          <Cell {...cellProps(3, 'aspect-square col-span-2 @xl:col-span-1')} />
+          <Cell {...cellProps(4, 'aspect-square col-span-2 @xl:col-span-1')} />
         </div>
       )}
 

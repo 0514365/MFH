@@ -154,7 +154,7 @@ export default async function JournalDetail(props: {
   })
 
   return (
-    <main className="app-theme mx-auto max-w-md pb-10 min-[740px]:max-w-5xl">
+    <main className="app-theme mx-auto max-w-md pb-10 @xl:max-w-5xl">
       {/* 상단바 (이미지) — 좌: ‹ Log / 우: ‹ n/total › */}
       <header
         className="sticky top-0 z-30 flex items-center justify-between border-b border-line px-4 py-3"
@@ -179,7 +179,7 @@ export default async function JournalDetail(props: {
       <section className="flex flex-col gap-3.5 px-5 pb-6 pt-5">
         {/* 제목 */}
         {entry.headline && (
-          <h1 className="break-keep text-[26px] font-bold leading-[1.3] tracking-tight text-ink min-[740px]:text-[32px]">
+          <h1 className="break-keep text-[26px] font-bold leading-[1.3] tracking-tight text-ink @xl:text-[32px]">
             {entry.headline}
           </h1>
         )}

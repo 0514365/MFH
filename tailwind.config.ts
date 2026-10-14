@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import containerQueries from '@tailwindcss/container-queries'
 
 const config: Config = {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}', './lib/**/*.{ts,tsx}'],
@@ -38,7 +39,8 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  // 컨테이너 쿼리(@container/@xl/@4xl) — 셸 본문 열 기준 반응형(docs/MFH-WIDE-LAYOUT-DESIGN.md §5).
+  plugins: [containerQueries],
 }
 
 export default config

@@ -241,20 +241,20 @@ export default async function Home() {
 
   return (
     <SplashGate>
-      <main className="app-theme mx-auto max-w-md px-4 pb-10 pt-2 sm:max-w-3xl lg:max-w-6xl lg:px-6">
+      <main className="app-theme mx-auto max-w-md px-4 pb-10 pt-2 @xl:max-w-3xl @4xl:max-w-6xl @4xl:px-6">
         <header className="mb-4 flex items-center justify-between px-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-primary.svg" alt="MFH — Mission for Honduras" className="h-9 w-auto" />
           <p className="text-[11px] text-faint">{user.email}</p>
         </header>
 
-        {/* 와이드 레이아웃: 모바일=세로 스택(기존), sm(iPad 세로 744px 포함)=좌측 그룹 2열, lg(desktop)=좌 5(오늘·sticky) : 우 7(모듈 벤토 3열) */}
-        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:gap-5">
-          {/* 좌: 오늘의 정보 — 주제·QT·통독·동향. lg 에서 스크롤해도 고정(sticky). lg 이상은 QT·동향이 우측 보조 패널로 가고 주제·통독만 남는다. */}
-          <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:sticky lg:top-4 lg:col-span-5 lg:flex lg:flex-col lg:self-start">
+        {/* 와이드 레이아웃(셸 본문 열 기준 컨테이너 쿼리): 모바일=세로 스택, @xl(본문 576+ · iPad 세로)=좌측 그룹 2열, @4xl(본문 896+ · 데스크탑)=좌 5(오늘·sticky) : 우 7(모듈 벤토 3열). iPad 가로(본문 712~868)는 2열 그룹. */}
+        <div className="flex flex-col gap-3 @4xl:grid @4xl:grid-cols-12 @4xl:gap-5">
+          {/* 좌: 오늘의 정보 — 주제·QT·통독·동향. @4xl 에서 스크롤해도 고정(sticky). 뷰포트 lg 이상(보조 패널 표시)은 QT·동향이 패널로 가고 주제·통독만 남는다. */}
+          <div className="flex flex-col gap-3 @xl:grid @xl:grid-cols-2 @4xl:sticky @4xl:top-4 @4xl:col-span-5 @4xl:flex @4xl:flex-col @4xl:self-start">
           {/* 2026 주제 — hero. 딥 그라데이션(마룬레드→딥마룬)으로 단색 면 부담 분산 — brand 마룬 정체성 유지 */}
           <section
-            className="flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white sm:order-1 sm:col-span-2 lg:order-none"
+            className="flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white @xl:order-1 @xl:col-span-2 @4xl:order-none"
             style={{ background: 'linear-gradient(150deg, #B61821 0%, #661F20 100%)' }}
           >
             <div>
@@ -286,7 +286,7 @@ export default async function Home() {
           {/* 오늘의 QT — wide + 본문·핵심절 미리보기 (아침 묵상 → 주제 아래 최상단). lg 이상은 우측 보조 패널(AsidePanel)이 담당 → 숨김 */}
           <Link
             href="/qt"
-            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99] sm:order-3 lg:hidden"
+            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99] @xl:order-3 lg:hidden"
           >
             <div className="flex items-center justify-between">
               <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
@@ -310,15 +310,15 @@ export default async function Home() {
           </Link>
 
           {/* 성경통독 — 오늘 분량·진행률·바로 체크 (QT 아래) */}
-          {/* sm(iPad) 2열: 통독을 주제 바로 아래 wide 로 올리고 QT·동향을 한 줄에. 모바일·lg 는 DOM 순서(주제→QT→통독→동향). */}
-          <div className="sm:order-2 sm:col-span-2 lg:order-none lg:col-auto">
+          {/* @xl 2열: 통독을 주제 바로 아래 wide 로 올리고 QT·동향을 한 줄에. 모바일·@4xl 는 DOM 순서(주제→QT→통독→동향). */}
+          <div className="@xl:order-2 @xl:col-span-2 @4xl:order-none @4xl:col-auto">
             <BibleHomeCard plan={biblePlan} days={bibleDays} today={today} />
           </div>
 
           {/* 온두라스 동향 — wide + 최신 브리핑 미리보기. lg 이상은 우측 보조 패널이 담당 → 숨김 */}
           <Link
             href="/honduras"
-            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99] sm:order-4 lg:hidden"
+            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99] @xl:order-4 lg:hidden"
           >
             <div className="flex items-center justify-between">
               <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
@@ -347,14 +347,14 @@ export default async function Home() {
               title="Supporters"
               sub="Partners in mission"
               chipClass="bg-orange-100 text-orange-700"
-              className="hidden lg:flex"
+              className="hidden @4xl:flex"
             />
           )}
           </div>
 
-          {/* 우: 모듈 벤토 — 모바일 2열, sm 4열, lg 6열(일반 타일 2칸 = 실질 3열).
+          {/* 우: 모듈 벤토 — 모바일 2열, @xl 4열, @4xl 6열(일반 타일 2칸 = 실질 3열).
               lg 행 템플릿: 타일 3행 = 1fr 스트레치 + Accounting = auto → 우측 하단이 좌측(Supporters) 하단과 정렬 */}
-          <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)] sm:grid-cols-4 lg:col-span-7 lg:grid-cols-6 lg:grid-rows-[1fr_1fr_1fr_auto_auto]">
+          <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)] @xl:grid-cols-4 @4xl:col-span-7 @4xl:grid-cols-6 @4xl:grid-rows-[1fr_1fr_1fr_auto_auto]">
           {/* Log — tall (좌, 모바일만) */}
           <ModuleTile
             href="/journal"
@@ -362,7 +362,7 @@ export default async function Home() {
             title="Log"
             sub="Today's grace"
             chipClass="bg-emerald-100 text-emerald-700"
-            className="row-span-2 sm:row-span-1 lg:col-span-2"
+            className="row-span-2 @xl:row-span-1 @4xl:col-span-2"
           />
 
           {/* Insights — 우(상). 최종 업데이트 시각 */}
@@ -372,7 +372,7 @@ export default async function Home() {
             title="Insights"
             sub="Light on the path"
             chipClass="bg-amber-100 text-amber-700"
-            className="lg:col-span-2"
+            className="@4xl:col-span-2"
             topRight={
               insightTime ? (
                 <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-medium text-muted">
@@ -389,7 +389,7 @@ export default async function Home() {
             title="Calendar"
             sub="Times & seasons"
             chipClass="bg-sky-100 text-sky-700"
-            className="lg:col-span-2"
+            className="@4xl:col-span-2"
           />
 
           {/* Projects — 좌. 임박·정체 등 신호 배지 */}
@@ -399,7 +399,7 @@ export default async function Home() {
             title="Projects"
             sub="The calling's path"
             chipClass="bg-violet-100 text-violet-700"
-            className="lg:col-span-2"
+            className="@4xl:col-span-2"
             topRight={<SignalBadges signals={projSignals} />}
           />
 
@@ -410,7 +410,7 @@ export default async function Home() {
             title="To-Do"
             sub="Entrusted work"
             chipClass="bg-teal-100 text-teal-700"
-            className="lg:col-span-2"
+            className="@4xl:col-span-2"
             topRight={<SignalBadges signals={tSignals} />}
           />
 
@@ -421,7 +421,7 @@ export default async function Home() {
             title="중보기도"
             sub="Prayers & blessings"
             chipClass="bg-rose-100 text-rose-700"
-            className="lg:col-span-2"
+            className="@4xl:col-span-2"
             topRight={
               unreadPrayers > 0 ? (
                 <span className="rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">
@@ -438,7 +438,7 @@ export default async function Home() {
             title="Photos"
             sub="Moments of grace"
             chipClass="bg-fuchsia-100 text-fuchsia-700"
-            className="lg:col-span-2"
+            className="@4xl:col-span-2"
           />
 
           {/* Facebook — 좌 */}
@@ -448,7 +448,7 @@ export default async function Home() {
             title="Facebook"
             sub="This week's story"
             chipClass="bg-blue-100 text-blue-700"
-            className="lg:col-span-2"
+            className="@4xl:col-span-2"
           />
 
           {/* Bible — 우. 읽기·검색·번역 비교(/bible/study) */}
@@ -458,7 +458,7 @@ export default async function Home() {
             title="Bible"
             sub="Read · Search · Compare"
             chipClass="bg-yellow-100 text-yellow-700"
-            className="lg:col-span-2"
+            className="@4xl:col-span-2"
           />
 
           {/* Portfolio — 좌(다음 줄). sm 4열에서는 wide 로 줄 정렬 */}
@@ -468,7 +468,7 @@ export default async function Home() {
             title="Portfolio"
             sub="Sharing our journey"
             chipClass="bg-indigo-100 text-indigo-700"
-            className="sm:col-span-2 lg:col-span-6"
+            className="@xl:col-span-2 @4xl:col-span-6"
           />
 
           {/* 후원자 — 공개 전까지 우진(마스터)만. 관계·후원 관리 (wide) */}
@@ -479,7 +479,7 @@ export default async function Home() {
               title="Supporters"
               sub="Partners in mission"
               chipClass="bg-orange-100 text-orange-700"
-              className="col-span-2 lg:hidden"
+              className="col-span-2 @4xl:hidden"
             />
           )}
 
@@ -491,7 +491,7 @@ export default async function Home() {
               title="Accounting"
               sub="Stewardship & records"
               chipClass="bg-lime-100 text-lime-700"
-              className="col-span-2 sm:col-span-4 lg:col-span-6"
+              className="col-span-2 @xl:col-span-4 @4xl:col-span-6"
             />
           )}
           </div>

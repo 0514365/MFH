@@ -106,7 +106,7 @@ export default function ProjectForm({ mode, initial }: Props) {
     'w-full rounded-xl border border-line bg-surface px-4 py-3.5 text-sm text-ink outline-none focus:border-primary'
 
   return (
-    <main className="app-theme mx-auto max-w-md px-4 pb-10 sm:max-w-2xl">
+    <main className="app-theme mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
       {/* 상단바(미니멀) — ‹ + 중앙 제목 */}
       <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
         <BackButton

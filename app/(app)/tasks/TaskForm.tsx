@@ -456,7 +456,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     'w-full rounded-xl border border-line bg-surface px-4 py-3.5 text-sm text-ink outline-none focus:border-primary'
 
   return (
-    <main className="app-theme mx-auto max-w-md px-4 pb-10 sm:max-w-2xl">
+    <main className="app-theme mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
       {/* 상단바(미니멀) — 프로젝트 폼과 통일: 캐럿 + 중앙 제목 + (편집)이전/다음 */}
       <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
         <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label="" variant="text" />

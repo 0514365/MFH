@@ -100,7 +100,7 @@ export default async function ProjectDetail(props: {
   }
 
   return (
-    <main className="app-theme mx-auto max-w-md pb-10 min-[740px]:max-w-5xl">
+    <main className="app-theme mx-auto max-w-md pb-10 @xl:max-w-5xl">
       {/* 상단바 — 일지 상세와 통일 */}
       <header
         className="sticky top-0 z-30 border-b border-line px-3 py-3"

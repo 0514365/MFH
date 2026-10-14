@@ -588,7 +588,7 @@ export default function ProjectsList({
             ? counts[selectedProject.id] ?? { total: 0, done: 0 }
             : { total: 0, done: 0 }
           return (
-            <div className={`grid grid-cols-1 gap-5 min-[740px]:grid-cols-[1fr_1.1fr] ${bottomPad}`}>
+            <div className={`grid grid-cols-1 gap-5 @xl:grid-cols-[1fr_1.1fr] ${bottomPad}`}>
               <div className="min-w-0">{list}</div>
               <div className="min-w-0">
                 <div

@@ -564,7 +564,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
   const innerBox = 'rounded-2xl bg-surface-subtle p-4'
 
   return (
-    <main className="app-theme mx-auto max-w-md px-4 pb-10 sm:max-w-3xl lg:max-w-6xl">
+    <main className="app-theme mx-auto max-w-md px-4 pb-10 @xl:max-w-3xl @4xl:max-w-6xl">
       {/* 상단바(미니멀): ‹ Log + 중앙 제목 */}
       <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
         <BackButton
@@ -607,7 +607,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1.5fr_1fr] lg:grid-cols-[1.8fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 @xl:grid-cols-[1.5fr_1fr] @4xl:grid-cols-[1.8fr_1fr]">
         {/* ── 좌측 카드: 본문 ── */}
         <div className={`${card} min-w-0`}>
           <label className={sectionTitle}>✏️ 제목</label>
@@ -631,7 +631,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
           </p>
 
           {/* 감사·묵상: 접이식. 데스크탑은 2열 칩, 모바일은 세로 스택. */}
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-3 @xl:grid-cols-2">
             {(['thanks', 'meditation'] as SubKey[]).map((k) => (
               <div key={k}>
                 <button
@@ -917,7 +917,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
 
           {/* 연계 한 줄 — 프로젝트↔할일 양방향 필터 + 완료 항목 접이식 */}
           <label className={`${sectionTitle} mt-5`}>🔗 연계 (선택)</label>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 @xl:grid-cols-2">
             <LinkedPicker
               value={projectId}
               onChange={pickProject}

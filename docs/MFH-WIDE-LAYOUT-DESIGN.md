@@ -93,7 +93,7 @@ Manna = 내 그룹 · 승인 대기 · 내 걸음 · 이번 주. MFH 는 **"오�
 | **① 컨테이너 쿼리** (추천) | `@tailwindcss/container-queries` 플러그인 추가, 본문 열에 `@container`, 페이지는 `@lg:grid-cols-12` 식으로 치환 | Tailwind 3.4 OK · 페이지별 치환은 점진 |
 | ② 브레이크포인트 재조정 | 각 페이지의 `lg:` 를 `xl:` 로 올림 | 빠르지만 iPad 가로에서 와이드 레이아웃 손해 |
 
-→ ① 추천, 단 **phase 로 분리**: 셸 먼저 붙이고(기존 페이지는 좁아져도 깨지진 않음 — `mx-auto max-w-*` 라 중앙 정렬 유지), 홈 → 목록 3종(일지·프로젝트·할 일) → 나머지 순으로 컨테이너 쿼리 치환.
+→ ① 채택. 임계값 매핑 = `sm:`·`min-[740px]:` → `@xl:`(576) · `lg:` → `@4xl:`(896). 데스크탑 1440(본문 980)은 12열, iPad 가로(본문 712~868)는 2열 그룹. 예외: 홈 QT·동향 카드의 `lg:hidden` 은 보조 패널 표시(뷰포트 lg)와 같은 기준이라 뷰포트 그대로 둔다. 단 **phase 로 분리**: 셸 먼저 붙이고(기존 페이지는 좁아져도 깨지진 않음 — `mx-auto max-w-*` 라 중앙 정렬 유지), 홈 → 목록 3종(일지·프로젝트·할 일) → 나머지 순으로 컨테이너 쿼리 치환.
 
 공통 `<Page>` 래퍼(Manna V3 식)는 치환 때 함께 도입: `mx-auto w-full px-4 max-w-[480px] sm:max-w-none md:max-w-[1200px]`.
 
@@ -106,7 +106,7 @@ Manna = 내 그룹 · 승인 대기 · 내 걸음 · 이번 주. MFH 는 **"오�
 | a ✅ | `lib/nav.ts` + `ModuleIcon` 아이콘 보강 + `BottomNav` 가 nav.ts 를 읽도록(화면 불변) | 내비 단일 출처 |
 | b ✅ | 라우트 그룹 `app/(app)/` 이동 + `AppShell`(좌 레일/사이드바 · 우 패널 자리) + `SideNav` · `BottomNav` md 숨김 | 3단 골격(보조 패널은 자리만) |
 | c ✅ | `AsidePanel` 4섹션 + `lib/aside.ts` 서버 조회 · 홈 QT·동향 카드 `lg:hidden` | 우측 완성 |
-| d | 컨테이너 쿼리 플러그인 + 홈·목록 3종 폭 치환 · `<Page>` 래퍼 | iPad 가로 본문 최적화 |
+| d ✅ | `@tailwindcss/container-queries` + AppShell 본문 열 `@container` · 홈·일지·프로젝트·할 일·인사이트 73곳 치환(`sm:`/`min-[740px]:` → `@xl:` 576 · `lg:` → `@4xl:` 896). `<Page>` 래퍼는 도입 안 함 | iPad 가로 본문 최적화 |
 | e | 회계·후원자 서브 네비 md+ 상단 세그먼트 · 나머지 페이지 폭 치환 | 마무리 |
 
 각 단계 끝에 `npx tsc --noEmit` + `npm run build`, 실기기(iPad 가로·데스크탑) 확인 후 다음 단계.

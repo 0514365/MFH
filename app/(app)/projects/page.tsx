@@ -39,7 +39,7 @@ export default async function ProjectsPage() {
   const signals = projectSignals(projects, today)
 
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8 min-[740px]:max-w-5xl">
+    <main className="app-theme mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
       <PageHeader
         title="Projects"
         current="projects"

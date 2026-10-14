@@ -856,7 +856,7 @@ export default function TasksListClient({
 
           // 넓은 화면: 좌 목록 / 우(평소=요약 / selectMode=일괄변경 패널).
           return (
-            <div className={`grid grid-cols-1 gap-5 min-[740px]:grid-cols-[1fr_1.1fr] ${bottomPad}`}>
+            <div className={`grid grid-cols-1 gap-5 @xl:grid-cols-[1fr_1.1fr] ${bottomPad}`}>
               <div className="min-w-0">{renderList()}</div>
               <div className="min-w-0">
                 <div
