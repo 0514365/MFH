@@ -1,9 +1,9 @@
 'use client'
 // MFH-ACCOUNTING-CSV-IMPORT-V1
-// 수입·지출 CSV 일괄 입력 — 붙여넣기/파일 업로드 → 매핑·검증 미리보기 → 유효행 일괄 저장(노션).
+// 수입·지출 CSV 일괄 입력 — 붙여넣기/파일 업로드 → 매핑·검증 미리보기 → 유효행 일괄 저장(acct_inout).
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import type { AcctOptions } from '@/lib/notion'
+import type { AcctOptions } from '@/lib/accounting-types'
 import { mapCsvRows } from '@/lib/accounting-csv'
 import { bulkCreateInout } from './actions'
 

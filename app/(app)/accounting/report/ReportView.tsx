@@ -3,7 +3,7 @@
 // 회계 분석 — 연도 선택 + 월별(연도별) 수입/지출 추이(경량 SVG) + 대분류별 수입/지출 + 후원자별 헌금 + 계좌 잔액.
 // 표시 전용, 집계는 클라이언트(recent·options·balances). 차트는 의존성 없이 직접 SVG.
 import { useMemo, useState, type ReactNode } from 'react'
-import type { AccountBalance, AcctOptions, InoutRow } from '@/lib/notion'
+import type { AccountBalance, AcctOptions, InoutRow } from '@/lib/accounting-types'
 
 function fmtUsd(n: number): string {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`

@@ -11,7 +11,6 @@ import { createClient } from '@/lib/supabase-browser'
 import type { Supporter, Currency } from '@/lib/types'
 import DateField from '../journal/DateField'
 import { resolveOwnerId } from '@/lib/members'
-import { syncSupporter } from './actions'
 import {
   CURRENCIES,
   CURRENCY_LABEL,
@@ -180,13 +179,6 @@ export default function SupporterForm({ mode, initial }: Props) {
         return
       }
       saved = data as Supporter
-    }
-    // 노션 후원자 DB 동기화(앱ID upsert). 실패해도 앱 저장은 유지 — 경고 후 머무름(다시 저장하면 재시도).
-    const sync = await syncSupporter(saved)
-    if (!sync.ok) {
-      setSaving(false)
-      setMsg('저장됐지만 노션 동기화 실패: ' + (sync.error ?? '') + ' — 다시 저장하면 재시도됩니다.')
-      return
     }
     setSaving(false)
     router.replace(`/supporters/${saved.id}`)

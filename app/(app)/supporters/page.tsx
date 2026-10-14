@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase-server'
 import type { Supporter } from '@/lib/types'
 import { formatUsd } from '@/lib/supporters'
 import { canManageFinance } from '@/lib/members'
-import { getSupporterDonationTotals } from '@/lib/notion'
+import { getSupporterDonationTotals } from '@/lib/accounting-db'
 import BulkMailButton from './BulkMailButton'
 
 export const dynamic = 'force-dynamic'
@@ -26,7 +26,7 @@ export default async function SupportersSummaryPage() {
     .order('name', { ascending: true })
   const supporters = (data ?? []) as Supporter[]
 
-  // 후원자별 헌금 USD 합계 — 노션 회계(SoT) 집계로 일원화.
+  // 후원자별 헌금 USD 합계 — 장부(acct_inout) 집계.
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
   const ymStr = today.slice(0, 7)
   const totals = await getSupporterDonationTotals()

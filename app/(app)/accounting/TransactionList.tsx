@@ -3,7 +3,7 @@
 // 거래 내역 — 월별 그룹화 + 월별 수입/지출 합계 + 필터(구분·대분류·항목·통화·계좌·기간·이름) + 정렬(날짜·금액).
 // 행 클릭 → 수정(onEdit, 기록 페이지로 이동) · 행별 삭제 + 다중선택 → 일괄 삭제 / 통합 수정(항목·계좌). 노션(SoT) read, 변경은 server action.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { AcctOptions, InoutRow, InoutPatch } from '@/lib/notion'
+import type { AcctOptions, InoutRow, InoutPatch } from '@/lib/accounting-types'
 import { deleteInout, bulkDeleteInout, bulkPatchInout } from './actions'
 
 function fmtUsd(n: number | null): string {
@@ -75,7 +75,7 @@ export default function TransactionList({
     return m
   }, [options])
 
-  // 항목 id → 대분류(노션 `대분류`) — 거래 행에 소분류와 함께 표기.
+  // 항목 id → 대분류(acct_items.category) — 거래 행에 소분류와 함께 표기.
   const catOf = useMemo(() => {
     const m = new Map<string, string>()
     for (const i of [...options.items['수입'], ...options.items['지출']])
@@ -235,7 +235,7 @@ export default function TransactionList({
   async function onDelete(r: InoutRow) {
     if (
       !window.confirm(
-        `이 거래를 삭제할까요?\n${r.date ?? ''} · ${r.name ?? ''} · ${fmtUsd(r.amountUsd)}\n(노션 휴지통으로 — 복구 가능)`,
+        `이 거래를 삭제할까요?\n${r.date ?? ''} · ${r.name ?? ''} · ${fmtUsd(r.amountUsd)}\n(복구할 수 없습니다)`,
       )
     )
       return
@@ -249,7 +249,7 @@ export default function TransactionList({
 
   async function onBulkDelete() {
     if (selCount === 0) return
-    if (!window.confirm(`선택한 ${selCount}건을 삭제할까요?\n(노션 휴지통으로 — 복구 가능)`)) return
+    if (!window.confirm(`선택한 ${selCount}건을 삭제할까요?\n(복구할 수 없습니다)`)) return
     setBulkBusy(true)
     setErr('')
     const res = await bulkDeleteInout([...selected])

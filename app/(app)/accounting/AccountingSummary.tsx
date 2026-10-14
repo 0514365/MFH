@@ -1,9 +1,9 @@
 'use client'
 // MFH-ACCOUNTING-SUMMARY-V2
 // 메인 요약 — 이번달 수입/지출/순액(브라우저 로컬월 기준) + 계좌별 잔액·총자산(자산 DB `잔액(USD)` read).
-// 데이터는 page.tsx 가 노션에서 read 후 전달. Balances 카드 '+ 계좌' → AccountAddForm(노션 자산 DB 에 계좌 추가).
+// 데이터는 page.tsx 가 장부에서 read 후 전달. Balances 카드 '+ 계좌' → AccountAddForm(노션 자산 DB 에 계좌 추가).
 import { useMemo, useState } from 'react'
-import type { AccountBalance, InoutRow } from '@/lib/notion'
+import type { AccountBalance, InoutRow } from '@/lib/accounting-types'
 import AccountAddForm from './AccountAddForm'
 
 function fmtUsd(n: number): string {

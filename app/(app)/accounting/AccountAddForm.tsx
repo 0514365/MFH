@@ -1,7 +1,7 @@
 'use client'
 // MFH-ACCOUNT-ADD-FORM-V1
-// 계좌 추가 미니폼 — 요약 Balances 카드 안에서 펼침. 이름·통화·계좌정보(선택) → saveAccount(노션 자산 DB).
-// 입금계좌·지불계좌는 같은 자산 DB 를 쓰므로 하나로 둘 다 해결. 수정·삭제는 노션에서(A안).
+// 계좌 추가 미니폼 — 요약 Balances 카드 안에서 펼침. 이름·통화·계좌정보(선택) → saveAccount(acct_accounts).
+// 입금계좌·지불계좌는 같은 계좌 테이블을 쓰므로 하나로 둘 다 해결. 수정·삭제는 후속.
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveAccount } from './actions'

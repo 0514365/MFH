@@ -3,7 +3,7 @@
 // 요약 하단 'Today' — 거래일이 오늘(브라우저 로컬)인 거래만. 입력 폼의 todayLocal 과 동일 기준이라 서버 UTC 어긋남 없음.
 import Link from 'next/link'
 import { useMemo } from 'react'
-import type { AcctOptions, InoutRow } from '@/lib/notion'
+import type { AcctOptions, InoutRow } from '@/lib/accounting-types'
 
 function fmtUsd(n: number | null): string {
   if (n == null) return '—'

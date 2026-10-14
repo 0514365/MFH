@@ -1,8 +1,8 @@
 // MFH-DONATION-PANEL-V4
-// 헌금 이력 — 읽기전용, 노션 회계(SoT) 연도별 합산. 입력·관리 SoT 는 노션.
-// 개별 거래 목록은 노션으로 이전 → 앱은 연도별 합산만 표시(초기 Supabase 기록 숨김).
+// 헌금 이력 — 읽기전용, 장부(acct_inout) 연도별 합산. 입력·관리는 회계 모듈.
+// 개별 거래 목록은 회계 내역 탭 → 여기서는 연도별 합산만 표시.
 import { formatUsd } from '@/lib/supporters'
-import type { DonationYearly } from '@/lib/notion'
+import type { DonationYearly } from '@/lib/accounting-types'
 
 // 입금 총액은 실제 입금 통화로 표기 — 기호 + 천단위(소수 최대 2).
 const CUR_SYMBOL: Record<string, string> = { KRW: '₩', USD: '$', HNL: 'L' }

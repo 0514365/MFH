@@ -1,7 +1,7 @@
 // MFH-ACCOUNTING-CSV-V1
-// 수입·지출 CSV 일괄 입력 — 붙여넣기/파일 텍스트를 파싱하고 노션 옵션(항목·계좌·후원자)에 매핑·검증.
-// 순수 함수(클라이언트에서 사용) — 실제 노션 write 는 server action(bulkCreateInout) 이 담당.
-import type { AcctOptions, InoutInput } from './notion'
+// 수입·지출 CSV 일괄 입력 — 붙여넣기/파일 텍스트를 파싱하고 옵션(항목·계좌·후원자)에 매핑·검증.
+// 순수 함수(클라이언트에서 사용) — 실제 저장은 server action(bulkCreateInout) 이 담당.
+import type { AcctOptions, InoutInput } from './accounting-types'
 
 // 한 줄을 구분자로 분해 — 따옴표("...")로 감싼 필드 안의 구분자·줄바꿈은 보존, "" 는 escape.
 function splitLine(line: string, delim: string): string[] {
@@ -121,7 +121,7 @@ export type MappedResult = {
   headerFound: boolean
 }
 
-// 텍스트(붙여넣기/파일) → 행별 매핑·검증 결과. 항목·계좌·후원자는 이름으로 노션 id 매칭.
+// 텍스트(붙여넣기/파일) → 행별 매핑·검증 결과. 항목·계좌·후원자는 이름으로 id 매칭.
 export function mapCsvRows(text: string, options: AcctOptions): MappedResult {
   const grid = parseDelimited(text)
   if (grid.length < 2) return { rows: [], validCount: 0, errorCount: 0, headerFound: false }

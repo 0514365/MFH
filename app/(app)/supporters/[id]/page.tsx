@@ -9,7 +9,7 @@ import {
   SUPPORTER_PHOTO_BUCKET,
   extractMessageDraft,
 } from '@/lib/supporters'
-import { getDonationsByAppId } from '@/lib/notion'
+import { getDonationsByAppId } from '@/lib/accounting-db'
 import DeleteButton from './DeleteButton'
 import DonationPanel from './DonationPanel'
 import LogPanel from './LogPanel'
@@ -42,7 +42,7 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
   if (!s) notFound()
   const canEdit = canManageFinance(user.id)
 
-  // 노션 회계(SoT)의 후원자별 헌금 연도별 집계 — 미연동(토큰 없음)/실패 시 null → "기록 없음".
+  // 장부(acct_inout)의 후원자별 헌금 연도별 집계 — 실패 시 null → "기록 없음".
   const donationsByApp = await getDonationsByAppId()
   const yearly = donationsByApp?.get(s.id) ?? null
 
@@ -210,7 +210,7 @@ export default async function SupporterDetail(props: { params: Promise<{ id: str
         <MessageActions email={s.email} name={s.name} aiDraft={aiDraft} />
       </section>
 
-      {/* 헌금 이력 (읽기전용 — 입력 SoT 는 노션, 합계는 노션 rollup) */}
+      {/* 헌금 이력 (읽기전용 — 입력은 회계 모듈, 합계는 장부 집계) */}
       <DonationPanel yearly={yearly} />
 
       {/* 수정 / 삭제 */}
