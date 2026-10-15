@@ -1,11 +1,12 @@
 'use client'
+// MFH-CARD-REPAY-BUTTON-V2 — '잔액 0 맞춤'(환차 정리): 카드 잔액 ≠ 0 → 수입/환차익 또는 지출/수수료 1건으로 0 맞춤(상환 직후 잔차용)
 // MFH-CARD-REPAY-BUTTON-V1
 // 카드대금 상환 도우미 — 기록 탭 카드. 신용카드 계좌(4956 우진 · 7697 진아)의 미상환 잔액을 보여주고,
 // 상환 총액(HNL, 선택 USD)·환율·날짜·출금계좌만 입력하면 카드별 잔액 비율로 자동 분할 → 이체 N건 저장(bulkCreateInout, source=manual).
 // 분할액은 미리보기에서 수정 가능. 잔차(환차)는 카드 잔액에 남겨 월 1회 환차익/수수료로 0 맞춤(설계 §5).
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { AccountBalance, InoutInput } from '@/lib/accounting-types'
+import type { AccountBalance, AcctOptions, InoutInput } from '@/lib/accounting-types'
 import { bulkCreateInout } from './actions'
 import { amtColor, fmtLocal, fmtUsd } from './BalanceGroups'
 
@@ -29,7 +30,7 @@ function split(total: number, cards: AccountBalance[]): number[] {
 }
 const cardLabel = (c: AccountBalance) => `${c.name.replace(' 신용카드 ', ' ')}${c.info ? ` (${c.info})` : ''}`
 
-export default function CardRepayButton({ balances }: { balances: AccountBalance[] }) {
+export default function CardRepayButton({ balances, options }: { balances: AccountBalance[]; options?: AcctOptions }) {
   const router = useRouter()
   const cards = useMemo(() => balances.filter((b) => b.kind === '신용카드'), [balances])
   const sources = useMemo(() => balances.filter((b) => b.kind !== '신용카드' && b.currency === 'USD'), [balances])
@@ -46,6 +47,13 @@ export default function CardRepayButton({ balances }: { balances: AccountBalance
   const [usdOverride, setUsdOverride] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
+  // 잔액 0 맞춤 모달
+  const [zeroOpen, setZeroOpen] = useState(false)
+  const [zeroDate, setZeroDate] = useState(today())
+  const [zeroPick, setZeroPick] = useState<Record<string, boolean>>({})
+  const [zeroAmt, setZeroAmt] = useState<Record<string, string>>({})
+  const gainItem = options?.items['수입'].find((i) => i.name === '환차익')
+  const feeItem = options?.items['지출'].find((i) => i.name === '수수료')
 
   const tHnl = Number(totalHnl) || 0
   const tUsd = Number(totalUsd) || 0
@@ -91,6 +99,44 @@ export default function CardRepayButton({ balances }: { balances: AccountBalance
     router.refresh()
   }
 
+  function openZero() {
+    const pick: Record<string, boolean> = {}
+    const amt: Record<string, string> = {}
+    for (const c of cards) {
+      pick[c.id] = c.balanceUsd !== 0 && Math.abs(c.balanceUsd) < 100 // 작은 잔차만 기본 선택
+      amt[c.id] = String(r2(-c.balanceUsd))
+    }
+    setZeroPick(pick)
+    setZeroAmt(amt)
+    setZeroDate(today())
+    setErr('')
+    setZeroOpen(true)
+  }
+  async function onZeroSave() {
+    if (saving) return
+    if (!gainItem || !feeItem) return setErr('항목 환차익(수입)·수수료(지출)가 필요합니다')
+    const items: InoutInput[] = []
+    for (const c of cards) {
+      if (!zeroPick[c.id]) continue
+      const v = Number(zeroAmt[c.id]) || 0
+      if (!v) continue
+      // v > 0 = 잔액을 늘림(미상환 잔차 → 환차익 수입) · v < 0 = 잔액을 줄임(과납 → 수수료 지출)
+      items.push(
+        v > 0
+          ? { gubun: '수입', date: zeroDate, itemId: gainItem.id, name: '카드 환차 정리', vendor: null, currency: 'USD', principal: r2(v), rate: 1, amountUsd: r2(v), accountId: c.id, source: 'manual' }
+          : { gubun: '지출', date: zeroDate, itemId: feeItem.id, name: '카드 환차 정리', vendor: null, currency: 'USD', principal: r2(-v), rate: 1, amountUsd: r2(-v), accountId: c.id, source: 'manual' },
+      )
+    }
+    if (!items.length) return setErr('정리할 카드를 선택하세요')
+    setSaving(true)
+    setErr('')
+    const res = await bulkCreateInout(items)
+    setSaving(false)
+    if (!res.ok) return setErr(res.error ?? '저장 실패')
+    setZeroOpen(false)
+    router.refresh()
+  }
+
   if (!cards.length) return null
 
   return (
@@ -115,8 +161,71 @@ export default function CardRepayButton({ balances }: { balances: AccountBalance
           >
             상환 입력
           </button>
+          <button
+            type="button"
+            onClick={openZero}
+            title="상환 후 남은 환차 잔액을 환차익/수수료 1건으로 0 맞춤"
+            className="h-9 rounded-lg border border-line px-3 text-xs font-medium text-muted transition hover:border-primary hover:text-primary"
+          >
+            잔액 0 맞춤
+          </button>
         </div>
       </div>
+
+      {zeroOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4 @md:items-center" onClick={() => setZeroOpen(false)}>
+          <div className="w-full max-w-md rounded-2xl bg-surface p-5 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="카드 잔액 0 맞춤">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-[15px] font-bold text-ink">카드 잔액 0 맞춤 (환차 정리)</h3>
+              <button type="button" onClick={() => setZeroOpen(false)} className="text-xs text-muted hover:text-primary">닫기</button>
+            </div>
+            <div className="mb-3">
+              <label className={lbl}>정리일</label>
+              <input type="date" value={zeroDate} onChange={(e) => setZeroDate(e.target.value)} className={inp} />
+            </div>
+            <div className="overflow-hidden rounded-xl border border-line">
+              <table className="w-full text-[12px]">
+                <thead className="bg-surface-subtle text-[10px] text-faint">
+                  <tr>
+                    <th className="px-2 py-1.5 text-left font-medium">카드</th>
+                    <th className="px-2 py-1.5 text-right font-medium">현재 잔액</th>
+                    <th className="px-2 py-1.5 text-right font-medium">조정액 (USD)</th>
+                    <th className="px-2 py-1.5 text-left font-medium">기록</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cards.map((c) => {
+                    const v = Number(zeroAmt[c.id]) || 0
+                    return (
+                      <tr key={c.id} className={`border-t border-line ${zeroPick[c.id] ? '' : 'opacity-50'}`}>
+                        <td className="px-2 py-1.5">
+                          <label className="flex items-center gap-1.5 text-ink">
+                            <input type="checkbox" checked={!!zeroPick[c.id]} onChange={(e) => setZeroPick((p) => ({ ...p, [c.id]: e.target.checked }))} className="h-4 w-4 accent-[#661F20]" />
+                            {cardLabel(c)}
+                          </label>
+                        </td>
+                        <td className={`px-2 py-1.5 text-right font-display ${amtColor(c.balanceUsd)}`}>{fmtUsd(c.balanceUsd)}</td>
+                        <td className="px-1 py-1">
+                          <input type="number" inputMode="decimal" step="0.01" value={zeroAmt[c.id] ?? ''} onChange={(e) => setZeroAmt((a) => ({ ...a, [c.id]: e.target.value }))} className="h-8 w-24 rounded-md border border-line bg-surface px-2 text-right text-[12px] text-ink outline-none focus:border-primary" />
+                        </td>
+                        <td className="px-2 py-1.5 text-[11px] text-muted">{v > 0 ? '수입 · 환차익' : v < 0 ? '지출 · 수수료' : '—'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-[11px] text-faint">조정액 = 현재 잔액의 반대 부호(저장 후 잔액 0). 미상환 결제가 남아 있는 카드는 선택을 해제하세요. 기본 선택 = 잔액 $100 미만.</p>
+            {err && <p className="mt-2 text-xs text-red-700">{err}</p>}
+            <div className="mt-3 flex justify-end gap-2">
+              <button type="button" onClick={() => setZeroOpen(false)} className="h-10 rounded-lg border border-line px-4 text-sm text-muted">취소</button>
+              <button type="button" onClick={onZeroSave} disabled={saving} className="h-10 rounded-lg bg-primary px-4 text-sm font-bold text-white disabled:opacity-50">
+                {saving ? '저장 중…' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4 @md:items-center" onClick={close}>

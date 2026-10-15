@@ -28,7 +28,7 @@ export default async function AccountingEntryPage() {
   return (
     <>
       <InboxBanner count={pending} />
-      <CardRepayButton balances={balances} />
+      <CardRepayButton balances={balances} options={options} />
       <CsvImport options={options} />
       <AccountingForm options={options} recent={recent} />
     </>
