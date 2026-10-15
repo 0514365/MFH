@@ -8,8 +8,8 @@ import { mapCsvRows } from '@/lib/accounting-csv'
 import { bulkCreateInout } from './actions'
 
 const PLACEHOLDER = `구분,날짜,항목,적요,통화,금액,환율,계좌
-수입,2026-06-23,정기후원,이경재,KRW,100000,1400,우리은행
-지출,2026-06-26,건축,교회 증축,USD,500,,Ficohsa(달러)`
+수입,2026-06-23,정기후원,이경재,KRW,100000,1400,우리은행(선교)_4757
+지출,2026-06-26,건축,교회 증축,USD,500,,Ficohsa(달러)_4484`
 
 export default function CsvImport({ options }: { options: AcctOptions }) {
   const router = useRouter()
