@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V9 — 구분 '조정'(잔액 조정) 필터·표시(회색 칩, 수정 불가, 소계 제외)
 // MFH-ACCOUNTING-TXLIST-V8 — 열 폭(항목 2줄·내용 가변) · 통화 토글 표 위 강조 · 통화 기호 · 수입 청색/지출 적색(행·소계)
 // MFH-ACCOUNTING-TXLIST-V7 — 용어 적요→내용 · 대분류→항목 콤보 연동 · 통화 3열 접기(기본 숨김) · 월/기간 소계(통화별 순액 + 수입/지출)
 // MFH-ACCOUNTING-TXLIST-V6 — 통합 수정 필드 확장(날짜·적요·구매처·환율·후원자)
@@ -15,9 +16,10 @@ function fmtUsd(n: number | null): string {
   const s = `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   return n < 0 ? `−${s}` : s
 }
-// 금액 색 — 수입 청색 · 지출 적색 · 이체 등 기본.
-const gubunColor = (g: string | null) => (g === '수입' ? 'text-blue-700' : g === '지출' ? 'text-red-700' : 'text-ink')
+// 금액 색 — 수입 청색 · 지출 적색 · 조정 부호색 · 이체 기본.
 const signColor = (n: number) => (n > 0 ? 'text-blue-700' : n < 0 ? 'text-red-700' : 'text-ink')
+const gubunColor = (g: string | null, n?: number | null) =>
+  g === '수입' ? 'text-blue-700' : g === '지출' ? 'text-red-700' : g === '조정' ? signColor(n ?? 0) : 'text-ink'
 // 통화 기호 — 모바일 카드에서 원금 앞에 붙인다.
 const CUR_SYMBOL: Record<string, string> = { KRW: '₩', USD: '$', HNL: 'L' }
 // 현지통화 원금(기호 + 천단위, 소수 최대 2) — 모바일.
@@ -45,7 +47,7 @@ function monthLabel(key: string): string {
 }
 
 type SortKey = 'date' | 'amount'
-type GubunFilter = '전체' | '수입' | '지출' | '이체'
+type GubunFilter = '전체' | '수입' | '지출' | '이체' | '조정'
 
 const ctl =
   'h-8 rounded-lg border border-line bg-surface px-2 text-xs text-ink outline-none transition focus:border-primary'
@@ -371,7 +373,7 @@ export default function TransactionList({
       {/* 필터 바 */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="flex h-8 overflow-hidden rounded-lg border border-line text-xs">
-          {(['전체', '수입', '지출', '이체'] as const).map((g) => (
+          {(['전체', '수입', '지출', '이체', '조정'] as const).map((g) => (
             <button
               key={g}
               type="button"
@@ -387,7 +389,9 @@ export default function TransactionList({
                       ? 'bg-red-100 font-bold text-red-700'
                       : g === '이체'
                         ? 'bg-sky-100 font-bold text-sky-700'
-                        : 'bg-primary-soft font-bold text-primary'
+                        : g === '조정'
+                          ? 'bg-surface-subtle font-bold text-muted'
+                          : 'bg-primary-soft font-bold text-primary'
                   : 'text-faint'
               }`}
             >
@@ -698,8 +702,8 @@ export default function TransactionList({
                       g.rows.map((r) => (
                         <tr
                           key={r.id}
-                          onClick={() => onEdit(r)}
-                          className={`cursor-pointer border-t border-line transition hover:bg-surface-subtle/50 ${
+                          onClick={() => r.gubun !== '조정' && onEdit(r)}
+                          className={`${r.gubun === '조정' ? 'cursor-default' : 'cursor-pointer'} border-t border-line transition hover:bg-surface-subtle/50 ${
                             selected.has(r.id)
                               ? 'bg-primary-soft/60'
                               : editingId === r.id
@@ -740,26 +744,28 @@ export default function TransactionList({
                             )}
                             {r.gubun === '이체'
                               ? `${nameOf.get(r.accountId ?? '') ?? '?'} → ${nameOf.get(r.toAccountId ?? '') ?? '?'}`
-                              : r.itemId
-                                ? (nameOf.get(r.itemId) ?? '—')
-                                : '—'}
+                              : r.gubun === '조정'
+                                ? `잔액 조정 · ${nameOf.get(r.accountId ?? '') ?? '?'}`
+                                : r.itemId
+                                  ? (nameOf.get(r.itemId) ?? '—')
+                                  : '—'}
                           </td>
                           <td className="px-2 py-2 text-ink">{r.name || '—'}</td>
                           <td className="whitespace-nowrap px-2 py-2 text-muted">{r.vendor || '—'}</td>
                           {showCur && (
                             <>
-                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun)}`}>
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun, r.amountUsd)}`}>
                                 {fmtColCell(r.currency, 'KRW', r.principal)}
                               </td>
-                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun)}`}>
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun, r.amountUsd)}`}>
                                 {fmtColCell(r.currency, 'HNL', r.principal)}
                               </td>
-                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun)}`}>
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun, r.amountUsd)}`}>
                                 {fmtColCell(r.currency, 'USD', r.principal)}
                               </td>
                             </>
                           )}
-                          <td className={`whitespace-nowrap px-2 py-2 text-right font-display font-bold ${gubunColor(r.gubun)}`}>
+                          <td className={`whitespace-nowrap px-2 py-2 text-right font-display font-bold ${gubunColor(r.gubun, r.amountUsd)}`}>
                             {fmtUsd(r.amountUsd)}
                           </td>
                           <td className="whitespace-nowrap px-2 py-2" onClick={(e) => e.stopPropagation()}>
@@ -836,7 +842,7 @@ export default function TransactionList({
                       {g.rows.map((r) => (
                         <li
                           key={r.id}
-                          onClick={() => onEdit(r)}
+                          onClick={() => r.gubun !== '조정' && onEdit(r)}
                           className={`cursor-pointer rounded-xl border bg-surface p-3 transition active:scale-[0.99] ${
                             selected.has(r.id)
                               ? 'border-primary ring-1 ring-primary/30'
@@ -880,9 +886,11 @@ export default function TransactionList({
                                 <div className="mt-1 text-sm text-ink">
                                   {r.gubun === '이체'
                                     ? `${nameOf.get(r.accountId ?? '') ?? '?'} → ${nameOf.get(r.toAccountId ?? '') ?? '?'}`
-                                    : r.itemId
-                                      ? (nameOf.get(r.itemId) ?? '')
-                                      : ''}
+                                    : r.gubun === '조정'
+                                      ? `잔액 조정 · ${nameOf.get(r.accountId ?? '') ?? '?'}`
+                                      : r.itemId
+                                        ? (nameOf.get(r.itemId) ?? '')
+                                        : ''}
                                   {r.name ? ` · ${r.name}` : ''}
                                 </div>
                                 <div className="mt-0.5 text-xs text-faint">
@@ -895,7 +903,7 @@ export default function TransactionList({
                             {/* 우: 금액 + 삭제 */}
                             <div className="flex shrink-0 flex-col items-end gap-2">
                               <span className="text-right">
-                                <span className={`block font-display text-[15px] font-bold ${gubunColor(r.gubun)}`}>
+                                <span className={`block font-display text-[15px] font-bold ${gubunColor(r.gubun, r.amountUsd)}`}>
                                   {fmtLocal(r.currency, r.principal)}
                                 </span>
                                 {r.currency !== 'USD' && (

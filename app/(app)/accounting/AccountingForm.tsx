@@ -171,7 +171,7 @@ export default function AccountingForm({
     const editId = searchParams.get('edit')
     if (!editId || handledEdit.current === editId) return
     const row = recent.find((r) => r.id === editId)
-    if (row) {
+    if (row && row.gubun !== '조정') {
       handledEdit.current = editId
       startEdit(row)
     }

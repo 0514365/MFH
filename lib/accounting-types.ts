@@ -4,6 +4,7 @@
 
 export type Currency = 'KRW' | 'USD' | 'HNL'
 export type Gubun = '수입' | '지출' | '이체' // 이체 = 출금계좌(accountId) → 입금계좌(toAccountId), 항목 없음, 집계 제외
+// DB 에는 '조정'(잔액 조정, patch108)도 있으나 스크립트 전용 — 폼 입력(Gubun)에는 없음. 내역에서는 InoutRow.gubun 문자열로 표시·삭제만.
 export type InoutSource = 'manual' | 'csv' | 'sms' | 'notion'
 
 export type AcctOption = { id: string; name: string; currency?: string | null; category?: string | null }

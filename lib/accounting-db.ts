@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-DB-V6 — 구분 '조정'(잔액 조정, patch108) 잔액 반영
 // MFH-ACCOUNTING-DB-V5 — 계좌 잔액에 유형·카드끝자리·최근 환율·현지통화 근사 잔액 추가
 // MFH-ACCOUNTING-DB-V4 — 통합 수정 필드 확장(날짜·적요·구매처·환율·후원자)
 // MFH-ACCOUNTING-DB-V3 — vendor(구매처) 분리(patch105)
@@ -98,7 +99,7 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
     KRW: num(krw.data?.rate) ?? null,
     HNL: num(hnl.data?.rate) ?? null,
   }
-  // 수입 +계좌 · 지출 −계좌 · 이체 −출금계좌 +입금계좌
+  // 수입 +계좌 · 지출 −계좌 · 이체 −출금계좌 +입금계좌 · 조정 ±계좌
   const sum = new Map<string, number>()
   const add = (id: string | null, v: number) => {
     if (id) sum.set(id, (sum.get(id) ?? 0) + v)
@@ -110,7 +111,7 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
     else if (t.gubun === '이체') {
       add(t.account_id, -amt)
       add(t.to_account_id, amt)
-    }
+    } else if (t.gubun === '조정') add(t.account_id, amt) // 잔액 조정(부호 있음, patch108)
   }
   return (acc.data ?? []).map((a) => {
     const balanceUsd = r2((num(a.initial_usd) ?? 0) + (num(a.adjust_usd) ?? 0) + (sum.get(a.id) ?? 0))
