@@ -1,3 +1,4 @@
+// MFH-BIBLE-PLAN-V3 (rebalanceSchedule — 밀렸을 때 남은 기간 재분배)
 // MFH-BIBLE-PLAN-V2
 // 성경통독 계획 알고리즘(순수 함수, 서버·클라이언트 공용).
 //   · readingDates      — 시작~종료일 중 제외 요일을 뺀 읽기 가능일
@@ -8,6 +9,7 @@
 //   · buildSchedule     — 위를 조합해 하루 1행 일정 + 통계 생성(계획 저장·미리보기 공용)
 //   · rangeLabel        — "창세기 1~15장" / "베드로후서 3장 ~ 요한계시록 6장" (README 8절)
 //   · planProgress      — 진행률·밀림·오늘 분량 계산(홈 카드·/bible 공용)
+//   · rebalanceSchedule — 밀렸을 때 미완료 분량을 오늘부터 재분배(patch113 rpc 로 저장)
 import { BIBLE_BOOKS, CHAPTER_CHARS, TOTAL_CHAPTERS, type BibleBook } from './data'
 
 export type ReadOrder = 'ot_first' | 'nt_first'
@@ -339,6 +341,119 @@ export function planProgress(days: ProgressDay[], today: string): PlanProgress {
     todayDayNo,
     nextDayNo,
     completed: totalDays > 0 && doneDays === totalDays,
+  }
+}
+
+// ── 재분배(밀렸을 때) ────────────────────────────────────────────────────────
+// 미완료 일차의 장을 모아(이 계획에서 이미 읽은 장 제외) 오늘부터 다시 나눈다. 완료 일차는 그대로.
+//   · 시작일: 오늘 완료한 일차가 있으면 내일, 아니면 오늘
+//   · keep_end: 완료 목표일 유지(하루 분량 증가) / extend: 미완료 일수 그대로(목표일이 밀린 만큼 늦어짐)
+//   · 저장 = rpc rebalance_reading_plan(patch113) — 미완료 행 삭제 + 새 행 + 일차 번호 재부여를 한 트랜잭션으로.
+//   · 이미 읽은 장을 빼서 범위 중간에 빈칸이 생기면 라벨은 처음~끝 범위, chapters/chars 는 실제 남은 분량.
+
+export type RebalanceMode = 'keep_end' | 'extend'
+
+export type RebalanceInput = {
+  order: ReadOrder
+  scope: ReadScope
+  mode: SplitMode
+  excludeWeekdays: number[]
+  endDate: string // 현재 완료 목표일(reading_plans.end_date)
+  today: string
+  days: { read_date: string; done: boolean; start_seq: number; end_seq: number }[]
+  readChapSeqs: number[] // 이 계획에서 읽은 장(bible_chapter_reads.chap_seq, 정경 1..1189)
+}
+
+export type RebalanceDay = Omit<ScheduleDay, 'dayNo'>
+
+export type RebalanceResult =
+  | {
+      ok: true
+      days: RebalanceDay[]
+      startDate: string
+      endDate: string // 저장할 완료 목표일
+      lastDate: string // 마지막 읽는 날
+      remainingChapters: number
+      skippedRead: number // 미완료 일차 중 이미 읽어서 뺀 장 수
+      avgChapters: number
+      avgMinutes: number
+    }
+  | { ok: false; error: string }
+
+// 정경 장 번호(1..1189) — lib/bible/texts.ts chapSeqOf 와 동일 규칙.
+function canonSeq(ref: ChapterRef): number {
+  let s = 0
+  for (const b of BIBLE_BOOKS) {
+    if (b.order === ref.book.order) break
+    s += b.chapters
+  }
+  return s + ref.chapter
+}
+
+export function rebalanceSchedule(input: RebalanceInput, rmode: RebalanceMode): RebalanceResult {
+  const list = orderedChapters(input.order, input.scope)
+  const read = new Set(input.readChapSeqs)
+  const undone = input.days.filter((d) => !d.done)
+  if (undone.length === 0) return { ok: false, error: '남은 일차가 없습니다.' }
+
+  const inUndone = new Set<number>()
+  for (const d of undone) for (let s = d.start_seq; s <= d.end_seq; s++) inUndone.add(s)
+  let skippedRead = 0
+  const remaining: ChapterRef[] = []
+  for (const s of [...inUndone].sort((a, b) => a - b)) {
+    const ref = list[s]
+    if (!ref) continue
+    if (read.has(canonSeq(ref))) skippedRead++
+    else remaining.push(ref)
+  }
+  const T = remaining.length
+  if (T === 0) return { ok: false, error: '남은 장을 모두 읽었습니다. 일차 체크만 하시면 됩니다.' }
+
+  const doneToday = input.days.some((d) => d.done && d.read_date === input.today)
+  const startDate = doneToday ? addDays(input.today, 1) : input.today
+
+  let dates: string[]
+  if (rmode === 'keep_end') {
+    dates = readingDates(startDate, input.endDate, input.excludeWeekdays)
+    if (dates.length === 0) return { ok: false, error: '완료 목표일까지 읽을 날이 없습니다. 「목표일 늦춤」을 선택해 주세요.' }
+  } else {
+    const ex = new Set(input.excludeWeekdays)
+    if (ex.size >= 7) return { ok: false, error: '읽을 수 있는 요일이 없습니다.' }
+    dates = []
+    for (let d = startDate; dates.length < undone.length; d = addDays(d, 1)) if (!ex.has(weekdayOf(d))) dates.push(d)
+  }
+  if (dates.length > T) dates = dates.slice(0, T) // 하루 최소 1장
+  const n = dates.length
+
+  const charsArr = remaining.map((c) => c.chars)
+  const segs = input.mode === 'chapters' ? splitByChapters(T, n) : splitByChars(charsArr, n, Math.max(45, Math.ceil(T / n) * 3))
+
+  const days: RebalanceDay[] = segs.map((seg, i) => {
+    let chars = 0
+    for (let k = seg.start; k < seg.end; k++) chars += charsArr[k]
+    const first = remaining[seg.start]
+    const last = remaining[seg.end - 1]
+    return {
+      readDate: dates[i],
+      startSeq: first.seq,
+      endSeq: last.seq,
+      chapters: seg.end - seg.start,
+      chars,
+      label: rangeLabel(first, last),
+    }
+  })
+  const lastDate = dates[n - 1]
+  const totalChars = charsArr.reduce((a, b) => a + b, 0)
+  return {
+    ok: true,
+    days,
+    startDate,
+    endDate: rmode === 'keep_end' ? input.endDate : lastDate,
+    lastDate,
+    remainingChapters: T,
+    skippedRead,
+    avgChapters: Math.round((T / n) * 10) / 10,
+    avgMinutes: estimateMinutes(Math.round(totalChars / n)),
   }
 }
 

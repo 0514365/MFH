@@ -1,3 +1,4 @@
+// MFH-BIBLE-PAGE-V4 (밀린 분량 「남은 기간 재분배」 버튼 — RebalanceButton/patch113)
 // MFH-BIBLE-PAGE-V3 (통독 범위 배지: 전체면 읽기 순서, 구약만/신약만이면 범위)
 // /bible — 성경통독 메인. 활성 계획의 진행 요약 + 오늘(또는 다음) 분량 카드 + 밀린 분량 + 월별 일정(행 탭 = 이전 기록 수정).
 // 계획이 없으면 안내 카드(/bible/new). 데이터 = reading_plans(활성 1개) + reading_plan_days(전체).
@@ -9,6 +10,7 @@ import { longDate, planProgress, planScope, progressBadge, scopeOrderLabel, shor
 import type { ReadingPlan, ReadingPlanDay } from '@/lib/types'
 import DayCard from './DayCard'
 import OverdueList from './OverdueList'
+import RebalanceButton from './RebalanceButton'
 import ScheduleList from './ScheduleList'
 import '@/app/p/portfolio-theme.css'
 
@@ -126,7 +128,10 @@ export default async function BiblePage() {
       <div className="mt-6">
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-[14px] font-bold text-primary">밀린 분량</h3>
-          <span className="text-[12px] text-faint">{overdueDays.length === 0 ? '없음' : `${overdueDays.length}일`}</span>
+          <span className="flex items-center gap-2 text-[12px] text-faint">
+            {overdueDays.length > 0 && <RebalanceButton plan={plan} days={days} today={today} />}
+            {overdueDays.length === 0 ? '없음' : `${overdueDays.length}일`}
+          </span>
         </div>
         <OverdueList days={overdueDays} today={today} />
       </div>
