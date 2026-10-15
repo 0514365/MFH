@@ -84,7 +84,7 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
   const [acc, tx, krw, hnl] = await Promise.all([
     sb
       .from('acct_accounts')
-      .select('id, name, currency, kind, card_last4, initial_usd, adjust_usd')
+      .select('id, name, currency, kind, card_last4, info, initial_usd, adjust_usd')
       .eq('is_active', true)
       .order('sort_order')
       .order('name'),
@@ -124,6 +124,7 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
       currency,
       kind: a.kind ?? null,
       cardLast4: a.card_last4 ?? null,
+      info: a.info ?? null,
       rate,
       balanceUsd,
       balanceLocal,

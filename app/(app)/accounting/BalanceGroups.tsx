@@ -1,4 +1,5 @@
 'use client'
+// MFH-BALANCE-GROUPS-V2 — 카드 행에 사용자 표기(info)
 // MFH-BALANCE-GROUPS-V1
 // 계좌 잔액 그룹 목록 — 통화별(USD·KRW·HNL) + 신용카드(부채) 그룹, 그룹 소계(현지통화 ≈ + USD), 접기/펼치기.
 // 금액 색: 양수 청색 · 음수 적색 · 0 기본. 요약 카드(AccountingSummary)·분석 탭(ReportView) 공용.
@@ -93,6 +94,9 @@ export default function BalanceGroups({ balances }: { balances: AccountBalance[]
                       {shortName(b)}
                       {b.cardLast4 && b.kind !== '신용카드' && (
                         <span className="ml-1.5 text-[10px] text-faint">{b.cardLast4}</span>
+                      )}
+                      {b.kind === '신용카드' && b.info && (
+                        <span className="ml-1.5 text-[10px] text-faint">{b.info}</span>
                       )}
                     </span>
                     <span className="flex shrink-0 items-baseline gap-2">
