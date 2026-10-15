@@ -1,3 +1,4 @@
+// MFH-INBOX-NOTIFY-V3 — 수집기 body {added, auto} 받아 자동 승인 건수 포함(대기 0건이어도 자동분 있으면 발송)
 // MFH-INBOX-NOTIFY-V2 — 반복 기록 승인대기(acct_recurring_due) 건수 합산
 // MFH-INBOX-NOTIFY-V1 — 카드 문자 승인대기 푸시 알림
 // 보호: CRON_SECRET(Authorization: Bearer). 호출자 = scripts/ficohsa-collect.ts(매일 22:00, 새 건 있을 때).
@@ -17,7 +18,7 @@ function authorized(req: Request): boolean {
   return !!secret && req.headers.get('authorization') === `Bearer ${secret}`
 }
 
-async function run(): Promise<NextResponse> {
+async function run(autoCount: number): Promise<NextResponse> {
   const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const priv = process.env.VAPID_PRIVATE_KEY
   let subject = process.env.VAPID_SUBJECT || 'mailto:noreply@mfh.app'
@@ -37,7 +38,7 @@ async function run(): Promise<NextResponse> {
   const cardPending = count ?? 0
   const recPending = recCount ?? 0
   const pending = cardPending + recPending
-  if (pending <= 0) return NextResponse.json({ ok: true, pending, sent: 0, note: 'nothing pending' })
+  if (pending <= 0 && autoCount <= 0) return NextResponse.json({ ok: true, pending, sent: 0, note: 'nothing pending' })
 
   const { data, error } = await admin
     .from('push_subscriptions')
@@ -47,8 +48,15 @@ async function run(): Promise<NextResponse> {
   const subs = (data ?? []) as SubRow[]
 
   const payload = JSON.stringify({
-    title: '회계 승인대기',
-    body: [cardPending > 0 ? `카드 거래 ${cardPending}건` : '', recPending > 0 ? `반복 기록 ${recPending}건` : ''].filter(Boolean).join(' · ') + ' 승인을 기다립니다.',
+    title: pending > 0 ? '회계 승인대기' : '카드 자동 승인',
+    body: [
+      autoCount > 0 ? `카드 거래 ${autoCount}건 자동 승인.` : '',
+      pending > 0
+        ? [cardPending > 0 ? `카드 거래 ${cardPending}건` : '', recPending > 0 ? `반복 기록 ${recPending}건` : ''].filter(Boolean).join(' · ') + ' 승인을 기다립니다.'
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
     url: '/accounting/inbox',
     badge: pending,
   })
@@ -74,7 +82,9 @@ async function run(): Promise<NextResponse> {
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   try {
-    return await run()
+    const body = (await req.json().catch(() => null)) as { auto?: unknown } | null
+    const autoCount = Math.max(0, Number(body?.auto) || 0)
+    return await run(autoCount)
   } catch (err) {
     return NextResponse.json({ error: 'notify failed', detail: String((err as Error)?.message ?? err) }, { status: 500 })
   }

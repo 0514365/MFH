@@ -123,3 +123,26 @@ export type InboxApproveInput = {
   accountId: string | null
   rate: number
 }
+
+// 카드 자동 승인(patch110) — 승인대기 화면 "자동 승인(최근 N일)" 목록 행.
+export type AutoApprovedRow = {
+  id: string // card_tx_inbox.id
+  smsAt: string
+  currency: string
+  principal: number
+  merchant: string
+  itemId: string | null
+  vendor: string | null
+  amountUsd: number | null
+}
+
+// 상점 사전(merchant_rules) — 자동 승인 토글 모달용.
+export type MerchantRuleRow = {
+  id: string
+  merchant: string
+  itemId: string
+  vendor: string | null
+  hitCount: number
+  autoApprove: boolean
+  lastUsedAt: string
+}

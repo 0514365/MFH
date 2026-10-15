@@ -1,3 +1,4 @@
+// MFH-CARD-INBOX-DB-V4 — 자동 승인(patch110): 최근 자동 승인 목록 · 되돌리기 · 상점 사전 목록 · 자동 토글
 // MFH-CARD-INBOX-DB-V3 — 구매처 표시명 학습 · 추천 실시간(사전 우선)
 // MFH-CARD-INBOX-DB-V2 — 구매처(vendor)·적요 분리, 적요 학습
 // MFH-CARD-INBOX-DB-V1
@@ -5,7 +6,7 @@
 // 수집은 scripts/ficohsa-collect.ts(service role)가 하고, 여기서는 앱의 조회·승인·무시·학습(사전 갱신)을 담당.
 // 승인 = acct_inout insert(source=sms) + inbox 행 approved + merchant_rules upsert(다음 추천용).
 import { createClient } from './supabase-server'
-import type { ActionResult, InboxApproveInput, InboxRow } from './accounting-types'
+import type { ActionResult, AutoApprovedRow, InboxApproveInput, InboxRow, MerchantRuleRow } from './accounting-types'
 
 const HN_TZ = 'America/Tegucigalpa'
 const r2 = (n: number) => Math.round(n * 100) / 100
@@ -161,4 +162,84 @@ export async function ignoreInboxItems(ids: string[]): Promise<ActionResult & { 
     .in('id', ids)
     .eq('status', 'pending')
   return error ? { ok: false, done: 0, error: `처리 실패: ${error.message}` } : { ok: true, done: ids.length }
+}
+
+// ===== 자동 승인(patch110) =====
+
+// 최근 days 일 자동 승인분(결정 시각 기준, 최신 먼저). 실패(패치 전 포함) 시 null.
+export async function getAutoApproved(days = 7): Promise<AutoApprovedRow[] | null> {
+  const sb = await createClient()
+  const since = new Date(Date.now() - days * 86400_000).toISOString()
+  const { data, error } = await sb
+    .from('card_tx_inbox')
+    .select('id, sms_at, currency, principal, merchant, acct_inout(item_id, vendor, amount_usd)')
+    .eq('auto', true)
+    .eq('status', 'approved')
+    .gte('decided_at', since)
+    .order('sms_at', { ascending: false })
+  if (error) return null
+  return (data ?? []).map((r): AutoApprovedRow => {
+    const io = (Array.isArray(r.acct_inout) ? r.acct_inout[0] : r.acct_inout) as
+      | { item_id: string | null; vendor: string | null; amount_usd: number | null }
+      | null
+    return {
+      id: r.id,
+      smsAt: r.sms_at,
+      currency: r.currency,
+      principal: Number(r.principal),
+      merchant: r.merchant,
+      itemId: io?.item_id ?? null,
+      vendor: io?.vendor ?? null,
+      amountUsd: io?.amount_usd != null ? Number(io.amount_usd) : null,
+    }
+  })
+}
+
+// 자동 승인 되돌리기 — 장부 행 삭제 → 승인대기 복귀(auto 해제). disableRule 이면 그 상점 자동도 끈다.
+export async function revertAutoApproved(id: string, disableRule: boolean): Promise<ActionResult> {
+  const sb = await createClient()
+  const { data: row, error: e0 } = await sb
+    .from('card_tx_inbox')
+    .select('id, merchant, status, auto, inout_id')
+    .eq('id', id)
+    .maybeSingle()
+  if (e0 || !row) return { ok: false, error: '거래를 찾지 못했습니다' }
+  if (row.status !== 'approved' || !row.auto) return { ok: false, error: '자동 승인 거래가 아닙니다' }
+  if (row.inout_id) {
+    const { error } = await sb.from('acct_inout').delete().eq('id', row.inout_id)
+    if (error) return { ok: false, error: `장부 삭제 실패: ${error.message}` }
+  }
+  const { error: e2 } = await sb
+    .from('card_tx_inbox')
+    .update({ status: 'pending', auto: false, inout_id: null, decided_at: null })
+    .eq('id', id)
+  if (e2) return { ok: false, error: `대기 복귀 실패: ${e2.message}` }
+  if (disableRule) await sb.from('merchant_rules').update({ auto_approve: false }).eq('merchant', row.merchant)
+  return { ok: true }
+}
+
+// 상점 사전 전체(사용 많은 순). 실패 시 null.
+export async function listMerchantRules(): Promise<MerchantRuleRow[] | null> {
+  const sb = await createClient()
+  const { data, error } = await sb
+    .from('merchant_rules')
+    .select('id, merchant, item_id, vendor, hit_count, auto_approve, last_used_at')
+    .order('hit_count', { ascending: false })
+    .order('merchant')
+  if (error) return null
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    merchant: r.merchant,
+    itemId: r.item_id,
+    vendor: r.vendor ?? null,
+    hitCount: r.hit_count ?? 0,
+    autoApprove: !!r.auto_approve,
+    lastUsedAt: r.last_used_at,
+  }))
+}
+
+export async function setMerchantAuto(id: string, on: boolean): Promise<ActionResult> {
+  const sb = await createClient()
+  const { error } = await sb.from('merchant_rules').update({ auto_approve: on }).eq('id', id)
+  return error ? { ok: false, error: `변경 실패: ${error.message}` } : { ok: true }
 }
