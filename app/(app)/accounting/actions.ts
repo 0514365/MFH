@@ -88,8 +88,15 @@ export async function bulkPatchInout(
 ): Promise<{ ok: boolean; done: number; error?: string }> {
   if (!(await isFinanceUser())) return { ok: false, done: 0, error: '권한이 없습니다' }
   if (targets.length === 0) return { ok: false, done: 0, error: '선택된 거래가 없습니다' }
-  if (!patch.itemId && !patch.accountId)
-    return { ok: false, done: 0, error: '변경할 항목 또는 계좌를 선택하세요' }
+  const hasAny =
+    !!patch.itemId ||
+    !!patch.accountId ||
+    !!patch.date ||
+    patch.name != null ||
+    patch.vendor != null ||
+    patch.supporterId !== undefined ||
+    (patch.rate != null && patch.rate > 0)
+  if (!hasAny) return { ok: false, done: 0, error: '변경할 값을 하나 이상 입력하세요' }
   const res = await patchInoutFieldsBulk(
     targets.map((t) => t.id),
     patch,

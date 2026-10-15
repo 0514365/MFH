@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V6 — 통합 수정 필드 확장(날짜·적요·구매처·환율·후원자)
 // MFH-ACCOUNTING-TXLIST-V5 — 구매처(vendor) 열·검색(patch105)
 // MFH-ACCOUNTING-TXLIST-V4 — 구분 이체(출금 → 입금) 필터·표시(patch104)
 // 거래 내역 — 월별 그룹화 + 월별 수입/지출 합계 + 필터(구분·대분류·항목·통화·계좌·기간·이름) + 정렬(날짜·금액).
@@ -67,6 +68,11 @@ export default function TransactionList({
   const [bulkOpen, setBulkOpen] = useState(false)
   const [bulkItemId, setBulkItemId] = useState('')
   const [bulkAccountId, setBulkAccountId] = useState('')
+  const [bulkDate, setBulkDate] = useState('')
+  const [bulkName, setBulkName] = useState('')
+  const [bulkVendor, setBulkVendor] = useState('')
+  const [bulkRate, setBulkRate] = useState('')
+  const [bulkSupporter, setBulkSupporter] = useState('') // '' 변경 안 함 · '__clear__' 해제 · id 연결
   const [bulkBusy, setBulkBusy] = useState(false)
 
   const nameOf = useMemo(() => {
@@ -271,8 +277,20 @@ export default function TransactionList({
     if (itemEditable && bulkItemId && bulkItemOptions.some((o) => o.id === bulkItemId))
       patch.itemId = bulkItemId
     if (bulkAccountId) patch.accountId = bulkAccountId
-    if (!patch.itemId && !patch.accountId) {
-      setErr('변경할 항목 또는 계좌를 선택하세요')
+    if (bulkDate) patch.date = bulkDate
+    if (bulkName.trim()) patch.name = bulkName.trim()
+    if (bulkVendor.trim()) patch.vendor = bulkVendor.trim()
+    const rateNum = Number(bulkRate.replace(/,/g, ''))
+    if (bulkRate.trim()) {
+      if (!(rateNum > 0)) {
+        setErr('환율은 0보다 커야 합니다')
+        return
+      }
+      patch.rate = rateNum
+    }
+    if (onlyGubun === '수입' && bulkSupporter) patch.supporterId = bulkSupporter === '__clear__' ? '' : bulkSupporter
+    if (Object.keys(patch).length === 0) {
+      setErr('변경할 값을 하나 이상 입력하세요')
       return
     }
     setBulkBusy(true)
@@ -282,6 +300,11 @@ export default function TransactionList({
     if (res.done > 0) {
       setBulkItemId('')
       setBulkAccountId('')
+      setBulkDate('')
+      setBulkName('')
+      setBulkVendor('')
+      setBulkRate('')
+      setBulkSupporter('')
       clearSel()
       onAfterMutate()
       if (!res.ok) setErr(`${res.done}건 수정 · 일부 실패: ${res.error ?? ''}`)
@@ -486,6 +509,52 @@ export default function TransactionList({
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="mb-0.5 block text-[10px] font-medium text-faint">날짜 변경</label>
+                <input type="date" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} className={`${ctl} min-w-[130px]`} />
+              </div>
+              <div>
+                <label className="mb-0.5 block text-[10px] font-medium text-faint">적요 변경</label>
+                <input
+                  value={bulkName}
+                  onChange={(e) => setBulkName(e.target.value)}
+                  placeholder="변경 안 함"
+                  className={`${ctl} min-w-[120px]`}
+                />
+              </div>
+              <div>
+                <label className="mb-0.5 block text-[10px] font-medium text-faint">구매처 변경</label>
+                <input
+                  value={bulkVendor}
+                  onChange={(e) => setBulkVendor(e.target.value)}
+                  placeholder="변경 안 함"
+                  className={`${ctl} min-w-[120px]`}
+                />
+              </div>
+              <div>
+                <label className="mb-0.5 block text-[10px] font-medium text-faint">환율 변경 (USD 제외)</label>
+                <input
+                  value={bulkRate}
+                  onChange={(e) => setBulkRate(e.target.value.replace(/[^\d.]/g, ''))}
+                  inputMode="decimal"
+                  placeholder="변경 안 함"
+                  className={`${ctl} min-w-[90px] text-right font-display`}
+                />
+              </div>
+              {onlyGubun === '수입' && (
+                <div>
+                  <label className="mb-0.5 block text-[10px] font-medium text-faint">후원자 연결</label>
+                  <select value={bulkSupporter} onChange={(e) => setBulkSupporter(e.target.value)} className={`${ctl} min-w-[120px]`}>
+                    <option value="">변경 안 함</option>
+                    <option value="__clear__">연결 해제</option>
+                    {options.supporters.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={onBulkPatch}
@@ -496,7 +565,7 @@ export default function TransactionList({
               </button>
               {!itemEditable && (
                 <p className="w-full text-[11px] text-faint">
-                  수입·지출이 섞여 있어 계좌만 변경할 수 있습니다. (이체는 통합 수정 제외)
+                  수입·지출이 섞여 있어 항목·후원자는 변경할 수 없습니다. (이체는 통합 수정 제외)
                 </p>
               )}
             </div>

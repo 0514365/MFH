@@ -54,7 +54,16 @@ export type InoutRow = {
   createdTime: string | null // 입력 시각 — '최근 입력' 정렬용
 }
 
-export type InoutPatch = { itemId?: string; accountId?: string }
+// 통합 수정(부분 변경) — 지정된 필드만 바꾼다. supporterId '' = 연결 해제. rate 는 USD 외 행만 환율·금액(USD) 재계산.
+export type InoutPatch = {
+  itemId?: string
+  accountId?: string
+  date?: string // YYYY-MM-DD
+  name?: string // 적요
+  vendor?: string // 구매처
+  rate?: number // 환율(1 USD 당 현지통화) → amount_usd = principal ÷ rate
+  supporterId?: string | '' // '' = 해제
+}
 
 export type DonationYearly = {
   total: number

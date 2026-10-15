@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-DB-V4 — 통합 수정 필드 확장(날짜·적요·구매처·환율·후원자)
 // MFH-ACCOUNTING-DB-V3 — vendor(구매처) 분리(patch105)
 // MFH-ACCOUNTING-DB-V2 — 이체(출금→입금계좌) 지원(patch104)
 // 회계 장부 데이터 계층(Supabase SoT) — 서버 전용(서버 컴포넌트·server action 에서만 import).
@@ -200,34 +201,52 @@ export async function deleteInoutRecords(ids: string[]): Promise<ActionResult & 
   return error ? { ok: false, done: 0, error: `삭제 실패: ${error.message}` } : { ok: true, done: ids.length }
 }
 
-// 부분 수정 — 항목/계좌만 변경(금액·이름·날짜 보존). gubun 은 구 시그니처 호환용(계좌 컬럼이 하나라 미사용).
-export async function patchInoutFields(
-  id: string,
-  _gubun: Gubun,
-  patch: InoutPatch,
-): Promise<ActionResult> {
-  const row: Record<string, string> = {}
+// 통합 수정 patch → 공통 update 행(환율 제외). 비어 있으면 null.
+function patchToRow(patch: InoutPatch): Record<string, string | null> | null {
+  const row: Record<string, string | null> = {}
   if (patch.itemId) row.item_id = patch.itemId
   if (patch.accountId) row.account_id = patch.accountId
-  if (!Object.keys(row).length) return { ok: true }
-  const sb = await createClient()
-  const { error } = await sb.from('acct_inout').update(row).eq('id', id)
-  return error ? { ok: false, error: `수정 실패: ${error.message}` } : { ok: true }
+  if (patch.date) row.date = patch.date
+  if (patch.name != null) row.name = patch.name.trim()
+  if (patch.vendor != null) row.vendor = patch.vendor.trim() || null
+  if (patch.supporterId !== undefined) row.supporter_id = patch.supporterId || null
+  return Object.keys(row).length ? row : null
 }
 
-// 여러 건 부분 수정(항목/계좌).
+// 부분 수정 1건 — gubun 은 구 시그니처 호환용(미사용).
+export async function patchInoutFields(id: string, _gubun: Gubun, patch: InoutPatch): Promise<ActionResult> {
+  const res = await patchInoutFieldsBulk([id], patch)
+  return res.ok ? { ok: true } : { ok: false, error: res.error }
+}
+
+// 여러 건 부분 수정 — 항목·계좌·날짜·적요·구매처·후원자는 단일 update, 환율은 행별 재계산(USD 행 제외).
 export async function patchInoutFieldsBulk(
   ids: string[],
   patch: InoutPatch,
 ): Promise<ActionResult & { done: number }> {
-  const row: Record<string, string> = {}
-  if (patch.itemId) row.item_id = patch.itemId
-  if (patch.accountId) row.account_id = patch.accountId
   if (!ids.length) return { ok: false, done: 0, error: '선택된 거래가 없습니다' }
-  if (!Object.keys(row).length) return { ok: false, done: 0, error: '변경할 항목 또는 계좌를 선택하세요' }
+  const row = patchToRow(patch)
+  const rate = patch.rate != null && patch.rate > 0 ? patch.rate : null
+  if (!row && !rate) return { ok: false, done: 0, error: '변경할 값을 하나 이상 입력하세요' }
   const sb = await createClient()
-  const { error } = await sb.from('acct_inout').update(row).in('id', ids)
-  return error ? { ok: false, done: 0, error: `수정 실패: ${error.message}` } : { ok: true, done: ids.length }
+  if (row) {
+    const { error } = await sb.from('acct_inout').update(row).in('id', ids)
+    if (error) return { ok: false, done: 0, error: `수정 실패: ${error.message}` }
+  }
+  if (rate) {
+    const { data, error } = await sb.from('acct_inout').select('id, currency, principal').in('id', ids)
+    if (error) return { ok: false, done: row ? ids.length : 0, error: `환율 수정 실패: ${error.message}` }
+    for (const r of data ?? []) {
+      if (r.currency === 'USD') continue
+      const principal = num(r.principal) ?? 0
+      const { error: e2 } = await sb
+        .from('acct_inout')
+        .update({ rate, amount_usd: r2(principal / rate) })
+        .eq('id', r.id)
+      if (e2) return { ok: false, done: 0, error: `환율 수정 실패: ${e2.message}` }
+    }
+  }
+  return { ok: true, done: ids.length }
 }
 
 // 계좌 1건 생성(입금·지불 공용).
