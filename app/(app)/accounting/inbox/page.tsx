@@ -1,13 +1,16 @@
+// MFH-CARD-INBOX-PAGE-V2 — 반복 기록 승인대기(RecurringDueSection) 상단 배치
 // MFH-CARD-INBOX-PAGE-V1
 // 승인대기(카드 문자) — 매일 22:00 수집된 Ficohsa 카드 거래를 항목·적요·계좌·환율 확인 후 승인/무시. 셸은 ../layout.tsx.
 import { getAcctOptions } from '@/lib/accounting-db'
 import { getInboxPending, getLastSmsRate } from '@/lib/card-inbox-db'
 import InboxView from './InboxView'
+import RecurringDueSection from './RecurringDueSection'
+import { getRecurringDue, listRecurringRules } from '@/lib/recurring-db'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AccountingInboxPage() {
-  const [options, rows, rate] = await Promise.all([getAcctOptions(), getInboxPending(), getLastSmsRate()])
+  const [options, rows, rate, dues, rules] = await Promise.all([getAcctOptions(), getInboxPending(), getLastSmsRate(), getRecurringDue(), listRecurringRules()])
 
   if (!options || rows == null) {
     return (
@@ -17,5 +20,10 @@ export default async function AccountingInboxPage() {
     )
   }
 
-  return <InboxView rows={rows} options={options} defaultRate={rate} />
+  return (
+    <>
+      <RecurringDueSection dues={dues ?? []} rules={rules ?? []} options={options} />
+      <InboxView rows={rows} options={options} defaultRate={rate} />
+    </>
+  )
 }

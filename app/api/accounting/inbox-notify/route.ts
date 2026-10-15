@@ -1,3 +1,4 @@
+// MFH-INBOX-NOTIFY-V2 — 반복 기록 승인대기(acct_recurring_due) 건수 합산
 // MFH-INBOX-NOTIFY-V1 — 카드 문자 승인대기 푸시 알림
 // 보호: CRON_SECRET(Authorization: Bearer). 호출자 = scripts/ficohsa-collect.ts(매일 22:00, 새 건 있을 때).
 // 동작: 승인대기(pending) 건수 조회 → 재정 관리자(부부) 구독에 "승인대기 N건" 발송 → 만료 구독 정리. 0건이면 스킵.
@@ -29,7 +30,13 @@ async function run(): Promise<NextResponse> {
     .from('card_tx_inbox')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'pending')
-  const pending = count ?? 0
+  const { count: recCount } = await admin
+    .from('acct_recurring_due')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'pending')
+  const cardPending = count ?? 0
+  const recPending = recCount ?? 0
+  const pending = cardPending + recPending
   if (pending <= 0) return NextResponse.json({ ok: true, pending, sent: 0, note: 'nothing pending' })
 
   const { data, error } = await admin
@@ -40,8 +47,8 @@ async function run(): Promise<NextResponse> {
   const subs = (data ?? []) as SubRow[]
 
   const payload = JSON.stringify({
-    title: '카드 문자 승인대기',
-    body: `Ficohsa 카드 거래 ${pending}건이 승인을 기다립니다.`,
+    title: '회계 승인대기',
+    body: [cardPending > 0 ? `카드 거래 ${cardPending}건` : '', recPending > 0 ? `반복 기록 ${recPending}건` : ''].filter(Boolean).join(' · ') + ' 승인을 기다립니다.',
     url: '/accounting/inbox',
     badge: pending,
   })

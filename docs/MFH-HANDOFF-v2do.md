@@ -74,8 +74,13 @@
 - 내역: `TransactionList` V13 `initialFilter`(ledger/page 가 searchParams 를 읽어 선적용) · 항목 열 자동 폭(보이는 행 중 최장 항목이 2줄에 생략 없이, 통화 열 펼치면 65%) · 구매처 9rem 말줄임.
 - 시각 검증 방법: 로그인 뒤 화면이라 `react-dom/server` 로 실데이터 정적 렌더 → `out/*.html`(gitignored) → `letter-static`(8765) 으로 확인(스크래치 `render-report.tsx`·`render-ledger.tsx`, React 전역 주입 + Tailwind CDN `?plugins=container-queries`).
 
+## 추가 6 (2026-10-15 · 회계 후속 3건 · 커밋 `d6cf50d` `08b6377` + 반복 기록)
+- **폼 `조정`**(`AccountingForm` V5): 구분 버튼 조정 — 날짜·계좌·금액(±, 음수 입력 허용)·내용. 내역 조정 행 클릭 수정 가능. `toRow` 조정 분기(`accounting-db` V7), `Gubun` 에 '조정'.
+- **환차 정리**(`CardRepayButton` V2): "잔액 0 맞춤" → 카드별 잔액 반대 부호로 `수입/환차익`(잔액 −) 또는 `지출/사역비/수수료`(잔액 +) 1건. 기본 선택 = |잔액| < $100.
+- **반복 기록(patch109 적용 완료)**: `acct_recurring`(규칙) · `acct_recurring_due`(승인대기, (규칙,연월) unique). 시드 2건(청약 이체 20,000·국민연금 96,000, 매월 10일, 2026-11~). **예약 작업 `recurring-due-0700`(매일 07:00) → `scripts/recurring-due.ts`** 가 due 행만 생성(자동 저장 없음) → `/accounting/inbox` 상단 `RecurringDueSection`(승인=장부 저장 / 건너뜀, 날짜·금액·환율 수정) + `반복 규칙` 모달(CRUD·비활성). `lib/recurring-db.ts` · `inbox/recurring-actions.ts`. 배너·푸시(`inbox-notify` V2)에 건수 합산. 첫 실행 전 "Run now" 1회로 Bash 승인 권장.
+
 ## 다음 과제
 1. 버전: 우진이 「버전」 꺼낼 때 제안(셸 + 회계 자동화 누적).
-2. 회계 후속(선택): 월 반복 기록(청약·국민연금) · 환차익/수수료 월말 정리 도우미 · 항목 관리(수정·숨김) · 영수증 업로드(`receipt_path`) · 신용카드 자동 승인(hit_count 기준, 설계 §4) · iOS 단축어 실시간 수집.
+2. 회계 후속(선택): 영수증 업로드(`receipt_path`) · 신용카드 자동 승인(hit_count) · iOS 단축어 수집 · 항목 수정/숨김 UI · 항목 관리(수정·숨김) · 영수증 업로드(`receipt_path`) · 신용카드 자동 승인(hit_count 기준, 설계 §4) · iOS 단축어 실시간 수집.
 3. **10월호(MFH #2610)**: 자료 기간 2026-10-05~.
 4. (이월) `/bible` 진행 표시·딥링크 · `/bible/study` 무한 스크롤 · 즐겨찾기 DB 동기화 · 인사 카드 kind 토글 UI.
