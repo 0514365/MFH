@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-INBOX-VIEW-V5 — 문자 상점명 한 줄 고정(첫 열 215px)
 // MFH-CARD-INBOX-VIEW-V4 — 구매처 수정·학습 추천
 // MFH-CARD-INBOX-VIEW-V3 — 구매처(상점) 표시 + 적요 학습 추천
 // MFH-CARD-INBOX-VIEW-V2 — KRW 환율 · 항목 즉석 추가
@@ -197,19 +198,20 @@ export default function InboxView({
             return (
               <li
                 key={r.id}
-                className="rounded-2xl border border-line bg-surface p-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] @2xl:grid @2xl:grid-cols-[150px_1fr_1fr_1fr_140px_auto] @2xl:items-end @2xl:gap-2"
+                className="rounded-2xl border border-line bg-surface p-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] @2xl:grid @2xl:grid-cols-[215px_1fr_1fr_1fr_140px_auto] @2xl:items-end @2xl:gap-2"
               >
                 {/* 원문 정보 */}
                 <div className="mb-2 flex items-start justify-between gap-2 @2xl:mb-0 @2xl:block">
                   <div className="min-w-0">
-                    <div className="break-words text-sm font-semibold text-ink">
+                    {/* 문자 상점명(16자 절단 원문) — 데스크탑은 한 줄 고정(열 폭 215px), 모바일은 필요 시 줄바꿈 */}
+                    <div className="text-sm font-semibold text-ink @2xl:whitespace-nowrap">
                       <span className="mr-1 text-[10px] font-medium text-faint">문자</span>
                       {r.merchant}
                     </div>
-                    <div className="text-[11px] text-muted">
+                    <div className="whitespace-nowrap text-[11px] text-muted">
                       {fmtWhen(r.smsAt)} · 카드 {r.cardLast4}
                       {!r.suggestedItemId && (
-                        <span className="ml-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                        <span className="ml-1 whitespace-nowrap rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
                           새 상점
                         </span>
                       )}
