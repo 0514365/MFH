@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-INBOX-VIEW-V3 — 구매처(상점) 표시 + 적요 학습 추천
 // MFH-CARD-INBOX-VIEW-V2 — KRW 환율 · 항목 즉석 추가
 // MFH-CARD-INBOX-VIEW-V1
 // 승인대기 목록 — 행별 항목(추천 선채움)·적요·계좌 편집 + 승인/무시, 추천 채워진 행 일괄 승인.
@@ -62,7 +63,7 @@ export default function InboxView({
     for (const r of rows)
       d[r.id] = {
         itemId: r.suggestedItemId ?? '',
-        name: r.suggestedName ?? r.merchant,
+        name: r.suggestedName ?? '', // 적요 추천(그 상점에서 통상 사는 것) — 없으면 빈칸
         accountId: r.suggestedAccountId ?? accountByCurrency(r.currency),
       }
     return d
@@ -199,7 +200,10 @@ export default function InboxView({
                 {/* 원문 정보 */}
                 <div className="mb-2 flex items-start justify-between gap-2 @2xl:mb-0 @2xl:block">
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-ink">{r.merchant}</div>
+                    <div className="truncate text-sm font-semibold text-ink">
+                      <span className="mr-1 text-[10px] font-medium text-faint">구매처</span>
+                      {r.merchant}
+                    </div>
                     <div className="text-[11px] text-muted">
                       {fmtWhen(r.smsAt)} · 카드 {r.cardLast4}
                       {!r.suggestedItemId && (
@@ -236,12 +240,15 @@ export default function InboxView({
                   </select>
                 </label>
 
-                {/* 적요 */}
+                {/* 적요(무엇을) — 구매처는 상점명 그대로 기록되고, 적요는 상점별로 학습·추천 */}
                 <label className="mt-2 block @2xl:mt-0">
-                  <span className="mb-1 block text-[11px] font-medium text-faint">적요</span>
+                  <span className="mb-1 block text-[11px] font-medium text-faint">
+                    적요{r.suggestedName ? <span className="ml-1 text-accent">추천</span> : ''}
+                  </span>
                   <input
                     value={d.name}
                     onChange={(e) => setDraft(r.id, { name: e.target.value })}
+                    placeholder="예: 식료품 · 주유 · 학비"
                     className={ctl}
                   />
                 </label>

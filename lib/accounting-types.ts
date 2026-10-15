@@ -25,7 +25,8 @@ export type InoutInput = {
   gubun: Gubun
   date: string // YYYY-MM-DD
   itemId: string // 항목 id(이체는 '')
-  name: string
+  name: string // 적요(무엇을)
+  vendor?: string | null // 구매처(어디서) — 카드 승인은 문자 상점명
   currency: Currency
   principal: number // 원금(현지통화)
   rate: number // 환율(1 USD당 현지통화)
@@ -41,6 +42,7 @@ export type InoutRow = {
   gubun: string | null
   date: string | null
   name: string | null
+  vendor: string | null
   currency: string | null
   principal: number | null
   rate: number | null
@@ -83,11 +85,11 @@ export type InboxRow = {
   suggestedAccountId: string | null
 }
 
-// 승인 입력 — 행 id + 사용자가 확정한 값. amount_usd 는 서버에서 principal ÷ rate 로 계산.
+// 승인 입력 — 행 id + 사용자가 확정한 값. amount_usd 는 서버에서 principal ÷ rate 로 계산. 구매처는 문자 상점명(서버가 채움).
 export type InboxApproveInput = {
   id: string
   itemId: string
-  name: string
+  name: string // 적요(빈칸 허용 — 구매처만 기록)
   accountId: string | null
   rate: number
 }

@@ -1,3 +1,4 @@
+// MFH-CARD-INBOX-DB-V2 — 구매처(vendor)·적요 분리, 적요 학습
 // MFH-CARD-INBOX-DB-V1
 // Ficohsa 카드 문자 승인대기 인박스 데이터 계층 — 서버 전용. 테이블 card_tx_inbox · merchant_rules(patch103).
 // 수집은 scripts/ficohsa-collect.ts(service role)가 하고, 여기서는 앱의 조회·승인·무시·학습(사전 갱신)을 담당.
@@ -82,7 +83,7 @@ export async function approveInboxItem(uid: string, p: InboxApproveInput): Promi
   if (!(rate > 0)) return { ok: false, error: '환율을 입력하세요' }
   const principal = Number(row.principal)
   const amountUsd = usd ? principal : r2(principal / rate)
-  const name = p.name.trim() || row.merchant
+  const name = p.name.trim() // 적요(무엇을) — 빈칸 허용
 
   const { data: ins, error: e1 } = await sb
     .from('acct_inout')
@@ -92,6 +93,7 @@ export async function approveInboxItem(uid: string, p: InboxApproveInput): Promi
       date: hnDate(row.sms_at),
       item_id: p.itemId,
       name,
+      vendor: row.merchant, // 구매처(어디서) = 문자 상점명
       currency: row.currency,
       principal,
       rate,
@@ -110,11 +112,11 @@ export async function approveInboxItem(uid: string, p: InboxApproveInput): Promi
     .eq('id', p.id)
   if (e2) return { ok: false, error: `대기열 갱신 실패: ${e2.message}` }
 
-  await learnMerchant(uid, row.merchant, p.itemId, name === row.merchant ? null : name, p.accountId || null)
+  await learnMerchant(uid, row.merchant, p.itemId, name || null, p.accountId || null)
   return { ok: true }
 }
 
-// 상점 사전 upsert — 같은 상점은 최신 값으로 덮고 hit_count+1.
+// 상점 사전 upsert — 같은 상점은 최신 값(항목·적요·계좌)으로 덮고 hit_count+1. name = 그 상점에서 통상 사는 것(적요 추천).
 async function learnMerchant(
   uid: string,
   merchant: string,

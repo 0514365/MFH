@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V5 — 구매처(vendor) 열·검색(patch105)
 // MFH-ACCOUNTING-TXLIST-V4 — 구분 이체(출금 → 입금) 필터·표시(patch104)
 // 거래 내역 — 월별 그룹화 + 월별 수입/지출 합계 + 필터(구분·대분류·항목·통화·계좌·기간·이름) + 정렬(날짜·금액).
 // 행 클릭 → 수정(onEdit, 기록 페이지로 이동) · 행별 삭제 + 다중선택 → 일괄 삭제 / 통합 수정(항목·계좌). 노션(SoT) read, 변경은 server action.
@@ -109,7 +110,7 @@ export default function TransactionList({
       if (fCur && r.currency !== fCur) return false
       if (fFrom && (r.date ?? '') < fFrom) return false
       if (fTo && (r.date ?? '') > fTo) return false
-      if (ql && !(r.name ?? '').toLowerCase().includes(ql)) return false
+      if (ql && !(r.name ?? '').toLowerCase().includes(ql) && !(r.vendor ?? '').toLowerCase().includes(ql)) return false
       return true
     })
     const dir = sortDir === 'asc' ? 1 : -1
@@ -381,7 +382,7 @@ export default function TransactionList({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="이름 검색"
+          placeholder="적요·구매처 검색"
           className={`${ctl} min-w-[120px] flex-1`}
         />
         <div className="flex h-8 items-center gap-1 @2xl:hidden">
@@ -535,6 +536,7 @@ export default function TransactionList({
                   </th>
                   <th className="px-2 py-2 font-medium">항목</th>
                   <th className="px-2 py-2 font-medium">적요</th>
+                  <th className="px-2 py-2 font-medium">구매처</th>
                   <th className="px-2 py-2 font-medium">원화</th>
                   <th className="px-2 py-2 font-medium">렘피라</th>
                   <th className="px-2 py-2 font-medium">달러</th>
@@ -552,7 +554,7 @@ export default function TransactionList({
                 return (
                   <tbody key={g.key} className="border-b border-line last:border-0">
                     <tr className="bg-surface-subtle/60">
-                      <td colSpan={10} className="px-3 py-1.5">
+                      <td colSpan={11} className="px-3 py-1.5">
                         <div className="flex items-center justify-between">
                           <button
                             type="button"
@@ -623,7 +625,8 @@ export default function TransactionList({
                                 ? (nameOf.get(r.itemId) ?? '—')
                                 : '—'}
                           </td>
-                          <td className="px-2 py-2 text-ink">{r.name ?? '—'}</td>
+                          <td className="px-2 py-2 text-ink">{r.name || '—'}</td>
+                          <td className="px-2 py-2 text-muted">{r.vendor || '—'}</td>
                           <td className="px-2 py-2 text-right font-display text-muted">
                             {fmtColCell(r.currency, 'KRW', r.principal)}
                           </td>
@@ -652,7 +655,7 @@ export default function TransactionList({
                       ))}
                     {!isCollapsed && (
                       <tr className="border-t border-line bg-surface-subtle/60">
-                        <td colSpan={10} className="px-3 py-1.5 text-right">
+                        <td colSpan={11} className="px-3 py-1.5 text-right">
                           <span className="text-[11px] text-faint">월 합계</span>
                           <span className="ml-2 font-display text-[12px] font-bold text-emerald-700">
                             수입 {fmtUsd(g.inUsd)}
@@ -748,6 +751,7 @@ export default function TransactionList({
                                 </div>
                                 <div className="mt-0.5 text-xs text-faint">
                                   {r.date ?? ''}
+                                  {r.vendor ? ` · ${r.vendor}` : ''}
                                   {r.gubun !== '이체' && r.accountId ? ` · ${nameOf.get(r.accountId) ?? ''}` : ''}
                                 </div>
                               </div>

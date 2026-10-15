@@ -41,6 +41,7 @@ const HEADER_ALIAS: Record<string, string[]> = {
   date: ['날짜', '일자', 'date'],
   item: ['항목', '분류', '카테고리', 'item'],
   name: ['이름', '내용', '적요', '메모', 'name'],
+  vendor: ['구매처', '상점', '거래처', 'vendor'],
   currency: ['통화', 'currency', 'cur'],
   principal: ['금액', '원금', '액수', 'amount'],
   rate: ['환율', 'rate', 'fx'],
@@ -146,6 +147,7 @@ export function mapCsvRows(text: string, options: AcctOptions): MappedResult {
     if (gubun && !item) errors.push(`항목 '${itemName}' 없음`)
 
     const name = get('name').trim()
+    const vendor = get('vendor').trim() || null
 
     const currency = normCurrency(get('currency'))
     if (!currency) errors.push(`통화 '${get('currency')}'`)
@@ -188,7 +190,7 @@ export function mapCsvRows(text: string, options: AcctOptions): MappedResult {
     const ok = errors.length === 0
     const input: InoutInput | null =
       ok && gubun && date && item && currency
-        ? { gubun, date, itemId: item.id, name, currency, principal, rate, amountUsd, accountId, supporterId }
+        ? { gubun, date, itemId: item.id, name, vendor, currency, principal, rate, amountUsd, accountId, supporterId }
         : null
 
     rows.push({

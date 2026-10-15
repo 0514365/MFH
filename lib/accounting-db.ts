@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-DB-V3 — vendor(구매처) 분리(patch105)
 // MFH-ACCOUNTING-DB-V2 — 이체(출금→입금계좌) 지원(patch104)
 // 회계 장부 데이터 계층(Supabase SoT) — 서버 전용(서버 컴포넌트·server action 에서만 import).
 // 2026-10 노션 A안 → Supabase 이전. 함수 이름·시그니처는 구 lib/notion.ts 와 동일하게 유지(호출부 import 경로만 교체).
@@ -106,7 +107,7 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
   let q = sb
     .from('acct_inout')
     .select(
-      'id, gubun, date, name, currency, principal, rate, amount_usd, item_id, account_id, to_account_id, supporter_id, created_at',
+      'id, gubun, date, name, vendor, currency, principal, rate, amount_usd, item_id, account_id, to_account_id, supporter_id, created_at',
     )
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
@@ -119,6 +120,7 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
       gubun: r.gubun,
       date: r.date,
       name: r.name,
+      vendor: r.vendor ?? null,
       currency: r.currency,
       principal: num(r.principal),
       rate: num(r.rate),
@@ -136,11 +138,13 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
 
 function toRow(p: InoutInput) {
   const transfer = p.gubun === '이체'
+  const vendor = transfer ? null : p.vendor?.trim() || null
   return {
     gubun: p.gubun,
     date: p.date,
     item_id: transfer ? null : p.itemId,
-    name: p.name || (transfer ? '이체' : '(무제)'),
+    name: p.name.trim() || (transfer ? '이체' : vendor ? '' : '(무제)'),
+    vendor,
     currency: p.currency,
     principal: p.principal,
     rate: p.rate,

@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V5 — 구매처(vendor) 입력(patch105)
 // MFH-ACCOUNTING-FORM-V4 — 구분 '이체'(출금계좌 → 입금계좌, 항목 없음) 추가(patch104)
 // MFH-ACCOUNTING-FORM-V3
 // 회계 입력·수정·삭제 — 데스크탑 가로(스프레드시트)·모바일 세로. 조건부 콤보·환산 자동·후원자 자동연결.
@@ -78,6 +79,7 @@ export default function AccountingForm({
   const [date, setDate] = useState(todayLocal)
   const [itemId, setItemId] = useState('')
   const [name, setName] = useState('')
+  const [vendor, setVendor] = useState('')
   const [currency, setCurrency] = useState<'KRW' | 'USD' | 'HNL'>('KRW')
   const [principal, setPrincipal] = useState('')
   const [rate, setRate] = useState(DEFAULT_RATE.KRW)
@@ -115,6 +117,7 @@ export default function AccountingForm({
     setEditingId(null)
     setItemId('')
     setName('')
+    setVendor('')
     setPrincipal('')
     setRate(DEFAULT_RATE[currency])
     setAccountId(accountByCurrency(currency))
@@ -152,6 +155,7 @@ export default function AccountingForm({
     setDate(r.date ?? todayLocal())
     setItemId(r.itemId ?? '')
     setName(r.name ?? '')
+    setVendor(r.vendor ?? '')
     setCurrency(r.currency === 'USD' || r.currency === 'HNL' ? r.currency : 'KRW')
     setPrincipal(r.principal != null ? String(r.principal) : '')
     setRate(r.rate != null ? String(r.rate) : '')
@@ -187,6 +191,7 @@ export default function AccountingForm({
       date,
       itemId: isTransfer ? '' : itemId,
       name: name.trim(),
+      vendor: isTransfer ? null : vendor.trim() || null,
       currency,
       principal: Number(principal),
       rate: usd ? 1 : Number(rate),
@@ -327,7 +332,20 @@ export default function AccountingForm({
             )}
           </div>
 
-          {/* 적요까지 1행, 통화부터 2행 — 데스크탑 강제 줄바꿈 */}
+          {/* 구매처(어디서, 선택) — 이체는 없음 */}
+          {!isTransfer && (
+            <div className="@2xl:w-[150px] @2xl:shrink-0">
+              <label className={labelCls}>구매처</label>
+              <input
+                value={vendor}
+                onChange={(e) => setVendor(e.target.value)}
+                placeholder="상점·거래처"
+                className={inp}
+              />
+            </div>
+          )}
+
+          {/* 구매처까지 1행, 통화부터 2행 — 데스크탑 강제 줄바꿈 */}
           <div className="hidden basis-full @2xl:block" aria-hidden="true" />
 
           {/* 통화 */}
@@ -492,6 +510,7 @@ export default function AccountingForm({
                             ? (nameOf.get(r.itemId) ?? '')
                             : ''}
                         {r.name ? <span className="text-muted"> · {r.name}</span> : ''}
+                        {r.vendor ? <span className="text-faint"> · {r.vendor}</span> : ''}
                       </span>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
