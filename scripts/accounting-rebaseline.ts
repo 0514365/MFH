@@ -5,6 +5,7 @@
 //   3) 항목 신설 지출/생활/국민연금
 //   4) 거래: 개인→청약 이체 20,000 × 3(8·9·10월 10일) · 개인 국민연금 96,000 × 3 · Ficohsa(달러)→카드 상환 이체(10/14)
 //   5) adjust_usd 재계산: Ficohsa(달러)=11,531.68 · 카드 ~10/13 잔액 0 · 우리은행 3계좌 실제 원화 잔액
+//   7) sort_order 정리: USD 은행 → USD 현금 → KRW → HNL → 신용카드
 //   6) 명칭 정리: Ficohsa(달러)→Ficohsa(달러)_4484 · Ficohsa(렘피라)→현금(렘피라) · 우리은행 달러계좌→우리은행(달러)_9180 · 현금(달러) 신설
 // 사용: npx tsx scripts/accounting-rebaseline.ts --dry-run   (리포트만)
 //       npx tsx scripts/accounting-rebaseline.ts             (적용)
@@ -154,6 +155,16 @@ async function main() {
   else {
     console.log('[6] 계좌 신설: 현금(달러) (USD)')
     if (!DRY) { const { error } = await sb.from('acct_accounts').insert({ user_id: userId, name: '현금(달러)', currency: 'USD', info: '현금 보유(달러)', kind: '현금', sort_order: 5 }); if (error) throw error }
+  }
+  // 7) 표시 순서
+  const ORDER = ['Ficohsa(달러)_4484', '우리은행(달러)_9180', '현금(달러)', '우리은행(선교)_4757', '우리은행(개인)_6154', '우리은행(청약)_6537', '현금(렘피라)', 'Ficohsa 신용카드 4956', 'Ficohsa 신용카드 7697']
+  const cur = ((await sb.from('acct_accounts').select('id,name,sort_order')).data ?? []) as { id: string; name: string; sort_order: number }[]
+  for (const [i, name] of ORDER.entries()) {
+    const a = cur.find((x) => x.name === name)
+    if (!a) { console.log(`[7] 없음(건너뜀): ${name}`); continue }
+    if (a.sort_order === i + 1) continue
+    console.log(`[7] 순서: ${name} ${a.sort_order} → ${i + 1}`)
+    if (!DRY) { const { error } = await sb.from('acct_accounts').update({ sort_order: i + 1 }).eq('id', a.id); if (error) throw error }
   }
   console.log(DRY ? '— 드라이런 끝 —' : '— 적용 완료 —')
 }

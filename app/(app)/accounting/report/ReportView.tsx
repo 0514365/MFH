@@ -4,6 +4,7 @@
 // 표시 전용, 집계는 클라이언트(recent·options·balances). 차트는 의존성 없이 직접 SVG.
 import { useMemo, useState, type ReactNode } from 'react'
 import type { AccountBalance, AcctOptions, InoutRow } from '@/lib/accounting-types'
+import BalanceGroups, { amtColor, summarize } from '../BalanceGroups'
 
 function fmtUsd(n: number): string {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -303,7 +304,7 @@ export default function ReportView({
       }
     }, [recent, year, itemName, catOf, supporterName])
 
-  const totalAssets = balances.reduce((s, b) => s + b.balanceUsd, 0)
+  const { net: netAssets } = summarize(balances)
 
   return (
     <div>
@@ -333,26 +334,8 @@ export default function ReportView({
         <Card title="후원자별 헌금" right={fmtUsd(supporterTotal)} rightColor="text-ink">
           <BarList rows={supporterRows} color="var(--primary)" />
         </Card>
-        <Card title="계좌 잔액" right={`총 ${fmtUsd(totalAssets)}`} rightColor="text-ink">
-          {balances.length === 0 ? (
-            <p className="py-2 text-center text-xs text-faint">계좌 없음</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {balances.map((b) => (
-                <li key={b.id} className="flex items-center justify-between text-sm">
-                  <span className="text-ink">
-                    {b.name}
-                    {b.currency ? (
-                      <span className="ml-1.5 text-[11px] text-faint">{b.currency}</span>
-                    ) : (
-                      ''
-                    )}
-                  </span>
-                  <span className="font-display font-bold text-ink">{fmtUsd(b.balanceUsd)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+        <Card title="계좌 잔액" right={`순자산 ${fmtUsd(netAssets)}`} rightColor={amtColor(netAssets)}>
+          <BalanceGroups balances={balances} />
         </Card>
       </div>
     </div>

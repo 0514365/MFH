@@ -1,14 +1,12 @@
 'use client'
-// MFH-ACCOUNTING-SUMMARY-V2
-// 메인 요약 — 이번달 수입/지출/순액(브라우저 로컬월 기준) + 계좌별 잔액·총자산(자산 DB `잔액(USD)` read).
+// MFH-ACCOUNTING-SUMMARY-V3 — 잔액 그룹(BalanceGroups) · 자산/부채/순자산 헤더 · 양수 청색/음수 적색
+// 메인 요약 — 이번달 수입/지출/순액(브라우저 로컬월 기준) + 계좌별 잔액(통화·카드 그룹)·자산/부채/순자산.
 // 데이터는 page.tsx 가 장부에서 read 후 전달. Balances 카드 '+ 계좌' → AccountAddForm(노션 자산 DB 에 계좌 추가).
 import { useMemo, useState } from 'react'
 import type { AccountBalance, InoutRow } from '@/lib/accounting-types'
 import AccountAddForm from './AccountAddForm'
+import BalanceGroups, { amtColor, fmtUsd, summarize } from './BalanceGroups'
 
-function fmtUsd(n: number): string {
-  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 
 export default function AccountingSummary({
   recent,
@@ -32,7 +30,7 @@ export default function AccountingSummary({
     return { income, expense }
   }, [recent, ym])
   const net = income - expense
-  const total = balances.reduce((s, b) => s + b.balanceUsd, 0)
+  const { assets, debt, net: netWorth } = summarize(balances)
   const [adding, setAdding] = useState(false)
 
   return (
@@ -70,9 +68,6 @@ export default function AccountingSummary({
             Balances
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-faint">
-              총자산 <b className="font-display text-ink">{fmtUsd(total)}</b>
-            </span>
             {!adding && (
               <button
                 type="button"
@@ -84,21 +79,21 @@ export default function AccountingSummary({
             )}
           </div>
         </div>
-        {balances.length === 0 ? (
-          <p className="py-2 text-center text-xs text-faint">계좌 정보 없음</p>
-        ) : (
-          <ul className="space-y-1.5">
-            {balances.map((b) => (
-              <li key={b.id} className="flex items-center justify-between text-sm">
-                <span className="text-ink">
-                  {b.name}
-                  {b.currency ? <span className="ml-1.5 text-[11px] text-faint">{b.currency}</span> : ''}
-                </span>
-                <span className="font-display font-bold text-ink">{fmtUsd(b.balanceUsd)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="mb-3 grid grid-cols-3 gap-2 rounded-xl border border-line px-3 py-2">
+          <div>
+            <div className="text-[11px] text-faint">자산</div>
+            <div className={`font-display text-[14px] font-bold ${amtColor(assets)}`}>{fmtUsd(assets)}</div>
+          </div>
+          <div>
+            <div className="text-[11px] text-faint">부채</div>
+            <div className={`font-display text-[14px] font-bold ${amtColor(debt)}`}>{fmtUsd(debt)}</div>
+          </div>
+          <div>
+            <div className="text-[11px] text-faint">순자산</div>
+            <div className={`font-display text-[14px] font-bold ${amtColor(netWorth)}`}>{fmtUsd(netWorth)}</div>
+          </div>
+        </div>
+        <BalanceGroups balances={balances} />
         {adding && <AccountAddForm onClose={() => setAdding(false)} />}
       </div>
     </section>

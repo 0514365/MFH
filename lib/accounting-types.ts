@@ -13,7 +13,16 @@ export type AcctOptions = {
   accounts: AcctOption[]
 }
 
-export type AccountBalance = { id: string; name: string; balanceUsd: number; currency: string | null }
+export type AccountBalance = {
+  id: string
+  name: string
+  balanceUsd: number
+  currency: string | null
+  kind: string | null // 현금 · 신용카드
+  cardLast4: string | null
+  rate: number | null // 현지통화 환산율(그 통화의 최근 거래 환율, USD=1)
+  balanceLocal: number | null // 현지통화 근사 잔액 = balanceUsd × rate (환율 없으면 null)
+}
 
 export type AccountInput = {
   name: string

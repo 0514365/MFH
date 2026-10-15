@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-DB-V5 — 계좌 잔액에 유형·카드끝자리·최근 환율·현지통화 근사 잔액 추가
 // MFH-ACCOUNTING-DB-V4 — 통합 수정 필드 확장(날짜·적요·구매처·환율·후원자)
 // MFH-ACCOUNTING-DB-V3 — vendor(구매처) 분리(patch105)
 // MFH-ACCOUNTING-DB-V2 — 이체(출금→입금계좌) 지원(patch104)
@@ -67,19 +68,36 @@ export async function getAcctOptions(): Promise<AcctOptions | null> {
   return out
 }
 
-// 계좌별 잔액(USD) = 초기 + 조정 + Σ수입 − Σ지출. 실패 시 null.
+// 계좌별 잔액(USD) = 초기 + 조정 + Σ수입 − Σ지출 ± 이체. 실패 시 null.
+// 현지통화 잔액은 그 통화의 최근 거래 환율로 역환산한 근사치(KRW 정수 · HNL 소수 2자리). USD 는 그대로.
 export async function getAccountBalances(): Promise<AccountBalance[] | null> {
   const sb = await createClient()
-  const [acc, tx] = await Promise.all([
+  const latestRate = (cur: 'KRW' | 'HNL') =>
+    sb
+      .from('acct_inout')
+      .select('rate')
+      .eq('currency', cur)
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+  const [acc, tx, krw, hnl] = await Promise.all([
     sb
       .from('acct_accounts')
-      .select('id, name, currency, initial_usd, adjust_usd')
+      .select('id, name, currency, kind, card_last4, initial_usd, adjust_usd')
       .eq('is_active', true)
       .order('sort_order')
       .order('name'),
     sb.from('acct_inout').select('gubun, account_id, to_account_id, amount_usd'),
+    latestRate('KRW'),
+    latestRate('HNL'),
   ])
   if (acc.error || tx.error) return null
+  const rateOf: Record<string, number | null> = {
+    USD: 1,
+    KRW: num(krw.data?.rate) ?? null,
+    HNL: num(hnl.data?.rate) ?? null,
+  }
   // 수입 +계좌 · 지출 −계좌 · 이체 −출금계좌 +입금계좌
   const sum = new Map<string, number>()
   const add = (id: string | null, v: number) => {
@@ -94,12 +112,23 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
       add(t.to_account_id, amt)
     }
   }
-  return (acc.data ?? []).map((a) => ({
-    id: a.id,
-    name: a.name,
-    currency: a.currency ?? null,
-    balanceUsd: r2((num(a.initial_usd) ?? 0) + (num(a.adjust_usd) ?? 0) + (sum.get(a.id) ?? 0)),
-  }))
+  return (acc.data ?? []).map((a) => {
+    const balanceUsd = r2((num(a.initial_usd) ?? 0) + (num(a.adjust_usd) ?? 0) + (sum.get(a.id) ?? 0))
+    const currency = a.currency ?? null
+    const rate = currency ? (rateOf[currency] ?? null) : null
+    const balanceLocal =
+      rate == null ? null : currency === 'KRW' ? Math.round(balanceUsd * rate) : r2(balanceUsd * rate)
+    return {
+      id: a.id,
+      name: a.name,
+      currency,
+      kind: a.kind ?? null,
+      cardLast4: a.card_last4 ?? null,
+      rate,
+      balanceUsd,
+      balanceLocal,
+    }
+  })
 }
 
 // 거래 목록(표시·수정·집계용) — 날짜 내림차순(동일 날짜는 최근 입력 먼저). limit 미지정 시 전체.
