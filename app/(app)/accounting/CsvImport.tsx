@@ -7,7 +7,7 @@ import type { AcctOptions } from '@/lib/accounting-types'
 import { mapCsvRows } from '@/lib/accounting-csv'
 import { bulkCreateInout } from './actions'
 
-const PLACEHOLDER = `구분,날짜,항목,적요,통화,금액,환율,계좌
+const PLACEHOLDER = `구분,날짜,항목,내용,통화,금액,환율,계좌
 수입,2026-06-23,정기후원,이경재,KRW,100000,1400,우리은행(선교)_4757
 지출,2026-06-26,건축,교회 증축,USD,500,,Ficohsa(달러)_4484`
 
@@ -87,7 +87,7 @@ export default function CsvImport({ options }: { options: AcctOptions }) {
 
       <p className="mb-2 text-xs leading-relaxed text-faint">
         첫 줄 머리글 필수(순서 무관):{' '}
-        <span className="text-muted">구분 · 날짜 · 항목 · 적요 · 통화 · 금액 · 환율 · 계좌</span>. 엑셀·구글시트에서
+        <span className="text-muted">구분 · 날짜 · 항목 · 내용 · 통화 · 금액 · 환율 · 계좌</span>. 엑셀·구글시트에서
         복사해 붙여넣거나 .csv 파일을 올리세요. 환산 USD 는 자동, 계좌를 비우면 통화 기본계좌로 들어갑니다.
       </p>
 
@@ -137,7 +137,7 @@ export default function CsvImport({ options }: { options: AcctOptions }) {
                 <th className="px-2 py-1.5 font-medium">구분</th>
                 <th className="px-2 py-1.5 font-medium">날짜</th>
                 <th className="px-2 py-1.5 font-medium">항목</th>
-                <th className="px-2 py-1.5 font-medium">적요</th>
+                <th className="px-2 py-1.5 font-medium">내용</th>
                 <th className="px-2 py-1.5 font-medium">후원자</th>
                 <th className="px-2 py-1.5 font-medium">통화</th>
                 <th className="px-2 py-1.5 text-right font-medium">금액</th>

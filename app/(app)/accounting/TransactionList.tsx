@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V7 — 용어 적요→내용 · 대분류→항목 콤보 연동 · 통화 3열 접기(기본 숨김) · 월/기간 소계(통화별 순액 + 수입/지출)
 // MFH-ACCOUNTING-TXLIST-V6 — 통합 수정 필드 확장(날짜·적요·구매처·환율·후원자)
 // MFH-ACCOUNTING-TXLIST-V5 — 구매처(vendor) 열·검색(patch105)
 // MFH-ACCOUNTING-TXLIST-V4 — 구분 이체(출금 → 입금) 필터·표시(patch104)
@@ -20,6 +21,12 @@ function fmtLocal(cur: string | null, n: number | null): string {
   const sym = cur ? (CUR_SYMBOL[cur] ?? '') : ''
   return `${sym}${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
 }
+// 소계 셀 — 순액(음수는 −). 0 은 빈칸.
+function fmtNet(n: number): string {
+  if (!n) return ''
+  const s = Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 2 })
+  return n < 0 ? `−${s}` : s
+}
 // 데스크탑 통화열 — 행 통화가 열 통화와 같을 때만 숫자(기호는 열 제목이 대신).
 function fmtColCell(rowCur: string | null, colCur: string, n: number | null): string {
   if (rowCur !== colCur || n == null) return ''
@@ -27,6 +34,7 @@ function fmtColCell(rowCur: string | null, colCur: string, n: number | null): st
 }
 function monthLabel(key: string): string {
   if (key === '날짜없음') return '날짜 없음'
+  if (key === '기간') return '기간 소계'
   const [y, m] = key.split('-')
   return `${y}년 ${Number(m)}월`
 }
@@ -61,6 +69,7 @@ export default function TransactionList({
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [showCur, setShowCur] = useState(false) // 원화·렘피라·달러 3열 — 기본 숨김
   const [busyId, setBusyId] = useState<string | null>(null)
   const [err, setErr] = useState('')
   // 다중선택 / 일괄 작업
@@ -98,12 +107,21 @@ export default function TransactionList({
     return [...s].sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99))
   }, [options])
 
-  // 항목 필터 옵션 — 구분 필터에 맞춰 좁힌다.
+  // 항목 필터 옵션 — 구분·대분류 필터에 맞춰 좁힌다(대분류 선택 시 그 대분류 항목만).
   const itemOptions = useMemo(() => {
-    if (fGubun === '수입') return options.items['수입']
-    if (fGubun === '지출') return options.items['지출']
-    return [...options.items['수입'], ...options.items['지출']]
-  }, [options, fGubun])
+    const base =
+      fGubun === '수입'
+        ? options.items['수입']
+        : fGubun === '지출'
+          ? options.items['지출']
+          : [...options.items['수입'], ...options.items['지출']]
+    return fCat ? base.filter((i) => i.category === fCat) : base
+  }, [options, fGubun, fCat])
+  // 선택된 항목이 범위 밖이면 초기화.
+  useEffect(() => {
+    if (fItemId && !itemOptions.some((i) => i.id === fItemId)) setFItemId('')
+  }, [itemOptions, fItemId])
+  const periodMode = !!fFrom || !!fTo // 기간 검색 → 월 그룹 대신 기간 1그룹
 
   // 필터 → 정렬 → 월별 그룹 → 그룹별 수입/지출 합계.
   const groups = useMemo(() => {
@@ -131,7 +149,7 @@ export default function TransactionList({
     })
     const map = new Map<string, InoutRow[]>()
     for (const r of filtered) {
-      const key = (r.date ?? '').slice(0, 7) || '날짜없음'
+      const key = periodMode ? '기간' : (r.date ?? '').slice(0, 7) || '날짜없음'
       if (!map.has(key)) map.set(key, [])
       map.get(key)!.push(r)
     }
@@ -145,13 +163,16 @@ export default function TransactionList({
       const rows = map.get(key)!
       let inUsd = 0
       let outUsd = 0
+      const net: Record<string, number> = { KRW: 0, HNL: 0, USD: 0 } // 통화별 순액(수입 + · 지출 − · 이체 제외)
       for (const r of rows) {
-        if (r.gubun === '수입') inUsd += r.amountUsd ?? 0
-        else if (r.gubun === '지출') outUsd += r.amountUsd ?? 0
+        const sign = r.gubun === '수입' ? 1 : r.gubun === '지출' ? -1 : 0
+        if (sign === 1) inUsd += r.amountUsd ?? 0
+        else if (sign === -1) outUsd += r.amountUsd ?? 0
+        if (sign && r.currency && r.currency in net) net[r.currency] += sign * (r.principal ?? 0)
       }
-      return { key, rows, inUsd, outUsd }
+      return { key, rows, inUsd, outUsd, net, netUsd: inUsd - outUsd }
     })
-  }, [recent, fGubun, fItemId, fAccountId, fCat, fCur, fFrom, fTo, q, sortKey, sortDir, catOf])
+  }, [recent, fGubun, fItemId, fAccountId, fCat, fCur, fFrom, fTo, q, sortKey, sortDir, catOf, periodMode])
 
   const visibleIds = useMemo(() => groups.flatMap((g) => g.rows.map((r) => r.id)), [groups])
   const shownCount = visibleIds.length
@@ -312,6 +333,7 @@ export default function TransactionList({
   }
 
   const arrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '')
+  const colSpan = showCur ? 11 : 8 // 데스크탑 열 수(통화 3열 접힘 반영)
   const cbCls = 'h-4 w-4 shrink-0 cursor-pointer accent-[#661F20]'
 
   return (
@@ -330,15 +352,27 @@ export default function TransactionList({
             <span className="ml-1.5 font-normal text-faint">{shownCount}건</span>
           </h2>
         </div>
-        {hasFilter && (
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={resetFilters}
-            className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-muted transition hover:border-primary"
+            onClick={() => setShowCur((v) => !v)}
+            className={`hidden rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition @2xl:inline-flex ${
+              showCur ? 'border-primary text-primary' : 'border-line text-muted hover:border-primary'
+            }`}
+            aria-pressed={showCur}
           >
-            필터 초기화
+            {showCur ? '통화 열 ▾' : '통화 열 ▸'}
           </button>
-        )}
+          {hasFilter && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-muted transition hover:border-primary"
+            >
+              필터 초기화
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 필터 바 */}
@@ -368,7 +402,14 @@ export default function TransactionList({
             </button>
           ))}
         </div>
-        <select value={fCat} onChange={(e) => setFCat(e.target.value)} className={`${ctl} min-w-[88px]`}>
+        <select
+          value={fCat}
+          onChange={(e) => {
+            setFCat(e.target.value)
+            setFItemId('')
+          }}
+          className={`${ctl} min-w-[88px]`}
+        >
           <option value="">분류 전체</option>
           {catOptions.map((c) => (
             <option key={c} value={c}>
@@ -405,7 +446,7 @@ export default function TransactionList({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="적요·구매처 검색"
+          placeholder="내용·구매처 검색"
           className={`${ctl} min-w-[120px] flex-1`}
         />
         <div className="flex h-8 items-center gap-1 @2xl:hidden">
@@ -514,7 +555,7 @@ export default function TransactionList({
                 <input type="date" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} className={`${ctl} min-w-[130px]`} />
               </div>
               <div>
-                <label className="mb-0.5 block text-[10px] font-medium text-faint">적요 변경</label>
+                <label className="mb-0.5 block text-[10px] font-medium text-faint">내용 변경</label>
                 <input
                   value={bulkName}
                   onChange={(e) => setBulkName(e.target.value)}
@@ -604,11 +645,15 @@ export default function TransactionList({
                     날짜{arrow('date')}
                   </th>
                   <th className="px-2 py-2 font-medium">항목</th>
-                  <th className="px-2 py-2 font-medium">적요</th>
+                  <th className={`px-2 py-2 font-medium ${showCur ? '' : 'w-full text-left'}`}>내용</th>
                   <th className="px-2 py-2 font-medium">구매처</th>
-                  <th className="px-2 py-2 font-medium">원화</th>
-                  <th className="px-2 py-2 font-medium">렘피라</th>
-                  <th className="px-2 py-2 font-medium">달러</th>
+                  {showCur && (
+                    <>
+                      <th className="px-2 py-2 font-medium">원화</th>
+                      <th className="px-2 py-2 font-medium">렘피라</th>
+                      <th className="px-2 py-2 font-medium">달러</th>
+                    </>
+                  )}
                   <th
                     className="cursor-pointer select-none px-2 py-2 font-medium hover:text-primary"
                     onClick={() => toggleSort('amount')}
@@ -623,7 +668,7 @@ export default function TransactionList({
                 return (
                   <tbody key={g.key} className="border-b border-line last:border-0">
                     <tr className="bg-surface-subtle/60">
-                      <td colSpan={11} className="px-3 py-1.5">
+                      <td colSpan={colSpan} className="px-3 py-1.5">
                         <div className="flex items-center justify-between">
                           <button
                             type="button"
@@ -694,17 +739,21 @@ export default function TransactionList({
                                 ? (nameOf.get(r.itemId) ?? '—')
                                 : '—'}
                           </td>
-                          <td className="px-2 py-2 text-ink">{r.name || '—'}</td>
-                          <td className="px-2 py-2 text-muted">{r.vendor || '—'}</td>
-                          <td className="px-2 py-2 text-right font-display text-muted">
-                            {fmtColCell(r.currency, 'KRW', r.principal)}
-                          </td>
-                          <td className="px-2 py-2 text-right font-display text-muted">
-                            {fmtColCell(r.currency, 'HNL', r.principal)}
-                          </td>
-                          <td className="px-2 py-2 text-right font-display text-muted">
-                            {fmtColCell(r.currency, 'USD', r.principal)}
-                          </td>
+                          <td className={`px-2 py-2 text-ink ${showCur ? '' : 'whitespace-nowrap'}`}>{r.name || '—'}</td>
+                          <td className={`px-2 py-2 text-muted ${showCur ? '' : 'whitespace-nowrap'}`}>{r.vendor || '—'}</td>
+                          {showCur && (
+                            <>
+                              <td className="px-2 py-2 text-right font-display text-muted">
+                                {fmtColCell(r.currency, 'KRW', r.principal)}
+                              </td>
+                              <td className="px-2 py-2 text-right font-display text-muted">
+                                {fmtColCell(r.currency, 'HNL', r.principal)}
+                              </td>
+                              <td className="px-2 py-2 text-right font-display text-muted">
+                                {fmtColCell(r.currency, 'USD', r.principal)}
+                              </td>
+                            </>
+                          )}
                           <td className="px-2 py-2 text-right font-display font-bold text-ink">
                             {fmtUsd(r.amountUsd)}
                           </td>
@@ -723,18 +772,31 @@ export default function TransactionList({
                         </tr>
                       ))}
                     {!isCollapsed && (
-                      <tr className="border-t border-line bg-surface-subtle/60">
-                        <td colSpan={11} className="px-3 py-1.5 text-right">
-                          <span className="text-[11px] text-faint">월 합계</span>
-                          <span className="ml-2 font-display text-[12px] font-bold text-emerald-700">
-                            수입 {fmtUsd(g.inUsd)}
-                          </span>
-                          <span className="mx-1.5 text-faint">·</span>
-                          <span className="font-display text-[12px] font-bold text-red-700">
-                            지출 {fmtUsd(g.outUsd)}
-                          </span>
-                        </td>
-                      </tr>
+                      <>
+                        {/* 소계 ① 통화별 순액(수입 + · 지출 − · 이체 제외) + 환산$ — 통화 열 접힘이면 환산$만 */}
+                        <tr className="border-t border-line bg-surface-subtle/60 font-display text-[12px] font-bold">
+                          <td colSpan={6} className="px-3 py-1.5 text-right text-[11px] font-medium text-faint">
+                            {periodMode ? '기간 소계' : '월 소계'}
+                          </td>
+                          {showCur && (
+                            <>
+                              <td className={`px-2 py-1.5 text-right ${g.net.KRW < 0 ? 'text-red-700' : 'text-ink'}`}>{fmtNet(g.net.KRW)}</td>
+                              <td className={`px-2 py-1.5 text-right ${g.net.HNL < 0 ? 'text-red-700' : 'text-ink'}`}>{fmtNet(g.net.HNL)}</td>
+                              <td className={`px-2 py-1.5 text-right ${g.net.USD < 0 ? 'text-red-700' : 'text-ink'}`}>{fmtNet(g.net.USD)}</td>
+                            </>
+                          )}
+                          <td className={`px-2 py-1.5 text-right ${g.netUsd < 0 ? 'text-red-700' : 'text-ink'}`}>{fmtUsd(g.netUsd)}</td>
+                          <td />
+                        </tr>
+                        {/* 소계 ② 환산$ 수입·지출 */}
+                        <tr className="bg-surface-subtle/60">
+                          <td colSpan={colSpan} className="px-3 pb-1.5 pt-0 text-right">
+                            <span className="font-display text-[12px] font-bold text-emerald-700">수입 {fmtUsd(g.inUsd)}</span>
+                            <span className="mx-1.5 text-faint">·</span>
+                            <span className="font-display text-[12px] font-bold text-red-700">지출 {fmtUsd(g.outUsd)}</span>
+                          </td>
+                        </tr>
+                      </>
                     )}
                   </tbody>
                 )

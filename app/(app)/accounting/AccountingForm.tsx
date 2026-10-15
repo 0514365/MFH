@@ -315,7 +315,7 @@ export default function AccountingForm({
 
           {/* 이름 (후원금이면 후원자 콤보 + 자유입력) */}
           <div className="@2xl:min-w-0 @2xl:flex-1">
-            <label className={labelCls}>적요{isDonation ? ' · 후원자' : ''}</label>
+            <label className={labelCls}>내용{isDonation ? ' · 후원자' : ''}</label>
             <input
               list={isDonation ? 'acct-sup-list' : undefined}
               value={name}

@@ -379,7 +379,7 @@ export default function InboxView({
                   <input
                     value={bulk.name}
                     onChange={(e) => setBulk({ ...bulk, name: e.target.value })}
-                    placeholder="적요 (유지)"
+                    placeholder="내용 (유지)"
                     className={ctl}
                   />
                   <select value={bulk.accountId} onChange={(e) => setBulk({ ...bulk, accountId: e.target.value })} className={ctl}>
@@ -511,7 +511,7 @@ export default function InboxView({
                 {/* 적요(무엇을) — 상점별로 학습·추천 */}
                 <label className="mt-2 block @2xl:mt-0">
                   <span className="mb-1 block text-[11px] font-medium text-faint">
-                    적요{r.suggestedName ? <span className="ml-1 text-accent">추천</span> : ''}
+                    내용{r.suggestedName ? <span className="ml-1 text-accent">추천</span> : ''}
                   </span>
                   <input
                     value={d.name}
