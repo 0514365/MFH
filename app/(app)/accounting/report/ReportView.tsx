@@ -1,16 +1,18 @@
 'use client'
+// MFH-ACCOUNTING-REPORT-V4 — b단계: 도넛 항목 클릭 → 내역 탭 필터 딥링크 · 후원자 클릭 → 후원자 상세
 // MFH-ACCOUNTING-REPORT-V3 — KPI 타일 · 추이 hover 툴팁 + 월 클릭 필터 · 수입/지출 도넛(대분류 → 항목 drill-down) · 후원자 Top · 계좌 잔액
 // MFH-ACCOUNTING-REPORT-V2
 // 회계 분석 — 연도 선택(+월 선택) 기준으로 집계. 표시 전용, 집계는 클라이언트(recent·options·balances). 차트는 ./charts.tsx(의존성 0 SVG).
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { AccountBalance, AcctOptions, InoutRow } from '@/lib/accounting-types'
 import BalanceGroups, { amtColor, summarize } from '../BalanceGroups'
 import { Card, Donut, KpiTiles, TrendChart, fmtUsd, foldSlices, type Kpi, type Slice, type TrendBucket } from './charts'
 
-type Row = { name: string; sum: number; count?: number }
+type Row = { name: string; sum: number; count?: number; href?: string }
 
 // 후원자 Top N — 가로 막대(비중) + hover 툴팁은 title 로.
-function BarList({ rows, color, topN = 10 }: { rows: Row[]; color: string; topN?: number }) {
+function BarList({ rows, color, topN = 10, onGo }: { rows: Row[]; color: string; topN?: number; onGo?: (href: string) => void }) {
   if (rows.length === 0) return <p className="py-2 text-center text-xs text-faint">거래 없음</p>
   const total = rows.reduce((s, r) => s + r.sum, 0)
   const head = rows.slice(0, topN)
@@ -22,7 +24,12 @@ function BarList({ rows, color, topN = 10 }: { rows: Row[]; color: string; topN?
         const pct = max > 0 ? (r.sum / max) * 100 : 0
         const share = total > 0 ? (r.sum / total) * 100 : 0
         return (
-          <li key={r.name} title={`${r.name} · ${fmtUsd(r.sum)} · ${share.toFixed(1)}%${r.count != null ? ` · ${r.count}건` : ''}`}>
+          <li
+            key={r.name}
+            title={`${r.name} · ${fmtUsd(r.sum)} · ${share.toFixed(1)}%${r.count != null ? ` · ${r.count}건` : ''}${r.href ? ' · 클릭 = 후원자 상세' : ''}`}
+            onClick={() => r.href && onGo?.(r.href)}
+            className={`rounded-lg px-1 py-0.5 transition ${r.href ? 'cursor-pointer hover:bg-surface-subtle' : ''}`}
+          >
             <div className="mb-0.5 flex items-baseline justify-between text-[13px]">
               <span className="truncate text-ink">
                 {r.name}
@@ -55,11 +62,13 @@ function DonutBlock({
   groups,
   total,
   color,
+  onItem,
 }: {
   title: string
   groups: Map<string, { sum: number; subs: Map<string, { name: string; sum: number; count: number }> }>
   total: number
   color: string
+  onItem?: (cat: string, itemId: string) => void // 2단계 항목 클릭 → 내역 탭
 }) {
   const [drill, setDrill] = useState<string | null>(null)
   const level1: Slice[] = [...groups.entries()].map(([cat, g]) => ({ key: cat, name: cat, sum: g.sum, count: [...g.subs.values()].reduce((s, x) => s + x.count, 0) }))
@@ -81,11 +90,12 @@ function DonutBlock({
                 ‹ {title}
               </button>
               <span className="text-ink">{drill}</span>
+              <span className="text-[11px] font-normal text-faint">· 항목 클릭 = 내역</span>
             </>
           ) : (
             <>
               {title}
-              <span className="text-[11px] font-normal text-faint">· 조각을 누르면 항목별</span>
+              <span className="text-[11px] font-normal text-faint">· 조각 클릭 = 항목별</span>
             </>
           )}
         </span>
@@ -97,7 +107,7 @@ function DonutBlock({
         slices={slices}
         total={shown}
         centerLabel={drill ?? title}
-        onPick={drill ? undefined : (s) => setDrill(s.key)}
+        onPick={drill ? (s) => onItem?.(drill, s.key) : (s) => setDrill(s.key)}
       />
     </Card>
   )
@@ -114,6 +124,7 @@ export default function ReportView({
   options: AcctOptions
   balances: AccountBalance[]
 }) {
+  const router = useRouter()
   const thisYear = String(new Date().getFullYear())
   const years = useMemo(() => {
     const set = new Set<string>()
@@ -239,7 +250,12 @@ export default function ReportView({
     }
     const sortMap = (acc: Acc): Acc => new Map([...acc.entries()].sort((a, b) => b[1].sum - a[1].sum))
     const supporterRows: Row[] = [...sup.entries()]
-      .map(([key, v]) => ({ name: key === '__anon__' ? '무명·단체' : (supporterName.get(key) ?? '(알수없음)'), sum: v.sum, count: v.count }))
+      .map(([key, v]) => ({
+        name: key === '__anon__' ? '무명·단체' : (supporterName.get(key) ?? '(알수없음)'),
+        sum: v.sum,
+        count: v.count,
+        href: key !== '__anon__' && supporterName.has(key) ? `/supporters/${key}` : undefined,
+      }))
       .sort((a, b) => b.sum - a.sum)
     const total = (acc: Acc) => [...acc.values()].reduce((s, g) => s + g.sum, 0)
     return {
@@ -253,6 +269,20 @@ export default function ReportView({
   }, [scoped, itemName, catOf, supporterName])
 
   const { net: netAssets } = summarize(balances)
+
+  // 내역 탭 딥링크 — 현재 범위(연도/월)를 기간으로.
+  const period = useMemo(() => {
+    const lastDay = (y: number, m: number) => new Date(y, m, 0).getDate()
+    if (month && year !== '전체') return { from: `${month}-01`, to: `${month}-${String(lastDay(Number(month.slice(0, 4)), Number(month.slice(5)))).padStart(2, '0')}` }
+    const y = month ?? (year === '전체' ? null : year)
+    return y ? { from: `${y}-01-01`, to: `${y}-12-31` } : {}
+  }, [year, month])
+  const goLedger = (gubun: '수입' | '지출', cat: string, itemId: string) => {
+    const q = new URLSearchParams({ gubun, cat, item: itemId })
+    if (period.from) q.set('from', period.from)
+    if (period.to) q.set('to', period.to)
+    router.push(`/accounting/ledger?${q.toString()}`)
+  }
 
   return (
     <div>
@@ -293,12 +323,12 @@ export default function ReportView({
         </Card>
 
         <div className="grid gap-4 @3xl:grid-cols-2">
-          <DonutBlock title="지출" groups={expenseGroups} total={expenseTotal} color="text-red-700" />
-          <DonutBlock title="수입" groups={incomeGroups} total={incomeTotal} color="text-blue-700" />
+          <DonutBlock title="지출" groups={expenseGroups} total={expenseTotal} color="text-red-700" onItem={(cat, id) => goLedger('지출', cat, id)} />
+          <DonutBlock title="수입" groups={incomeGroups} total={incomeTotal} color="text-blue-700" onItem={(cat, id) => goLedger('수입', cat, id)} />
         </div>
 
         <Card title="후원자별 헌금" right={fmtUsd(supporterTotal)} rightColor="text-ink">
-          <BarList rows={supporterRows} color="var(--primary)" />
+          <BarList rows={supporterRows} color="var(--primary)" onGo={(href) => router.push(href)} />
         </Card>
         <Card title="계좌 잔액" right={`순자산 ${fmtUsd(netAssets)}`} rightColor={amtColor(netAssets)}>
           <BalanceGroups balances={balances} />

@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V13 — initialFilter(분석 탭 → 내역 딥링크: 구분·대분류·항목·기간·검색 선적용)
 // MFH-ACCOUNTING-TXLIST-V12 — 구매처 열 9rem 고정·말줄임(title 로 전체)
 // MFH-ACCOUNTING-TXLIST-V11 — 항목 열 폭 자동(보이는 행의 가장 긴 항목이 2줄에 생략 없이 들어가는 폭), 통화 열 펼치면 항목 열 축소
 // MFH-ACCOUNTING-TXLIST-V10 — 항목 열 폭 제한(최대 2줄·12rem), 내용 열 최대 확장
@@ -57,6 +58,8 @@ function monthLabel(key: string): string {
 
 type SortKey = 'date' | 'amount'
 type GubunFilter = '전체' | '수입' | '지출' | '이체' | '조정'
+export type LedgerFilter = { gubun?: string; cat?: string; item?: string; from?: string; to?: string; q?: string }
+const isGubun = (g?: string): g is GubunFilter => g === '수입' || g === '지출' || g === '이체' || g === '조정'
 
 const ctl =
   'h-8 rounded-lg border border-line bg-surface px-2 text-xs text-ink outline-none transition focus:border-primary'
@@ -67,21 +70,23 @@ export default function TransactionList({
   editingId,
   onEdit,
   onAfterMutate,
+  initialFilter,
 }: {
   recent: InoutRow[]
   options: AcctOptions
   editingId: string | null
   onEdit: (r: InoutRow) => void
   onAfterMutate: () => void
+  initialFilter?: LedgerFilter // 분석 탭 딥링크(?gubun=&cat=&item=&from=&to=&q=) 선적용
 }) {
-  const [fGubun, setFGubun] = useState<GubunFilter>('전체')
-  const [fItemId, setFItemId] = useState('')
+  const [fGubun, setFGubun] = useState<GubunFilter>(isGubun(initialFilter?.gubun) ? initialFilter.gubun : '전체')
+  const [fItemId, setFItemId] = useState(initialFilter?.item ?? '')
   const [fAccountId, setFAccountId] = useState('')
-  const [fCat, setFCat] = useState('')
+  const [fCat, setFCat] = useState(initialFilter?.cat ?? '')
   const [fCur, setFCur] = useState('')
-  const [fFrom, setFFrom] = useState('')
-  const [fTo, setFTo] = useState('')
-  const [q, setQ] = useState('')
+  const [fFrom, setFFrom] = useState(initialFilter?.from ?? '')
+  const [fTo, setFTo] = useState(initialFilter?.to ?? '')
+  const [q, setQ] = useState(initialFilter?.q ?? '')
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
