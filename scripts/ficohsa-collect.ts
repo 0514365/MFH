@@ -10,7 +10,7 @@
 //        npx tsx scripts/ficohsa-collect.ts --days 14       (Mac 을 오래 못 켰을 때)
 //        npx tsx scripts/ficohsa-collect.ts --since 2026-09-01   (기준일 지정)
 //        npx tsx scripts/ficohsa-collect.ts --dry-run        (저장 없이 파싱·중복·자동 판정만)
-// 매일 22:00 Claude 데스크탑 예약 작업(ficohsa-collect)이 호출한다. ⚠ repo 루트에서 실행.
+// 07~22시 매시 Claude 데스크탑 예약 작업(ficohsa-collect-2200, 2026-10-15 변경)이 호출한다. ⚠ repo 루트에서 실행.
 //   (launchd 는 불가 — launchd 가 띄운 프로세스는 ~/Library/CloudStorage(Dropbox)·chat.db 접근이 TCC 로 거부됨. 2026-10-14 확인)
 import { execFileSync } from 'child_process'
 import { homedir } from 'os'

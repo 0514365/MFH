@@ -4,6 +4,14 @@
 > Mac 수집(매일 22:00, `scripts/ficohsa-collect.ts`)은 **백업**으로 계속 돈다 — 같은 거래는 카드·금액·상점 + 수신 ±5분으로 한 번만 들어간다.
 > 코드: `app/api/accounting/sms-ingest/route.ts` · `lib/ficohsa-sms.ts` · DB `supabase/patch112-inbox-source.sql`.
 
+## 현재 상태 (2026-10-15)
+
+- **iPhone 단축어는 실제 카드 문자에서 실행되지 않음.** iOS 메시지 자동화의 "보낸 사람" 은 연락처의 번호·주소로만 일치하는데, Ficohsa 발신자는 영문 ID `FICOHSA`(번호 없음)라 연락처로 연결되지 않는다(전화번호 칸에 `FICOHSA` 붙여넣기도 연결 안 됨 — 확인).
+  - 대조 테스트: 보낸 사람을 실제 연락처(진아)로 바꾸고 같은 형식 문자를 보내면 자동화·API·토큰 모두 정상 동작(`dry` 응답 수신).
+  - 단축어 날짜 블록에 `현재날짜` 를 글자로 넣었던 오류도 있었으나, 그 상태로도 편집기 실행은 서버까지 도달했으므로 원인 아님(추정). 최종 판정은 다음 실결제의 `card_tx_inbox.source` 로: `shortcut` 이면 단축어 동작, `mac` 이면 보낸 사람 원인 확정 → 자동화 끔.
+- **대안 운용(방법 B)**: Mac 수집 예약 작업 `ficohsa-collect-2200` 을 **07~22시 매시 정각**으로 변경. `.env.local` 의 `MFH_APP_URL` + `CRON_SECRET` 으로 새 건이 있으면 푸시(+아이콘 뱃지).
+- API(`/api/accounting/sms-ingest`)·토큰·이 문서는 보존 — iOS 가 영문 발신자 조건을 지원하면 재사용.
+
 ## 1. 토큰 만들기 · Vercel 등록 (1회)
 
 1. Mac 터미널에서 임의 토큰 생성:
