@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-DB-V7 — toRow 조정 지원(폼 입력)
 // MFH-ACCOUNTING-DB-V6 — 구분 '조정'(잔액 조정, patch108) 잔액 반영
 // MFH-ACCOUNTING-DB-V5 — 계좌 잔액에 유형·카드끝자리·최근 환율·현지통화 근사 잔액 추가
 // MFH-ACCOUNTING-DB-V4 — 통합 수정 필드 확장(날짜·적요·구매처·환율·후원자)
@@ -170,12 +171,14 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
 
 function toRow(p: InoutInput) {
   const transfer = p.gubun === '이체'
-  const vendor = transfer ? null : p.vendor?.trim() || null
+  const adjust = p.gubun === '조정'
+  const noItem = transfer || adjust
+  const vendor = noItem ? null : p.vendor?.trim() || null
   return {
     gubun: p.gubun,
     date: p.date,
-    item_id: transfer ? null : p.itemId,
-    name: p.name.trim() || (transfer ? '이체' : vendor ? '' : '(무제)'),
+    item_id: noItem ? null : p.itemId,
+    name: p.name.trim() || (transfer ? '이체' : adjust ? '잔액 조정' : vendor ? '' : '(무제)'),
     vendor,
     currency: p.currency,
     principal: p.principal,
@@ -183,7 +186,7 @@ function toRow(p: InoutInput) {
     amount_usd: p.amountUsd,
     account_id: p.accountId ?? null,
     to_account_id: transfer ? (p.toAccountId ?? null) : null,
-    supporter_id: transfer ? null : (p.supporterId ?? null),
+    supporter_id: noItem ? null : (p.supporterId ?? null),
   }
 }
 

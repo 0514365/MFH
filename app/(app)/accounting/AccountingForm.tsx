@@ -1,5 +1,6 @@
 'use client'
 // MFH-ACCOUNTING-FORM-V5 — 구매처(vendor) 입력(patch105)
+// MFH-ACCOUNTING-FORM-V5 — 구분 '조정'(잔액 조정: 계좌·금액(±)·내용, patch108) 입력·수정
 // MFH-ACCOUNTING-FORM-V4 — 구분 '이체'(출금계좌 → 입금계좌, 항목 없음) 추가(patch104)
 // MFH-ACCOUNTING-FORM-V3
 // 회계 입력·수정·삭제 — 데스크탑 가로(스프레드시트)·모바일 세로. 조건부 콤보·환산 자동·후원자 자동연결.
@@ -16,18 +17,23 @@ function todayLocal(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
-// 금액 입력 — 숫자·소수점만 남긴 raw(점 1개만).
+// 금액 입력 — 숫자·소수점만 남긴 raw(점 1개만). 맨 앞 '-' 는 유지(조정의 − 금액용; 수입·지출은 저장 시 >0 검증).
 function cleanNumeric(v: string): string {
+  const neg = v.trim().startsWith('-')
   const c = v.replace(/[^\d.]/g, '')
   const parts = c.split('.')
-  return parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : c
+  const body = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : c
+  return neg ? `-${body}` : body
 }
-// raw 숫자 → 천단위 쉼표(소수부 유지).
+// raw 숫자 → 천단위 쉼표(소수부·부호 유지).
 function withCommas(raw: string): string {
   if (!raw) return ''
-  const [int, dec] = raw.split('.')
+  const neg = raw.startsWith('-')
+  const body = neg ? raw.slice(1) : raw
+  if (!body) return '-'
+  const [int, dec] = body.split('.')
   const i = int ? Number(int).toLocaleString('en-US') : '0'
-  return dec !== undefined ? `${i}.${dec}` : i
+  return `${neg ? '-' : ''}${dec !== undefined ? `${i}.${dec}` : i}`
 }
 function fmtUsd(n: number | null): string {
   if (n == null) return '—'
@@ -73,9 +79,11 @@ export default function AccountingForm({
     (cur: string) => options.accounts.find((a) => a.currency === cur)?.id ?? '',
     [options],
   )
-  const [gubun, setGubun] = useState<'수입' | '지출' | '이체'>('수입')
+  const [gubun, setGubun] = useState<'수입' | '지출' | '이체' | '조정'>('수입')
   const [toAccountId, setToAccountId] = useState('')
   const isTransfer = gubun === '이체'
+  const isAdjust = gubun === '조정'
+  const noItem = isTransfer || isAdjust // 항목·구매처·후원자 없음
   const [date, setDate] = useState(todayLocal)
   const [itemId, setItemId] = useState('')
   const [name, setName] = useState('')
@@ -95,7 +103,7 @@ export default function AccountingForm({
     [recent],
   )
 
-  const items = isTransfer ? [] : options.items[gubun]
+  const items = noItem ? [] : options.items[gubun as '수입' | '지출']
   // 항목 추가 모달용 대분류 목록(해당 구분, 기존 순서).
   const categoriesOf = (g: '수입' | '지출') =>
     groupByCategory(options.items[g]).map(([c]) => c).filter((c) => c !== '기타')
@@ -150,7 +158,7 @@ export default function AccountingForm({
 
   function startEdit(r: InoutRow) {
     setErr('')
-    setGubun(r.gubun === '지출' ? '지출' : r.gubun === '이체' ? '이체' : '수입')
+    setGubun(r.gubun === '지출' ? '지출' : r.gubun === '이체' ? '이체' : r.gubun === '조정' ? '조정' : '수입')
     setToAccountId(r.toAccountId ?? '')
     setDate(r.date ?? todayLocal())
     setItemId(r.itemId ?? '')
@@ -171,7 +179,7 @@ export default function AccountingForm({
     const editId = searchParams.get('edit')
     if (!editId || handledEdit.current === editId) return
     const row = recent.find((r) => r.id === editId)
-    if (row && row.gubun !== '조정') {
+    if (row) {
       handledEdit.current = editId
       startEdit(row)
     }
@@ -181,24 +189,25 @@ export default function AccountingForm({
 
   async function onSave() {
     setErr('')
-    if (!isTransfer && !itemId) return setErr('항목을 선택하세요')
+    if (!noItem && !itemId) return setErr('항목을 선택하세요')
     if (isTransfer && (!accountId || !toAccountId)) return setErr('출금계좌와 입금계좌를 선택하세요')
     if (isTransfer && accountId === toAccountId) return setErr('출금계좌와 입금계좌가 같습니다')
-    if (!principal || Number(principal) <= 0) return setErr('금액을 입력하세요')
+    if (isAdjust && !accountId) return setErr('조정할 계좌를 선택하세요')
+    if (isAdjust ? !principal || Number(principal) === 0 : !principal || Number(principal) <= 0) return setErr('금액을 입력하세요')
     if (!usd && (!rate || Number(rate) <= 0)) return setErr('환율을 입력하세요')
     const payload = {
       gubun,
       date,
-      itemId: isTransfer ? '' : itemId,
+      itemId: noItem ? '' : itemId,
       name: name.trim(),
-      vendor: isTransfer ? null : vendor.trim() || null,
+      vendor: noItem ? null : vendor.trim() || null,
       currency,
       principal: Number(principal),
       rate: usd ? 1 : Number(rate),
       amountUsd: Math.round(amountUsd * 100) / 100,
       accountId: accountId || null,
       toAccountId: isTransfer ? toAccountId || null : null,
-      supporterId: isTransfer ? null : supporterId || null,
+      supporterId: noItem ? null : supporterId || null,
     }
     setSaving(true)
     const res = editingId ? await updateInout(editingId, payload) : await saveInout(payload)
@@ -266,6 +275,19 @@ export default function AccountingForm({
               >
                 이체
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGubun('조정')
+                  setItemId('')
+                  setSupporterId('')
+                  setToAccountId('')
+                }}
+                className={`flex flex-1 items-center justify-center ${gubun === '조정' ? 'bg-surface-subtle font-bold text-muted' : 'text-faint'}`}
+                title="잔액 조정 — 실제 잔액에 맞춰 ± 금액을 기록(수입·지출 집계 제외)"
+              >
+                조정
+              </button>
             </div>
           </div>
 
@@ -288,7 +310,7 @@ export default function AccountingForm({
           </div>
 
           {/* 항목 (이체는 없음) */}
-          {!isTransfer && (
+          {!noItem && (
           <div className="@2xl:w-[104px] @2xl:shrink-0">
             <label className={`${labelCls} flex items-center justify-between`}>
               <span>항목</span>
@@ -320,7 +342,7 @@ export default function AccountingForm({
               list={isDonation ? 'acct-sup-list' : undefined}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={isDonation ? '후원자 (단체·무명 직접)' : isTransfer ? '예: 9월 카드대금 상환' : ''}
+              placeholder={isDonation ? '후원자 (단체·무명 직접)' : isTransfer ? '예: 9월 카드대금 상환' : isAdjust ? '예: 2026-10-31 실잔액 기준 조정' : ''}
               className={inp}
             />
             {isDonation && (
@@ -333,7 +355,7 @@ export default function AccountingForm({
           </div>
 
           {/* 구매처(어디서, 선택) — 이체는 없음 */}
-          {!isTransfer && (
+          {!noItem && (
             <div className="@2xl:w-[150px] @2xl:shrink-0">
               <label className={labelCls}>구매처</label>
               <input
@@ -364,7 +386,7 @@ export default function AccountingForm({
 
           {/* 금액(현지) */}
           <div className="@2xl:w-[120px] @2xl:shrink-0">
-            <label className={labelCls}>금액</label>
+            <label className={labelCls}>{isAdjust ? '금액 (+늘림 / −줄임)' : '금액'}</label>
             <input
               type="text"
               inputMode="decimal"
@@ -399,7 +421,7 @@ export default function AccountingForm({
 
           {/* 계좌 — 수입=입금 · 지출=지불 · 이체=출금 */}
           <div className="@2xl:w-[140px] @2xl:shrink-0">
-            <label className={labelCls}>{gubun === '수입' ? '입금계좌' : gubun === '이체' ? '출금계좌' : '지불계좌'}</label>
+            <label className={labelCls}>{gubun === '수입' ? '입금계좌' : gubun === '이체' ? '출금계좌' : gubun === '조정' ? '조정 계좌' : '지불계좌'}</label>
             <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={inp}>
               <option value="">선택</option>
               {options.accounts.map((a) => (

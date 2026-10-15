@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V14 — 조정 행도 클릭 수정 허용(폼 조정 지원)
 // MFH-ACCOUNTING-TXLIST-V13 — initialFilter(분석 탭 → 내역 딥링크: 구분·대분류·항목·기간·검색 선적용)
 // MFH-ACCOUNTING-TXLIST-V12 — 구매처 열 9rem 고정·말줄임(title 로 전체)
 // MFH-ACCOUNTING-TXLIST-V11 — 항목 열 폭 자동(보이는 행의 가장 긴 항목이 2줄에 생략 없이 들어가는 폭), 통화 열 펼치면 항목 열 축소
@@ -729,8 +730,8 @@ export default function TransactionList({
                       g.rows.map((r) => (
                         <tr
                           key={r.id}
-                          onClick={() => r.gubun !== '조정' && onEdit(r)}
-                          className={`${r.gubun === '조정' ? 'cursor-default' : 'cursor-pointer'} border-t border-line transition hover:bg-surface-subtle/50 ${
+                          onClick={() => onEdit(r)}
+                          className={`cursor-pointer border-t border-line transition hover:bg-surface-subtle/50 ${
                             selected.has(r.id)
                               ? 'bg-primary-soft/60'
                               : editingId === r.id
@@ -872,7 +873,7 @@ export default function TransactionList({
                       {g.rows.map((r) => (
                         <li
                           key={r.id}
-                          onClick={() => r.gubun !== '조정' && onEdit(r)}
+                          onClick={() => onEdit(r)}
                           className={`cursor-pointer rounded-xl border bg-surface p-3 transition active:scale-[0.99] ${
                             selected.has(r.id)
                               ? 'border-primary ring-1 ring-primary/30'
