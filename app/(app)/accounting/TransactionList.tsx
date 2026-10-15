@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V10 — 항목 열 폭 제한(최대 2줄·12rem), 내용 열 최대 확장
 // MFH-ACCOUNTING-TXLIST-V9 — 구분 '조정'(잔액 조정) 필터·표시(회색 칩, 수정 불가, 소계 제외)
 // MFH-ACCOUNTING-TXLIST-V8 — 열 폭(항목 2줄·내용 가변) · 통화 토글 표 위 강조 · 통화 기호 · 수입 청색/지출 적색(행·소계)
 // MFH-ACCOUNTING-TXLIST-V7 — 용어 적요→내용 · 대분류→항목 콤보 연동 · 통화 3열 접기(기본 숨김) · 월/기간 소계(통화별 순액 + 수입/지출)
@@ -736,19 +737,22 @@ export default function TransactionList({
                             </span>
                           </td>
                           <td className="whitespace-nowrap px-2 py-2 text-muted">{r.date ?? '—'}</td>
-                          <td className="whitespace-nowrap px-2 py-2 text-ink">
+                          {/* 항목 — 최대 2줄(대분류 + 이름 / 이체·조정은 line-clamp-2), 폭 제한 → 내용 열이 남는 폭 전부 */}
+                          <td className="max-w-[12rem] px-2 py-2 text-ink">
                             {r.itemId && catOf.get(r.itemId) && (
-                              <div className="text-[10px] font-medium leading-tight text-faint">
+                              <div className="whitespace-nowrap text-[10px] font-medium leading-tight text-faint">
                                 {catOf.get(r.itemId)}
                               </div>
                             )}
-                            {r.gubun === '이체'
-                              ? `${nameOf.get(r.accountId ?? '') ?? '?'} → ${nameOf.get(r.toAccountId ?? '') ?? '?'}`
-                              : r.gubun === '조정'
-                                ? `잔액 조정 · ${nameOf.get(r.accountId ?? '') ?? '?'}`
-                                : r.itemId
-                                  ? (nameOf.get(r.itemId) ?? '—')
-                                  : '—'}
+                            <div className={r.itemId ? 'whitespace-nowrap' : 'line-clamp-2 leading-snug'}>
+                              {r.gubun === '이체'
+                                ? `${nameOf.get(r.accountId ?? '') ?? '?'} → ${nameOf.get(r.toAccountId ?? '') ?? '?'}`
+                                : r.gubun === '조정'
+                                  ? `잔액 조정 · ${nameOf.get(r.accountId ?? '') ?? '?'}`
+                                  : r.itemId
+                                    ? (nameOf.get(r.itemId) ?? '—')
+                                    : '—'}
+                            </div>
                           </td>
                           <td className="px-2 py-2 text-ink">{r.name || '—'}</td>
                           <td className="whitespace-nowrap px-2 py-2 text-muted">{r.vendor || '—'}</td>

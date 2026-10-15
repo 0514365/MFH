@@ -1,66 +1,36 @@
 'use client'
+// MFH-ACCOUNTING-REPORT-V3 — KPI 타일 · 추이 hover 툴팁 + 월 클릭 필터 · 수입/지출 도넛(대분류 → 항목 drill-down) · 후원자 Top · 계좌 잔액
 // MFH-ACCOUNTING-REPORT-V2
-// 회계 분석 — 연도 선택 + 월별(연도별) 수입/지출 추이(경량 SVG) + 대분류별 수입/지출 + 후원자별 헌금 + 계좌 잔액.
-// 표시 전용, 집계는 클라이언트(recent·options·balances). 차트는 의존성 없이 직접 SVG.
-import { useMemo, useState, type ReactNode } from 'react'
+// 회계 분석 — 연도 선택(+월 선택) 기준으로 집계. 표시 전용, 집계는 클라이언트(recent·options·balances). 차트는 ./charts.tsx(의존성 0 SVG).
+import { useEffect, useMemo, useState } from 'react'
 import type { AccountBalance, AcctOptions, InoutRow } from '@/lib/accounting-types'
 import BalanceGroups, { amtColor, summarize } from '../BalanceGroups'
-
-function fmtUsd(n: number): string {
-  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
+import { Card, Donut, KpiTiles, TrendChart, fmtUsd, foldSlices, type Kpi, type Slice, type TrendBucket } from './charts'
 
 type Row = { name: string; sum: number; count?: number }
 
-function pill(active: boolean): string {
-  return `rounded-full border px-3 py-1 text-xs font-medium transition ${
-    active ? 'border-primary bg-primary-soft text-primary' : 'border-line text-faint hover:border-primary'
-  }`
-}
-
-function Card({
-  title,
-  right,
-  rightColor,
-  children,
-}: {
-  title: string
-  right?: string
-  rightColor?: string
-  children: ReactNode
-}) {
-  return (
-    <section className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[13px] font-bold text-muted">{title}</h2>
-        {right && (
-          <span className={`font-display text-[13px] font-bold ${rightColor ?? 'text-ink'}`}>{right}</span>
-        )}
-      </div>
-      {children}
-    </section>
-  )
-}
-
-function BarList({ rows, color }: { rows: Row[]; color: string }) {
+// 후원자 Top N — 가로 막대(비중) + hover 툴팁은 title 로.
+function BarList({ rows, color, topN = 10 }: { rows: Row[]; color: string; topN?: number }) {
   if (rows.length === 0) return <p className="py-2 text-center text-xs text-faint">거래 없음</p>
-  const max = rows.reduce((m, r) => Math.max(m, r.sum), 0)
   const total = rows.reduce((s, r) => s + r.sum, 0)
+  const head = rows.slice(0, topN)
+  const rest = rows.slice(topN)
+  const max = head[0]?.sum ?? 0
   return (
-    <ul className="space-y-2.5">
-      {rows.map((r) => {
+    <ul className="space-y-2">
+      {head.map((r) => {
         const pct = max > 0 ? (r.sum / max) * 100 : 0
         const share = total > 0 ? (r.sum / total) * 100 : 0
         return (
-          <li key={r.name}>
-            <div className="mb-1 flex items-baseline justify-between text-sm">
-              <span className="text-ink">
+          <li key={r.name} title={`${r.name} · ${fmtUsd(r.sum)} · ${share.toFixed(1)}%${r.count != null ? ` · ${r.count}건` : ''}`}>
+            <div className="mb-0.5 flex items-baseline justify-between text-[13px]">
+              <span className="truncate text-ink">
                 {r.name}
                 {r.count != null && <span className="ml-1.5 text-[11px] text-faint">{r.count}건</span>}
               </span>
-              <span className="font-display font-bold text-ink">
+              <span className="shrink-0 font-display font-bold text-ink">
                 {fmtUsd(r.sum)}
-                <span className="ml-1.5 text-[11px] font-normal text-faint">{share.toFixed(0)}%</span>
+                <span className="ml-1.5 inline-block w-9 text-right text-[11px] font-normal text-faint">{share.toFixed(0)}%</span>
               </span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-surface-subtle">
@@ -69,115 +39,71 @@ function BarList({ rows, color }: { rows: Row[]; color: string }) {
           </li>
         )
       })}
+      {rest.length > 0 && (
+        <li className="flex items-baseline justify-between pt-1 text-[12px] text-faint">
+          <span>그 외 {rest.length}명</span>
+          <span className="font-display">{fmtUsd(rest.reduce((s, r) => s + r.sum, 0))}</span>
+        </li>
+      )}
     </ul>
   )
 }
 
-type CatGroup = { category: string; sum: number; subs: Row[] }
-
-// 대분류 소계(막대·비중) → 소분류 상세(들여쓰기). 소분류가 1개뿐이면 상세 생략(중복).
-function CategoryBarList({ groups, color }: { groups: CatGroup[]; color: string }) {
-  if (groups.length === 0) return <p className="py-2 text-center text-xs text-faint">거래 없음</p>
-  const max = groups.reduce((m, g) => Math.max(m, g.sum), 0)
-  const total = groups.reduce((s, g) => s + g.sum, 0)
+// 도넛 블록 — 1단계 대분류 → 클릭 시 2단계 항목(상위 6 + 기타). 제목 옆 breadcrumb·뒤로.
+function DonutBlock({
+  title,
+  groups,
+  total,
+  color,
+}: {
+  title: string
+  groups: Map<string, { sum: number; subs: Map<string, { name: string; sum: number; count: number }> }>
+  total: number
+  color: string
+}) {
+  const [drill, setDrill] = useState<string | null>(null)
+  const level1: Slice[] = [...groups.entries()].map(([cat, g]) => ({ key: cat, name: cat, sum: g.sum, count: [...g.subs.values()].reduce((s, x) => s + x.count, 0) }))
+  const sub = drill ? groups.get(drill) : null
+  const level2: Slice[] = sub ? [...sub.subs.entries()].map(([id, x]) => ({ key: id, name: x.name, sum: x.sum, count: x.count })) : []
+  const slices = sub ? foldSlices(level2) : foldSlices(level1)
+  const shown = sub ? sub.sum : total
+  // 범위가 바뀌어 drill 대분류가 사라지면 1단계로.
+  useEffect(() => {
+    if (drill && !groups.has(drill)) setDrill(null)
+  }, [drill, groups])
   return (
-    <ul className="space-y-3">
-      {groups.map((g) => {
-        const pct = max > 0 ? (g.sum / max) * 100 : 0
-        const share = total > 0 ? (g.sum / total) * 100 : 0
-        return (
-          <li key={g.category}>
-            <div className="mb-1 flex items-baseline justify-between text-sm">
-              <span className="font-medium text-ink">{g.category}</span>
-              <span className="font-display font-bold text-ink">
-                {fmtUsd(g.sum)}
-                <span className="ml-1.5 text-[11px] font-normal text-faint">{share.toFixed(0)}%</span>
-              </span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-subtle">
-              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-            </div>
-            {g.subs.length > 1 && (
-              <ul className="ml-3 mt-1.5 space-y-1 border-l border-line pl-3">
-                {g.subs.map((s) => (
-                  <li key={s.name} className="flex items-baseline justify-between text-xs">
-                    <span className="text-muted">{s.name}</span>
-                    <span className="font-display text-muted">{fmtUsd(s.sum)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        )
-      })}
-    </ul>
+    <Card
+      title={
+        <span className="flex items-center gap-1.5">
+          {drill ? (
+            <>
+              <button type="button" onClick={() => setDrill(null)} className="rounded-md border border-line px-1.5 py-0.5 text-[11px] text-muted hover:border-primary hover:text-primary">
+                ‹ {title}
+              </button>
+              <span className="text-ink">{drill}</span>
+            </>
+          ) : (
+            <>
+              {title}
+              <span className="text-[11px] font-normal text-faint">· 조각을 누르면 항목별</span>
+            </>
+          )}
+        </span>
+      }
+      right={fmtUsd(shown)}
+      rightColor={color}
+    >
+      <Donut
+        slices={slices}
+        total={shown}
+        centerLabel={drill ?? title}
+        onPick={drill ? undefined : (s) => setDrill(s.key)}
+      />
+    </Card>
   )
 }
 
-type TrendBucket = { label: string; income: number; expense: number }
-
-// 월별(또는 연도별) 수입·지출 추이 — 의존성 없는 경량 SVG 그룹 막대(수입 emerald · 지출 red).
-function TrendChart({ buckets }: { buckets: TrendBucket[] }) {
-  const hasData = buckets.some((b) => b.income > 0 || b.expense > 0)
-  if (!hasData) return <p className="py-6 text-center text-xs text-faint">거래 없음</p>
-  const max = Math.max(1, ...buckets.map((b) => Math.max(b.income, b.expense)))
-  const n = buckets.length
-  const groupW = 34
-  const W = n * groupW
-  const H = 150
-  const padT = 10
-  const padB = 24
-  const chartH = H - padT - padB
-  const base = padT + chartH
-  const barW = 12
-  return (
-    <div>
-      <div className="overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          width="100%"
-          height={H}
-          preserveAspectRatio="xMidYMid meet"
-          role="img"
-          aria-label="월별 수입·지출 추이"
-        >
-          <line x1={0} y1={base} x2={W} y2={base} stroke="var(--line)" strokeWidth={1} />
-          {buckets.map((b, i) => {
-            const cx = i * groupW + groupW / 2
-            const ih = (b.income / max) * chartH
-            const eh = (b.expense / max) * chartH
-            return (
-              <g key={b.label}>
-                <rect
-                  x={cx - barW - 1}
-                  y={base - ih}
-                  width={barW}
-                  height={ih}
-                  rx={2}
-                  fill="#059669"
-                />
-                <rect x={cx + 1} y={base - eh} width={barW} height={eh} rx={2} fill="#dc2626" />
-                <text x={cx} y={H - 8} textAnchor="middle" fontSize={9} fill="var(--text-faint)">
-                  {b.label}
-                </text>
-              </g>
-            )
-          })}
-        </svg>
-      </div>
-      <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-faint">
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-sm" style={{ background: '#059669' }} />
-          수입
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-sm" style={{ background: '#dc2626' }} />
-          지출
-        </span>
-      </div>
-    </div>
-  )
-}
+const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
 
 export default function ReportView({
   recent,
@@ -199,8 +125,34 @@ export default function ReportView({
     return [...set].sort().reverse()
   }, [recent, thisYear])
   const [year, setYear] = useState(thisYear)
+  const [month, setMonth] = useState<string | null>(null) // 'YYYY-MM' (추이 막대 클릭)
 
-  // 추이 — 연도 선택 시 1~12월, '전체'면 연도별. 수입·지출 USD 합.
+  const itemName = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const i of [...options.items['수입'], ...options.items['지출']]) m.set(i.id, i.name)
+    return m
+  }, [options])
+  const catOf = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const i of [...options.items['수입'], ...options.items['지출']]) if (i.category) m.set(i.id, i.category)
+    return m
+  }, [options])
+  const supporterName = useMemo(() => new Map(options.supporters.map((s) => [s.id, s.name])), [options])
+
+  // 기간 합계(수입·지출) — 연도/월/전체 키로.
+  const sumOf = (rows: InoutRow[]) => {
+    let income = 0
+    let expense = 0
+    for (const r of rows) {
+      if (r.gubun === '수입') income += r.amountUsd ?? 0
+      else if (r.gubun === '지출') expense += r.amountUsd ?? 0
+    }
+    return { income, expense }
+  }
+  const inYear = (r: InoutRow, y: string) => (r.date ?? '').slice(0, 4) === y
+  const inMonth = (r: InoutRow, ym: string) => (r.date ?? '').slice(0, 7) === ym
+
+  // 추이 — 연도 선택 시 1~12월, '전체'면 연도별.
   const trend = useMemo<TrendBucket[]>(() => {
     if (year === '전체') {
       const m = new Map<string, { income: number; expense: number }>()
@@ -212,125 +164,139 @@ export default function ReportView({
         else if (r.gubun === '지출') g.expense += r.amountUsd ?? 0
         m.set(y, g)
       }
-      return [...m.entries()]
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([y, v]) => ({ label: `'${y.slice(2)}`, ...v }))
+      return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([y, v]) => ({ key: y, label: `'${y.slice(2)}`, ...v }))
     }
-    const arr: TrendBucket[] = Array.from({ length: 12 }, (_, i) => ({
-      label: String(i + 1),
-      income: 0,
-      expense: 0,
-    }))
-    for (const r of recent) {
-      const d = r.date ?? ''
-      if (d.slice(0, 4) !== year) continue
-      const mi = Number(d.slice(5, 7)) - 1
-      if (mi < 0 || mi > 11) continue
-      if (r.gubun === '수입') arr[mi].income += r.amountUsd ?? 0
-      else if (r.gubun === '지출') arr[mi].expense += r.amountUsd ?? 0
-    }
-    return arr
+    return MONTHS.map((mm) => ({ key: `${year}-${mm}`, label: String(Number(mm)), ...sumOf(recent.filter((r) => inMonth(r, `${year}-${mm}`))) }))
   }, [recent, year])
 
-  const itemName = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const i of [...options.items['수입'], ...options.items['지출']]) m.set(i.id, i.name)
-    return m
-  }, [options])
-  const catOf = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const i of [...options.items['수입'], ...options.items['지출']])
-      if (i.category) m.set(i.id, i.category)
-    return m
-  }, [options])
-  const supporterName = useMemo(
-    () => new Map(options.supporters.map((s) => [s.id, s.name])),
-    [options],
-  )
+  // 선택 범위의 거래 — 연도(+월) 또는 전체(+연도 막대 클릭).
+  const scoped = useMemo(() => {
+    if (month) return recent.filter((r) => (year === '전체' ? inYear(r, month) : inMonth(r, month)))
+    return year === '전체' ? recent : recent.filter((r) => inYear(r, year))
+  }, [recent, year, month])
+  const scopeLabel = month ? (year === '전체' ? `${month}년` : `${year}년 ${Number(month.slice(5))}월`) : year === '전체' ? '전체 기간' : `${year}년`
 
-  const { incomeGroups, expenseGroups, supporterRows, incomeTotal, expenseTotal, supporterTotal } =
-    useMemo(() => {
-      const filtered =
-        year === '전체' ? recent : recent.filter((r) => (r.date ?? '').slice(0, 4) === year)
-      type Acc = Map<string, { sum: number; subs: Map<string, number> }>
-      const inc: Acc = new Map()
-      const exp: Acc = new Map()
-      const sup = new Map<string, { sum: number; count: number }>()
-      const add = (acc: Acc, itemId: string, amt: number) => {
-        const cat = catOf.get(itemId) || '기타'
-        const g = acc.get(cat) ?? { sum: 0, subs: new Map<string, number>() }
-        g.sum += amt
-        g.subs.set(itemId, (g.subs.get(itemId) ?? 0) + amt)
-        acc.set(cat, g)
+  // KPI + 직전 기간 대비
+  const kpis = useMemo<Kpi[]>(() => {
+    const cur = sumOf(scoped)
+    let prev: { income: number; expense: number } | null = null
+    let prevLabel = ''
+    if (month && year !== '전체') {
+      const [y, m] = month.split('-').map(Number)
+      const pm = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`
+      prev = sumOf(recent.filter((r) => inMonth(r, pm)))
+      prevLabel = '전월'
+    } else if (year !== '전체' || month) {
+      const y = String(Number(month ?? year) - 1)
+      prev = sumOf(recent.filter((r) => inYear(r, y)))
+      prevLabel = '전년'
+    }
+    const delta = (c: number, p: number | undefined, goodWhenUp: boolean): Kpi['delta'] => {
+      if (p == null) return undefined
+      if (p === 0) return c === 0 ? { text: `${prevLabel} 동일`, good: null } : { text: `${prevLabel} 없음`, good: null }
+      const pct = ((c - p) / p) * 100
+      const sign = pct > 0 ? '+' : ''
+      return { text: `${prevLabel} 대비 ${sign}${pct.toFixed(0)}%`, good: pct === 0 ? null : goodWhenUp ? pct > 0 : pct < 0 }
+    }
+    const net = cur.income - cur.expense
+    const minExp = scoped.filter((r) => r.gubun === '지출' && r.itemId && catOf.get(r.itemId) === '사역비').reduce((s, r) => s + (r.amountUsd ?? 0), 0)
+    const share = cur.expense > 0 ? (minExp / cur.expense) * 100 : 0
+    return [
+      { label: '수입', value: fmtUsd(cur.income), color: 'text-blue-700', delta: delta(cur.income, prev?.income, true) },
+      { label: '지출', value: fmtUsd(cur.expense), color: 'text-red-700', delta: delta(cur.expense, prev?.expense, false) },
+      { label: '순액', value: fmtUsd(net), color: net >= 0 ? 'text-ink' : 'text-red-700', delta: prev ? delta(net, prev.income - prev.expense, true) : undefined },
+      { label: '사역비 비중', value: cur.expense > 0 ? `${share.toFixed(0)}%` : '—', delta: cur.expense > 0 ? { text: `지출 중 사역비 ${fmtUsd(minExp)}`, good: null } : undefined },
+    ]
+  }, [scoped, recent, year, month, catOf])
+
+  // 대분류 → 항목 집계(도넛용) + 후원자
+  const { incomeGroups, expenseGroups, supporterRows, incomeTotal, expenseTotal, supporterTotal } = useMemo(() => {
+    type Acc = Map<string, { sum: number; subs: Map<string, { name: string; sum: number; count: number }> }>
+    const inc: Acc = new Map()
+    const exp: Acc = new Map()
+    const sup = new Map<string, { sum: number; count: number }>()
+    const add = (acc: Acc, itemId: string, amt: number) => {
+      const cat = catOf.get(itemId) || '기타'
+      const g = acc.get(cat) ?? { sum: 0, subs: new Map() }
+      g.sum += amt
+      const s = g.subs.get(itemId) ?? { name: itemName.get(itemId) ?? '(미분류)', sum: 0, count: 0 }
+      s.sum += amt
+      s.count += 1
+      g.subs.set(itemId, s)
+      acc.set(cat, g)
+    }
+    for (const r of scoped) {
+      const amt = r.amountUsd ?? 0
+      if (r.gubun === '수입' && r.itemId) add(inc, r.itemId, amt)
+      else if (r.gubun === '지출' && r.itemId) add(exp, r.itemId, amt)
+      if (r.gubun === '수입' && r.itemId && catOf.get(r.itemId) === '후원') {
+        const key = r.supporterId ?? '__anon__'
+        const cur = sup.get(key) ?? { sum: 0, count: 0 }
+        cur.sum += amt
+        cur.count += 1
+        sup.set(key, cur)
       }
-      for (const r of filtered) {
-        const amt = r.amountUsd ?? 0
-        if (r.gubun === '수입' && r.itemId) add(inc, r.itemId, amt)
-        else if (r.gubun === '지출' && r.itemId) add(exp, r.itemId, amt)
-        if (r.gubun === '수입' && r.itemId && catOf.get(r.itemId) === '후원') {
-          const key = r.supporterId ?? '__anon__'
-          const cur = sup.get(key) ?? { sum: 0, count: 0 }
-          cur.sum += amt
-          cur.count += 1
-          sup.set(key, cur)
-        }
-      }
-      const toGroups = (acc: Acc): CatGroup[] =>
-        [...acc.entries()]
-          .map(([category, { sum, subs }]) => ({
-            category,
-            sum,
-            subs: [...subs.entries()]
-              .map(([id, s]) => ({ name: itemName.get(id) ?? '(미분류)', sum: s }))
-              .sort((a, b) => b.sum - a.sum),
-          }))
-          .sort((a, b) => b.sum - a.sum)
-      const incomeGroups = toGroups(inc)
-      const expenseGroups = toGroups(exp)
-      const supporterRows: Row[] = [...sup.entries()]
-        .map(([key, v]) => ({
-          name: key === '__anon__' ? '무명·단체' : (supporterName.get(key) ?? '(알수없음)'),
-          sum: v.sum,
-          count: v.count,
-        }))
-        .sort((a, b) => b.sum - a.sum)
-      return {
-        incomeGroups,
-        expenseGroups,
-        supporterRows,
-        incomeTotal: incomeGroups.reduce((s, g) => s + g.sum, 0),
-        expenseTotal: expenseGroups.reduce((s, g) => s + g.sum, 0),
-        supporterTotal: supporterRows.reduce((s, r) => s + r.sum, 0),
-      }
-    }, [recent, year, itemName, catOf, supporterName])
+    }
+    const sortMap = (acc: Acc): Acc => new Map([...acc.entries()].sort((a, b) => b[1].sum - a[1].sum))
+    const supporterRows: Row[] = [...sup.entries()]
+      .map(([key, v]) => ({ name: key === '__anon__' ? '무명·단체' : (supporterName.get(key) ?? '(알수없음)'), sum: v.sum, count: v.count }))
+      .sort((a, b) => b.sum - a.sum)
+    const total = (acc: Acc) => [...acc.values()].reduce((s, g) => s + g.sum, 0)
+    return {
+      incomeGroups: sortMap(inc),
+      expenseGroups: sortMap(exp),
+      supporterRows,
+      incomeTotal: total(inc),
+      expenseTotal: total(exp),
+      supporterTotal: supporterRows.reduce((s, r) => s + r.sum, 0),
+    }
+  }, [scoped, itemName, catOf, supporterName])
 
   const { net: netAssets } = summarize(balances)
 
   return (
     <div>
-      {/* 연도 셀렉터 */}
-      <div className="mb-4 flex flex-wrap gap-1.5">
-        {[...years, '전체'].map((y) => (
-          <button key={y} type="button" onClick={() => setYear(y)} className={pill(year === y)}>
-            {y === '전체' ? '전체' : `${y}년`}
-          </button>
-        ))}
+      {/* 연도 셀렉터 — 드롭다운 */}
+      <div className="mb-3 flex items-center gap-2 px-1">
+        <label className="text-[11px] text-faint">기간</label>
+        <select
+          value={year}
+          onChange={(e) => {
+            setYear(e.target.value)
+            setMonth(null)
+          }}
+          className="h-8 rounded-lg border border-line bg-surface px-2 text-xs font-medium text-ink outline-none transition focus:border-primary"
+        >
+          {years.map((y) => (
+            <option key={y} value={y}>
+              {y}년
+            </option>
+          ))}
+          <option value="전체">전체 기간</option>
+        </select>
       </div>
 
       <div className="space-y-4">
-        <Card
-          title={year === '전체' ? '연도별 추이' : '월별 추이'}
-          right={`순 ${fmtUsd(incomeTotal - expenseTotal)}`}
-          rightColor={incomeTotal - expenseTotal >= 0 ? 'text-ink' : 'text-red-700'}
-        >
-          <TrendChart buckets={trend} />
+        {/* 선택 범위 + KPI */}
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[13px] font-bold text-ink">{scopeLabel}</span>
+          {month && (
+            <button type="button" onClick={() => setMonth(null)} className="rounded-full border border-line px-2.5 py-0.5 text-[11px] text-muted hover:border-primary hover:text-primary">
+              {year === '전체' ? '연도' : '월'} 선택 해제 ×
+            </button>
+          )}
+        </div>
+        <KpiTiles tiles={kpis} />
+
+        <Card title={year === '전체' ? '연도별 추이' : `${year}년 월별 추이`} right={`순 ${fmtUsd(incomeTotal - expenseTotal)}`} rightColor={incomeTotal - expenseTotal >= 0 ? 'text-ink' : 'text-red-700'}>
+          <TrendChart buckets={trend} selected={month} onSelect={setMonth} />
         </Card>
-        <Card title="대분류별 수입" right={fmtUsd(incomeTotal)} rightColor="text-emerald-700">
-          <CategoryBarList groups={incomeGroups} color="#059669" />
-        </Card>
-        <Card title="대분류별 지출" right={fmtUsd(expenseTotal)} rightColor="text-red-700">
-          <CategoryBarList groups={expenseGroups} color="#dc2626" />
-        </Card>
+
+        <div className="grid gap-4 @3xl:grid-cols-2">
+          <DonutBlock title="지출" groups={expenseGroups} total={expenseTotal} color="text-red-700" />
+          <DonutBlock title="수입" groups={incomeGroups} total={incomeTotal} color="text-blue-700" />
+        </div>
+
         <Card title="후원자별 헌금" right={fmtUsd(supporterTotal)} rightColor="text-ink">
           <BarList rows={supporterRows} color="var(--primary)" />
         </Card>
