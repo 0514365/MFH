@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V8 — 열 폭(항목 2줄·내용 가변) · 통화 토글 표 위 강조 · 통화 기호 · 수입 청색/지출 적색(행·소계)
 // MFH-ACCOUNTING-TXLIST-V7 — 용어 적요→내용 · 대분류→항목 콤보 연동 · 통화 3열 접기(기본 숨김) · 월/기간 소계(통화별 순액 + 수입/지출)
 // MFH-ACCOUNTING-TXLIST-V6 — 통합 수정 필드 확장(날짜·적요·구매처·환율·후원자)
 // MFH-ACCOUNTING-TXLIST-V5 — 구매처(vendor) 열·검색(patch105)
@@ -11,8 +12,12 @@ import { deleteInout, bulkDeleteInout, bulkPatchInout } from './actions'
 
 function fmtUsd(n: number | null): string {
   if (n == null) return '—'
-  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const s = `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return n < 0 ? `−${s}` : s
 }
+// 금액 색 — 수입 청색 · 지출 적색 · 이체 등 기본.
+const gubunColor = (g: string | null) => (g === '수입' ? 'text-blue-700' : g === '지출' ? 'text-red-700' : 'text-ink')
+const signColor = (n: number) => (n > 0 ? 'text-blue-700' : n < 0 ? 'text-red-700' : 'text-ink')
 // 통화 기호 — 모바일 카드에서 원금 앞에 붙인다.
 const CUR_SYMBOL: Record<string, string> = { KRW: '₩', USD: '$', HNL: 'L' }
 // 현지통화 원금(기호 + 천단위, 소수 최대 2) — 모바일.
@@ -22,15 +27,15 @@ function fmtLocal(cur: string | null, n: number | null): string {
   return `${sym}${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
 }
 // 소계 셀 — 순액(음수는 −). 0 은 빈칸.
-function fmtNet(n: number): string {
+function fmtNet(cur: string, n: number): string {
   if (!n) return ''
-  const s = Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 2 })
+  const s = `${CUR_SYMBOL[cur] ?? ''}${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 2 })}`
   return n < 0 ? `−${s}` : s
 }
-// 데스크탑 통화열 — 행 통화가 열 통화와 같을 때만 숫자(기호는 열 제목이 대신).
+// 데스크탑 통화열 — 행 통화가 열 통화와 같을 때만 기호+숫자.
 function fmtColCell(rowCur: string | null, colCur: string, n: number | null): string {
   if (rowCur !== colCur || n == null) return ''
-  return n.toLocaleString('en-US', { maximumFractionDigits: 2 })
+  return `${CUR_SYMBOL[colCur] ?? ''}${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
 }
 function monthLabel(key: string): string {
   if (key === '날짜없음') return '날짜 없음'
@@ -352,27 +357,15 @@ export default function TransactionList({
             <span className="ml-1.5 font-normal text-faint">{shownCount}건</span>
           </h2>
         </div>
-        <div className="flex items-center gap-1.5">
+        {hasFilter && (
           <button
             type="button"
-            onClick={() => setShowCur((v) => !v)}
-            className={`hidden rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition @2xl:inline-flex ${
-              showCur ? 'border-primary text-primary' : 'border-line text-muted hover:border-primary'
-            }`}
-            aria-pressed={showCur}
+            onClick={resetFilters}
+            className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-muted transition hover:border-primary"
           >
-            {showCur ? '통화 열 ▾' : '통화 열 ▸'}
+            필터 초기화
           </button>
-          {hasFilter && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-muted transition hover:border-primary"
-            >
-              필터 초기화
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* 필터 바 */}
@@ -389,7 +382,7 @@ export default function TransactionList({
               className={`flex items-center justify-center px-3 ${
                 fGubun === g
                   ? g === '수입'
-                    ? 'bg-emerald-100 font-bold text-emerald-700'
+                    ? 'bg-blue-100 font-bold text-blue-700'
                     : g === '지출'
                       ? 'bg-red-100 font-bold text-red-700'
                       : g === '이체'
@@ -622,7 +615,19 @@ export default function TransactionList({
         <p className="py-4 text-center text-xs text-faint">조건에 맞는 거래가 없습니다.</p>
       ) : (
         <>
-          {/* 데스크탑 — 월별 그룹 테이블 */}
+          {/* 데스크탑 — 통화 열 토글(표 바로 위) + 월별 그룹 테이블 */}
+          <div className="mb-1.5 hidden justify-end @2xl:flex">
+            <button
+              type="button"
+              onClick={() => setShowCur((v) => !v)}
+              aria-pressed={showCur}
+              className={`rounded-lg px-3 py-1 text-[12px] font-bold transition ${
+                showCur ? 'bg-primary text-white' : 'bg-accent text-white hover:opacity-90'
+              }`}
+            >
+              {showCur ? '통화 열 접기 ▾' : '원화·렘피라·달러 열 펼치기 ▸'}
+            </button>
+          </div>
           <div className="hidden overflow-hidden rounded-2xl border border-line @2xl:block">
             <table className="w-full text-sm">
               <thead>
@@ -637,30 +642,30 @@ export default function TransactionList({
                       aria-label="전체 선택"
                     />
                   </th>
-                  <th className="px-2 py-2 font-medium">구분</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">구분</th>
                   <th
-                    className="cursor-pointer select-none px-2 py-2 font-medium hover:text-primary"
+                    className="cursor-pointer select-none whitespace-nowrap px-2 py-2 font-medium hover:text-primary"
                     onClick={() => toggleSort('date')}
                   >
                     날짜{arrow('date')}
                   </th>
-                  <th className="px-2 py-2 font-medium">항목</th>
-                  <th className={`px-2 py-2 font-medium ${showCur ? '' : 'w-full text-left'}`}>내용</th>
-                  <th className="px-2 py-2 font-medium">구매처</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">항목</th>
+                  <th className="w-full px-2 py-2 text-left font-medium">내용</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">구매처</th>
                   {showCur && (
                     <>
-                      <th className="px-2 py-2 font-medium">원화</th>
-                      <th className="px-2 py-2 font-medium">렘피라</th>
-                      <th className="px-2 py-2 font-medium">달러</th>
+                      <th className="whitespace-nowrap px-2 py-2 font-medium">원화 ₩</th>
+                      <th className="whitespace-nowrap px-2 py-2 font-medium">렘피라 L</th>
+                      <th className="whitespace-nowrap px-2 py-2 font-medium">달러 $</th>
                     </>
                   )}
                   <th
-                    className="cursor-pointer select-none px-2 py-2 font-medium hover:text-primary"
+                    className="cursor-pointer select-none whitespace-nowrap px-2 py-2 font-medium hover:text-primary"
                     onClick={() => toggleSort('amount')}
                   >
                     {`환산$${arrow('amount')}`}
                   </th>
-                  <th className="px-2 py-2 font-medium">관리</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">관리</th>
                 </tr>
               </thead>
               {groups.map((g) => {
@@ -681,7 +686,7 @@ export default function TransactionList({
                           </button>
                           {isCollapsed && (
                             <span className="font-display text-[12px] font-medium">
-                              <span className="text-emerald-700">+{fmtUsd(g.inUsd)}</span>
+                              <span className="text-blue-700">+{fmtUsd(g.inUsd)}</span>
                               <span className="mx-1.5 text-faint">·</span>
                               <span className="text-red-700">−{fmtUsd(g.outUsd)}</span>
                             </span>
@@ -715,7 +720,7 @@ export default function TransactionList({
                             <span
                               className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
                                 r.gubun === '수입'
-                                  ? 'bg-emerald-50 text-emerald-700'
+                                  ? 'bg-blue-50 text-blue-700'
                                   : r.gubun === '지출'
                                     ? 'bg-red-50 text-red-700'
                                     : r.gubun === '이체'
@@ -727,7 +732,7 @@ export default function TransactionList({
                             </span>
                           </td>
                           <td className="whitespace-nowrap px-2 py-2 text-muted">{r.date ?? '—'}</td>
-                          <td className="px-2 py-2 text-ink">
+                          <td className="whitespace-nowrap px-2 py-2 text-ink">
                             {r.itemId && catOf.get(r.itemId) && (
                               <div className="text-[10px] font-medium leading-tight text-faint">
                                 {catOf.get(r.itemId)}
@@ -739,25 +744,25 @@ export default function TransactionList({
                                 ? (nameOf.get(r.itemId) ?? '—')
                                 : '—'}
                           </td>
-                          <td className={`px-2 py-2 text-ink ${showCur ? '' : 'whitespace-nowrap'}`}>{r.name || '—'}</td>
-                          <td className={`px-2 py-2 text-muted ${showCur ? '' : 'whitespace-nowrap'}`}>{r.vendor || '—'}</td>
+                          <td className="px-2 py-2 text-ink">{r.name || '—'}</td>
+                          <td className="whitespace-nowrap px-2 py-2 text-muted">{r.vendor || '—'}</td>
                           {showCur && (
                             <>
-                              <td className="px-2 py-2 text-right font-display text-muted">
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun)}`}>
                                 {fmtColCell(r.currency, 'KRW', r.principal)}
                               </td>
-                              <td className="px-2 py-2 text-right font-display text-muted">
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun)}`}>
                                 {fmtColCell(r.currency, 'HNL', r.principal)}
                               </td>
-                              <td className="px-2 py-2 text-right font-display text-muted">
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun)}`}>
                                 {fmtColCell(r.currency, 'USD', r.principal)}
                               </td>
                             </>
                           )}
-                          <td className="px-2 py-2 text-right font-display font-bold text-ink">
+                          <td className={`whitespace-nowrap px-2 py-2 text-right font-display font-bold ${gubunColor(r.gubun)}`}>
                             {fmtUsd(r.amountUsd)}
                           </td>
-                          <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                          <td className="whitespace-nowrap px-2 py-2" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end">
                               <button
                                 type="button"
@@ -780,18 +785,18 @@ export default function TransactionList({
                           </td>
                           {showCur && (
                             <>
-                              <td className={`px-2 py-1.5 text-right ${g.net.KRW < 0 ? 'text-red-700' : 'text-ink'}`}>{fmtNet(g.net.KRW)}</td>
-                              <td className={`px-2 py-1.5 text-right ${g.net.HNL < 0 ? 'text-red-700' : 'text-ink'}`}>{fmtNet(g.net.HNL)}</td>
-                              <td className={`px-2 py-1.5 text-right ${g.net.USD < 0 ? 'text-red-700' : 'text-ink'}`}>{fmtNet(g.net.USD)}</td>
+                              <td className={`whitespace-nowrap px-2 py-1.5 text-right ${signColor(g.net.KRW)}`}>{fmtNet('KRW', g.net.KRW)}</td>
+                              <td className={`whitespace-nowrap px-2 py-1.5 text-right ${signColor(g.net.HNL)}`}>{fmtNet('HNL', g.net.HNL)}</td>
+                              <td className={`whitespace-nowrap px-2 py-1.5 text-right ${signColor(g.net.USD)}`}>{fmtNet('USD', g.net.USD)}</td>
                             </>
                           )}
-                          <td className={`px-2 py-1.5 text-right ${g.netUsd < 0 ? 'text-red-700' : 'text-ink'}`}>{fmtUsd(g.netUsd)}</td>
+                          <td className={`whitespace-nowrap px-2 py-1.5 text-right ${signColor(g.netUsd)}`}>{fmtUsd(g.netUsd)}</td>
                           <td />
                         </tr>
                         {/* 소계 ② 환산$ 수입·지출 */}
                         <tr className="bg-surface-subtle/60">
                           <td colSpan={colSpan} className="px-3 pb-1.5 pt-0 text-right">
-                            <span className="font-display text-[12px] font-bold text-emerald-700">수입 {fmtUsd(g.inUsd)}</span>
+                            <span className="font-display text-[12px] font-bold text-blue-700">수입 {fmtUsd(g.inUsd)}</span>
                             <span className="mx-1.5 text-faint">·</span>
                             <span className="font-display text-[12px] font-bold text-red-700">지출 {fmtUsd(g.outUsd)}</span>
                           </td>
@@ -821,7 +826,7 @@ export default function TransactionList({
                       <span className="font-normal text-faint">· {g.rows.length}건</span>
                     </span>
                     <span className="font-display text-[11px] font-medium">
-                      <span className="text-emerald-700">+{fmtUsd(g.inUsd)}</span>
+                      <span className="text-blue-700">+{fmtUsd(g.inUsd)}</span>
                       <span className="mx-1 text-faint">·</span>
                       <span className="text-red-700">−{fmtUsd(g.outUsd)}</span>
                     </span>
@@ -856,7 +861,7 @@ export default function TransactionList({
                                   <span
                                     className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
                                       r.gubun === '수입'
-                                        ? 'bg-emerald-50 text-emerald-700'
+                                        ? 'bg-blue-50 text-blue-700'
                                         : r.gubun === '지출'
                                           ? 'bg-red-50 text-red-700'
                                           : r.gubun === '이체'
@@ -890,7 +895,7 @@ export default function TransactionList({
                             {/* 우: 금액 + 삭제 */}
                             <div className="flex shrink-0 flex-col items-end gap-2">
                               <span className="text-right">
-                                <span className="block font-display text-[15px] font-bold text-ink">
+                                <span className={`block font-display text-[15px] font-bold ${gubunColor(r.gubun)}`}>
                                   {fmtLocal(r.currency, r.principal)}
                                 </span>
                                 {r.currency !== 'USD' && (
@@ -918,7 +923,7 @@ export default function TransactionList({
                   )}
                   {!isCollapsed && (
                     <div className="mt-2 flex justify-end gap-3 px-1 font-display text-[11px] font-bold">
-                      <span className="text-emerald-700">수입 {fmtUsd(g.inUsd)}</span>
+                      <span className="text-blue-700">수입 {fmtUsd(g.inUsd)}</span>
                       <span className="text-red-700">지출 {fmtUsd(g.outUsd)}</span>
                     </div>
                   )}

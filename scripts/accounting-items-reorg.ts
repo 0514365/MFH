@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-ITEMS-REORG-V2 — 2026-10-15 보정: 경조사(사역비·생활비) 추가 · 자녀용품→경조사(in-place) · 자녀 학용품→학용품
 // MFH-ACCOUNTING-ITEMS-REORG-V1
 // 지출 항목 재편(B안, 2026-10-15): 대분류 = 사역비/생활비, 항목 31개. 재실행 안전(이름 기준 조회 후 update/insert).
 //   1) 기존 항목 in-place 개명·대분류 변경(id 유지 → 거래·상점사전 자동 승계)
@@ -27,12 +28,13 @@ const PLAN: Target[] = [
   { cat: '사역비', name: '수수료', from: '수수료' },
   { cat: '사역비', name: 'IT/구독' },
   { cat: '사역비', name: '행정/기타', from: '행정/기타' },
+  { cat: '사역비', name: '경조사' },
   { cat: '생활비', name: '식료품', from: '부식' },
   { cat: '생활비', name: '외식/카페', from: '외식' },
   { cat: '생활비', name: '자녀 학비', from: '자녀학비' },
-  { cat: '생활비', name: '자녀 학용품', from: '자녀학용품' },
+  { cat: '생활비', name: '학용품', from: '자녀학용품' },
   { cat: '생활비', name: '자녀 간식', from: '자녀간식' },
-  { cat: '생활비', name: '자녀용품' },
+  { cat: '생활비', name: '경조사' },
   { cat: '생활비', name: '생활용품', from: '생활용품' },
   { cat: '생활비', name: '주거/공과금', from: '주거' },
   { cat: '생활비', name: '주유', from: '주유' },
@@ -48,6 +50,11 @@ const PLAN: Target[] = [
   { cat: '생활비', name: '가정기타', from: '예비비' },
 ]
 const RETIRE = ['식비', '행사'] // 거래 이관 후 비활성
+// 0) 재편 후 개명(in-place, 거래 승계): [대분류, 이전 이름, 새 이름]
+const RENAMES: [string, string, string][] = [
+  ['생활비', '자녀 학용품', '학용품'],
+  ['생활비', '자녀용품', '경조사'],
+]
 
 // 거래·상점사전 분기 규칙: 구 항목명(이관 전 이름) → [검사 함수(구매처·적요), 대상(대분류/이름)] 순서대로 첫 일치. 없으면 그대로.
 type Rule = { test: (vendor: string, name: string) => boolean; to: string }
@@ -60,17 +67,26 @@ const SPLIT: Record<string, Rule[]> = {
   행사: [{ test: () => true, to: '사역비/행사비' }],
   행사비: [{ test: rx(/선물/), to: '사역비/선물/접대' }],
   통신: [{ test: rx(SUB), to: '생활비/구독' }],
-  '문화/여가': [{ test: rx(SUB), to: '생활비/구독' }, { test: rx(/생일|선물/), to: '생활비/자녀용품' }],
+  '문화/여가': [{ test: rx(SUB), to: '생활비/구독' }, { test: rx(/생일|선물/), to: '생활비/경조사' }],
   '행정/기타': [{ test: rx(IT), to: '사역비/IT/구독' }],
   주거: [{ test: () => true, to: '생활비/생활용품' }],
-  '미용/의류': [{ test: rx(/애들옷|아이들 옷|자녀 옷|아이 옷/), to: '생활비/자녀용품' }],
+  '미용/의류': [{ test: rx(/애들옷|아이들 옷|자녀 옷|아이 옷/), to: '생활비/경조사' }],
 }
 
 async function main() {
   console.log(DRY ? '— DRY RUN (저장 없음) —' : '— 적용 —')
+  // 0) 개명
+  const { data: raw0 } = await sb.from('acct_items').select('id,category,name').eq('gubun', '지출')
+  for (const [cat, from, to] of RENAMES) {
+    const it = (raw0 ?? []).find((i) => i.category === cat && i.name === from)
+    if (!it) continue
+    console.log(`[0] 개명: [${cat}] ${from} → ${to}`)
+    if (!DRY) { const { error: e } = await sb.from('acct_items').update({ name: to }).eq('id', it.id); if (e) throw e }
+  }
   const { data: raw, error } = await sb.from('acct_items').select('id,user_id,gubun,category,name,is_active,sort_order').eq('gubun', '지출')
   if (error) throw error
   const items = (raw ?? []) as Item[]
+  if (DRY) for (const [cat, from, to] of RENAMES) { const it = items.find((i) => i.category === cat && i.name === from); if (it) it.name = to }
   const userId = items[0].user_id
   const byOld = new Map(items.map((i) => [i.name, i])) // 이관 전 이름 → 항목
   const done = new Set(items.filter((i) => i.category === '사역비' || i.category === '생활비').map((i) => `${i.category}/${i.name}`))
