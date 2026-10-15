@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V6 — 항목 콤보에서 숨긴 항목 제외(수정 중 현재 값은 유지) + 항목 관리(⚙)
 // MFH-ACCOUNTING-FORM-V5 — 구매처(vendor) 입력(patch105)
 // MFH-ACCOUNTING-FORM-V5 — 구분 '조정'(잔액 조정: 계좌·금액(±)·내용, patch108) 입력·수정
 // MFH-ACCOUNTING-FORM-V4 — 구분 '이체'(출금계좌 → 입금계좌, 항목 없음) 추가(patch104)
@@ -9,9 +10,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import type { AcctOption, AcctOptions, InoutRow } from '@/lib/accounting-types'
+import { activeOnly, type AcctOption, type AcctOptions, type InoutRow } from '@/lib/accounting-types'
 import { saveInout, updateInout } from './actions'
 import ItemAddButton from './ItemAddButton'
+import ItemManageButton from './ItemManageButton'
 
 function todayLocal(): string {
   const d = new Date()
@@ -103,10 +105,10 @@ export default function AccountingForm({
     [recent],
   )
 
-  const items = noItem ? [] : options.items[gubun as '수입' | '지출']
+  const items = noItem ? [] : activeOnly(options.items[gubun as '수입' | '지출'], itemId)
   // 항목 추가 모달용 대분류 목록(해당 구분, 기존 순서).
   const categoriesOf = (g: '수입' | '지출') =>
-    groupByCategory(options.items[g]).map(([c]) => c).filter((c) => c !== '기타')
+    groupByCategory(activeOnly(options.items[g])).map(([c]) => c).filter((c) => c !== '기타')
   // 후원자 콤보·자동연결 대상 — 항목의 대분류가 '후원'(정기·일시후원·목적헌금)일 때.
   const isDonation = useMemo(() => {
     if (gubun !== '수입' || !itemId) return false
@@ -312,14 +314,17 @@ export default function AccountingForm({
           {/* 항목 (이체는 없음) */}
           {!noItem && (
           <div className="@2xl:w-[104px] @2xl:shrink-0">
-            <label className={`${labelCls} flex items-center justify-between`}>
+            <div className={`${labelCls} flex items-center justify-between`}>
               <span>항목</span>
+              <span className="flex items-center gap-1">
               <ItemAddButton
                 gubun={gubun as '수입' | '지출'}
                 categories={categoriesOf(gubun as '수입' | '지출')}
                 onCreated={(id) => setItemId(id)}
               />
-            </label>
+              <ItemManageButton options={options} initialGubun={gubun as '수입' | '지출'} />
+              </span>
+            </div>
             <select value={itemId} onChange={(e) => setItemId(e.target.value)} className={inp}>
               <option value="">선택</option>
               {groupByCategory(items).map(([cat, list]) => (

@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-DB-V8 — 항목 관리(updateItem·setItemActive·reorderItems), 옵션에 숨긴 항목 포함(active)
 // MFH-ACCOUNTING-DB-V7 — toRow 조정 지원(폼 입력)
 // MFH-ACCOUNTING-DB-V6 — 구분 '조정'(잔액 조정, patch108) 잔액 반영
 // MFH-ACCOUNTING-DB-V5 — 계좌 잔액에 유형·카드끝자리·최근 환율·현지통화 근사 잔액 추가
@@ -21,6 +22,7 @@ import type {
   InoutPatch,
   InoutRow,
   ItemInput,
+  ItemPatch,
 } from './accounting-types'
 
 export type * from './accounting-types'
@@ -39,13 +41,13 @@ async function currentUserId(): Promise<string | null> {
 // ===== read =====
 
 // 입력 폼 콤보 소스 — 항목(구분별)·후원자·계좌. 실패 시 null.
+// 항목은 숨긴 것(active=false)도 포함 — 과거 거래 이름 매핑용. 입력 콤보는 activeOnly() 로 거른다.
 export async function getAcctOptions(): Promise<AcctOptions | null> {
   const sb = await createClient()
   const [items, supporters, accounts] = await Promise.all([
     sb
       .from('acct_items')
-      .select('id, gubun, name, category')
-      .eq('is_active', true)
+      .select('id, gubun, name, category, is_active')
       .order('sort_order')
       .order('name'),
     sb.from('supporters').select('id, name').order('name'),
@@ -61,7 +63,7 @@ export async function getAcctOptions(): Promise<AcctOptions | null> {
   for (const it of items.data ?? []) {
     const g = it.gubun as string
     if (g === '수입' || g === '지출')
-      out.items[g].push({ id: it.id, name: it.name, category: it.category ?? null })
+      out.items[g].push({ id: it.id, name: it.name, category: it.category ?? null, active: it.is_active !== false })
   }
   out.supporters = (supporters.data ?? []).map((s): AcctOption => ({ id: s.id, name: s.name }))
   out.accounts = (accounts.data ?? []).map(
@@ -319,6 +321,39 @@ export async function createItem(it: ItemInput): Promise<ActionResult & { id?: s
     return { ok: false, error: `항목 저장 실패: ${error.message}` }
   }
   return { ok: true, id: data.id }
+}
+
+// 항목 이름·대분류 수정 — id 기준이라 과거 거래 표시도 자동 반영. (구분,대분류,이름) 중복이면 오류.
+export async function updateItem(id: string, p: ItemPatch): Promise<ActionResult> {
+  const name = p.name.trim()
+  const category = p.category.trim()
+  if (!name) return { ok: false, error: '항목 이름을 입력하세요' }
+  if (!category) return { ok: false, error: '대분류를 선택하세요' }
+  const sb = await createClient()
+  const { error } = await sb.from('acct_items').update({ name, category }).eq('id', id)
+  if (error) {
+    if (error.code === '23505') return { ok: false, error: `'${category} · ${name}' 항목이 이미 있습니다` }
+    return { ok: false, error: `항목 수정 실패: ${error.message}` }
+  }
+  return { ok: true }
+}
+
+// 항목 숨김/보이기 — 거래는 그대로 두고 입력 콤보에서만 빠진다.
+export async function setItemActive(id: string, active: boolean): Promise<ActionResult> {
+  const sb = await createClient()
+  const { error } = await sb.from('acct_items').update({ is_active: active }).eq('id', id)
+  return error ? { ok: false, error: `항목 변경 실패: ${error.message}` } : { ok: true }
+}
+
+// 항목 순서 — 넘겨받은 순서대로 sort_order = (i+1)×10 으로 다시 번호 매김(한 구분 전체).
+export async function reorderItems(ids: string[]): Promise<ActionResult> {
+  if (!ids.length) return { ok: true }
+  const sb = await createClient()
+  const results = await Promise.all(
+    ids.map((id, i) => sb.from('acct_items').update({ sort_order: (i + 1) * 10 }).eq('id', id)),
+  )
+  const failed = results.find((r) => r.error)
+  return failed?.error ? { ok: false, error: `순서 저장 실패: ${failed.error.message}` } : { ok: true }
 }
 
 // ===== 후원자 헌금 집계(후원자 모듈용) =====

@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-REPAY-BUTTON-V3 — 환차익/수수료 항목은 보이는 것 우선(숨겨도 동작)
 // MFH-CARD-REPAY-BUTTON-V2 — '잔액 0 맞춤'(환차 정리): 카드 잔액 ≠ 0 → 수입/환차익 또는 지출/수수료 1건으로 0 맞춤(상환 직후 잔차용)
 // MFH-CARD-REPAY-BUTTON-V1
 // 카드대금 상환 도우미 — 기록 탭 카드. 신용카드 계좌(4956 우진 · 7697 진아)의 미상환 잔액을 보여주고,
@@ -52,8 +53,12 @@ export default function CardRepayButton({ balances, options }: { balances: Accou
   const [zeroDate, setZeroDate] = useState(today())
   const [zeroPick, setZeroPick] = useState<Record<string, boolean>>({})
   const [zeroAmt, setZeroAmt] = useState<Record<string, string>>({})
-  const gainItem = options?.items['수입'].find((i) => i.name === '환차익')
-  const feeItem = options?.items['지출'].find((i) => i.name === '수수료')
+  const pickItem = (g: '수입' | '지출', name: string) => {
+    const list = options?.items[g].filter((i) => i.name === name) ?? []
+    return list.find((i) => i.active !== false) ?? list[0]
+  }
+  const gainItem = pickItem('수입', '환차익')
+  const feeItem = pickItem('지출', '수수료')
 
   const tHnl = Number(totalHnl) || 0
   const tUsd = Number(totalUsd) || 0

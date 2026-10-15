@@ -1,5 +1,6 @@
+// MFH-ACCOUNTING-TYPES-V2 — AcctOption.active(숨긴 항목 포함, 콤보에서만 제외)
 // MFH-ACCOUNTING-TYPES-V1
-// 회계 공용 타입 — 서버(accounting-db.ts)·클라이언트 컴포넌트가 함께 import(타입만, 런타임 의존 없음).
+// 회계 공용 타입 — 서버(accounting-db.ts)·클라이언트 컴포넌트가 함께 import(타입 + 순수 헬퍼, 런타임 의존 없음).
 // 2026-10 노션 → Supabase 이전 시 lib/notion.ts 의 타입을 그대로 옮김(이름·필드 호환).
 
 export type Currency = 'KRW' | 'USD' | 'HNL'
@@ -8,7 +9,10 @@ export type Gubun = '수입' | '지출' | '이체' | '조정'
 // 조정 = 잔액 조정(patch108): 계좌 1개, 항목 없음, 금액 부호 있음(+ 늘림/− 줄임), 집계 제외·잔액만 반영.
 export type InoutSource = 'manual' | 'csv' | 'sms' | 'notion'
 
-export type AcctOption = { id: string; name: string; currency?: string | null; category?: string | null }
+// active=false = 숨긴 항목(acct_items.is_active=false) — 이름 매핑엔 쓰고 입력 콤보에선 제외(activeOnly).
+export type AcctOption = { id: string; name: string; currency?: string | null; category?: string | null; active?: boolean }
+export const activeOnly = (list: AcctOption[], keepId?: string): AcctOption[] =>
+  list.filter((o) => o.active !== false || (!!keepId && o.id === keepId))
 export type AcctOptions = {
   items: { 수입: AcctOption[]; 지출: AcctOption[] }
   supporters: AcctOption[]
@@ -91,6 +95,9 @@ export type ItemInput = {
   name: string
   category: string // 대분류(기존 값 선택 또는 직접 입력)
 }
+
+// 항목 관리 모달용 — 숨긴 항목 포함 전체.
+export type ItemPatch = { name: string; category: string }
 
 // ===== 카드 문자 승인대기 인박스(card_tx_inbox) =====
 export type InboxRow = {

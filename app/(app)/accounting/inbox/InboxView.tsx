@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-INBOX-VIEW-V7 — 숨긴 항목 콤보 제외(추천값이 숨긴 항목이면 비움) + 항목 관리 버튼
 // MFH-CARD-INBOX-VIEW-V6 — 구매처 필터·검색·정렬 + 다중선택 일괄 입력(항목·구매처·적요·계좌 적용)·선택 승인·선택 무시
 // MFH-CARD-INBOX-VIEW-V5 — 문자 상점명 한 줄 고정(첫 열 215px)
 // MFH-CARD-INBOX-VIEW-V4 — 구매처 수정·학습 추천
@@ -9,9 +10,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { AcctOption, AcctOptions, InboxRow } from '@/lib/accounting-types'
+import { activeOnly, type AcctOption, type AcctOptions, type InboxRow } from '@/lib/accounting-types'
 import { approveInbox, ignoreInbox } from './actions'
 import ItemAddButton from '../ItemAddButton'
+import ItemManageButton from '../ItemManageButton'
 
 const CUR_SYMBOL: Record<string, string> = { KRW: '₩', USD: '$', HNL: 'L' }
 const CAT_ORDER = ['사역비', '생활비', '사역', '차량', '생활', '운영/행정']
@@ -86,14 +88,14 @@ export default function InboxView({
   defaultRate: number
 }) {
   const router = useRouter()
-  const items = options.items['지출']
+  const items = useMemo(() => activeOnly(options.items['지출']), [options])
   const groups = useMemo(() => groupByCategory(items), [items])
   const categories = useMemo(() => groups.map(([c]) => c).filter((c) => c !== '기타'), [groups])
   const accountByCurrency = (cur: string) => options.accounts.find((a) => a.currency === cur)?.id ?? ''
 
   // ── 행별 편집 상태 — 추천값(없으면 빈칸·문자 상점명·통화 기본계좌)으로 초기화. 새 행이 생기면(새 수집) 추가.
   const initDraft = (r: InboxRow): Draft => ({
-    itemId: r.suggestedItemId ?? '',
+    itemId: r.suggestedItemId && items.some((i) => i.id === r.suggestedItemId) ? r.suggestedItemId : '',
     name: r.suggestedName ?? '',
     vendor: r.suggestedVendor ?? r.merchant,
     accountId: r.suggestedAccountId ?? accountByCurrency(r.currency),
@@ -360,6 +362,7 @@ export default function InboxView({
                 {busy === 'bulk' ? '승인 중…' : `항목 지정된 ${readyIds.length}건 모두 승인`}
               </button>
               <ItemAddButton gubun="지출" categories={categories} label="+ 항목 추가" />
+              <ItemManageButton options={options} initialGubun="지출" label="항목 관리" />
             </div>
 
             {/* 일괄 입력 — 선택이 있을 때 */}

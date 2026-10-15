@@ -1,4 +1,5 @@
 'use server'
+// MFH-ACCOUNTING-ACTIONS-V6 — 항목 관리(editItem·toggleItem·saveItemOrder)
 // MFH-ACCOUNTING-ACTIONS-V5 — saveItem(항목 즉석 추가)
 // MFH-ACCOUNTING-ACTIONS-V4
 // 회계 입력·수정·삭제 + 계좌 추가 server action — 재정 관리자(부부) 권한 확인 후 Supabase 장부(acct_*) write.
@@ -14,8 +15,11 @@ import {
   patchInoutFieldsBulk,
   createAccount,
   createItem,
+  updateItem,
+  setItemActive,
+  reorderItems,
 } from '@/lib/accounting-db'
-import type { InoutInput, InoutPatch, AccountInput, ItemInput } from '@/lib/accounting-types'
+import type { InoutInput, InoutPatch, AccountInput, ItemInput, ItemPatch } from '@/lib/accounting-types'
 import { revalidatePath } from 'next/cache'
 
 async function isFinanceUser(): Promise<boolean> {
@@ -121,5 +125,33 @@ export async function saveItem(input: ItemInput): Promise<{ ok: boolean; id?: st
     revalidateAccounting()
     revalidatePath('/accounting/inbox')
   }
+  return res
+}
+
+// ===== 항목 관리 =====
+
+function revalidateItems() {
+  revalidateAccounting()
+  revalidatePath('/accounting/inbox')
+}
+
+export async function editItem(id: string, patch: ItemPatch): Promise<{ ok: boolean; error?: string }> {
+  if (!(await isFinanceUser())) return { ok: false, error: '권한이 없습니다' }
+  const res = await updateItem(id, patch)
+  if (res.ok) revalidateItems()
+  return res
+}
+
+export async function toggleItem(id: string, active: boolean): Promise<{ ok: boolean; error?: string }> {
+  if (!(await isFinanceUser())) return { ok: false, error: '권한이 없습니다' }
+  const res = await setItemActive(id, active)
+  if (res.ok) revalidateItems()
+  return res
+}
+
+export async function saveItemOrder(ids: string[]): Promise<{ ok: boolean; error?: string }> {
+  if (!(await isFinanceUser())) return { ok: false, error: '권한이 없습니다' }
+  const res = await reorderItems(ids)
+  if (res.ok) revalidateItems()
   return res
 }

@@ -1,10 +1,11 @@
 'use client'
+// MFH-RECURRING-DUE-SECTION-V2 — 규칙 항목 콤보에서 숨긴 항목 제외(현재 값은 유지)
 // MFH-RECURRING-DUE-SECTION-V1
 // 승인대기 화면 상단 "반복 기록 승인대기" — 예약 작업이 만든 due 행을 날짜·금액·환율 확인 후 승인(장부 저장) / 건너뜀.
 // 우측 '반복 규칙' 버튼 → 규칙 목록·추가·수정·비활성 모달. 자동 저장은 없다(실제 이체·납부 확인 후 승인).
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { AcctOptions } from '@/lib/accounting-types'
+import { activeOnly, type AcctOptions } from '@/lib/accounting-types'
 import type { RecurringDue, RecurringRule, RecurringRuleInput } from '@/lib/recurring-db'
 import { approveRecurring, skipRecurring, saveRecurring, toggleRecurring } from './recurring-actions'
 
@@ -146,7 +147,7 @@ function RulesModal({ rules, options, describe, onClose }: { rules: RecurringRul
     if (!res.ok) return setErr(res.error ?? '실패')
     router.refresh()
   }
-  const items = f ? (f.gubun === '이체' ? [] : options.items[f.gubun]) : []
+  const items = f ? (f.gubun === '이체' ? [] : activeOnly(options.items[f.gubun], f.itemId ?? undefined)) : []
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4 @md:items-center" onClick={onClose}>

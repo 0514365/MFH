@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V15 — 일괄 수정 항목 콤보에서 숨긴 항목 제외(필터 콤보는 포함)
 // MFH-ACCOUNTING-TXLIST-V14 — 조정 행도 클릭 수정 허용(폼 조정 지원)
 // MFH-ACCOUNTING-TXLIST-V13 — initialFilter(분석 탭 → 내역 딥링크: 구분·대분류·항목·기간·검색 선적용)
 // MFH-ACCOUNTING-TXLIST-V12 — 구매처 열 9rem 고정·말줄임(title 로 전체)
@@ -13,7 +14,7 @@
 // 거래 내역 — 월별 그룹화 + 월별 수입/지출 합계 + 필터(구분·대분류·항목·통화·계좌·기간·이름) + 정렬(날짜·금액).
 // 행 클릭 → 수정(onEdit, 기록 페이지로 이동) · 행별 삭제 + 다중선택 → 일괄 삭제 / 통합 수정(항목·계좌). 노션(SoT) read, 변경은 server action.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { AcctOptions, InoutRow, InoutPatch } from '@/lib/accounting-types'
+import { activeOnly, type AcctOptions, type InoutRow, type InoutPatch } from '@/lib/accounting-types'
 import { deleteInout, bulkDeleteInout, bulkPatchInout } from './actions'
 
 function fmtUsd(n: number | null): string {
@@ -242,7 +243,7 @@ export default function TransactionList({
     return s.size === 1 ? [...s][0] : null
   }, [selRows])
   const itemEditable = onlyGubun === '수입' || onlyGubun === '지출'
-  const bulkItemOptions = itemEditable ? options.items[onlyGubun as '수입' | '지출'] : []
+  const bulkItemOptions = itemEditable ? activeOnly(options.items[onlyGubun as '수입' | '지출']) : []
 
   const allChecked = shownCount > 0 && visibleIds.every((id) => selected.has(id))
   const someChecked = visibleIds.some((id) => selected.has(id))
