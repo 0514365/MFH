@@ -92,7 +92,7 @@ export default function TransactionList({
 
   // 대분류 필터 옵션 — 항목의 `대분류` 고유값(폼과 동일 순서).
   const catOptions = useMemo(() => {
-    const ORDER = ['후원', '헌금', '기타수입', '사역', '차량', '생활', '운영/행정']
+    const ORDER = ['후원', '헌금', '기타수입', '사역비', '생활비', '사역', '차량', '생활', '운영/행정']
     const s = new Set<string>()
     for (const i of [...options.items['수입'], ...options.items['지출']]) if (i.category) s.add(i.category)
     return [...s].sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99))

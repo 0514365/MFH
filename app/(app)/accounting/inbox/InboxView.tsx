@@ -14,7 +14,7 @@ import { approveInbox, ignoreInbox } from './actions'
 import ItemAddButton from '../ItemAddButton'
 
 const CUR_SYMBOL: Record<string, string> = { KRW: '₩', USD: '$', HNL: 'L' }
-const CAT_ORDER = ['사역', '차량', '생활', '운영/행정']
+const CAT_ORDER = ['사역비', '생활비', '사역', '차량', '생활', '운영/행정']
 const ctl =
   'h-9 w-full rounded-lg border border-line bg-surface px-2 text-sm text-ink outline-none transition focus:border-primary'
 const cb = 'h-4 w-4 shrink-0 cursor-pointer accent-[#661F20]'

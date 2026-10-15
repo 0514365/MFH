@@ -143,7 +143,12 @@ export function mapCsvRows(text: string, options: AcctOptions): MappedResult {
     if (!date) errors.push(`날짜 '${get('date')}'`)
 
     const itemName = get('item').trim()
-    const item = gubun ? options.items[gubun].find((i) => i.name === itemName) : undefined
+    // '사역비/주유' 처럼 대분류를 앞에 붙이면 그 대분류의 항목. 이름만 쓰면 생활비 → 첫 일치 순.
+    const m = /^(사역비|생활비)\/(.+)$/.exec(itemName)
+    const cands = gubun
+      ? options.items[gubun].filter((i) => (m ? i.category === m[1] && i.name === m[2].trim() : i.name === itemName))
+      : []
+    const item = cands.find((i) => i.category === '생활비') ?? cands[0]
     if (gubun && !item) errors.push(`항목 '${itemName}' 없음`)
 
     const name = get('name').trim()

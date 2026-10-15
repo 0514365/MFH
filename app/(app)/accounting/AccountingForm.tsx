@@ -39,7 +39,7 @@ const labelCls = 'mb-1 block whitespace-nowrap text-[11px] font-medium text-fain
 // 통화별 기본환율(1 USD당 현지통화) — 통화 변경 시 자동 채움(수동 변경 가능).
 const DEFAULT_RATE: Record<'KRW' | 'USD' | 'HNL', string> = { KRW: '1400', USD: '1', HNL: '26.5' }
 // 항목 드롭다운 대분류 그룹 순서 — 항목(acct_items)의 `category` 기준.
-const CAT_ORDER = ['후원', '헌금', '기타수입', '사역', '차량', '생활', '운영/행정']
+const CAT_ORDER = ['후원', '헌금', '기타수입', '사역비', '생활비', '사역', '차량', '생활', '운영/행정']
 function groupByCategory(items: AcctOption[]): [string, AcctOption[]][] {
   const map = new Map<string, AcctOption[]>()
   for (const it of items) {
