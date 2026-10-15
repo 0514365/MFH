@@ -51,6 +51,7 @@ export type InoutInput = {
   toAccountId?: string | null // 이체 입금계좌
   supporterId?: string | null
   source?: InoutSource // 미지정 = manual
+  receiptPath?: string | null // 영수증 Storage 경로(receipts 버킷, patch111). undefined = 건드리지 않음 · null = 제거
 }
 
 export type InoutRow = {
@@ -68,6 +69,7 @@ export type InoutRow = {
   toAccountId: string | null // 이체 입금계좌
   supporterId: string | null
   createdTime: string | null // 입력 시각 — '최근 입력' 정렬용
+  receiptPath: string | null // 영수증(receipts 버킷)
 }
 
 // 통합 수정(부분 변경) — 지정된 필드만 바꾼다. supporterId '' = 연결 해제. rate 는 USD 외 행만 환율·금액(USD) 재계산.

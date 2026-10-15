@@ -1,4 +1,5 @@
 'use server'
+// MFH-ACCOUNTING-ACTIONS-V7 — setReceipt(영수증 교체·제거)
 // MFH-ACCOUNTING-ACTIONS-V6 — 항목 관리(editItem·toggleItem·saveItemOrder)
 // MFH-ACCOUNTING-ACTIONS-V5 — saveItem(항목 즉석 추가)
 // MFH-ACCOUNTING-ACTIONS-V4
@@ -18,6 +19,7 @@ import {
   updateItem,
   setItemActive,
   reorderItems,
+  setInoutReceipt,
 } from '@/lib/accounting-db'
 import type { InoutInput, InoutPatch, AccountInput, ItemInput, ItemPatch } from '@/lib/accounting-types'
 import { revalidatePath } from 'next/cache'
@@ -153,5 +155,15 @@ export async function saveItemOrder(ids: string[]): Promise<{ ok: boolean; error
   if (!(await isFinanceUser())) return { ok: false, error: '권한이 없습니다' }
   const res = await reorderItems(ids)
   if (res.ok) revalidateItems()
+  return res
+}
+
+// ===== 영수증 =====
+
+// 영수증 교체(path) 또는 제거(null) — 이전 파일은 서버에서 삭제.
+export async function setReceipt(id: string, path: string | null): Promise<{ ok: boolean; error?: string }> {
+  if (!(await isFinanceUser())) return { ok: false, error: '권한이 없습니다' }
+  const res = await setInoutReceipt(id, path)
+  if (res.ok) revalidateAccounting()
   return res
 }

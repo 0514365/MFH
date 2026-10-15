@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-DB-V9 — 영수증(receipt_path, patch111): 읽기·쓰기·교체/삭제 시 Storage 파일 정리
 // MFH-ACCOUNTING-DB-V8 — 항목 관리(updateItem·setItemActive·reorderItems), 옵션에 숨긴 항목 포함(active)
 // MFH-ACCOUNTING-DB-V7 — toRow 조정 지원(폼 입력)
 // MFH-ACCOUNTING-DB-V6 — 구분 '조정'(잔액 조정, patch108) 잔액 반영
@@ -142,7 +143,7 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
   let q = sb
     .from('acct_inout')
     .select(
-      'id, gubun, date, name, vendor, currency, principal, rate, amount_usd, item_id, account_id, to_account_id, supporter_id, created_at',
+      'id, gubun, date, name, vendor, currency, principal, rate, amount_usd, item_id, account_id, to_account_id, supporter_id, created_at, receipt_path',
     )
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
@@ -165,6 +166,7 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
       toAccountId: r.to_account_id,
       supporterId: r.supporter_id,
       createdTime: r.created_at,
+      receiptPath: r.receipt_path ?? null,
     }),
   )
 }
@@ -189,7 +191,35 @@ function toRow(p: InoutInput) {
     account_id: p.accountId ?? null,
     to_account_id: transfer ? (p.toAccountId ?? null) : null,
     supporter_id: noItem ? null : (p.supporterId ?? null),
+    ...(p.receiptPath !== undefined ? { receipt_path: p.receiptPath } : {}),
   }
+}
+
+// ===== 영수증 Storage 정리 =====
+const RECEIPT_BUCKET = 'receipts'
+
+// 영수증 파일 삭제(실패는 무시 — 고아 파일만 남는다).
+async function removeReceiptFiles(paths: (string | null | undefined)[]): Promise<void> {
+  const list = paths.filter((p): p is string => !!p)
+  if (!list.length) return
+  const sb = await createClient()
+  await sb.storage.from(RECEIPT_BUCKET).remove(list)
+}
+
+async function receiptPathsOf(ids: string[]): Promise<string[]> {
+  const sb = await createClient()
+  const { data } = await sb.from('acct_inout').select('receipt_path').in('id', ids)
+  return (data ?? []).map((r) => r.receipt_path).filter((p): p is string => !!p)
+}
+
+// 영수증만 교체/제거 — 이전 파일은 Storage 에서 삭제.
+export async function setInoutReceipt(id: string, path: string | null): Promise<ActionResult> {
+  const [old] = await receiptPathsOf([id])
+  const sb = await createClient()
+  const { error } = await sb.from('acct_inout').update({ receipt_path: path }).eq('id', id)
+  if (error) return { ok: false, error: `영수증 저장 실패: ${error.message}` }
+  if (old && old !== path) await removeReceiptFiles([old])
+  return { ok: true }
 }
 
 // 거래 1건 생성.
@@ -217,24 +247,33 @@ export async function createInoutRecords(items: InoutInput[]): Promise<ActionRes
 
 // 거래 1건 전체 수정.
 export async function updateInoutRecord(id: string, p: InoutInput): Promise<ActionResult> {
+  const old = p.receiptPath !== undefined ? (await receiptPathsOf([id]))[0] : undefined
   const sb = await createClient()
   const { error } = await sb.from('acct_inout').update(toRow(p)).eq('id', id)
-  return error ? { ok: false, error: `수정 실패: ${error.message}` } : { ok: true }
+  if (error) return { ok: false, error: `수정 실패: ${error.message}` }
+  if (old && old !== p.receiptPath) await removeReceiptFiles([old])
+  return { ok: true }
 }
 
 // 거래 1건 삭제.
 export async function deleteInoutRecord(id: string): Promise<ActionResult> {
+  const receipts = await receiptPathsOf([id])
   const sb = await createClient()
   const { error } = await sb.from('acct_inout').delete().eq('id', id)
-  return error ? { ok: false, error: `삭제 실패: ${error.message}` } : { ok: true }
+  if (error) return { ok: false, error: `삭제 실패: ${error.message}` }
+  await removeReceiptFiles(receipts)
+  return { ok: true }
 }
 
 // 거래 여러 건 삭제.
 export async function deleteInoutRecords(ids: string[]): Promise<ActionResult & { done: number }> {
   if (!ids.length) return { ok: false, done: 0, error: '선택된 거래가 없습니다' }
+  const receipts = await receiptPathsOf(ids)
   const sb = await createClient()
   const { error } = await sb.from('acct_inout').delete().in('id', ids)
-  return error ? { ok: false, done: 0, error: `삭제 실패: ${error.message}` } : { ok: true, done: ids.length }
+  if (error) return { ok: false, done: 0, error: `삭제 실패: ${error.message}` }
+  await removeReceiptFiles(receipts)
+  return { ok: true, done: ids.length }
 }
 
 // 통합 수정 patch → 공통 update 행(환율 제외). 비어 있으면 null.

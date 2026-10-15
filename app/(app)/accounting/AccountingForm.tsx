@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V7 — 영수증 첨부(ReceiptField, patch111): 저장 전 업로드분은 교체·취소 시 즉시 정리
 // MFH-ACCOUNTING-FORM-V6 — 항목 콤보에서 숨긴 항목 제외(수정 중 현재 값은 유지) + 항목 관리(⚙)
 // MFH-ACCOUNTING-FORM-V5 — 구매처(vendor) 입력(patch105)
 // MFH-ACCOUNTING-FORM-V5 — 구분 '조정'(잔액 조정: 계좌·금액(±)·내용, patch108) 입력·수정
@@ -14,6 +15,9 @@ import { activeOnly, type AcctOption, type AcctOptions, type InoutRow } from '@/
 import { saveInout, updateInout } from './actions'
 import ItemAddButton from './ItemAddButton'
 import ItemManageButton from './ItemManageButton'
+import ReceiptField from './ReceiptField'
+import { createClient } from '@/lib/supabase-browser'
+import { discardReceipt } from '@/lib/receipt'
 
 function todayLocal(): string {
   const d = new Date()
@@ -95,6 +99,9 @@ export default function AccountingForm({
   const [rate, setRate] = useState(DEFAULT_RATE.KRW)
   const [accountId, setAccountId] = useState(() => accountByCurrency('KRW'))
   const [supporterId, setSupporterId] = useState('')
+  const [receiptPath, setReceiptPath] = useState<string | null>(null)
+  // 이 폼에서 올렸지만 아직 저장 안 된 영수증 — 교체·제거·취소 시 Storage 에서 바로 지운다(저장된 것은 서버가 정리).
+  const freshReceipts = useRef<Set<string>>(new Set())
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
@@ -123,7 +130,14 @@ export default function AccountingForm({
     return r > 0 ? p / r : 0
   }, [principal, rate, usd])
 
-  const reset = useCallback(() => {
+  // discard=false: 저장 성공 직후(올린 영수증이 DB 에 들어감) — 정리하지 않고 추적만 비운다.
+  const reset = useCallback((discard = true) => {
+    if (discard && freshReceipts.current.size) {
+      const sb = createClient()
+      for (const p of freshReceipts.current) void discardReceipt(sb, p)
+    }
+    freshReceipts.current.clear()
+    setReceiptPath(null)
     setEditingId(null)
     setItemId('')
     setName('')
@@ -171,6 +185,12 @@ export default function AccountingForm({
     setRate(r.rate != null ? String(r.rate) : '')
     setAccountId(r.accountId ?? '')
     setSupporterId(r.supporterId ?? '')
+    if (freshReceipts.current.size) {
+      const sb = createClient()
+      for (const p of freshReceipts.current) void discardReceipt(sb, p)
+      freshReceipts.current.clear()
+    }
+    setReceiptPath(r.receiptPath ?? null)
     setEditingId(r.id)
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -210,12 +230,13 @@ export default function AccountingForm({
       accountId: accountId || null,
       toAccountId: isTransfer ? toAccountId || null : null,
       supporterId: noItem ? null : supporterId || null,
+      receiptPath,
     }
     setSaving(true)
     const res = editingId ? await updateInout(editingId, payload) : await saveInout(payload)
     setSaving(false)
     if (res.ok) {
-      reset()
+      reset(false)
       router.refresh()
     } else {
       setErr(res.error ?? '저장 실패')
@@ -233,7 +254,7 @@ export default function AccountingForm({
           {editingId && (
             <button
               type="button"
-              onClick={reset}
+              onClick={() => reset()}
               className="rounded-full border border-line px-3 py-1 text-[11px] font-medium text-muted transition hover:border-primary"
             >
               수정 취소
@@ -472,6 +493,21 @@ export default function AccountingForm({
               </select>
             </div>
           )}
+
+          {/* 영수증(선택) */}
+          <ReceiptField
+            value={receiptPath}
+            date={date}
+            labelCls={labelCls}
+            onChange={(next, prev) => {
+              if (prev && freshReceipts.current.has(prev)) {
+                void discardReceipt(createClient(), prev)
+                freshReceipts.current.delete(prev)
+              }
+              if (next) freshReceipts.current.add(next)
+              setReceiptPath(next)
+            }}
+          />
 
           {/* 저장 / 수정 */}
           <div className="@2xl:w-[72px] @2xl:shrink-0">

@@ -1,3 +1,4 @@
+// MFH-IMAGE-RESIZE-V2 — makeThumbnail(file, maxSide, quality) 인자화(영수증 1600px 용)
 // MFH-IMAGE-RESIZE-V1
 // 브라우저(Canvas)에서 사진 1장의 축소 썸네일을 만든다. 원본은 건드리지 않는다 —
 // 목록·갤러리가 원본 대신 가벼운 썸네일을 로드하게 해 온두라스 저속 회선의 로딩을 줄이는 용도.
@@ -17,7 +18,11 @@ function canvasToBlob(
 }
 
 // File → 썸네일 Blob. 만들지 못하면 null(원본만 업로드되고 목록은 원본 폴백).
-export async function makeThumbnail(file: File): Promise<ThumbResult | null> {
+export async function makeThumbnail(
+  file: File,
+  maxSide: number = THUMB_MAX,
+  quality: number = THUMB_QUALITY,
+): Promise<ThumbResult | null> {
   // 이미지가 아니면(이론상 호출 안 됨) 건너뜀.
   if (!file.type.startsWith('image/')) return null
   try {
@@ -34,7 +39,7 @@ export async function makeThumbnail(file: File): Promise<ThumbResult | null> {
       bitmap.close?.()
       return null
     }
-    const scale = Math.min(1, THUMB_MAX / Math.max(width, height))
+    const scale = Math.min(1, maxSide / Math.max(width, height))
     const w = Math.max(1, Math.round(width * scale))
     const h = Math.max(1, Math.round(height * scale))
 
@@ -50,7 +55,7 @@ export async function makeThumbnail(file: File): Promise<ThumbResult | null> {
     bitmap.close?.()
 
     // WebP 우선(가장 가벼움) → 미지원 환경은 JPEG.
-    const webp = await canvasToBlob(canvas, 'image/webp', THUMB_QUALITY)
+    const webp = await canvasToBlob(canvas, 'image/webp', quality)
     if (webp && webp.type === 'image/webp') return { blob: webp, ext: 'webp' }
     const jpg = await canvasToBlob(canvas, 'image/jpeg', 0.8)
     if (jpg) return { blob: jpg, ext: 'jpg' }

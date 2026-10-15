@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V16 — 영수증 📎(행 내용 옆) → ReceiptViewer(보기·교체·삭제)
 // MFH-ACCOUNTING-TXLIST-V15 — 일괄 수정 항목 콤보에서 숨긴 항목 제외(필터 콤보는 포함)
 // MFH-ACCOUNTING-TXLIST-V14 — 조정 행도 클릭 수정 허용(폼 조정 지원)
 // MFH-ACCOUNTING-TXLIST-V13 — initialFilter(분석 탭 → 내역 딥링크: 구분·대분류·항목·기간·검색 선적용)
@@ -14,6 +15,7 @@
 // 거래 내역 — 월별 그룹화 + 월별 수입/지출 합계 + 필터(구분·대분류·항목·통화·계좌·기간·이름) + 정렬(날짜·금액).
 // 행 클릭 → 수정(onEdit, 기록 페이지로 이동) · 행별 삭제 + 다중선택 → 일괄 삭제 / 통합 수정(항목·계좌). 노션(SoT) read, 변경은 server action.
 import { useEffect, useMemo, useRef, useState } from 'react'
+import ReceiptViewer from './ReceiptViewer'
 import { activeOnly, type AcctOptions, type InoutRow, type InoutPatch } from '@/lib/accounting-types'
 import { deleteInout, bulkDeleteInout, bulkPatchInout } from './actions'
 
@@ -97,6 +99,7 @@ export default function TransactionList({
   const [err, setErr] = useState('')
   // 다중선택 / 일괄 작업
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [receiptRow, setReceiptRow] = useState<InoutRow | null>(null)
   const [bulkOpen, setBulkOpen] = useState(false)
   const [bulkItemId, setBulkItemId] = useState('')
   const [bulkAccountId, setBulkAccountId] = useState('')
@@ -782,7 +785,23 @@ export default function TransactionList({
                                     : '—'}
                             </div>
                           </td>
-                          <td className="px-2 py-2 text-ink">{r.name || '—'}</td>
+                          <td className="px-2 py-2 text-ink">
+                            {r.name || '—'}
+                            {r.receiptPath && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setReceiptRow(r)
+                              }}
+                              className="ml-1 align-middle text-[13px] leading-none opacity-70 transition hover:opacity-100"
+                              aria-label="영수증 보기"
+                              title="영수증"
+                            >
+                              📎
+                            </button>
+                          )}
+                          </td>
                           <td className="max-w-[9rem] truncate px-2 py-2 text-muted" title={r.vendor ?? undefined}>{r.vendor || '—'}</td>
                           {showCur && (
                             <>
@@ -924,6 +943,20 @@ export default function TransactionList({
                                         ? (nameOf.get(r.itemId) ?? '')
                                         : ''}
                                   {r.name ? ` · ${r.name}` : ''}
+                                  {r.receiptPath && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setReceiptRow(r)
+                                    }}
+                                    className="ml-1 align-middle text-[13px] leading-none opacity-70 transition hover:opacity-100"
+                                    aria-label="영수증 보기"
+                                    title="영수증"
+                                  >
+                                    📎
+                                  </button>
+                          )}
                                 </div>
                                 <div className="mt-0.5 text-xs text-faint">
                                   {r.date ?? ''}
@@ -972,6 +1005,15 @@ export default function TransactionList({
             })}
           </div>
         </>
+      )}
+      {receiptRow?.receiptPath && (
+        <ReceiptViewer
+          inoutId={receiptRow.id}
+          path={receiptRow.receiptPath}
+          date={receiptRow.date}
+          title={[receiptRow.date, receiptRow.name || receiptRow.vendor].filter(Boolean).join(' · ')}
+          onClose={() => setReceiptRow(null)}
+        />
       )}
     </section>
   )
