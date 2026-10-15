@@ -1,4 +1,6 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V12 — 구매처 열 9rem 고정·말줄임(title 로 전체)
+// MFH-ACCOUNTING-TXLIST-V11 — 항목 열 폭 자동(보이는 행의 가장 긴 항목이 2줄에 생략 없이 들어가는 폭), 통화 열 펼치면 항목 열 축소
 // MFH-ACCOUNTING-TXLIST-V10 — 항목 열 폭 제한(최대 2줄·12rem), 내용 열 최대 확장
 // MFH-ACCOUNTING-TXLIST-V9 — 구분 '조정'(잔액 조정) 필터·표시(회색 칩, 수정 불가, 소계 제외)
 // MFH-ACCOUNTING-TXLIST-V8 — 열 폭(항목 2줄·내용 가변) · 통화 토글 표 위 강조 · 통화 기호 · 수입 청색/지출 적색(행·소계)
@@ -39,6 +41,12 @@ function fmtNet(cur: string, n: number): string {
 function fmtColCell(rowCur: string | null, colCur: string, n: number | null): string {
   if (rowCur !== colCur || n == null) return ''
   return `${CUR_SYMBOL[colCur] ?? ''}${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+}
+// 글자 폭 추정(em) — 한글·전각 1.0, 그 외 0.55. 항목 열 자동 폭 계산용.
+function emLen(str: string): number {
+  let n = 0
+  for (const ch of str) n += /[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF\u3000-\u303F\uFF00-\uFFEF\u4E00-\u9FFF]/.test(ch) ? 1 : 0.55
+  return n
 }
 function monthLabel(key: string): string {
   if (key === '날짜없음') return '날짜 없음'
@@ -183,6 +191,19 @@ export default function TransactionList({
   }, [recent, fGubun, fItemId, fAccountId, fCat, fCur, fFrom, fTo, q, sortKey, sortDir, catOf, periodMode])
 
   const visibleIds = useMemo(() => groups.flatMap((g) => g.rows.map((r) => r.id)), [groups])
+  // 항목 열 폭(em): 일반 행 = 항목 이름 1줄, 이체·조정 행 = 2줄 → 보이는 행 중 최대 필요폭. 통화 열 펼치면 65% 로 축소(내용 열 확보).
+  const itemColEm = useMemo(() => {
+    let need = 6
+    for (const g of groups)
+      for (const r of g.rows) {
+        if (r.gubun === '이체') need = Math.max(need, emLen(`${nameOf.get(r.accountId ?? '') ?? '?'} → ${nameOf.get(r.toAccountId ?? '') ?? '?'}`) / 2)
+        else if (r.gubun === '조정') need = Math.max(need, emLen(`잔액 조정 · ${nameOf.get(r.accountId ?? '') ?? '?'}`) / 2)
+        else if (r.itemId) need = Math.max(need, emLen(nameOf.get(r.itemId) ?? ''))
+      }
+    const w = Math.min(22, need + 1.2)
+    return showCur ? Math.max(7, w * 0.65) : w
+  }, [groups, nameOf, showCur])
+  const itemColStyle = { width: `${itemColEm}em`, minWidth: `${itemColEm}em`, maxWidth: `${itemColEm}em` }
   const shownCount = visibleIds.length
   const hasFilter =
     fGubun !== '전체' ||
@@ -654,9 +675,9 @@ export default function TransactionList({
                   >
                     날짜{arrow('date')}
                   </th>
-                  <th className="whitespace-nowrap px-2 py-2 font-medium">항목</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium" style={itemColStyle}>항목</th>
                   <th className="w-full px-2 py-2 text-left font-medium">내용</th>
-                  <th className="whitespace-nowrap px-2 py-2 font-medium">구매처</th>
+                  <th className="w-[9rem] max-w-[9rem] whitespace-nowrap px-2 py-2 font-medium">구매처</th>
                   {showCur && (
                     <>
                       <th className="whitespace-nowrap px-2 py-2 font-medium">원화 ₩</th>
@@ -738,13 +759,13 @@ export default function TransactionList({
                           </td>
                           <td className="whitespace-nowrap px-2 py-2 text-muted">{r.date ?? '—'}</td>
                           {/* 항목 — 최대 2줄(대분류 + 이름 / 이체·조정은 line-clamp-2), 폭 제한 → 내용 열이 남는 폭 전부 */}
-                          <td className="max-w-[12rem] px-2 py-2 text-ink">
+                          <td className="px-2 py-2 text-ink" style={itemColStyle}>
                             {r.itemId && catOf.get(r.itemId) && (
                               <div className="whitespace-nowrap text-[10px] font-medium leading-tight text-faint">
                                 {catOf.get(r.itemId)}
                               </div>
                             )}
-                            <div className={r.itemId ? 'whitespace-nowrap' : 'line-clamp-2 leading-snug'}>
+                            <div className={showCur ? 'leading-snug' : r.itemId ? 'whitespace-nowrap' : 'line-clamp-2 leading-snug'}>
                               {r.gubun === '이체'
                                 ? `${nameOf.get(r.accountId ?? '') ?? '?'} → ${nameOf.get(r.toAccountId ?? '') ?? '?'}`
                                 : r.gubun === '조정'
@@ -755,7 +776,7 @@ export default function TransactionList({
                             </div>
                           </td>
                           <td className="px-2 py-2 text-ink">{r.name || '—'}</td>
-                          <td className="whitespace-nowrap px-2 py-2 text-muted">{r.vendor || '—'}</td>
+                          <td className="max-w-[9rem] truncate px-2 py-2 text-muted" title={r.vendor ?? undefined}>{r.vendor || '—'}</td>
                           {showCur && (
                             <>
                               <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun, r.amountUsd)}`}>
