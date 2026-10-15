@@ -1,3 +1,4 @@
+// MFH-SMS-INGEST-V2 — 뱃지는 finance-push 가 사용자별 합계로 계산
 // MFH-SMS-INGEST-V1
 // iPhone 단축어 실시간 수집 — Ficohsa 카드 문자 1건을 받아 card_tx_inbox 에 넣는다(source='shortcut', patch112).
 // 보호: SMS_INGEST_TOKEN(Authorization: Bearer). 설정 절차 = docs/MFH-SMS-SHORTCUT.md.
@@ -68,16 +69,11 @@ export async function POST(req: Request) {
     const row = res.added[0]
     let push: unknown = null
     if (!row.auto) {
-      const { count } = await admin
-        .from('card_tx_inbox')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'pending')
       try {
         push = await sendFinancePush(admin, {
           title: '카드 승인대기',
           body: `${SYM[row.currency] ?? ''}${row.principal.toLocaleString('en-US', { maximumFractionDigits: 2 })} ${row.vendor}`,
           url: '/accounting/inbox',
-          badge: count ?? undefined,
         })
       } catch (e) {
         push = { error: (e as Error).message }

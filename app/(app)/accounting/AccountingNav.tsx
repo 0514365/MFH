@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-NAV-V4 — 기록 탭에 승인대기 건수 배지(pending prop, layout 서버 계산)
 // MFH-ACCOUNTING-NAV-V3 — md 이상 하단 탭바 숨김 + AccountingSegments(상단 세그먼트) export(셸 e 단계).
 // MFH-ACCOUNTING-NAV-V2
 // 회계 브랜치 전용 하단 탭바 — 5버튼: [요약][기록] [홈(중앙·돌출)] [내역][분석].
@@ -112,7 +113,21 @@ function HomeIcon() {
   )
 }
 
-function TabLink({ tab, pathname }: { tab: Tab; pathname: string }) {
+// 승인대기 배지 — 기록 탭(승인대기 화면이 기록 탭 소속)에만.
+const BADGE_HREF = '/accounting/entry'
+function CountBadge({ n, className = '' }: { n: number; className?: string }) {
+  if (n <= 0) return null
+  return (
+    <span
+      className={`flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 font-display text-[10px] font-bold leading-none text-white ${className}`}
+      aria-label={`승인대기 ${n}건`}
+    >
+      {n > 99 ? '99+' : n}
+    </span>
+  )
+}
+
+function TabLink({ tab, pathname, pending }: { tab: Tab; pathname: string; pending: number }) {
   const active = isActive(pathname, tab.href)
   return (
     <li className="flex-1">
@@ -123,14 +138,17 @@ function TabLink({ tab, pathname }: { tab: Tab; pathname: string }) {
           active ? 'text-accent' : 'text-muted'
         }`}
       >
-        {tab.icon}
+        <span className="relative">
+          {tab.icon}
+          {tab.href === BADGE_HREF && <CountBadge n={pending} className="absolute -right-2.5 -top-1.5" />}
+        </span>
         <span className="text-[11px] font-semibold">{tab.label}</span>
       </Link>
     </li>
   )
 }
 
-export default function AccountingNav() {
+export default function AccountingNav({ pending = 0 }: { pending?: number }) {
   const pathname = usePathname() ?? '/accounting'
   return (
     <>
@@ -146,7 +164,7 @@ export default function AccountingNav() {
       >
         <ul className="mx-auto flex max-w-md items-end justify-around px-2 pt-1.5">
           {LEFT_TABS.map((tab) => (
-            <TabLink key={tab.href} tab={tab} pathname={pathname} />
+            <TabLink key={tab.href} tab={tab} pathname={pathname} pending={pending} />
           ))}
 
           {/* 중앙 홈 — 마룬 원형 FAB, 탭바 위로 돌출(-translate-y). 라벨 없음. */}
@@ -159,7 +177,7 @@ export default function AccountingNav() {
           </li>
 
           {RIGHT_TABS.map((tab) => (
-            <TabLink key={tab.href} tab={tab} pathname={pathname} />
+            <TabLink key={tab.href} tab={tab} pathname={pathname} pending={pending} />
           ))}
         </ul>
       </nav>
@@ -168,7 +186,7 @@ export default function AccountingNav() {
 }
 
 // md 이상(셸 사이드바 있음): 같은 4탭을 헤더 아래 상단 세그먼트로. 중앙 홈 FAB 는 없음(사이드바가 홈 담당). <md 숨김.
-export function AccountingSegments() {
+export function AccountingSegments({ pending = 0 }: { pending?: number }) {
   const pathname = usePathname() ?? ''
   const tabs = [...LEFT_TABS, ...RIGHT_TABS]
   return (
@@ -187,6 +205,7 @@ export function AccountingSegments() {
               >
                 <span className="[&>svg]:h-[18px] [&>svg]:w-[18px]">{tab.icon}</span>
                 {tab.label}
+                {tab.href === BADGE_HREF && <CountBadge n={pending} />}
               </Link>
             </li>
           )

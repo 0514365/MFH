@@ -1,6 +1,8 @@
+// MFH-BADGE-V2 — 뱃지 = 할 일 마감 도래 + (재정 관리자) 회계 승인대기(카드 문자 + 반복 기록). 서버 푸시도 같은 합계(lib/badge-server).
 // MFH-BADGE-V1 — 할 일 앱 아이콘 뱃지(Badging API) 헬퍼 (Phase 5a)
 // 뱃지 정의: 마감 도래 미완료 = done=false AND due_date <= 오늘(기기 로컬)
 import { createClient } from '@/lib/supabase-browser'
+import { canManageFinance } from '@/lib/members'
 
 // 완료/추가/삭제 등 변경 직후 호출하면 BadgeSync 가 듣고 뱃지를 갱신한다.
 export const BADGE_EVENT = 'mfh:badge-refresh'
@@ -28,7 +30,13 @@ export async function fetchDueCount(): Promise<number | null> {
     .not('due_date', 'is', null)
     .lte('due_date', todayLocalISO())
   if (error) return null
-  return count ?? 0
+  if (!canManageFinance(user.id)) return count ?? 0
+  // 회계 승인대기 — 실패(권한 등)는 0 으로(할 일 뱃지는 살린다).
+  const [card, rec] = await Promise.all([
+    supabase.from('card_tx_inbox').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('acct_recurring_due').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+  ])
+  return (count ?? 0) + (card.count ?? 0) + (rec.count ?? 0)
 }
 
 // 앱 아이콘 뱃지 갱신. Badging API 미지원 기기에서는 조용히 무동작.

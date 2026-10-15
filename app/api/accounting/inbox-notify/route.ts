@@ -1,3 +1,4 @@
+// MFH-INBOX-NOTIFY-V5 — 뱃지는 finance-push 가 사용자별 합계로 계산
 // MFH-INBOX-NOTIFY-V4 — 발송을 lib/finance-push.ts 로 공용화
 // MFH-INBOX-NOTIFY-V3 — 수집기 body {added, auto} 받아 자동 승인 건수 포함(대기 0건이어도 자동분 있으면 발송)
 // MFH-INBOX-NOTIFY-V2 — 반복 기록 승인대기(acct_recurring_due) 건수 합산
@@ -42,7 +43,6 @@ async function run(autoCount: number): Promise<NextResponse> {
       .filter(Boolean)
       .join(' '),
     url: '/accounting/inbox',
-    badge: pending,
   })
   return NextResponse.json({ ok: true, pending, ...r })
 }

@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-INBOX-VIEW-V8 — 처리 후 앱 아이콘 뱃지 갱신
 // MFH-CARD-INBOX-VIEW-V7 — 숨긴 항목 콤보 제외(추천값이 숨긴 항목이면 비움) + 항목 관리 버튼
 // MFH-CARD-INBOX-VIEW-V6 — 구매처 필터·검색·정렬 + 다중선택 일괄 입력(항목·구매처·적요·계좌 적용)·선택 승인·선택 무시
 // MFH-CARD-INBOX-VIEW-V5 — 문자 상점명 한 줄 고정(첫 열 215px)
@@ -10,6 +11,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { requestBadgeRefresh } from '@/lib/badge'
 import { activeOnly, type AcctOption, type AcctOptions, type InboxRow } from '@/lib/accounting-types'
 import { approveInbox, ignoreInbox } from './actions'
 import ItemAddButton from '../ItemAddButton'
@@ -235,6 +237,7 @@ export default function InboxView({
     setSelected(new Set())
     setMsg(res.ok ? `${res.done}건 승인 — 장부에 저장했습니다` : `${res.done}건 승인${res.error ? ` · 실패: ${res.error}` : ''}`)
     router.refresh()
+    requestBadgeRefresh()
   }
 
   async function ignore(ids: string[]) {
@@ -246,6 +249,7 @@ export default function InboxView({
     setSelected(new Set())
     if (!res.ok) setMsg(`실패: ${res.error ?? ''}`)
     router.refresh()
+    requestBadgeRefresh()
   }
 
   return (

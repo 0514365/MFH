@@ -11,6 +11,8 @@ import type { Highlight } from './honduras/BriefingView'
 import BibleHomeCard, { type HomeDay } from './bible/BibleHomeCard'
 import { projectSignals, taskSignals, type Signal, type SignalKind } from '@/lib/signals'
 import pkg from '@/package.json'
+import { getInboxPendingCount } from '@/lib/card-inbox-db'
+import { getRecurringDueCount } from '@/lib/recurring-db'
 import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
@@ -128,6 +130,12 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // 회계 승인대기(카드 문자 + 반복 기록) — 재정 관리자만. 홈 상단 입구 배너 + Accounting 타일 배지.
+  const [cardPending, recPending] = canManageFinance(user.id)
+    ? await Promise.all([getInboxPendingCount(), getRecurringDueCount()])
+    : [0, 0]
+  const approvalPending = cardPending + recPending
 
   const year = new Date().getFullYear()
   // 신호 계산 기준일 — 온두라스 현지(다른 페이지와 동일 기준).
@@ -247,6 +255,27 @@ export default async function Home() {
           <img src="/logo-primary.svg" alt="MFH — Mission for Honduras" className="h-9 w-auto" />
           <p className="text-[11px] text-faint">{user.email}</p>
         </header>
+
+        {/* 회계 승인대기 입구 — 대기 있을 때만(재정 관리자). 주제 hero 위, 레이아웃 그리드 밖(전폭). */}
+        {approvalPending > 0 && (
+          <Link
+            href="/accounting/inbox"
+            className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 transition active:scale-[0.99]"
+          >
+            <span className="flex min-w-0 items-center gap-2.5">
+              <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-accent px-2 font-display text-[13px] font-bold text-white">
+                {approvalPending}
+              </span>
+              <span className="min-w-0 text-sm text-ink">
+                <b>회계 승인대기</b>
+                <span className="ml-1.5 text-[12px] text-muted">
+                  {[cardPending > 0 ? `카드 ${cardPending}` : '', recPending > 0 ? `반복 ${recPending}` : ''].filter(Boolean).join(' · ')}
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 text-[12px] font-medium text-muted">확인 →</span>
+          </Link>
+        )}
 
         {/* 와이드 레이아웃(셸 본문 열 기준 컨테이너 쿼리): 모바일=세로 스택, @xl(본문 576+ · iPad 세로)=좌측 그룹 2열, @4xl(본문 896+ · 데스크탑)=좌 5(오늘·sticky) : 우 7(모듈 벤토 3열). iPad 가로(본문 712~868)는 2열 그룹. */}
         <div className="flex flex-col gap-3 @4xl:grid @4xl:grid-cols-12 @4xl:gap-5">
@@ -490,6 +519,11 @@ export default async function Home() {
               icon={<AccountingIcon />}
               title="Accounting"
               sub="Stewardship & records"
+              topRight={
+                approvalPending > 0 ? (
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white">대기 {approvalPending}</span>
+                ) : undefined
+              }
               chipClass="bg-lime-100 text-lime-700"
               className="col-span-2 @xl:col-span-4 @4xl:col-span-6"
             />

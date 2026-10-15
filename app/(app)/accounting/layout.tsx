@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-LAYOUT-V4 — 승인대기 건수 → 기록 탭 배지(AccountingNav·Segments)
 // MFH-ACCOUNTING-LAYOUT-V3 — md 이상 상단 세그먼트 네비(셸 e 단계). 본문 폭은 컨테이너 쿼리(@2xl).
 // MFH-ACCOUNTING-LAYOUT-V2
 // 회계 브랜치 공통 셸 — 재정 관리자(부부) 가드 + 공통 헤더(뒤로 · 중앙 섹션타이틀 · 메인홈·후원자 링크) + 하단 네비(4탭 + 중앙 홈).
@@ -9,6 +10,8 @@ import { canManageFinance } from '@/lib/members'
 import BackButton from '@/components/BackButton'
 import AccountingNav, { AccountingSegments } from './AccountingNav'
 import AccountingTitle from './AccountingTitle'
+import { getInboxPendingCount } from '@/lib/card-inbox-db'
+import { getRecurringDueCount } from '@/lib/recurring-db'
 import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
@@ -23,6 +26,8 @@ export default async function AccountingLayout({ children }: { children: React.R
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   if (!canManageFinance(user.id)) redirect('/')
+  const [cardPending, recPending] = await Promise.all([getInboxPendingCount(), getRecurringDueCount()])
+  const pending = cardPending + recPending
 
   return (
     <main className="app-theme mx-auto max-w-md px-4 pb-4 pt-2 @2xl:max-w-5xl @2xl:px-6">
@@ -80,11 +85,11 @@ export default async function AccountingLayout({ children }: { children: React.R
       </header>
 
       {/* md 이상: 상단 세그먼트(하단 탭바 대체) */}
-      <AccountingSegments />
+      <AccountingSegments pending={pending} />
 
       {children}
 
-      <AccountingNav />
+      <AccountingNav pending={pending} />
     </main>
   )
 }

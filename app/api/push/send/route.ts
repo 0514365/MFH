@@ -1,3 +1,4 @@
+// MFH-PUSH-SEND-V2 — 뱃지에 회계 승인대기 합산(재정 관리자, lib/badge-server). 본문·발송 조건은 할 일 기준 그대로
 // MFH-PUSH-SEND-V1 — 마감 도래 할 일 푸시 발송 (Phase 5b-1)
 // 보호: CRON_SECRET(Authorization: Bearer). Vercel cron 이 자동 첨부하며 수동 호출도 동일.
 // 동작: service role 로 전체 구독 조회 → 사용자별 "마감 도래 미완료(온두라스 today 기준)" 수 계산
@@ -5,6 +6,8 @@
 import { NextResponse } from 'next/server'
 import webpush, { type WebPushError } from 'web-push'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { canManageFinance } from '@/lib/members'
+import { approvalPendingCount } from '@/lib/badge-server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -55,6 +58,8 @@ async function run(): Promise<NextResponse> {
     countByUser.set(uid, count ?? 0)
   }
 
+  const pending = await approvalPendingCount(admin)
+
   let sent = 0
   let skipped = 0
   let removed = 0
@@ -68,7 +73,7 @@ async function run(): Promise<NextResponse> {
       const payload = JSON.stringify({
         title: '오늘의 할 일',
         body: `마감 도래 ${count}건이 있습니다.`,
-        badge: count,
+        badge: count + (canManageFinance(s.user_id) ? pending : 0),
       })
       try {
         await webpush.sendNotification(

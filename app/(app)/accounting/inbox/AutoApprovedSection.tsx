@@ -1,9 +1,11 @@
 'use client'
+// MFH-AUTO-APPROVED-SECTION-V2 — 되돌리기 후 앱 아이콘 뱃지 갱신
 // MFH-AUTO-APPROVED-SECTION-V1
 // 승인대기 화면 "카드 자동 승인" — 최근 7일 자동 승인분(접힘) + 되돌리기(장부 삭제 + 대기 복귀, 선택: 그 상점 자동 끄기)
 // + 우측 '상점 사전' 버튼(자동 승인 토글 모달). patch110 미적용이면 페이지가 렌더하지 않는다.
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { requestBadgeRefresh } from '@/lib/badge'
 import type { AcctOptions, AutoApprovedRow, MerchantRuleRow } from '@/lib/accounting-types'
 import { revertAuto } from './actions'
 import MerchantRulesButton from './MerchantRulesButton'
@@ -41,6 +43,7 @@ export default function AutoApprovedSection({
     setAsking(null)
     if (!res.ok) return setErr(res.error ?? '되돌리기 실패')
     router.refresh()
+    requestBadgeRefresh()
   }
 
   return (

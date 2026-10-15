@@ -1,12 +1,14 @@
+// MFH-FINANCE-PUSH-V2 — 뱃지 = 사용자별 합계(할 일 마감 도래 + 회계 승인대기, lib/badge-server)
 // MFH-FINANCE-PUSH-V1
 // 재정 관리자(부부) 웹 푸시 발송 공용 — inbox-notify(일일 수집 요약)·sms-ingest(단축어 실시간) 가 함께 쓴다. 서버 전용.
 // 만료 구독(404/410)은 정리한다.
 import webpush, { type WebPushError } from 'web-push'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { FINANCE_MANAGER_IDS } from './members'
+import { approvalPendingCount, badgeTotalFor } from './badge-server'
 
 type SubRow = { user_id: string; endpoint: string; p256dh: string; auth: string }
-export type FinancePush = { title: string; body: string; url: string; badge?: number }
+export type FinancePush = { title: string; body: string; url: string }
 
 export async function sendFinancePush(
   admin: SupabaseClient,
@@ -25,12 +27,16 @@ export async function sendFinancePush(
     .in('user_id', FINANCE_MANAGER_IDS)
   if (error) throw new Error(error.message)
   const subs = (data ?? []) as SubRow[]
-  const payload = JSON.stringify(msg)
+  // 아이콘 뱃지는 숫자 하나 — 사용자별로 할 일 + 승인대기 합계를 실어 보낸다(마지막 푸시가 덮어써도 일관).
+  const pending = await approvalPendingCount(admin)
+  const badgeOf = new Map<string, number>()
+  for (const uid of new Set(subs.map((s) => s.user_id))) badgeOf.set(uid, await badgeTotalFor(admin, uid, pending))
   let sent = 0
   let removed = 0
   await Promise.allSettled(
     subs.map(async (s) => {
       try {
+        const payload = JSON.stringify({ ...msg, badge: badgeOf.get(s.user_id) ?? 0 })
         await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload)
         sent += 1
       } catch (err) {
