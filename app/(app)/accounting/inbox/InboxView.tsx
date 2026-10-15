@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-INBOX-VIEW-V4 — 구매처 수정·학습 추천
 // MFH-CARD-INBOX-VIEW-V3 — 구매처(상점) 표시 + 적요 학습 추천
 // MFH-CARD-INBOX-VIEW-V2 — KRW 환율 · 항목 즉석 추가
 // MFH-CARD-INBOX-VIEW-V1
@@ -41,7 +42,7 @@ function fmtWhen(iso: string): string {
   return `${date} ${time}`
 }
 
-type Draft = { itemId: string; name: string; accountId: string }
+type Draft = { itemId: string; name: string; vendor: string; accountId: string }
 
 export default function InboxView({
   rows,
@@ -64,6 +65,7 @@ export default function InboxView({
       d[r.id] = {
         itemId: r.suggestedItemId ?? '',
         name: r.suggestedName ?? '', // 적요 추천(그 상점에서 통상 사는 것) — 없으면 빈칸
+        vendor: r.suggestedVendor ?? r.merchant, // 구매처 표시명(학습) — 없으면 문자 상점명
         accountId: r.suggestedAccountId ?? accountByCurrency(r.currency),
       }
     return d
@@ -100,7 +102,7 @@ export default function InboxView({
       ids.map((id) => {
         const d = drafts[id]
         const row = rows.find((r) => r.id === id)!
-        return { id, itemId: d.itemId, name: d.name, accountId: d.accountId || null, rate: rateOf(row) }
+        return { id, itemId: d.itemId, name: d.name, vendor: d.vendor, accountId: d.accountId || null, rate: rateOf(row) }
       }),
     )
     setBusy(null)
@@ -195,13 +197,13 @@ export default function InboxView({
             return (
               <li
                 key={r.id}
-                className="rounded-2xl border border-line bg-surface p-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] @2xl:grid @2xl:grid-cols-[150px_1fr_1fr_140px_auto] @2xl:items-end @2xl:gap-2"
+                className="rounded-2xl border border-line bg-surface p-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] @2xl:grid @2xl:grid-cols-[150px_1fr_1fr_1fr_140px_auto] @2xl:items-end @2xl:gap-2"
               >
                 {/* 원문 정보 */}
                 <div className="mb-2 flex items-start justify-between gap-2 @2xl:mb-0 @2xl:block">
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-ink">
-                      <span className="mr-1 text-[10px] font-medium text-faint">구매처</span>
+                    <div className="break-words text-sm font-semibold text-ink">
+                      <span className="mr-1 text-[10px] font-medium text-faint">문자</span>
                       {r.merchant}
                     </div>
                     <div className="text-[11px] text-muted">
@@ -240,7 +242,20 @@ export default function InboxView({
                   </select>
                 </label>
 
-                {/* 적요(무엇을) — 구매처는 상점명 그대로 기록되고, 적요는 상점별로 학습·추천 */}
+                {/* 구매처(어디서) — 문자 상점명은 16자로 잘려 오므로 바로잡을 수 있고, 바로잡은 이름은 학습됨 */}
+                <label className="mt-2 block @2xl:mt-0">
+                  <span className="mb-1 block text-[11px] font-medium text-faint">
+                    구매처{r.suggestedVendor ? <span className="ml-1 text-accent">추천</span> : ''}
+                  </span>
+                  <input
+                    value={d.vendor}
+                    onChange={(e) => setDraft(r.id, { vendor: e.target.value })}
+                    placeholder={r.merchant}
+                    className={ctl}
+                  />
+                </label>
+
+                {/* 적요(무엇을) — 상점별로 학습·추천 */}
                 <label className="mt-2 block @2xl:mt-0">
                   <span className="mb-1 block text-[11px] font-medium text-faint">
                     적요{r.suggestedName ? <span className="ml-1 text-accent">추천</span> : ''}

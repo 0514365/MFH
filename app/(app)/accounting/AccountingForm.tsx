@@ -487,9 +487,9 @@ export default function AccountingForm({
                   <button
                     type="button"
                     onClick={() => startEdit(r)}
-                    className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left transition hover:bg-surface-subtle active:bg-surface-subtle"
+                    className="flex w-full items-start justify-between gap-2 px-4 py-2.5 text-left transition hover:bg-surface-subtle active:bg-surface-subtle"
                   >
-                    <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 items-start gap-2">
                       <span
                         className={`shrink-0 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
                           r.gubun === '수입'
@@ -503,7 +503,7 @@ export default function AccountingForm({
                       >
                         {r.gubun ?? '—'}
                       </span>
-                      <span className="truncate text-sm text-ink">
+                      <span className="min-w-0 break-words text-sm text-ink">
                         {r.gubun === '이체'
                           ? `${nameOf.get(r.accountId ?? '') ?? ''} → ${nameOf.get(r.toAccountId ?? '') ?? ''}`
                           : r.itemId

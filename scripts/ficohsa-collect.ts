@@ -81,7 +81,7 @@ async function main() {
   // 옵션: 계좌(통화 기본값) · 상점 사전
   const [{ data: accounts }, { data: rules }] = await Promise.all([
     sb.from('acct_accounts').select('id, name, currency, card_last4').eq('is_active', true).order('sort_order'),
-    sb.from('merchant_rules').select('merchant, item_id, name, account_id'),
+    sb.from('merchant_rules').select('merchant, item_id, name, vendor, account_id'),
   ])
   // 계좌 자동 지정 — 1순위 카드 끝자리(acct_accounts.card_last4: 4956·7697=신용카드 계좌, 3070=Ficohsa(달러) 직불),
   // 2순위 통화 기본계좌(HNL/USD). KRW 결제는 계좌 미지정(앱에서 선택).
@@ -91,7 +91,7 @@ async function main() {
     if (a.card_last4) accByCard.set(String(a.card_last4), a.id)
     if ((a.currency === 'HNL' || a.currency === 'USD') && !accByCur.has(a.currency)) accByCur.set(a.currency, a.id)
   }
-  const ruleOf = new Map<string, { item_id: string; name: string | null; account_id: string | null }>()
+  const ruleOf = new Map<string, { item_id: string; name: string | null; vendor: string | null; account_id: string | null }>()
   for (const r of rules ?? []) ruleOf.set(r.merchant, r)
 
   const rows = []
@@ -118,6 +118,7 @@ async function main() {
       status: 'pending',
       suggested_item_id: rule?.item_id ?? null,
       suggested_name: rule?.name ?? null,
+      suggested_vendor: rule?.vendor ?? null,
       suggested_account_id: accByCard.get(card) ?? rule?.account_id ?? accByCur.get(cur) ?? null,
     })
   }

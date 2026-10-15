@@ -1,3 +1,4 @@
+// MFH-CARD-INBOX-DB-V3 — 구매처 표시명 학습 · 추천 실시간(사전 우선)
 // MFH-CARD-INBOX-DB-V2 — 구매처(vendor)·적요 분리, 적요 학습
 // MFH-CARD-INBOX-DB-V1
 // Ficohsa 카드 문자 승인대기 인박스 데이터 계층 — 서버 전용. 테이블 card_tx_inbox · merchant_rules(patch103).
@@ -9,19 +10,26 @@ import type { ActionResult, InboxApproveInput, InboxRow } from './accounting-typ
 const HN_TZ = 'America/Tegucigalpa'
 const r2 = (n: number) => Math.round(n * 100) / 100
 
-// 승인대기 목록(최근 문자 먼저). 실패 시 null.
+// 승인대기 목록(최근 문자 먼저). 추천값은 상점 사전을 **실시간** 우선 적용(한 건 승인·학습하면 같은 상점의 다른 대기 행에도 즉시 반영),
+// 사전에 없으면 수집 시 저장된 suggested_* 사용. 실패 시 null.
 export async function getInboxPending(): Promise<InboxRow[] | null> {
   const sb = await createClient()
-  const { data, error } = await sb
-    .from('card_tx_inbox')
-    .select(
-      'id, sms_key, sms_at, card_last4, currency, principal, merchant, suggested_item_id, suggested_name, suggested_account_id',
-    )
-    .eq('status', 'pending')
-    .order('sms_at', { ascending: false })
+  const [{ data, error }, rules] = await Promise.all([
+    sb
+      .from('card_tx_inbox')
+      .select(
+        'id, sms_key, sms_at, card_last4, currency, principal, merchant, suggested_item_id, suggested_name, suggested_vendor, suggested_account_id',
+      )
+      .eq('status', 'pending')
+      .order('sms_at', { ascending: false }),
+    sb.from('merchant_rules').select('merchant, item_id, name, vendor, account_id'),
+  ])
   if (error) return null
-  return (data ?? []).map(
-    (r): InboxRow => ({
+  const ruleOf = new Map<string, { item_id: string; name: string | null; vendor: string | null; account_id: string | null }>()
+  for (const r of rules.data ?? []) ruleOf.set(r.merchant, r)
+  return (data ?? []).map((r): InboxRow => {
+    const rule = ruleOf.get(r.merchant)
+    return {
       id: r.id,
       smsKey: r.sms_key,
       smsAt: r.sms_at,
@@ -29,11 +37,13 @@ export async function getInboxPending(): Promise<InboxRow[] | null> {
       currency: r.currency,
       principal: Number(r.principal),
       merchant: r.merchant,
-      suggestedItemId: r.suggested_item_id,
-      suggestedName: r.suggested_name,
-      suggestedAccountId: r.suggested_account_id,
-    }),
-  )
+      suggestedItemId: rule?.item_id ?? r.suggested_item_id,
+      suggestedName: rule ? rule.name : r.suggested_name,
+      suggestedVendor: rule ? rule.vendor : (r.suggested_vendor ?? null),
+      // 계좌는 카드 끝자리 기준(수집 시 저장)이 우선 — 사전 계좌는 없을 때만
+      suggestedAccountId: r.suggested_account_id ?? rule?.account_id ?? null,
+    }
+  })
 }
 
 // 승인대기 건수(기록 탭 배너용). 실패 시 0.
@@ -84,6 +94,7 @@ export async function approveInboxItem(uid: string, p: InboxApproveInput): Promi
   const principal = Number(row.principal)
   const amountUsd = usd ? principal : r2(principal / rate)
   const name = p.name.trim() // 적요(무엇을) — 빈칸 허용
+  const vendor = p.vendor.trim() || row.merchant // 구매처 표시명 — 비우면 상점명
 
   const { data: ins, error: e1 } = await sb
     .from('acct_inout')
@@ -93,7 +104,7 @@ export async function approveInboxItem(uid: string, p: InboxApproveInput): Promi
       date: hnDate(row.sms_at),
       item_id: p.itemId,
       name,
-      vendor: row.merchant, // 구매처(어디서) = 문자 상점명
+      vendor, // 구매처(어디서) — 수정했으면 수정값, 아니면 문자 상점명
       currency: row.currency,
       principal,
       rate,
@@ -112,7 +123,7 @@ export async function approveInboxItem(uid: string, p: InboxApproveInput): Promi
     .eq('id', p.id)
   if (e2) return { ok: false, error: `대기열 갱신 실패: ${e2.message}` }
 
-  await learnMerchant(uid, row.merchant, p.itemId, name || null, p.accountId || null)
+  await learnMerchant(uid, row.merchant, p.itemId, name || null, vendor !== row.merchant ? vendor : null, p.accountId || null)
   return { ok: true }
 }
 
@@ -122,6 +133,7 @@ async function learnMerchant(
   merchant: string,
   itemId: string,
   name: string | null,
+  vendor: string | null,
   accountId: string | null,
 ): Promise<void> {
   const sb = await createClient()
@@ -130,12 +142,12 @@ async function learnMerchant(
   if (ex) {
     await sb
       .from('merchant_rules')
-      .update({ item_id: itemId, name, account_id: accountId, hit_count: (ex.hit_count ?? 0) + 1, last_used_at: now })
+      .update({ item_id: itemId, name, vendor, account_id: accountId, hit_count: (ex.hit_count ?? 0) + 1, last_used_at: now })
       .eq('id', ex.id)
   } else {
     await sb
       .from('merchant_rules')
-      .insert({ user_id: uid, merchant, item_id: itemId, name, account_id: accountId, hit_count: 1, last_used_at: now })
+      .insert({ user_id: uid, merchant, item_id: itemId, name, vendor, account_id: accountId, hit_count: 1, last_used_at: now })
   }
 }
 

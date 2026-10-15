@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TODAY-LIST-V2 — 구매처 표시 · 말줄임 제거
 // MFH-ACCOUNTING-TODAY-LIST-V1
 // 요약 하단 'Today' — 거래일이 오늘(브라우저 로컬)인 거래만. 입력 폼의 todayLocal 과 동일 기준이라 서버 UTC 어긋남 없음.
 import Link from 'next/link'
@@ -47,8 +48,8 @@ export default function TodayList({
       ) : (
         <ul className="divide-y divide-line">
           {todayTx.map((r) => (
-            <li key={r.id} className="flex items-center justify-between gap-2 py-2">
-              <div className="flex min-w-0 items-center gap-2">
+            <li key={r.id} className="flex items-start justify-between gap-2 py-2">
+              <div className="flex min-w-0 items-start gap-2">
                 <span
                   className={`shrink-0 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
                     r.gubun === '수입'
@@ -60,9 +61,10 @@ export default function TodayList({
                 >
                   {r.gubun ?? '—'}
                 </span>
-                <span className="truncate text-sm text-ink">
+                <span className="min-w-0 break-words text-sm text-ink">
                   {r.itemId ? (nameOf.get(r.itemId) ?? '') : ''}
                   {r.name ? <span className="text-muted"> · {r.name}</span> : ''}
+                  {r.vendor ? <span className="text-faint"> · {r.vendor}</span> : ''}
                 </span>
               </div>
               <span

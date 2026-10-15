@@ -79,9 +79,10 @@ export type InboxRow = {
   cardLast4: string
   currency: string
   principal: number
-  merchant: string
+  merchant: string // 문자 상점명(원문, 16자 절단)
   suggestedItemId: string | null
-  suggestedName: string | null
+  suggestedName: string | null // 적요 추천
+  suggestedVendor: string | null // 구매처 표시명 추천(학습) — 없으면 merchant
   suggestedAccountId: string | null
 }
 
@@ -90,6 +91,7 @@ export type InboxApproveInput = {
   id: string
   itemId: string
   name: string // 적요(빈칸 허용 — 구매처만 기록)
+  vendor: string // 구매처 표시명(수정 가능, 빈칸이면 상점명)
   accountId: string | null
   rate: number
 }
