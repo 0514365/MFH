@@ -62,6 +62,13 @@ export type DonationYearly = {
 
 export type ActionResult = { ok: boolean; error?: string }
 
+// 항목(분류) 추가 입력 — 입력 폼·승인대기에서 즉석 생성.
+export type ItemInput = {
+  gubun: '수입' | '지출'
+  name: string
+  category: string // 대분류(기존 값 선택 또는 직접 입력)
+}
+
 // ===== 카드 문자 승인대기 인박스(card_tx_inbox) =====
 export type InboxRow = {
   id: string

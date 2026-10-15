@@ -1,4 +1,5 @@
 'use server'
+// MFH-ACCOUNTING-ACTIONS-V5 — saveItem(항목 즉석 추가)
 // MFH-ACCOUNTING-ACTIONS-V4
 // 회계 입력·수정·삭제 + 계좌 추가 server action — 재정 관리자(부부) 권한 확인 후 Supabase 장부(acct_*) write.
 // V4(2026-10): 노션 → Supabase 이전. 일괄 작업은 단일 쿼리(배열 insert / in()) 로 처리.
@@ -12,8 +13,9 @@ import {
   deleteInoutRecords,
   patchInoutFieldsBulk,
   createAccount,
+  createItem,
 } from '@/lib/accounting-db'
-import type { InoutInput, InoutPatch, AccountInput } from '@/lib/accounting-types'
+import type { InoutInput, InoutPatch, AccountInput, ItemInput } from '@/lib/accounting-types'
 import { revalidatePath } from 'next/cache'
 
 async function isFinanceUser(): Promise<boolean> {
@@ -101,5 +103,16 @@ export async function saveAccount(input: AccountInput): Promise<{ ok: boolean; e
   if (!(await isFinanceUser())) return { ok: false, error: '권한이 없습니다' }
   const res = await createAccount(input)
   if (res.ok) revalidateAccounting()
+  return res
+}
+
+// 항목(분류) 추가 — 입력 폼·승인대기에서 즉석 생성. 성공 시 콤보 즉시 반영(revalidate) + 새 id 반환.
+export async function saveItem(input: ItemInput): Promise<{ ok: boolean; id?: string; error?: string }> {
+  if (!(await isFinanceUser())) return { ok: false, error: '권한이 없습니다' }
+  const res = await createItem(input)
+  if (res.ok) {
+    revalidateAccounting()
+    revalidatePath('/accounting/inbox')
+  }
   return res
 }

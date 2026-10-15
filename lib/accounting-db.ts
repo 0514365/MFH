@@ -15,6 +15,7 @@ import type {
   InoutInput,
   InoutPatch,
   InoutRow,
+  ItemInput,
 } from './accounting-types'
 
 export type * from './accounting-types'
@@ -234,6 +235,33 @@ export async function createAccount(a: AccountInput): Promise<ActionResult> {
     .from('acct_accounts')
     .insert({ user_id: uid, name: a.name.trim(), currency: a.currency, info: a.info ?? null })
   return error ? { ok: false, error: `계좌 저장 실패: ${error.message}` } : { ok: true }
+}
+
+// 항목(분류) 1건 생성 — 같은 구분에 같은 이름이 있으면 오류. 성공 시 새 id.
+export async function createItem(it: ItemInput): Promise<ActionResult & { id?: string }> {
+  const uid = await currentUserId()
+  if (!uid) return { ok: false, error: '로그인이 필요합니다' }
+  const name = it.name.trim()
+  const category = it.category.trim()
+  if (!name) return { ok: false, error: '항목 이름을 입력하세요' }
+  if (!category) return { ok: false, error: '대분류를 선택하세요' }
+  const sb = await createClient()
+  const { data: max } = await sb
+    .from('acct_items')
+    .select('sort_order')
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const { data, error } = await sb
+    .from('acct_items')
+    .insert({ user_id: uid, gubun: it.gubun, name, category, sort_order: (max?.sort_order ?? 0) + 1 })
+    .select('id')
+    .single()
+  if (error) {
+    if (error.code === '23505') return { ok: false, error: `'${name}' 항목이 이미 있습니다` }
+    return { ok: false, error: `항목 저장 실패: ${error.message}` }
+  }
+  return { ok: true, id: data.id }
 }
 
 // ===== 후원자 헌금 집계(후원자 모듈용) =====

@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { AcctOption, AcctOptions, InoutRow } from '@/lib/accounting-types'
 import { saveInout, updateInout } from './actions'
+import ItemAddButton from './ItemAddButton'
 
 function todayLocal(): string {
   const d = new Date()
@@ -93,6 +94,9 @@ export default function AccountingForm({
   )
 
   const items = isTransfer ? [] : options.items[gubun]
+  // 항목 추가 모달용 대분류 목록(해당 구분, 기존 순서).
+  const categoriesOf = (g: '수입' | '지출') =>
+    groupByCategory(options.items[g]).map(([c]) => c).filter((c) => c !== '기타')
   // 후원자 콤보·자동연결 대상 — 항목의 대분류가 '후원'(정기·일시후원·목적헌금)일 때.
   const isDonation = useMemo(() => {
     if (gubun !== '수입' || !itemId) return false
@@ -281,7 +285,14 @@ export default function AccountingForm({
           {/* 항목 (이체는 없음) */}
           {!isTransfer && (
           <div className="@2xl:w-[104px] @2xl:shrink-0">
-            <label className={labelCls}>항목</label>
+            <label className={`${labelCls} flex items-center justify-between`}>
+              <span>항목</span>
+              <ItemAddButton
+                gubun={gubun as '수입' | '지출'}
+                categories={categoriesOf(gubun as '수입' | '지출')}
+                onCreated={(id) => setItemId(id)}
+              />
+            </label>
             <select value={itemId} onChange={(e) => setItemId(e.target.value)} className={inp}>
               <option value="">선택</option>
               {groupByCategory(items).map(([cat, list]) => (

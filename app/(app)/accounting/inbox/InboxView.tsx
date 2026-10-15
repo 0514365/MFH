@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-INBOX-VIEW-V2 — KRW 환율 · 항목 즉석 추가
 // MFH-CARD-INBOX-VIEW-V1
 // 승인대기 목록 — 행별 항목(추천 선채움)·적요·계좌 편집 + 승인/무시, 추천 채워진 행 일괄 승인.
 // 환율은 상단 공통(HNL 기본 = 마지막 승인값 · KRW 행이 있으면 KRW 환율 입력 추가). USD 행은 환율 1. 날짜·금액·상점은 문자 원문 그대로.
@@ -7,6 +8,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { AcctOption, AcctOptions, InboxRow } from '@/lib/accounting-types'
 import { approveInbox, ignoreInbox } from './actions'
+import ItemAddButton from '../ItemAddButton'
 
 const CUR_SYMBOL: Record<string, string> = { KRW: '₩', USD: '$', HNL: 'L' }
 const CAT_ORDER = ['사역', '차량', '생활', '운영/행정']
@@ -165,6 +167,11 @@ export default function InboxView({
             >
               {busy === 'bulk' ? '승인 중…' : `항목 지정된 ${readyIds.length}건 일괄 승인`}
             </button>
+            <ItemAddButton
+              gubun="지출"
+              categories={groups.map(([c]) => c).filter((c) => c !== '기타')}
+              label="+ 항목 추가"
+            />
             <span className="text-[11px] text-faint">항목이 비어 있는 행은 지정 후 개별 승인</span>
           </div>
         )}
