@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-REPORT-V9 — 기간 이동을 헤더 중앙으로(HeaderPortal) · 지출/수입 · 월/연간 · L/$ 를 한 줄로(줄바꿈 없음)
 // MFH-ACCOUNTING-REPORT-V8 — 위플형 아이콘(CatIcon: 색 원 + 흰 선 아이콘) — 막대 목록·도넛 바깥 아이콘, 항목 고정색(itemPastels)
 // MFH-ACCOUNTING-REPORT-V7 — 대분류 드릴다운: 도넛 조각·대분류 행 탭 → 그 대분류의 중분류(항목) 도넛 + % 막대(‹ 전체 로 복귀), 대분류 전기 대비
 // MFH-ACCOUNTING-REPORT-V6 — 위플형 통계(b단계): ‹ 월 ›(＋연간 전환) · 지출/수입 토글 · L/$(달력과 공유) → 큰 숫자 + 전기 대비
@@ -11,6 +12,7 @@ import { useRouter } from 'next/navigation'
 import type { AccountBalance, FxInfo, AcctOptions, InoutRow } from '@/lib/accounting-types'
 import { fmtShow, hnlRateOf, itemPastels, pastelAt, pastelOf, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
 import { CatIcon } from '@/lib/acct-icons'
+import { HeaderMonthNav, HeaderPortal } from '../AccountingTitle'
 import { Card, PastelDonut, TrendChart, type PastelSlice, type TrendBucket } from './charts'
 
 type Kind = '지출' | '수입'
@@ -92,7 +94,7 @@ function Seg<T extends string>({
           key={o.v}
           type="button"
           onClick={() => onChange(o.v)}
-          className={`flex-1 rounded-full px-3 py-1 transition ${value === o.v ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
+          className={`flex-1 whitespace-nowrap rounded-full px-3 py-1 transition ${value === o.v ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
         >
           {o.label}
         </button>
@@ -296,24 +298,17 @@ export default function ReportView({
 
   return (
     <div className="space-y-4">
-      {/* 기간 이동 · 월/연간 · 통화 */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1">
-          <button type="button" onClick={() => move(-1)} aria-label="이전" className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-surface-subtle hover:text-primary">
-            ‹
-          </button>
-          <span className="font-display text-[17px] font-bold text-ink">{fullLabel}</span>
-          <button type="button" onClick={() => move(1)} aria-label="다음" className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-surface-subtle hover:text-primary">
-            ›
-          </button>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Seg value={mode} onChange={switchMode} options={[{ v: 'month', label: '월' }, { v: 'year', label: '연간' }]} />
-          {hnlRate && <Seg value={showCur} onChange={setCur} options={[{ v: 'HNL', label: 'L' }, { v: 'USD', label: '$' }]} />}
-        </div>
-      </div>
+      {/* 기간 이동 → 헤더 중앙 */}
+      <HeaderPortal>
+        <HeaderMonthNav label={fullLabel} onPrev={() => move(-1)} onNext={() => move(1)} />
+      </HeaderPortal>
 
-      <Seg value={kind} onChange={setKind} options={[{ v: '지출', label: '지출' }, { v: '수입', label: '수입' }]} className="text-[13px]" />
+      {/* 지출/수입 · 월/연간 · 통화 — 한 줄 */}
+      <div className="flex items-center gap-1.5">
+        <Seg value={kind} onChange={setKind} options={[{ v: '지출', label: '지출' }, { v: '수입', label: '수입' }]} className="flex-1 text-[13px]" />
+        <Seg value={mode} onChange={switchMode} options={[{ v: 'month', label: '월' }, { v: 'year', label: '연간' }]} className="shrink-0" />
+        {hnlRate && <Seg value={showCur} onChange={setCur} options={[{ v: 'HNL', label: 'L' }, { v: 'USD', label: '$' }]} className="shrink-0" />}
+      </div>
 
       {/* 큰 숫자 + 도넛 */}
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">

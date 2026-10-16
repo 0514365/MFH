@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V5 — 월 이동을 헤더 중앙으로(HeaderPortal, 라벨 탭 = 오늘) · 오늘·L/$ 는 요약 카드 위 · 달력 칸·날짜 크게
 // MFH-ACCOUNTING-CALENDAR-V4 — 요약: 지출 현금·카드 구분 제거 → 「카드대금 상환할 금액」(카드별 미상환, 탭 = 자산 탭)
 // MFH-ACCOUNTING-CALENDAR-V3 — 내역 아이콘 = 위플형 CatIcon(항목 고정색 원 + 흰 선 아이콘)
 // MFH-ACCOUNTING-CALENDAR-V2 — 표시 통화·환산·파스텔을 lib/acct-display 로 분리(통계 탭과 공유)
@@ -14,6 +15,7 @@ import Link from 'next/link'
 import type { AccountBalance, AcctOptions, FxInfo, InoutRow } from '@/lib/accounting-types'
 import { PASTEL_NEUTRAL, fmtCompact, fmtShow, hnlRateOf, itemPastels, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
 import { CatIcon } from '@/lib/acct-icons'
+import { HeaderMonthNav, HeaderPortal } from './AccountingTitle'
 
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -141,42 +143,42 @@ export default function CalendarHome({
 
   return (
     <div className="space-y-4">
-      {/* 월 이동 + 통화 토글 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <button type="button" onClick={() => moveMonth(-1)} aria-label="이전 달" className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-surface-subtle hover:text-primary">
-            ‹
-          </button>
-          <span className="font-display text-[17px] font-bold text-ink">
-            {year}년 {month}월
-          </span>
-          <button type="button" onClick={() => moveMonth(1)} aria-label="다음 달" className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-surface-subtle hover:text-primary">
-            ›
-          </button>
-          {ym !== today.slice(0, 7) && (
-            <button type="button" onClick={() => setSelected(today)} className="ml-1 rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-muted hover:border-primary hover:text-primary">
-              오늘
-            </button>
-          )}
-        </div>
-        {hnlRate && (
-          <div className="flex rounded-full bg-surface-subtle p-0.5 text-[11px] font-semibold">
-            {(['HNL', 'USD'] as ShowCur[]).map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => toggleCur(c)}
-                className={`rounded-full px-2.5 py-1 transition ${showCur === c ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
-              >
-                {c === 'HNL' ? 'L' : '$'}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* 월 이동 → 헤더 중앙(라벨 탭 = 오늘) */}
+      <HeaderPortal>
+        <HeaderMonthNav
+          label={`${year}년 ${month}월`}
+          onPrev={() => moveMonth(-1)}
+          onNext={() => moveMonth(1)}
+          onLabel={ym !== today.slice(0, 7) ? () => setSelected(today) : undefined}
+          labelTitle="오늘로"
+        />
+      </HeaderPortal>
 
       {/* 그달 요약 */}
       <section className="grid grid-cols-3 gap-2 rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        {(hnlRate || ym !== today.slice(0, 7)) && (
+          <div className="col-span-3 -mt-1 flex items-center justify-end gap-1.5">
+            {ym !== today.slice(0, 7) && (
+              <button type="button" onClick={() => setSelected(today)} className="rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-muted hover:border-primary hover:text-primary">
+                오늘
+              </button>
+            )}
+            {hnlRate && (
+              <div className="flex rounded-full bg-surface-subtle p-0.5 text-[11px] font-semibold">
+                {(['HNL', 'USD'] as ShowCur[]).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => toggleCur(c)}
+                    className={`rounded-full px-2.5 py-0.5 transition ${showCur === c ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
+                  >
+                    {c === 'HNL' ? 'L' : '$'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <div>
           <div className="text-[11px] text-faint">수입</div>
           <div className="font-display text-[15px] font-bold text-blue-700">{fmtFull(income, showCur)}</div>
@@ -205,17 +207,17 @@ export default function CalendarHome({
       </section>
 
       {/* 월 달력 */}
-      <section className="rounded-2xl border border-line bg-surface p-2 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        <div className="grid grid-cols-7 pb-1 text-center text-[11px] font-semibold">
+      <section className="rounded-2xl border border-line bg-surface px-2 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="grid grid-cols-7 pb-2 text-center text-[12px] font-semibold">
           {WEEK.map((w, i) => (
             <div key={w} className={i === 0 ? 'text-accent' : i === 6 ? 'text-blue-700' : 'text-faint'}>
               {w}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-y-0.5">
+        <div className="grid grid-cols-7 gap-y-1">
           {cells.map((d, i) => {
-            if (d == null) return <div key={`e${i}`} className="h-[54px]" />
+            if (d == null) return <div key={`e${i}`} className="h-[66px]" />
             const key = `${ym}-${pad(d)}`
             const s = byDay.get(key)
             const isSel = key === selected
@@ -226,17 +228,17 @@ export default function CalendarHome({
                 key={key}
                 type="button"
                 onClick={() => setSelected(key)}
-                className={`flex h-[54px] flex-col items-center rounded-lg pt-1 transition ${isSel ? 'bg-primary-soft' : 'hover:bg-surface-subtle'}`}
+                className={`flex h-[66px] flex-col items-center rounded-lg pt-1.5 transition ${isSel ? 'bg-primary-soft' : 'hover:bg-surface-subtle'}`}
               >
                 <span
-                  className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 font-display text-[12px] ${
+                  className={`mb-0.5 flex h-6 min-w-[24px] items-center justify-center rounded-full px-1 font-display text-[14px] ${
                     isToday ? 'bg-primary font-bold text-white' : dow === 0 ? 'text-accent' : dow === 6 ? 'text-blue-700' : 'text-ink'
                   }`}
                 >
                   {d}
                 </span>
-                {s && s.inc !== 0 && <span className="font-display text-[9.5px] leading-tight text-blue-700">{fmtCell(s.inc)}</span>}
-                {s && s.exp !== 0 && <span className="font-display text-[9.5px] leading-tight text-red-700">{fmtCell(s.exp)}</span>}
+                {s && s.inc !== 0 && <span className="font-display text-[10.5px] leading-tight text-blue-700">{fmtCell(s.inc)}</span>}
+                {s && s.exp !== 0 && <span className="font-display text-[10.5px] leading-tight text-red-700">{fmtCell(s.exp)}</span>}
               </button>
             )
           })}
