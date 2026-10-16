@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-REPORT-V8 — 위플형 아이콘(CatIcon: 색 원 + 흰 선 아이콘) — 막대 목록·도넛 바깥 아이콘, 항목 고정색(itemPastels)
 // MFH-ACCOUNTING-REPORT-V7 — 대분류 드릴다운: 도넛 조각·대분류 행 탭 → 그 대분류의 중분류(항목) 도넛 + % 막대(‹ 전체 로 복귀), 대분류 전기 대비
 // MFH-ACCOUNTING-REPORT-V6 — 위플형 통계(b단계): ‹ 월 ›(＋연간 전환) · 지출/수입 토글 · L/$(달력과 공유) → 큰 숫자 + 전기 대비
 //   → 파스텔 도넛(가운데 가장 큰 카테고리 %) → 띠(현금·카드·카드대금 납부, 지출만) → 카테고리 % 막대(탭 = 항목 펼침 → 항목 탭 = 내역 딥링크)
@@ -8,7 +9,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { AccountBalance, FxInfo, AcctOptions, InoutRow } from '@/lib/accounting-types'
-import { fmtShow, hnlRateOf, pastelAt, pastelOf, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
+import { fmtShow, hnlRateOf, itemPastels, pastelAt, pastelOf, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
+import { CatIcon } from '@/lib/acct-icons'
 import { Card, PastelDonut, TrendChart, type PastelSlice, type TrendBucket } from './charts'
 
 type Kind = '지출' | '수입'
@@ -135,6 +137,7 @@ export default function ReportView({
     for (const i of [...options.items['수입'], ...options.items['지출']]) m.set(i.id, { name: i.name, category: i.category || '기타' })
     return m
   }, [options])
+  const itemColor = useMemo(() => itemPastels([...options.items['수입'], ...options.items['지출']]), [options])
   const supporterName = useMemo(() => new Map(options.supporters.map((s) => [s.id, s.name])), [options])
   const cardIds = useMemo(() => new Set(balances.filter((b) => b.kind === '신용카드').map((b) => b.id)), [balances])
 
@@ -268,8 +271,8 @@ export default function ReportView({
   const prevWord = mode === 'month' ? '지난달' : '작년'
   const verb = kind === '지출' ? '쓴 돈' : '들어온 돈'
   const slices: PastelSlice[] = dg
-    ? dg.items.map((it, i) => ({ key: it.id, name: it.name, sum: it.sum, fill: pastelAt(i).fill }))
-    : groups.map((g) => ({ key: g.cat, name: g.cat, sum: g.sum, fill: pastelOf(g.cat).fill }))
+    ? dg.items.map((it, i) => ({ key: it.id, name: it.name, sum: it.sum, fill: (itemColor.get(it.id) ?? pastelAt(i)).fill, cat: dg.cat }))
+    : groups.map((g) => ({ key: g.cat, name: g.cat, sum: g.sum, fill: pastelOf(g.cat).fill, cat: g.cat }))
   const share = dg && stats.total > 0 ? Math.round((dg.sum / stats.total) * 100) : null
 
   // 내역 딥링크 — 현재 기간
@@ -375,16 +378,14 @@ export default function ReportView({
         ) : (
           <ul>
             {(dg
-              ? dg.items.map((it, i) => ({ key: it.id, name: it.name, sum: it.sum, count: it.count, p: pastelAt(i), go: () => goLedger(dg.cat, it.id) }))
-              : groups.map((g) => ({ key: g.cat, name: g.cat, sum: g.sum, count: g.count, p: pastelOf(g.cat), go: () => setDrill(g.cat) }))
+              ? dg.items.map((it, i) => ({ key: it.id, name: it.name, cat: dg.cat, sum: it.sum, count: it.count, p: itemColor.get(it.id) ?? pastelAt(i), go: () => goLedger(dg.cat, it.id) }))
+              : groups.map((g) => ({ key: g.cat, name: g.cat, cat: g.cat, sum: g.sum, count: g.count, p: pastelOf(g.cat), go: () => setDrill(g.cat) }))
             ).map((row) => {
               const pct = total > 0 ? (row.sum / total) * 100 : 0
               return (
                 <li key={row.key} className="border-b border-line last:border-0">
                   <button type="button" onClick={row.go} className="flex w-full items-center gap-3 px-2 py-2.5 text-left">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold" style={{ background: row.p.bg, color: row.p.fg }} aria-hidden="true">
-                      {row.name.slice(0, 1)}
-                    </span>
+                    <CatIcon name={row.name} category={row.cat} color={row.p.fill} size={36} />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
                         <span className="truncate text-sm font-medium text-ink">

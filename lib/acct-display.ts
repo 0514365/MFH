@@ -1,3 +1,4 @@
+// MFH-ACCT-DISPLAY-V3 — 파스텔 fill 을 위플 톤(흰 아이콘이 보이는 중간 채도)으로 조정 · 보조색 7종
 // MFH-ACCT-DISPLAY-V2 — pastelAt(순번 파스텔: 대분류 → 중분류 도넛)
 // MFH-ACCT-DISPLAY-V1
 // 회계 화면 공용 표시 헬퍼(클라이언트 전용) — 위플형 달력(CalendarHome)·통계(ReportView)가 함께 쓴다.
@@ -62,27 +63,44 @@ export function fmtCompact(n: number): string {
 
 export type Pastel = { bg: string; fg: string; fill: string }
 const PASTEL: Record<string, Pastel> = {
-  후원: { bg: '#E3EEFB', fg: '#3B6FB6', fill: '#8FB8EE' },
-  헌금: { bg: '#E8E4F8', fg: '#6A55B8', fill: '#B3A6EE' },
-  기타수입: { bg: '#E2F3EC', fg: '#2F8A63', fill: '#8ED3B6' },
-  사역비: { bg: '#FBE7E4', fg: '#B65446', fill: '#F2A39A' },
-  사역: { bg: '#FDEBDD', fg: '#B8692E', fill: '#F7B989' },
-  생활비: { bg: '#FFF3D6', fg: '#A27A12', fill: '#F5D07A' },
-  생활: { bg: '#FCE6EF', fg: '#B24C77', fill: '#F2A7C3' },
-  차량: { bg: '#E0F1F5', fg: '#2C7F92', fill: '#86CFDD' },
-  '운영/행정': { bg: '#ECEBE8', fg: '#6B6A66', fill: '#BDBBB6' },
+  후원: { bg: '#E3EEFB', fg: '#3B6FB6', fill: '#7FA6DE' },
+  헌금: { bg: '#E8E4F8', fg: '#6A55B8', fill: '#9C8AD8' },
+  기타수입: { bg: '#E2F3EC', fg: '#2F8A63', fill: '#6FBF98' },
+  사역비: { bg: '#FBE7E4', fg: '#B65446', fill: '#E5847A' },
+  사역: { bg: '#FDEBDD', fg: '#B8692E', fill: '#E9A06C' },
+  생활비: { bg: '#FFF3D6', fg: '#A27A12', fill: '#E2BE55' },
+  생활: { bg: '#FCE6EF', fg: '#B24C77', fill: '#DE8AAE' },
+  차량: { bg: '#E0F1F5', fg: '#2C7F92', fill: '#6CB4C4' },
+  '운영/행정': { bg: '#ECEBE8', fg: '#6B6A66', fill: '#A9A7A1' },
 }
 // 사전에 없는 카테고리 — 이름 해시로 보조 파스텔 순환.
 const EXTRA: Pastel[] = [
-  { bg: '#EAF4E1', fg: '#5B8A2E', fill: '#B5D98F' },
-  { bg: '#F4E9F7', fg: '#8A4FA0', fill: '#D3AEE2' },
-  { bg: '#FFF0E6', fg: '#B0623A', fill: '#F8C3A2' },
+  { bg: '#EAF4E1', fg: '#5B8A2E', fill: '#96C26D' },
+  { bg: '#F4E9F7', fg: '#8A4FA0', fill: '#B88FCB' },
+  { bg: '#FFF0E6', fg: '#B0623A', fill: '#E9A57E' },
+  { bg: '#E3F1F2', fg: '#2F7A80', fill: '#6FAAB0' },
+  { bg: '#EFE8F0', fg: '#6E4F75', fill: '#9B80A0' },
+  { bg: '#E3F5E7', fg: '#2E8546', fill: '#7DCB8F' },
+  { bg: '#FBE4E4', fg: '#B23B3B', fill: '#E8706F' },
 ]
 export const PASTEL_NEUTRAL: Pastel = { bg: '#EEEDEA', fg: '#80807F', fill: '#D3D1CC' }
 
 // 순번 파스텔 — 대분류 안 항목(중분류) 도넛처럼 이름과 무관하게 순위별로 서로 다른 색이 필요할 때.
 const SERIES: Pastel[] = [...Object.values(PASTEL), ...EXTRA]
 export const pastelAt = (i: number): Pastel => SERIES[((i % SERIES.length) + SERIES.length) % SERIES.length]
+
+// 항목별 고정색 — 대분류 안 항목 순서(sort_order)대로 순번 파스텔. 달력 내역·통계 중분류 도넛이 같은 색을 쓴다.
+export function itemPastels(items: { id: string; category?: string | null }[]): Map<string, Pastel> {
+  const idx = new Map<string, number>()
+  const out = new Map<string, Pastel>()
+  for (const it of items) {
+    const c = it.category || '기타'
+    const i = idx.get(c) ?? 0
+    out.set(it.id, pastelAt(i))
+    idx.set(c, i + 1)
+  }
+  return out
+}
 
 export function pastelOf(category: string | null | undefined): Pastel {
   if (!category) return PASTEL_NEUTRAL

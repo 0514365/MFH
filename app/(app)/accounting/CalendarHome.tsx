@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V3 — 내역 아이콘 = 위플형 CatIcon(항목 고정색 원 + 흰 선 아이콘)
 // MFH-ACCOUNTING-CALENDAR-V2 — 표시 통화·환산·파스텔을 lib/acct-display 로 분리(통계 탭과 공유)
 // MFH-ACCOUNTING-CALENDAR-V1
 // 회계 홈(달력 탭) — 위플 가계부형. ‹ 월 › 이동 → 그달 수입/지출/수입−지출(지출 = 현금·카드 분리) → 월 달력(칸마다 그날 수입·지출 합)
@@ -10,7 +11,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { AccountBalance, AcctOptions, FxInfo, InoutRow } from '@/lib/accounting-types'
-import { PASTEL_NEUTRAL, fmtCompact, fmtShow, hnlRateOf, pastelOf, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
+import { PASTEL_NEUTRAL, fmtCompact, fmtShow, hnlRateOf, itemPastels, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
+import { CatIcon } from '@/lib/acct-icons'
 
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -61,6 +63,7 @@ export default function CalendarHome({
     for (const i of [...options.items['수입'], ...options.items['지출']]) m.set(i.id, { name: i.name, category: i.category ?? null })
     return m
   }, [options])
+  const itemColor = useMemo(() => itemPastels([...options.items['수입'], ...options.items['지출']]), [options])
   const cardIds = useMemo(() => new Set(balances.filter((b) => b.kind === '신용카드').map((b) => b.id)), [balances])
 
   const ym = selected?.slice(0, 7) ?? ''
@@ -231,7 +234,7 @@ export default function CalendarHome({
             {dayRows.map((r) => {
               const it = r.itemId ? itemOf.get(r.itemId) : undefined
               const counted = r.gubun === '수입' || r.gubun === '지출'
-              const { bg, fg } = counted ? pastelOf(it?.category) : PASTEL_NEUTRAL
+              const color = (counted && r.itemId ? itemColor.get(r.itemId) : undefined)?.fill ?? PASTEL_NEUTRAL.fill
               const label = it?.name ?? r.gubun ?? '—'
               const sub = [r.name, r.vendor].filter(Boolean).join(' · ')
               const isCard = r.gubun === '지출' && !!r.accountId && cardIds.has(r.accountId)
@@ -243,13 +246,7 @@ export default function CalendarHome({
                     onClick={() => router.push(`/accounting/entry?edit=${r.id}`)}
                     className={`flex w-full items-center gap-3 py-2.5 text-left ${counted ? '' : 'opacity-60'}`}
                   >
-                    <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
-                      style={{ background: bg, color: fg }}
-                      aria-hidden="true"
-                    >
-                      {label.slice(0, 1)}
-                    </span>
+                    <CatIcon name={it?.name ?? r.gubun} category={it?.category} color={color} size={36} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium text-ink">{label}</span>
                       {sub && <span className="block truncate text-[11px] text-faint">{sub}</span>}
