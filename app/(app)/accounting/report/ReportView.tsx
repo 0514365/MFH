@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-REPORT-V7 — 대분류 드릴다운: 도넛 조각·대분류 행 탭 → 그 대분류의 중분류(항목) 도넛 + % 막대(‹ 전체 로 복귀), 대분류 전기 대비
 // MFH-ACCOUNTING-REPORT-V6 — 위플형 통계(b단계): ‹ 월 ›(＋연간 전환) · 지출/수입 토글 · L/$(달력과 공유) → 큰 숫자 + 전기 대비
 //   → 파스텔 도넛(가운데 가장 큰 카테고리 %) → 띠(현금·카드·카드대금 납부, 지출만) → 카테고리 % 막대(탭 = 항목 펼침 → 항목 탭 = 내역 딥링크)
 //   → 후원자별 헌금(수입만) → 추이(맨 아래, 막대 탭 = 그 기간으로 이동). 계좌 잔액은 자산 탭으로 이동해 제거.
@@ -7,7 +8,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { AccountBalance, FxInfo, AcctOptions, InoutRow } from '@/lib/accounting-types'
-import { fmtShow, hnlRateOf, pastelOf, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
+import { fmtShow, hnlRateOf, pastelAt, pastelOf, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
 import { Card, PastelDonut, TrendChart, type PastelSlice, type TrendBucket } from './charts'
 
 type Kind = '지출' | '수입'
@@ -116,7 +117,7 @@ export default function ReportView({
   const [kind, setKind] = useState<Kind>('지출')
   const [ym, setYm] = useState<string | null>(null) // 'YYYY-MM'
   const [year, setYear] = useState<string | null>(null) // 'YYYY'
-  const [open, setOpen] = useState<string | null>(null) // 펼친 카테고리
+  const [drill, setDrill] = useState<string | null>(null) // 드릴다운한 대분류(null = 전체)
   const [cur, setCur] = useShowCur()
   const hnlRate = useMemo(() => hnlRateOf(fx, balances), [fx, balances])
   const showCur: ShowCur = hnlRate ? cur : 'USD'
@@ -171,10 +172,15 @@ export default function ReportView({
     let card = 0
     let repay = 0
     const cats = new Map<string, CatGroup>()
+    const prevCats = new Map<string, number>()
     const sup = new Map<string, { sum: number; count: number }>()
     for (const r of recent) {
       const inCur = inKey(r, key)
-      if (prevKey && inKey(r, prevKey) && r.gubun === kind) prevTotal += amt(r)
+      if (prevKey && inKey(r, prevKey) && r.gubun === kind) {
+        prevTotal += amt(r)
+        const pc = (r.itemId ? itemInfo.get(r.itemId)?.category : undefined) ?? '기타'
+        prevCats.set(pc, (prevCats.get(pc) ?? 0) + amt(r))
+      }
       if (!inCur) continue
       if (r.gubun === '이체' && r.toAccountId && cardIds.has(r.toAccountId)) repay += amt(r)
       if (r.gubun !== kind) continue
@@ -216,7 +222,7 @@ export default function ReportView({
         href: k !== '__anon__' && supporterName.has(k) ? `/supporters/${k}` : undefined,
       }))
       .sort((a, b) => b.sum - a.sum)
-    return { total, prevTotal, cash, card, repay, groups, supporterRows }
+    return { total, prevTotal, prevCats, cash, card, repay, groups, supporterRows }
     // amt 는 showCur·hnlRate 에 의존
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recent, key, prevKey, kind, showCur, hnlRate, itemInfo, cardIds, supporterName])
@@ -248,16 +254,23 @@ export default function ReportView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recent, key, mode, showCur, hnlRate])
 
-  // 범위·종류가 바뀌면 펼침 닫기
-  useEffect(() => setOpen(null), [key, kind, mode])
+  // 지출/수입을 바꾸면 전체로(기간 이동은 드릴다운 유지 — 같은 대분류를 달별로 비교)
+  useEffect(() => setDrill(null), [kind])
 
   if (!key || !stats) return <div className="min-h-[60vh]" aria-hidden="true" />
 
-  const { total, prevTotal, cash, card, repay, groups, supporterRows } = stats
+  const { prevCats, cash, card, repay, groups, supporterRows } = stats
+  // 드릴다운: 선택 대분류의 항목(중분류)으로 도넛·막대·합계를 바꾼다. 그 기간에 거래가 없으면 빈 그룹.
+  const dg: CatGroup | null = drill ? (groups.find((g) => g.cat === drill) ?? { cat: drill, sum: 0, count: 0, items: [] }) : null
+  const total = dg ? dg.sum : stats.total
+  const prevTotal = dg ? (prevCats.get(dg.cat) ?? 0) : stats.prevTotal
   const diff = total - prevTotal
   const prevWord = mode === 'month' ? '지난달' : '작년'
   const verb = kind === '지출' ? '쓴 돈' : '들어온 돈'
-  const slices: PastelSlice[] = groups.map((g) => ({ key: g.cat, name: g.cat, sum: g.sum, fill: pastelOf(g.cat).fill }))
+  const slices: PastelSlice[] = dg
+    ? dg.items.map((it, i) => ({ key: it.id, name: it.name, sum: it.sum, fill: pastelAt(i).fill }))
+    : groups.map((g) => ({ key: g.cat, name: g.cat, sum: g.sum, fill: pastelOf(g.cat).fill }))
+  const share = dg && stats.total > 0 ? Math.round((dg.sum / stats.total) * 100) : null
 
   // 내역 딥링크 — 현재 기간
   const period = (() => {
@@ -301,8 +314,22 @@ export default function ReportView({
 
       {/* 큰 숫자 + 도넛 */}
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        {dg ? (
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setDrill(null)}
+              className="-ml-1 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[12px] font-medium text-muted transition hover:bg-surface-subtle hover:text-primary"
+            >
+              ‹ 전체 {kind}
+            </button>
+            {share != null && <span className="text-[11px] text-faint">전체 {kind}의 {share}%</span>}
+          </div>
+        ) : null}
         <div className="text-[13px] text-muted">
-          {label}에 {verb}
+          {label}에 {dg ? <b style={{ color: pastelOf(dg.cat).fg }}>{dg.cat}</b> : null}
+          {dg ? '로 ' : ''}
+          {verb}
         </div>
         <div className={`mt-0.5 font-display text-[28px] font-bold ${kind === '지출' ? 'text-red-700' : 'text-blue-700'}`}>{fmt(total)}</div>
         <div className="mt-0.5 text-[12px] text-faint">
@@ -314,14 +341,14 @@ export default function ReportView({
           <PastelDonut
             slices={slices}
             total={total}
-            topLabel={kind === '지출' ? '가장 큰 지출' : '가장 큰 수입'}
-            onPick={(s) => setOpen(s.key)}
+            topLabel={dg ? `${dg.cat} 중 최대` : kind === '지출' ? '가장 큰 지출' : '가장 큰 수입'}
+            onPick={(s) => (dg ? goLedger(dg.cat, s.key) : setDrill(s.key))}
           />
         </div>
       </section>
 
       {/* 띠 — 현금 · 카드 · 카드대금 납부(지출만) */}
-      {kind === '지출' && bandTotal > 0 && (
+      {!dg && kind === '지출' && bandTotal > 0 && (
         <section className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <div className="flex h-3 overflow-hidden rounded-full bg-surface-subtle">
             {band.map((b) => (b.sum > 0 ? <div key={b.label} style={{ width: `${(b.sum / bandTotal) * 100}%`, background: b.fill }} /> : null))}
@@ -341,62 +368,54 @@ export default function ReportView({
         </section>
       )}
 
-      {/* 카테고리 % 막대 */}
+      {/* 카테고리 % 막대 — 전체: 대분류(탭 = 드릴다운) · 드릴다운: 중분류(탭 = 내역) */}
       <section className="rounded-2xl border border-line bg-surface p-2 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        {groups.length === 0 ? (
+        {(dg ? dg.items.length : groups.length) === 0 ? (
           <p className="py-6 text-center text-xs text-faint">거래 없음</p>
         ) : (
           <ul>
-            {groups.map((g) => {
-              const p = pastelOf(g.cat)
-              const pct = total > 0 ? (g.sum / total) * 100 : 0
-              const isOpen = open === g.cat
+            {(dg
+              ? dg.items.map((it, i) => ({ key: it.id, name: it.name, sum: it.sum, count: it.count, p: pastelAt(i), go: () => goLedger(dg.cat, it.id) }))
+              : groups.map((g) => ({ key: g.cat, name: g.cat, sum: g.sum, count: g.count, p: pastelOf(g.cat), go: () => setDrill(g.cat) }))
+            ).map((row) => {
+              const pct = total > 0 ? (row.sum / total) * 100 : 0
               return (
-                <li key={g.cat} className="border-b border-line last:border-0">
-                  <button type="button" onClick={() => setOpen(isOpen ? null : g.cat)} className="flex w-full items-center gap-3 px-2 py-2.5 text-left">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold" style={{ background: p.bg, color: p.fg }} aria-hidden="true">
-                      {g.cat.slice(0, 1)}
+                <li key={row.key} className="border-b border-line last:border-0">
+                  <button type="button" onClick={row.go} className="flex w-full items-center gap-3 px-2 py-2.5 text-left">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold" style={{ background: row.p.bg, color: row.p.fg }} aria-hidden="true">
+                      {row.name.slice(0, 1)}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
                         <span className="truncate text-sm font-medium text-ink">
-                          {g.cat}
-                          <span className="ml-1.5 font-display text-[12px] font-bold" style={{ color: p.fg }}>
+                          {row.name}
+                          <span className="ml-1.5 font-display text-[12px] font-bold" style={{ color: row.p.fg }}>
                             {pct.toFixed(pct < 10 ? 1 : 0)}%
                           </span>
+                          {dg && <span className="ml-1.5 text-[11px] text-faint">{row.count}건</span>}
                         </span>
-                        <span className="shrink-0 font-display text-sm font-bold text-ink">{fmt(g.sum)}</span>
+                        <span className="shrink-0 font-display text-sm font-bold text-ink">
+                          {fmt(row.sum)} <span className="text-faint">›</span>
+                        </span>
                       </span>
                       <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-surface-subtle">
-                        <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: p.fill }} />
+                        <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: row.p.fill }} />
                       </span>
                     </span>
                   </button>
-                  {isOpen && (
-                    <ul className="mb-2 ml-14 mr-2 rounded-xl bg-surface-subtle px-3 py-1">
-                      {g.items.map((it) => (
-                        <li key={it.id}>
-                          <button type="button" onClick={() => goLedger(g.cat, it.id)} className="flex w-full items-baseline justify-between gap-2 py-1.5 text-left text-[13px]">
-                            <span className="truncate text-ink">
-                              {it.name}
-                              <span className="ml-1.5 text-[11px] text-faint">{it.count}건</span>
-                            </span>
-                            <span className="shrink-0 font-display font-bold text-ink">
-                              {fmt(it.sum)} <span className="text-faint">›</span>
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </li>
               )
             })}
           </ul>
         )}
+        {dg && dg.items.length > 0 && (
+          <button type="button" onClick={() => goLedger(dg.cat)} className="w-full px-2 py-2 text-center text-[12px] font-medium text-muted hover:text-primary">
+            {dg.cat} 내역 전체 보기 ›
+          </button>
+        )}
       </section>
 
-      {kind === '수입' && supporterRows.length > 0 && (
+      {!dg && kind === '수입' && supporterRows.length > 0 && (
         <Card title="후원자별 헌금" right={fmt(supporterRows.reduce((s, r) => s + r.sum, 0))} rightColor="text-ink">
           <BarList rows={supporterRows} fmt={fmt} onGo={(href) => router.push(href)} />
         </Card>

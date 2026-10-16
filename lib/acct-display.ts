@@ -1,3 +1,4 @@
+// MFH-ACCT-DISPLAY-V2 — pastelAt(순번 파스텔: 대분류 → 중분류 도넛)
 // MFH-ACCT-DISPLAY-V1
 // 회계 화면 공용 표시 헬퍼(클라이언트 전용) — 위플형 달력(CalendarHome)·통계(ReportView)가 함께 쓴다.
 // · 표시 통화: L(HNL) 기본 + USD 토글, 기기별 localStorage 공유(한쪽에서 바꾸면 다른 탭도 같은 값).
@@ -78,6 +79,10 @@ const EXTRA: Pastel[] = [
   { bg: '#FFF0E6', fg: '#B0623A', fill: '#F8C3A2' },
 ]
 export const PASTEL_NEUTRAL: Pastel = { bg: '#EEEDEA', fg: '#80807F', fill: '#D3D1CC' }
+
+// 순번 파스텔 — 대분류 안 항목(중분류) 도넛처럼 이름과 무관하게 순위별로 서로 다른 색이 필요할 때.
+const SERIES: Pastel[] = [...Object.values(PASTEL), ...EXTRA]
+export const pastelAt = (i: number): Pastel => SERIES[((i % SERIES.length) + SERIES.length) % SERIES.length]
 
 export function pastelOf(category: string | null | undefined): Pastel {
   if (!category) return PASTEL_NEUTRAL
