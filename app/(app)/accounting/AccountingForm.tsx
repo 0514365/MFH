@@ -1,4 +1,6 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V9 — 환율 입력 제거(2026-09~: 공시·마감 환율 자동, DB 트리거 patch116 가 최종 결정 · 화면은 잠정 환산 표시)
+//   통화가 다른 이체 = 「입금 금액」(입금 계좌 통화)으로 양쪽 실제 금액 기록 → 실제 교환 비율 표시. 2026-08 이전 거래 수정은 예전처럼 환율 입력.
 // MFH-ACCOUNTING-FORM-V8 — 달력 홈 ＋ 진입 ?date= 거래일 프리필
 // MFH-ACCOUNTING-FORM-V7 — 영수증 첨부(ReceiptField, patch111): 저장 전 업로드분은 교체·취소 시 즉시 정리
 // MFH-ACCOUNTING-FORM-V6 — 항목 콤보에서 숨긴 항목 제외(수정 중 현재 값은 유지) + 항목 관리(⚙)
@@ -12,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { activeOnly, type AcctOption, type AcctOptions, type InoutRow } from '@/lib/accounting-types'
+import { activeOnly, type AcctOption, type AcctOptions, type FxInfo, type InoutRow } from '@/lib/accounting-types'
 import { saveInout, updateInout } from './actions'
 import ItemAddButton from './ItemAddButton'
 import ItemManageButton from './ItemManageButton'
@@ -49,7 +51,7 @@ function fmtUsd(n: number | null): string {
 const inp =
   'h-9 w-full rounded-lg border border-line bg-surface px-2 text-sm text-ink outline-none transition focus:border-primary'
 const labelCls = 'mb-1 block whitespace-nowrap text-[11px] font-medium text-faint'
-// 통화별 기본환율(1 USD당 현지통화) — 통화 변경 시 자동 채움(수동 변경 가능).
+// 통화별 기본환율(1 USD당 현지통화) — 공시 환율이 없을 때·2026-08 이전 거래 수정 때만 쓰는 대체값.
 const DEFAULT_RATE: Record<'KRW' | 'USD' | 'HNL', string> = { KRW: '1400', USD: '1', HNL: '26.5' }
 // 항목 드롭다운 대분류 그룹 순서 — 항목(acct_items)의 `category` 기준.
 const CAT_ORDER = ['후원', '헌금', '기타수입', '사역비', '생활비', '사역', '차량', '생활', '운영/행정']
@@ -68,9 +70,11 @@ function groupByCategory(items: AcctOption[]): [string, AcctOption[]][] {
 export default function AccountingForm({
   options,
   recent,
+  fx,
 }: {
   options: AcctOptions
   recent: InoutRow[]
+  fx?: FxInfo[]
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -99,6 +103,7 @@ export default function AccountingForm({
   const [principal, setPrincipal] = useState('')
   const [rate, setRate] = useState(DEFAULT_RATE.KRW)
   const [accountId, setAccountId] = useState(() => accountByCurrency('KRW'))
+  const [toPrincipal, setToPrincipal] = useState('') // 통화가 다른 이체의 입금 금액(입금 계좌 통화)
   const [supporterId, setSupporterId] = useState('')
   const [receiptPath, setReceiptPath] = useState<string | null>(null)
   // 이 폼에서 올렸지만 아직 저장 안 된 영수증 — 교체·제거·취소 시 Storage 에서 바로 지운다(저장된 것은 서버가 정리).
@@ -123,13 +128,42 @@ export default function AccountingForm({
     return options.items['수입'].find((i) => i.id === itemId)?.category === '후원'
   }, [gubun, itemId, options])
   const usd = currency === 'USD'
+  // 환율 기준(2026-09~): 수입·지출·조정은 공시·마감 환율 자동(입력 없음). 그 이전 거래 수정은 예전처럼 환율 입력.
+  const legacy = date < '2026-09-01'
+  const fxOf = useCallback((cur: string) => fx?.find((f) => f.currency === cur) ?? null, [fx])
+  const curOfAcct = useCallback((id: string) => options.accounts.find((a) => a.id === id)?.currency ?? null, [options])
+  const fromCur = isTransfer ? curOfAcct(accountId) : null
+  const toCur = isTransfer ? curOfAcct(toAccountId) : null
+  const crossFx = isTransfer && !legacy && !!fromCur && !!toCur && fromCur !== toCur // 통화가 다른 이체
+  const autoFx = !usd && !legacy ? fxOf(currency) : null
+  const effRate = usd ? 1 : legacy ? Number(rate) : (autoFx?.rate ?? Number(DEFAULT_RATE[currency]))
   const amountUsd = useMemo(() => {
     const p = Number(principal)
     if (!p) return 0
+    if (crossFx) {
+      if (fromCur === 'USD') return p
+      const tp = Number(toPrincipal)
+      if (toCur === 'USD') return tp > 0 ? tp : 0
+      return effRate > 0 ? p / effRate : 0
+    }
     if (usd) return p
-    const r = Number(rate)
-    return r > 0 ? p / r : 0
-  }, [principal, rate, usd])
+    return effRate > 0 ? p / effRate : 0
+  }, [principal, toPrincipal, crossFx, fromCur, toCur, usd, effRate])
+  // 통화가 다른 이체의 실제 교환 비율(1 USD 당 현지통화) — 표시용.
+  const crossRate = useMemo(() => {
+    if (!crossFx) return null
+    const p = Number(principal)
+    const tp = Number(toPrincipal)
+    if (!(p > 0) || !(tp > 0)) return null
+    if (fromCur === 'USD') return { cur: toCur!, rate: tp / p }
+    if (toCur === 'USD') return { cur: fromCur!, rate: p / tp }
+    return null
+  }, [crossFx, principal, toPrincipal, fromCur, toCur])
+
+  // 이체는 통화 = 출금 계좌 통화(원금 = 출금 금액).
+  useEffect(() => {
+    if (isTransfer && fromCur && (fromCur === 'KRW' || fromCur === 'USD' || fromCur === 'HNL') && fromCur !== currency) setCurrency(fromCur)
+  }, [isTransfer, fromCur, currency])
 
   // discard=false: 저장 성공 직후(올린 영수증이 DB 에 들어감) — 정리하지 않고 추적만 비운다.
   const reset = useCallback((discard = true) => {
@@ -144,6 +178,7 @@ export default function AccountingForm({
     setName('')
     setVendor('')
     setPrincipal('')
+    setToPrincipal('')
     setRate(DEFAULT_RATE[currency])
     setAccountId(accountByCurrency(currency))
     setToAccountId('')
@@ -183,6 +218,7 @@ export default function AccountingForm({
     setVendor(r.vendor ?? '')
     setCurrency(r.currency === 'USD' || r.currency === 'HNL' ? r.currency : 'KRW')
     setPrincipal(r.principal != null ? String(r.principal) : '')
+    setToPrincipal(r.toPrincipal != null ? String(r.toPrincipal) : '')
     setRate(r.rate != null ? String(r.rate) : '')
     setAccountId(r.accountId ?? '')
     setSupporterId(r.supporterId ?? '')
@@ -226,7 +262,8 @@ export default function AccountingForm({
     if (isTransfer && accountId === toAccountId) return setErr('출금계좌와 입금계좌가 같습니다')
     if (isAdjust && !accountId) return setErr('조정할 계좌를 선택하세요')
     if (isAdjust ? !principal || Number(principal) === 0 : !principal || Number(principal) <= 0) return setErr('금액을 입력하세요')
-    if (!usd && (!rate || Number(rate) <= 0)) return setErr('환율을 입력하세요')
+    if (legacy && !usd && (!rate || Number(rate) <= 0)) return setErr('환율을 입력하세요')
+    if (crossFx && !(Number(toPrincipal) > 0)) return setErr(`입금 금액(${toCur})을 입력하세요`)
     const payload = {
       gubun,
       date,
@@ -235,10 +272,11 @@ export default function AccountingForm({
       vendor: noItem ? null : vendor.trim() || null,
       currency,
       principal: Number(principal),
-      rate: usd ? 1 : Number(rate),
+      rate: crossFx && crossRate && fromCur !== 'USD' ? crossRate.rate : effRate, // 최종값은 DB 트리거가 결정
       amountUsd: Math.round(amountUsd * 100) / 100,
       accountId: accountId || null,
       toAccountId: isTransfer ? toAccountId || null : null,
+      toPrincipal: crossFx ? Number(toPrincipal) : null,
       supporterId: noItem ? null : supporterId || null,
       receiptPath,
     }
@@ -432,23 +470,48 @@ export default function AccountingForm({
             />
           </div>
 
-          {/* 환율 — 천단위 쉼표 표시(raw 저장) */}
-          <div className="@2xl:w-[88px] @2xl:shrink-0">
-            <label className={labelCls}>환율</label>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={usd ? '1' : withCommas(rate)}
-              onChange={(e) => setRate(cleanNumeric(e.target.value))}
-              disabled={usd}
-              className={`${inp} text-right disabled:opacity-40`}
-            />
-          </div>
+          {/* 환율 — 2026-09~ 자동(공시·마감, 표시만) · 통화가 다른 이체는 입금 금액 · 2026-08 이전 거래 수정만 입력 */}
+          {crossFx ? (
+            <div className="@2xl:w-[120px] @2xl:shrink-0">
+              <label className={labelCls}>입금 금액 ({toCur})</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={withCommas(toPrincipal)}
+                onChange={(e) => setToPrincipal(cleanNumeric(e.target.value))}
+                placeholder="실제 들어온 금액"
+                className={`${inp} text-right`}
+              />
+            </div>
+          ) : legacy ? (
+            <div className="@2xl:w-[88px] @2xl:shrink-0">
+              <label className={labelCls}>환율</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={usd ? '1' : withCommas(rate)}
+                onChange={(e) => setRate(cleanNumeric(e.target.value))}
+                disabled={usd}
+                className={`${inp} text-right disabled:opacity-40`}
+              />
+            </div>
+          ) : (
+            <div className="@2xl:w-[88px] @2xl:shrink-0">
+              <label className={labelCls}>환율 (자동)</label>
+              <div
+                className="flex h-9 items-center justify-end rounded-lg border border-dashed border-line bg-surface-subtle px-2 text-sm text-muted"
+                title={usd ? '달러 거래' : autoFx ? `공시 ${autoFx.date} — 월 마감 때 그달 마감 환율로 확정` : '공시 환율 없음 — 기본값으로 잠정 계산'}
+              >
+                {usd ? '1' : withCommas(String(effRate))}
+              </div>
+            </div>
+          )}
 
-          {/* 환산(USD, 자동) */}
+          {/* 환산(USD, 자동) — 잠정(월 마감 때 확정) · 통화가 다른 이체는 실제 교환 비율 */}
           <div className="@2xl:w-[112px] @2xl:shrink-0">
-            <label className={labelCls}>환산 $</label>
-            <div className="flex h-9 items-center justify-end rounded-lg border border-dashed border-line bg-surface-subtle px-2 text-sm text-muted">
+            <label className={labelCls}>{crossFx ? '교환 비율 · $' : legacy || usd ? '환산 $' : '환산 $ (잠정)'}</label>
+            <div className="flex h-9 items-center justify-end gap-1.5 rounded-lg border border-dashed border-line bg-surface-subtle px-2 text-sm text-muted">
+              {crossRate && <span className="text-[10px] text-faint">{crossRate.rate.toLocaleString('en-US', { maximumFractionDigits: 4 })}</span>}
               {amountUsd
                 ? `$${amountUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : '—'}

@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-REPAY-BUTTON-V4 — HNL 상환분 = 통화가 다른 이체(출금 USD + 입금 금액 HNL, patch116)
 // MFH-CARD-REPAY-BUTTON-V3 — 환차익/수수료 항목은 보이는 것 우선(숨겨도 동작)
 // MFH-CARD-REPAY-BUTTON-V2 — '잔액 0 맞춤'(환차 정리): 카드 잔액 ≠ 0 → 수입/환차익 또는 지출/수수료 1건으로 0 맞춤(상환 직후 잔차용)
 // MFH-CARD-REPAY-BUTTON-V1
@@ -88,7 +89,8 @@ export default function CardRepayButton({ balances, options }: { balances: Accou
       const h = rowHnl(i)
       const u = rowUsd(i)
       if (h > 0)
-        items.push({ gubun: '이체', date, itemId: '', name: '카드대금 상환', currency: 'HNL', principal: r2(h), rate: rt, amountUsd: r2(h / rt), accountId: from, toAccountId: c.id, source: 'manual' })
+        // 통화가 다른 이체(patch116): 원금 = 출금 USD, 입금 금액 = 카드에 들어간 HNL(실제 교환 비율 = 입력 환율)
+        items.push({ gubun: '이체', date, itemId: '', name: '카드대금 상환', currency: 'USD', principal: r2(h / rt), rate: 1, amountUsd: r2(h / rt), accountId: from, toAccountId: c.id, toPrincipal: r2(h), source: 'manual' })
       if (u > 0)
         items.push({ gubun: '이체', date, itemId: '', name: '카드대금 상환 (USD)', currency: 'USD', principal: r2(u), rate: 1, amountUsd: r2(u), accountId: from, toAccountId: c.id, source: 'manual' })
     })

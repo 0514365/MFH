@@ -1,3 +1,4 @@
+// MFH-FX-COLLECT-V2 — 저장 후 지난달 마감 환율 자동 고정(매월 3일 이후 · 미고정 통화만, lib/fx.ts closeMonth · patch115)
 // MFH-FX-COLLECT-V1
 // 공시 환율 수집 → fx_rates(patch114) upsert(하루·통화당 1행). 자산 평가(회계 잔액 화면)용.
 //   · KRW: .env.local 에 KOREAEXIM_API_KEY 가 있으면 한국수출입은행 Open API 매매기준율 자동 조회(lib/fx.ts). 없으면 건너뜀.
@@ -9,7 +10,7 @@
 //        npx tsx scripts/fx-collect.ts --krw 1395.5 --dry-run
 // ⚠ repo 루트에서 실행.
 import { loadEnv, createServiceClient, isDate } from './_shared'
-import { fetchKrwExim, type FxRate } from '../lib/fx'
+import { closeMonth, fetchKrwExim, FX_CLOSE_FROM, prevYm, type FxRate } from '../lib/fx'
 
 const HN_TZ = 'America/Tegucigalpa'
 
@@ -76,20 +77,30 @@ async function main() {
 
   for (const r of rows) console.log(`${r.currency} ${r.rate_date} 기준 ${r.rate}${r.sell ? ` (매도 ${r.sell})` : ''} · ${r.source}`)
   for (const n of notes) console.log(n)
-  if (dry || rows.length === 0) {
-    console.log(dry ? '(dry-run — 저장 안 함)' : '저장할 환율 없음')
+  if (dry) {
+    console.log('(dry-run — 저장 안 함)')
     return
   }
 
   const sb = createServiceClient(env)
-  const { error } = await sb
-    .from('fx_rates')
-    .upsert(rows.map((r) => ({ ...r, updated_at: new Date().toISOString() })), { onConflict: 'rate_date,currency' })
-  if (error) {
-    console.error('저장 실패:', error.message)
-    process.exit(1)
+  if (rows.length === 0) console.log('저장할 환율 없음')
+  else {
+    const { error } = await sb
+      .from('fx_rates')
+      .upsert(rows.map((r) => ({ ...r, updated_at: new Date().toISOString() })), { onConflict: 'rate_date,currency' })
+    if (error) {
+      console.error('저장 실패:', error.message)
+      process.exit(1)
+    }
+    console.log(`저장 ${rows.length}건`)
   }
-  console.log(`저장 ${rows.length}건`)
+
+  // 지난달 마감 환율 자동 고정 — 3일 이후(월말 공시가 늦게 잡히는 HNL 여유), 이미 고정된 통화는 건너뜀.
+  const lastYm = prevYm(todayHn.slice(0, 7))
+  if (Number(todayHn.slice(8, 10)) >= 3 && lastYm >= FX_CLOSE_FROM) {
+    const res = await closeMonth(sb, lastYm, { eximKey: env.KOREAEXIM_API_KEY })
+    for (const r of res) if (r.status !== 'exists') console.log(`마감: ${r.message}`)
+  }
 }
 
 main().catch((e) => {

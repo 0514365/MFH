@@ -4,6 +4,7 @@
 // MFH-CARD-INBOX-VIEW-V6 — 구매처 필터·검색·정렬 + 다중선택 일괄 입력(항목·구매처·적요·계좌 적용)·선택 승인·선택 무시
 // MFH-CARD-INBOX-VIEW-V5 — 문자 상점명 한 줄 고정(첫 열 215px)
 // MFH-CARD-INBOX-VIEW-V4 — 구매처 수정·학습 추천
+// MFH-CARD-INBOX-VIEW-V5 — 환율 입력 제거: 공시 환율 자동 표시(잠정, 월 마감 때 확정 — DB 트리거 patch116)
 // MFH-CARD-INBOX-VIEW-V1~3 — 승인대기 목록(항목·적요·계좌 편집, 승인/무시, KRW 환율, 항목 즉석 추가)
 // 승인대기 목록 — 행별 항목(추천 선채움)·구매처·적요·계좌 편집 + 승인/무시.
 // 환율은 상단 공통(HNL 기본 = 마지막 승인값 · KRW 행이 있으면 KRW 환율 입력 추가). USD 행은 환율 1. 날짜·금액·문자 상점명은 원문 그대로.
@@ -84,10 +85,14 @@ export default function InboxView({
   rows,
   options,
   defaultRate,
+  defaultRateKrw = 1400,
+  fxDate = null,
 }: {
   rows: InboxRow[]
   options: AcctOptions
   defaultRate: number
+  defaultRateKrw?: number
+  fxDate?: string | null
 }) {
   const router = useRouter()
   const items = useMemo(() => activeOnly(options.items['지출']), [options])
@@ -119,8 +124,9 @@ export default function InboxView({
   }
 
   // ── 환율
-  const [rate, setRate] = useState(String(defaultRate))
-  const [rateKrw, setRateKrw] = useState('1400')
+  // 공시 환율 자동(입력 없음) — 저장 시 DB 트리거가 그달 마감·최신 공시로 최종 결정. 여기 값은 합계 미리보기·대체값.
+  const rate = String(defaultRate)
+  const rateKrw = String(defaultRateKrw)
   const hasKrw = rows.some((r) => r.currency === 'KRW')
   const rateNum = Number(rate)
   const rateKrwNum = Number(rateKrw)
@@ -273,26 +279,13 @@ export default function InboxView({
             </div>
           </div>
           <div className="flex shrink-0 gap-2">
-            <label>
-              <span className="mb-1 block text-[11px] font-medium text-faint">환율 (L / $1)</span>
-              <input
-                value={rate}
-                onChange={(e) => setRate(e.target.value.replace(/[^\d.]/g, ''))}
-                inputMode="decimal"
-                className={`${ctl} w-24 text-right font-display`}
-              />
-            </label>
-            {hasKrw && (
-              <label>
-                <span className="mb-1 block text-[11px] font-medium text-faint">환율 (₩ / $1)</span>
-                <input
-                  value={rateKrw}
-                  onChange={(e) => setRateKrw(e.target.value.replace(/[^\d.]/g, ''))}
-                  inputMode="decimal"
-                  className={`${ctl} w-24 text-right font-display`}
-                />
-              </label>
-            )}
+            <div className="text-right" title="공시 환율 자동 — 합계는 잠정, 월 마감 때 그달 마감 환율로 확정">
+              <span className="mb-1 block text-[11px] font-medium text-faint">환율 (자동{fxDate ? ` · ${fxDate.slice(5).replace('-', '/')} 공시` : ''})</span>
+              <span className="font-display text-[13px] text-muted">
+                L {Number(rate).toFixed(4)}
+                {hasKrw && <> · ₩{Number(rateKrw).toLocaleString('en-US', { maximumFractionDigits: 2 })}</>}
+              </span>
+            </div>
           </div>
         </div>
 

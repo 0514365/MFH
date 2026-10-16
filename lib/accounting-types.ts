@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-TYPES-V4 — 통화가 다른 이체의 입금 금액(toPrincipal, patch116). 수입·지출 환율은 DB 트리거가 결정
 // MFH-ACCOUNTING-TYPES-V3 — 계좌 실보유(holdings)·공시 환율 평가액(valueUsd, patch114)
 // MFH-ACCOUNTING-TYPES-V2 — AcctOption.active(숨긴 항목 포함, 콤보에서만 제외)
 // MFH-ACCOUNTING-TYPES-V1
@@ -60,6 +61,7 @@ export type InoutInput = {
   supporterId?: string | null
   source?: InoutSource // 미지정 = manual
   receiptPath?: string | null // 영수증 Storage 경로(receipts 버킷, patch111). undefined = 건드리지 않음 · null = 제거
+  toPrincipal?: number | null // 통화가 다른 이체의 입금 계좌 통화 금액(patch116). 그 외 null
 }
 
 export type InoutRow = {
@@ -78,6 +80,7 @@ export type InoutRow = {
   supporterId: string | null
   createdTime: string | null // 입력 시각 — '최근 입력' 정렬용
   receiptPath: string | null // 영수증(receipts 버킷)
+  toPrincipal: number | null // 통화가 다른 이체의 입금 금액(patch116)
 }
 
 // 통합 수정(부분 변경) — 지정된 필드만 바꾼다. supporterId '' = 연결 해제. rate 는 USD 외 행만 환율·금액(USD) 재계산.

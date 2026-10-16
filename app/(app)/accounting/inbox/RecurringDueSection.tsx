@@ -1,4 +1,5 @@
 'use client'
+// MFH-RECURRING-DUE-SECTION-V4 — 환율 입력 제거(공시·마감 자동, DB 트리거 patch116) — 승인 행은 잠정 환산만 표시, 규칙 폼 환율 칸 제거
 // MFH-RECURRING-DUE-SECTION-V3 — 승인·건너뜀 후 앱 아이콘 뱃지 갱신
 // MFH-RECURRING-DUE-SECTION-V2 — 규칙 항목 콤보에서 숨긴 항목 제외(현재 값은 유지)
 // MFH-RECURRING-DUE-SECTION-V1
@@ -102,8 +103,8 @@ export default function RecurringDueSection({
                     <input type="number" inputMode="decimal" value={v.principal} onChange={(e) => set(d, 'principal', e.target.value)} className={`${inp} text-right`} />
                   </div>
                   <div>
-                    <label className={lbl}>환율 → {fmtUsd(amountUsd)}</label>
-                    <input type="number" inputMode="decimal" value={usd ? '1' : v.rate} disabled={usd} onChange={(e) => set(d, 'rate', e.target.value)} className={`${inp} text-right disabled:opacity-50`} />
+                    <label className={lbl}>{usd ? '환산' : '환산 (잠정 · 자동 환율)'}</label>
+                    <div className={`${inp} flex items-center justify-end border-dashed bg-surface-subtle text-muted`}>{fmtUsd(amountUsd)}</div>
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-1.5">
@@ -226,10 +227,6 @@ function RulesModal({ rules, options, describe, onClose }: { rules: RecurringRul
               <div>
                 <label className={lbl}>금액</label>
                 <input type="number" inputMode="decimal" value={f.principal || ''} onChange={(e) => up({ principal: Number(e.target.value) })} className={`${inp} text-right`} />
-              </div>
-              <div>
-                <label className={lbl}>환율(비우면 승인 시 최근 환율)</label>
-                <input type="number" inputMode="decimal" value={f.rate ?? ''} onChange={(e) => up({ rate: e.target.value ? Number(e.target.value) : null })} className={`${inp} text-right`} disabled={f.currency === 'USD'} />
               </div>
               <div>
                 <label className={lbl}>매월 일</label>

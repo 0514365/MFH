@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-DB-V11 — to_principal(통화가 다른 이체 입금 금액, patch116) 읽기·쓰기·실보유 반영. rate·amount_usd 는 DB 트리거가 최종 결정
 // MFH-ACCOUNTING-DB-V10 — 계좌 실보유(통화별)·공시 환율 평가액(valueUsd) · getFxInfo(patch114)
 // MFH-ACCOUNTING-DB-V9 — 영수증(receipt_path, patch111): 읽기·쓰기·교체/삭제 시 Storage 파일 정리
 // MFH-ACCOUNTING-DB-V8 — 항목 관리(updateItem·setItemActive·reorderItems), 옵션에 숨긴 항목 포함(active)
@@ -97,7 +98,7 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
       .eq('is_active', true)
       .order('sort_order')
       .order('name'),
-    sb.from('acct_inout').select('gubun, account_id, to_account_id, amount_usd, currency, principal'),
+    sb.from('acct_inout').select('gubun, account_id, to_account_id, amount_usd, currency, principal, to_principal'),
     latestRate('KRW'),
     latestRate('HNL'),
     latestFxRates(sb),
@@ -112,14 +113,21 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
   // 장부 USD + 통화별 실보유. 수입 +계좌 · 지출 −계좌 · 이체 −출금계좌 +입금계좌 · 조정 ±계좌
   const sum = new Map<string, number>()
   const hold = new Map<string, Map<string, number>>()
-  const add = (id: string | null, sign: number, t: { amount_usd: unknown; currency: string | null; principal: unknown }) => {
+  // toSide = 이체 입금 측 — 입금 금액(to_principal)이 있으면 입금 계좌 통화 금액으로 본다(통화가 다른 이체, patch116).
+  const add = (
+    id: string | null,
+    sign: number,
+    t: { amount_usd: unknown; currency: string | null; principal: unknown; to_principal?: unknown },
+    toSide = false,
+  ) => {
     if (!id) return
     const usd = num(t.amount_usd) ?? 0
     sum.set(id, (sum.get(id) ?? 0) + sign * usd)
     const acur = curOf.get(id) ?? 'USD'
-    const same = acur !== 'USD' && t.currency === acur
+    const toP = toSide ? num(t.to_principal) : null
+    const same = acur !== 'USD' && (toP != null || t.currency === acur)
     const bucket = same ? acur : 'USD'
-    const v = same ? (num(t.principal) ?? 0) : usd
+    const v = same ? (toP ?? num(t.principal) ?? 0) : usd
     const m = hold.get(id) ?? new Map<string, number>()
     m.set(bucket, (m.get(bucket) ?? 0) + sign * v)
     hold.set(id, m)
@@ -129,7 +137,7 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
     else if (t.gubun === '지출') add(t.account_id, -1, t)
     else if (t.gubun === '이체') {
       add(t.account_id, -1, t)
-      add(t.to_account_id, 1, t)
+      add(t.to_account_id, 1, t, true)
     } else if (t.gubun === '조정') add(t.account_id, 1, t) // 잔액 조정(부호 있음, patch108)
   }
   const fxRate = (cur: string): number | null => (cur === 'USD' ? 1 : (fx[cur as 'HNL' | 'KRW']?.rate ?? null))
@@ -183,7 +191,7 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
   let q = sb
     .from('acct_inout')
     .select(
-      'id, gubun, date, name, vendor, currency, principal, rate, amount_usd, item_id, account_id, to_account_id, supporter_id, created_at, receipt_path',
+      'id, gubun, date, name, vendor, currency, principal, rate, amount_usd, item_id, account_id, to_account_id, supporter_id, created_at, receipt_path, to_principal',
     )
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
@@ -207,6 +215,7 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
       supporterId: r.supporter_id,
       createdTime: r.created_at,
       receiptPath: r.receipt_path ?? null,
+      toPrincipal: num(r.to_principal),
     }),
   )
 }
@@ -230,6 +239,7 @@ function toRow(p: InoutInput) {
     amount_usd: p.amountUsd,
     account_id: p.accountId ?? null,
     to_account_id: transfer ? (p.toAccountId ?? null) : null,
+    to_principal: transfer && p.toPrincipal != null && p.toPrincipal > 0 ? p.toPrincipal : null,
     supporter_id: noItem ? null : (p.supporterId ?? null),
     ...(p.receiptPath !== undefined ? { receipt_path: p.receiptPath } : {}),
   }
