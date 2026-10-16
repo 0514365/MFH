@@ -63,7 +63,8 @@
 ## 3. 단계 b — 카드 문자 수집 + 승인대기
 
 > ✅ **2026-10-14 구현.** patch103 적용 → 상점 사전 시드 56건(`scripts/ficohsa-seed-rules.ts`) → 첫 수집 125건(2026-09-01~, 추천 104 · 새 상점 21) → `/accounting/inbox` + 기록 탭 배너 + `/api/accounting/inbox-notify`(웹푸시).
-> **수집 스케줄은 launchd 가 아니라 Claude 데스크탑 예약 작업 `ficohsa-collect-2200`(매일 22:00)** — launchd 가 띄운 프로세스는 `~/Library/CloudStorage`(Dropbox)·`chat.db` 접근이 TCC 로 거부됨(`Operation not permitted`, 실측). 기존 insight/news/qt 루틴과 같은 방식. Mac 이 꺼져 있으면 Claude 앱 다음 실행 시 수행.
+> **(2026-10-15 갱신) 수집 = launchd `com.mfh.ficohsa-collect`, 07:00~22:30 30분마다** — `/usr/local/bin/node` 에 전체 디스크 접근 권한을 주니 TCC 통과(Claude 세션 사용 0). 예약 작업 `ficohsa-collect-2200` 은 중지. 아래는 당시 기록:
+> ~~**수집 스케줄은 launchd 가 아니라 Claude 데스크탑 예약 작업 `ficohsa-collect-2200`(매일 22:00)**~~ — launchd 가 띄운 프로세스는 `~/Library/CloudStorage`(Dropbox)·`chat.db` 접근이 TCC 로 거부됨(`Operation not permitted`, 실측). 기존 insight/news/qt 루틴과 같은 방식. Mac 이 꺼져 있으면 Claude 앱 다음 실행 시 수행.
 > `sms_key` = `카드끝4-YYYYMMDDHHMMSS-원금` (같은 초에 같은 카드 2건 — 학비 분할 등 — 실측 2쌍 있어 금액 포함). KRW 결제(해외 원화 청구)도 수집, 계좌는 미지정·환율은 앱에서 입력.
 
 ### b-1. 스키마 `supabase/patch103-card-inbox.sql`
