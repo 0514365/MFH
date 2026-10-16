@@ -1,7 +1,7 @@
 # MFH 카드 문자 iPhone 단축어 실시간 수집 — 설정 절차
 
 > Ficohsa 카드 결제 문자가 iPhone 에 오면 단축어 자동화가 곧바로 앱 API 로 보내 **승인대기에 실시간으로** 들어가게 한다.
-> ⚠ 2026-10-15 판정: 단축어는 실제 카드 문자에서 동작하지 않아 **Mac 수집(launchd 30분)이 주 수집**이다. 아래 절차는 기록·재사용용.
+> ⚠ 2026-10-15 판정: 단축어는 실제 카드 문자에서 동작하지 않아 **Mac 수집(launchd 10분)이 주 수집**이다. 아래 절차는 기록·재사용용.
 > Mac 수집(`scripts/ficohsa-collect.ts`)은 **백업**으로 계속 돈다 — 같은 거래는 카드·금액·상점 + 수신 ±5분으로 한 번만 들어간다.
 > 코드: `app/api/accounting/sms-ingest/route.ts` · `lib/ficohsa-sms.ts` · DB `supabase/patch112-inbox-source.sql`.
 
@@ -10,7 +10,7 @@
 - **iPhone 단축어는 실제 카드 문자에서 실행되지 않음.** iOS 메시지 자동화의 "보낸 사람" 은 연락처의 번호·주소로만 일치하는데, Ficohsa 발신자는 영문 ID `FICOHSA`(번호 없음)라 연락처로 연결되지 않는다(전화번호 칸에 `FICOHSA` 붙여넣기도 연결 안 됨 — 확인).
   - 대조 테스트: 보낸 사람을 실제 연락처(진아)로 바꾸고 같은 형식 문자를 보내면 자동화·API·토큰 모두 정상 동작(`dry` 응답 수신).
   - **최종 판정(2026-10-15): 작동 안 함** — 실결제가 모두 `source = mac` 으로만 들어오고 `shortcut` 은 0건, 우진 실기 확인. 원인 = 영문 발신자 `FICOHSA` 를 보낸 사람 조건으로 쓸 수 없는 iOS 제약. iPhone 자동화 "MFH 카드 수집" 은 끔.
-- **대안 운용(방법 B)**: Mac 수집을 **launchd `com.mfh.ficohsa-collect`(07:00~22:30, 30분마다, node 전체 디스크 접근 권한)** 로 운용(2026-10-15, 예약 작업 `ficohsa-collect-2200` 은 중지). `.env.local` 의 `MFH_APP_URL` + `CRON_SECRET` 으로 새 건이 있으면 푸시(+아이콘 뱃지).
+- **대안 운용(방법 B)**: Mac 수집을 **launchd `com.mfh.ficohsa-collect`(07:00~22:50, 10분마다, node 전체 디스크 접근 권한)** 로 운용(2026-10-15, 예약 작업 `ficohsa-collect-2200` 은 중지). `.env.local` 의 `MFH_APP_URL` + `CRON_SECRET` 으로 새 건이 있으면 푸시(+아이콘 뱃지).
 - API(`/api/accounting/sms-ingest`)·토큰·이 문서는 보존 — iOS 가 영문 발신자 조건을 지원하면 재사용.
 
 ## 1. 토큰 만들기 · Vercel 등록 (1회)

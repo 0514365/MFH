@@ -10,7 +10,7 @@
 //        npx tsx scripts/ficohsa-collect.ts --days 14       (Mac 을 오래 못 켰을 때)
 //        npx tsx scripts/ficohsa-collect.ts --since 2026-09-01   (기준일 지정)
 //        npx tsx scripts/ficohsa-collect.ts --dry-run        (저장 없이 파싱·중복·자동 판정만)
-// 07:00~22:30 30분마다 launchd(~/Library/LaunchAgents/com.mfh.ficohsa-collect.plist, 2026-10-15~)가 호출한다. ⚠ repo 루트에서 실행.
+// 07:00~22:50 10분마다 launchd(~/Library/LaunchAgents/com.mfh.ficohsa-collect.plist, 2026-10-15~)가 호출한다. ⚠ repo 루트에서 실행.
 //   · /usr/local/bin/node 로 tsx cli 직접 실행 → node 에 '전체 디스크 접근 권한'(TCC)을 줘야 chat.db 를 읽는다. 로그 ~/Library/Logs/mfh-ficohsa-collect.log
 //   · 이전 Claude 예약 작업 ficohsa-collect-2200(매시)은 중지(세션 사용량 0 으로 전환).
 import { execFileSync } from 'child_process'
