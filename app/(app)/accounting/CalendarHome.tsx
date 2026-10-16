@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V2 — 표시 통화·환산·파스텔을 lib/acct-display 로 분리(통계 탭과 공유)
 // MFH-ACCOUNTING-CALENDAR-V1
 // 회계 홈(달력 탭) — 위플 가계부형. ‹ 월 › 이동 → 그달 수입/지출/수입−지출(지출 = 현금·카드 분리) → 월 달력(칸마다 그날 수입·지출 합)
 // → 선택일 내역(카테고리 파스텔 원형 아이콘 · 항목 · 금액 · 카드 표시). 행 탭 = /accounting/entry?edit=<id>.
@@ -9,43 +10,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { AccountBalance, AcctOptions, FxInfo, InoutRow } from '@/lib/accounting-types'
+import { PASTEL_NEUTRAL, fmtCompact, fmtShow, hnlRateOf, pastelOf, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
 
-type ShowCur = 'HNL' | 'USD'
-const CUR_KEY = 'mfh-acct-show-cur'
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
-
-// 카테고리 파스텔(위플 톤) — 아이콘 배경/글자.
-const PASTEL: Record<string, [string, string]> = {
-  후원: ['#E3EEFB', '#3B6FB6'],
-  헌금: ['#E8E4F8', '#6A55B8'],
-  기타수입: ['#E2F3EC', '#2F8A63'],
-  사역비: ['#FBE7E4', '#B65446'],
-  사역: ['#FDEBDD', '#B8692E'],
-  생활비: ['#FFF3D6', '#A27A12'],
-  생활: ['#FCE6EF', '#B24C77'],
-  차량: ['#E0F1F5', '#2C7F92'],
-  '운영/행정': ['#ECEBE8', '#6B6A66'],
-}
-const PASTEL_DEFAULT: [string, string] = ['#EEEDEA', '#80807F']
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 const isYmd = (s: string | null | undefined): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s)
-
-function fmtFull(n: number, cur: ShowCur): string {
-  const a = Math.abs(n)
-  const body =
-    cur === 'HNL'
-      ? `L ${Math.round(a).toLocaleString('en-US')}`
-      : `$${a.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  return n < 0 ? `−${body}` : body
-}
-// 달력 칸용 축약 — 소수점 없음, 1만 이상 k.
-function fmtCell(n: number): string {
-  const a = Math.abs(n)
-  const body = a >= 100000 ? `${Math.round(a / 1000)}k` : a >= 10000 ? `${(a / 1000).toFixed(1)}k` : Math.round(a).toLocaleString('en-US')
-  return n < 0 ? `−${body}` : body
-}
+const fmtFull = fmtShow
+const fmtCell = fmtCompact
 
 export default function CalendarHome({
   recent,
@@ -63,23 +36,14 @@ export default function CalendarHome({
   const router = useRouter()
   const [today, setToday] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
-  const [cur, setCur] = useState<ShowCur>('HNL')
-
-  // HNL 환율: 공시 → 없으면 HNL 계좌의 최근 거래 환율.
-  const hnlRate = useMemo(
-    () => fx.find((f) => f.currency === 'HNL')?.rate ?? balances.find((b) => b.currency === 'HNL' && b.rate)?.rate ?? null,
-    [fx, balances],
-  )
+  const [cur, toggleCur] = useShowCur()
+  const hnlRate = useMemo(() => hnlRateOf(fx, balances), [fx, balances])
   const showCur: ShowCur = hnlRate ? cur : 'USD'
 
   useEffect(() => {
     const t = ymd(new Date())
     setToday(t)
     setSelected(isYmd(initialDate) ? initialDate : t)
-    try {
-      const v = localStorage.getItem(CUR_KEY)
-      if (v === 'HNL' || v === 'USD') setCur(v)
-    } catch {}
   }, [initialDate])
 
   // 선택일 → URL ?d= (히스토리 쌓지 않음)
@@ -90,18 +54,7 @@ export default function CalendarHome({
     window.history.replaceState(window.history.state, '', url.toString())
   }, [selected])
 
-  function toggleCur(c: ShowCur) {
-    setCur(c)
-    try {
-      localStorage.setItem(CUR_KEY, c)
-    } catch {}
-  }
-
-  const amt = (r: InoutRow): number => {
-    if (showCur === 'USD' || !hnlRate) return r.amountUsd ?? 0
-    if (r.currency === 'HNL' && r.principal != null) return r.principal
-    return (r.amountUsd ?? 0) * hnlRate
-  }
+  const amt = (r: InoutRow): number => toShow(r, showCur, hnlRate)
 
   const itemOf = useMemo(() => {
     const m = new Map<string, { name: string; category: string | null }>()
@@ -278,7 +231,7 @@ export default function CalendarHome({
             {dayRows.map((r) => {
               const it = r.itemId ? itemOf.get(r.itemId) : undefined
               const counted = r.gubun === '수입' || r.gubun === '지출'
-              const [bg, fg] = counted ? (PASTEL[it?.category ?? ''] ?? PASTEL_DEFAULT) : PASTEL_DEFAULT
+              const { bg, fg } = counted ? pastelOf(it?.category) : PASTEL_NEUTRAL
               const label = it?.name ?? r.gubun ?? '—'
               const sub = [r.name, r.vendor].filter(Boolean).join(' · ')
               const isCard = r.gubun === '지출' && !!r.accountId && cardIds.has(r.accountId)
