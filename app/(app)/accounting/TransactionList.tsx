@@ -2,6 +2,7 @@
 // MFH-ACCOUNTING-TXLIST-V16 — 영수증 📎(행 내용 옆) → ReceiptViewer(보기·교체·삭제)
 // MFH-ACCOUNTING-TXLIST-V15 — 일괄 수정 항목 콤보에서 숨긴 항목 제외(필터 콤보는 포함)
 // MFH-ACCOUNTING-TXLIST-V14 — 조정 행도 클릭 수정 허용(폼 조정 지원)
+// MFH-ACCOUNTING-TXLIST-V14 — initialFilter.account(자산 탭 계좌 → 그 계좌 내역)
 // MFH-ACCOUNTING-TXLIST-V13 — initialFilter(분석 탭 → 내역 딥링크: 구분·대분류·항목·기간·검색 선적용)
 // MFH-ACCOUNTING-TXLIST-V12 — 구매처 열 9rem 고정·말줄임(title 로 전체)
 // MFH-ACCOUNTING-TXLIST-V11 — 항목 열 폭 자동(보이는 행의 가장 긴 항목이 2줄에 생략 없이 들어가는 폭), 통화 열 펼치면 항목 열 축소
@@ -62,7 +63,7 @@ function monthLabel(key: string): string {
 
 type SortKey = 'date' | 'amount'
 type GubunFilter = '전체' | '수입' | '지출' | '이체' | '조정'
-export type LedgerFilter = { gubun?: string; cat?: string; item?: string; from?: string; to?: string; q?: string }
+export type LedgerFilter = { gubun?: string; cat?: string; item?: string; from?: string; to?: string; q?: string; account?: string }
 const isGubun = (g?: string): g is GubunFilter => g === '수입' || g === '지출' || g === '이체' || g === '조정'
 
 const ctl =
@@ -85,7 +86,7 @@ export default function TransactionList({
 }) {
   const [fGubun, setFGubun] = useState<GubunFilter>(isGubun(initialFilter?.gubun) ? initialFilter.gubun : '전체')
   const [fItemId, setFItemId] = useState(initialFilter?.item ?? '')
-  const [fAccountId, setFAccountId] = useState('')
+  const [fAccountId, setFAccountId] = useState(initialFilter?.account ?? '')
   const [fCat, setFCat] = useState(initialFilter?.cat ?? '')
   const [fCur, setFCur] = useState('')
   const [fFrom, setFFrom] = useState(initialFilter?.from ?? '')

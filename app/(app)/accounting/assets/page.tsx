@@ -1,11 +1,26 @@
+// MFH-ACCOUNTING-ASSETS-PAGE-V2 — 위플형 자산 탭(c단계): AssetsView(순자산·구성 띠·그룹 카드·신용카드 상환·환율). 마감 환율(fx_closings) 전달
 // MFH-ACCOUNTING-ASSETS-PAGE-V1
-// 회계 자산 탭 — 계좌 잔액(통화·카드 그룹 · 공시 환율 평가 · 자산/부채/순자산 · + 계좌). 기존 요약 탭의 잔액 카드를 그대로 이동(리디자인은 c단계).
-import { getAccountBalances, getFxInfo } from '@/lib/accounting-db'
-import AccountingSummary from '../AccountingSummary'
+import { getAccountBalances, getAcctOptions, getFxInfo } from '@/lib/accounting-db'
+import { createClient } from '@/lib/supabase-server'
+import { getClosings } from '@/lib/fx'
+import AssetsView from './AssetsView'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AccountingAssetsPage() {
-  const [balances, fx] = await Promise.all([getAccountBalances().then((b) => b ?? []), getFxInfo()])
-  return <AccountingSummary balances={balances} fx={fx} />
+  const sb = await createClient()
+  const [balances, fx, closings, options] = await Promise.all([
+    getAccountBalances().then((b) => b ?? []),
+    getFxInfo(),
+    getClosings(sb),
+    getAcctOptions(),
+  ])
+  return (
+    <AssetsView
+      balances={balances}
+      fx={fx}
+      closings={closings.map((c) => ({ ym: c.ym, currency: c.currency, rate: c.rate }))}
+      options={options}
+    />
+  )
 }

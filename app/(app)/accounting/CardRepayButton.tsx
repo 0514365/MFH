@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-REPAY-BUTTON-V5 — actionsOnly(자산 탭 신용카드 카드 안: 요약 없이 「상환 입력」·「잔액 0 맞춤」 버튼만)
 // MFH-CARD-REPAY-BUTTON-V4 — HNL 상환분 = 통화가 다른 이체(출금 USD + 입금 금액 HNL, patch116)
 // MFH-CARD-REPAY-BUTTON-V3 — 환차익/수수료 항목은 보이는 것 우선(숨겨도 동작)
 // MFH-CARD-REPAY-BUTTON-V2 — '잔액 0 맞춤'(환차 정리): 카드 잔액 ≠ 0 → 수입/환차익 또는 지출/수수료 1건으로 0 맞춤(상환 직후 잔차용)
@@ -32,7 +33,15 @@ function split(total: number, cards: AccountBalance[]): number[] {
 }
 const cardLabel = (c: AccountBalance) => `${c.name.replace(' 신용카드 ', ' ')}${c.info ? ` (${c.info})` : ''}`
 
-export default function CardRepayButton({ balances, options }: { balances: AccountBalance[]; options?: AcctOptions }) {
+export default function CardRepayButton({
+  balances,
+  options,
+  actionsOnly = false,
+}: {
+  balances: AccountBalance[]
+  options?: AcctOptions
+  actionsOnly?: boolean
+}) {
   const router = useRouter()
   const cards = useMemo(() => balances.filter((b) => b.kind === '신용카드'), [balances])
   const sources = useMemo(() => balances.filter((b) => b.kind !== '신용카드' && b.currency === 'USD'), [balances])
@@ -146,8 +155,31 @@ export default function CardRepayButton({ balances, options }: { balances: Accou
 
   if (!cards.length) return null
 
+  const actions = (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="h-9 rounded-lg bg-primary px-3 text-xs font-bold text-white transition hover:opacity-90"
+      >
+        상환 입력
+      </button>
+      <button
+        type="button"
+        onClick={openZero}
+        title="상환 후 남은 환차 잔액을 환차익/수수료 1건으로 0 맞춤"
+        className="h-9 rounded-lg border border-line px-3 text-xs font-medium text-muted transition hover:border-primary hover:text-primary"
+      >
+        잔액 0 맞춤
+      </button>
+    </>
+  )
+
   return (
     <>
+      {actionsOnly ? (
+        <div className="flex justify-end gap-2">{actions}</div>
+      ) : (
       <div className="mb-4 flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <div className="min-w-0">
           <div className="text-[13px] font-bold text-ink">카드 미상환</div>
@@ -161,23 +193,10 @@ export default function CardRepayButton({ balances, options }: { balances: Accou
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <span className={`font-display text-[14px] font-bold ${amtColor(debt)}`}>{fmtUsd(debt)}</span>
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="h-9 rounded-lg bg-primary px-3 text-xs font-bold text-white transition hover:opacity-90"
-          >
-            상환 입력
-          </button>
-          <button
-            type="button"
-            onClick={openZero}
-            title="상환 후 남은 환차 잔액을 환차익/수수료 1건으로 0 맞춤"
-            className="h-9 rounded-lg border border-line px-3 text-xs font-medium text-muted transition hover:border-primary hover:text-primary"
-          >
-            잔액 0 맞춤
-          </button>
+          {actions}
         </div>
       </div>
+      )}
 
       {zeroOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4 @md:items-center" onClick={() => setZeroOpen(false)}>
