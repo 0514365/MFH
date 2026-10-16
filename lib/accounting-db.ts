@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-DB-V12 — 잔액 = 오늘(온두라스)까지 거래만. 미래 날짜 거래(예약·반복 입력)는 upcoming(예정)으로 분리
 // MFH-ACCOUNTING-DB-V11 — to_principal(통화가 다른 이체 입금 금액, patch116) 읽기·쓰기·실보유 반영. rate·amount_usd 는 DB 트리거가 최종 결정
 // MFH-ACCOUNTING-DB-V10 — 계좌 실보유(통화별)·공시 환율 평가액(valueUsd) · getFxInfo(patch114)
 // MFH-ACCOUNTING-DB-V9 — 영수증(receipt_path, patch111): 읽기·쓰기·교체/삭제 시 Storage 파일 정리
@@ -98,7 +99,7 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
       .eq('is_active', true)
       .order('sort_order')
       .order('name'),
-    sb.from('acct_inout').select('gubun, account_id, to_account_id, amount_usd, currency, principal, to_principal'),
+    sb.from('acct_inout').select('gubun, date, account_id, to_account_id, amount_usd, currency, principal, to_principal'),
     latestRate('KRW'),
     latestRate('HNL'),
     latestFxRates(sb),
@@ -113,6 +114,9 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
   // 장부 USD + 통화별 실보유. 수입 +계좌 · 지출 −계좌 · 이체 −출금계좌 +입금계좌 · 조정 ±계좌
   const sum = new Map<string, number>()
   const hold = new Map<string, Map<string, number>>()
+  // 미래 날짜 거래(오늘 이후, 온두라스 기준) — 잔액에서 빼고 계좌 통화 기준 예정액·건수·가장 이른 날짜만 모은다.
+  const todayHn = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
+  const upcoming = new Map<string, { amount: number; count: number; first: string }>()
   // toSide = 이체 입금 측 — 입금 금액(to_principal)이 있으면 입금 계좌 통화 금액으로 본다(통화가 다른 이체, patch116).
   const add = (
     id: string | null,
@@ -132,7 +136,27 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
     m.set(bucket, (m.get(bucket) ?? 0) + sign * v)
     hold.set(id, m)
   }
+  const addUpcoming = (id: string | null, sign: number, t: { date: string | null; amount_usd: unknown; currency: string | null; principal: unknown; to_principal?: unknown }, toSide = false) => {
+    if (!id) return
+    const acur = curOf.get(id) ?? 'USD'
+    const toP = toSide ? num(t.to_principal) : null
+    const v = acur !== 'USD' && (toP != null || t.currency === acur) ? (toP ?? num(t.principal) ?? 0) : (num(t.amount_usd) ?? 0)
+    const u = upcoming.get(id) ?? { amount: 0, count: 0, first: t.date ?? '' }
+    u.amount += sign * v
+    u.count += 1
+    if (t.date && (!u.first || t.date < u.first)) u.first = t.date
+    upcoming.set(id, u)
+  }
   for (const t of tx.data ?? []) {
+    if (t.date && t.date > todayHn) {
+      if (t.gubun === '수입' || t.gubun === '조정') addUpcoming(t.account_id, 1, t)
+      else if (t.gubun === '지출') addUpcoming(t.account_id, -1, t)
+      else if (t.gubun === '이체') {
+        addUpcoming(t.account_id, -1, t)
+        addUpcoming(t.to_account_id, 1, t, true)
+      }
+      continue
+    }
     if (t.gubun === '수입') add(t.account_id, 1, t)
     else if (t.gubun === '지출') add(t.account_id, -1, t)
     else if (t.gubun === '이체') {
@@ -173,6 +197,7 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
       balanceUsd,
       balanceLocal,
       holdings,
+      upcoming: upcoming.get(a.id) ?? null,
       valueUsd: valueUsd == null ? null : r2(valueUsd),
     }
   })

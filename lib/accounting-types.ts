@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-TYPES-V5 — AccountBalance.upcoming(미래 날짜 거래 예정액, 잔액 미포함)
 // MFH-ACCOUNTING-TYPES-V4 — 통화가 다른 이체의 입금 금액(toPrincipal, patch116). 수입·지출 환율은 DB 트리거가 결정
 // MFH-ACCOUNTING-TYPES-V3 — 계좌 실보유(holdings)·공시 환율 평가액(valueUsd, patch114)
 // MFH-ACCOUNTING-TYPES-V2 — AcctOption.active(숨긴 항목 포함, 콤보에서만 제외)
@@ -35,6 +36,8 @@ export type AccountBalance = {
   holdings: { currency: string; amount: number }[]
   // 공시 환율 평가액(USD) = Σ 보유 ÷ 공시 환율. 필요한 공시 환율이 없으면 null(→ 장부가로 표시).
   valueUsd: number | null
+  // 오늘 이후 날짜 거래(예약·반복 입력) — 잔액에 넣지 않은 예정액(계좌 통화 기준, USD 계좌는 USD)·건수·가장 이른 날짜.
+  upcoming: { amount: number; count: number; first: string } | null
 }
 
 // 통화별 최신 공시 환율(fx_rates) — 평가 표시용.

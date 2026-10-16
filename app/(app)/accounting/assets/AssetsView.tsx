@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-ASSETS-VIEW-V2 — 계좌 행에 「예정」(오늘 이후 날짜 거래, 잔액 미포함) 표시
 // MFH-ACCOUNTING-ASSETS-VIEW-V1
 // 위플형 자산 탭(c단계) — 순자산 큰 숫자(자산·부채) · L/$ 토글(통계·달력과 공유) · 자산 구성 띠(달러·원화·렘피라)
 //   → 그룹 카드(계좌 행: 색 원 + 흰 아이콘 · 평가액 · 원통화 실보유 · 장부 차이, 탭 = 그 계좌 내역)
@@ -98,6 +99,11 @@ export default function AssetsView({
       b.currency && b.currency !== 'USD' && b.balanceLocal != null && !(showCur === 'HNL' && b.currency === 'HNL')
         ? fmtLocal(b.balanceLocal, b.currency)
         : null
+    const up = b.upcoming && Math.abs(b.upcoming.amount) > 0.005 ? b.upcoming : null
+    const upLine = up
+      ? `예정 ${up.amount > 0 ? '+' : ''}${b.currency && b.currency !== 'USD' ? fmtLocal(up.amount, b.currency) : `${up.amount < 0 ? '−' : ''}$${Math.abs(up.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} (${MD(up.first)}${up.count > 1 ? ` 외 ${up.count - 1}건` : ''})`
+      : null
+    const subs = [localLine, Math.abs(usdDiff) >= 0.01 ? `장부 $${b.balanceUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null, upLine].filter(Boolean)
     return (
       <li key={b.id}>
         <button type="button" onClick={() => goAccount(b.id)} className="flex w-full items-center gap-3 py-2.5 text-left">
@@ -109,13 +115,7 @@ export default function AssetsView({
               {shortName(b)}
               {b.kind === '신용카드' && b.info && <span className="ml-1.5 text-[11px] text-faint">{b.info}</span>}
             </span>
-            {(localLine || Math.abs(usdDiff) >= 0.01) && (
-              <span className="block truncate text-[11px] text-faint">
-                {localLine}
-                {localLine && Math.abs(usdDiff) >= 0.01 ? ' · ' : ''}
-                {Math.abs(usdDiff) >= 0.01 && `장부 $${b.balanceUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              </span>
-            )}
+            {subs.length > 0 && <span className="block truncate text-[11px] text-faint">{subs.join(' · ')}</span>}
           </span>
           <span className={`shrink-0 font-display text-[15px] font-bold ${v < 0 ? 'text-red-700' : 'text-ink'}`}>
             {fmt(v)} <span className="text-[12px] font-normal text-faint">›</span>
