@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-LAYOUT-V5 — 왼쪽 뒤로 = 회계 안에서 뒤로(AccountingBack). 메인홈은 오른쪽 홈 버튼
 // MFH-ACCOUNTING-LAYOUT-V4 — 승인대기 건수 → 기록 탭 배지(AccountingNav·Segments)
 // MFH-ACCOUNTING-LAYOUT-V3 — md 이상 상단 세그먼트 네비(셸 e 단계). 본문 폭은 컨테이너 쿼리(@2xl).
 // MFH-ACCOUNTING-LAYOUT-V2
@@ -7,7 +8,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { canManageFinance } from '@/lib/members'
-import BackButton from '@/components/BackButton'
+import AccountingBack from './AccountingBack'
 import AccountingNav, { AccountingSegments } from './AccountingNav'
 import AccountingTitle from './AccountingTitle'
 import { getInboxPendingCount } from '@/lib/card-inbox-db'
@@ -38,7 +39,7 @@ export default async function AccountingLayout({ children }: { children: React.R
         <div className="relative flex items-center">
           {/* 좌: 뒤로 */}
           <div className="shrink-0">
-            <BackButton href="/" label="뒤로" variant="icon-accent" />
+            <AccountingBack />
           </div>
 
           {/* 중앙: 섹션 타이틀(경로별, 절대 중앙) */}

@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V4 — 요약: 지출 현금·카드 구분 제거 → 「카드대금 상환할 금액」(카드별 미상환, 탭 = 자산 탭)
 // MFH-ACCOUNTING-CALENDAR-V3 — 내역 아이콘 = 위플형 CatIcon(항목 고정색 원 + 흰 선 아이콘)
 // MFH-ACCOUNTING-CALENDAR-V2 — 표시 통화·환산·파스텔을 lib/acct-display 로 분리(통계 탭과 공유)
 // MFH-ACCOUNTING-CALENDAR-V1
@@ -70,11 +71,9 @@ export default function CalendarHome({
   const [year, month] = ym ? ym.split('-').map(Number) : [0, 0]
 
   // 그달 집계 + 일별 합
-  const { income, expense, cash, card, byDay } = useMemo(() => {
+  const { income, expense, byDay } = useMemo(() => {
     let income = 0
     let expense = 0
-    let cash = 0
-    let card = 0
     const byDay = new Map<string, { inc: number; exp: number }>()
     for (const r of recent) {
       const d = r.date ?? ''
@@ -88,15 +87,34 @@ export default function CalendarHome({
       } else {
         expense += a
         day.exp += a
-        if (r.accountId && cardIds.has(r.accountId)) card += a
-        else cash += a
       }
       byDay.set(d, day)
     }
-    return { income, expense, cash, card, byDay }
+    return { income, expense, byDay }
     // amt 는 showCur·hnlRate 에 의존
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recent, ym, showCur, hnlRate, cardIds])
+  }, [recent, ym, showCur, hnlRate])
+
+  // 카드대금 상환할 금액(현재 미상환) — 카드별 HNL 원금 + USD 결제분. L 표시 = 렘피라 원금(+ $), $ 표시 = 평가액.
+  const cardDue = useMemo(() => {
+    const rows = balances
+      .filter((b) => b.kind === '신용카드')
+      .map((b) => {
+        const hnl = -(b.holdings.find((h) => h.currency === 'HNL')?.amount ?? 0)
+        const usdPart = -(b.holdings.find((h) => h.currency === 'USD')?.amount ?? 0)
+        const usd = -(b.valueUsd ?? b.balanceUsd)
+        return { id: b.id, label: `${b.cardLast4 ?? b.name.slice(-4)}${b.info ? ` ${b.info}` : ''}`, hnl, usdPart, usd }
+      })
+      .filter((c) => c.usd > 0.005)
+    const totalUsd = rows.reduce((s, c) => s + c.usd, 0)
+    const totalHnl = rows.reduce((s, c) => s + c.hnl, 0)
+    const totalUsdPart = rows.reduce((s, c) => s + c.usdPart, 0)
+    return { rows, totalUsd, totalHnl, totalUsdPart }
+  }, [balances])
+  const fmtDue = (hnl: number, usdPart: number, usd: number) =>
+    showCur === 'HNL' && hnlRate
+      ? `${fmtFull(hnl, 'HNL')}${usdPart > 0.005 ? ` + $${usdPart.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}`
+      : fmtFull(usd, 'USD')
 
   const dayRows = useMemo(() => recent.filter((r) => r.date === selected), [recent, selected])
 
@@ -166,15 +184,24 @@ export default function CalendarHome({
         <div>
           <div className="text-[11px] text-faint">지출</div>
           <div className="font-display text-[15px] font-bold text-red-700">{fmtFull(expense, showCur)}</div>
-          <div className="mt-1 space-y-0.5 text-[10px] text-faint">
-            <div>현금 {fmtFull(cash, showCur)}</div>
-            <div>카드 {fmtFull(card, showCur)}</div>
-          </div>
         </div>
         <div>
           <div className="text-[11px] text-faint">수입−지출</div>
           <div className={`font-display text-[15px] font-bold ${net >= 0 ? 'text-ink' : 'text-red-700'}`}>{fmtFull(net, showCur)}</div>
         </div>
+        {cardDue.rows.length > 0 && (
+          <Link href="/accounting/assets" className="col-span-3 mt-1 flex items-start justify-between gap-3 border-t border-line pt-3">
+            <span className="min-w-0">
+              <span className="block text-[11px] text-faint">카드대금 상환할 금액</span>
+              <span className="mt-0.5 block text-[11px] text-muted">
+                {cardDue.rows.map((c) => `${c.label} ${fmtDue(c.hnl, c.usdPart, c.usd)}`).join(' · ')}
+              </span>
+            </span>
+            <span className="shrink-0 font-display text-[15px] font-bold text-red-700">
+              {fmtDue(cardDue.totalHnl, cardDue.totalUsdPart, cardDue.totalUsd)} <span className="text-[12px] font-normal text-faint">›</span>
+            </span>
+          </Link>
+        )}
       </section>
 
       {/* 월 달력 */}
