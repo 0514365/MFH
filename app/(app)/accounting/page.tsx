@@ -1,15 +1,17 @@
-// MFH-ACCOUNTING-PAGE-V6 — 공시 환율(getFxInfo) 전달
-// MFH-ACCOUNTING-PAGE-V5
-// 회계 요약 대시보드(요약 탭) — 이번달 수입/지출/순액·계좌잔액(AccountingSummary) + 빠른 이동 + Today(거래일 오늘).
-// 셸(가드·헤더·4탭 네비)은 layout.tsx 담당. 입력은 /accounting/entry, 전체 내역은 /accounting/ledger.
-import Link from 'next/link'
+// MFH-ACCOUNTING-PAGE-V7 — 회계 홈 = 달력(CalendarHome, 위플형). 잔액은 자산 탭(/accounting/assets)으로 이동.
+// 셸(가드·헤더·4탭 + ＋ 네비)은 layout.tsx 담당. ?d=YYYY-MM-DD = 선택일(＋ 버튼·수정 후 복귀용).
 import { getAcctOptions, getRecentInout, getAccountBalances, getFxInfo } from '@/lib/accounting-db'
-import AccountingSummary from './AccountingSummary'
-import TodayList from './TodayList'
+import CalendarHome from './CalendarHome'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AccountingPage() {
+export default async function AccountingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const sp = (await searchParams) ?? {}
+  const d = typeof sp.d === 'string' ? sp.d : undefined
   const [options, recent, balances, fx] = await Promise.all([
     getAcctOptions(),
     getRecentInout().then((r) => r ?? []),
@@ -25,36 +27,5 @@ export default async function AccountingPage() {
     )
   }
 
-  return (
-    <>
-      <AccountingSummary recent={recent} balances={balances} fx={fx} />
-
-      {/* 빠른 이동 — 새 기록(주요 CTA·accent) + 거래내역·분석 */}
-      <div className="mb-5 space-y-3">
-        <Link
-          href="/accounting/entry"
-          className="flex h-11 items-center justify-center rounded-xl bg-accent text-sm font-bold text-white transition active:scale-[0.98]"
-        >
-          + 새 기록
-        </Link>
-        <div className="grid grid-cols-2 gap-3">
-          <Link
-            href="/accounting/ledger"
-            className="flex h-11 items-center justify-center rounded-xl border border-line bg-surface text-sm font-medium text-ink transition hover:border-primary active:scale-[0.98]"
-          >
-            거래내역
-          </Link>
-          <Link
-            href="/accounting/report"
-            className="flex h-11 items-center justify-center rounded-xl border border-line bg-surface text-sm font-medium text-ink transition hover:border-primary active:scale-[0.98]"
-          >
-            분석
-          </Link>
-        </div>
-      </div>
-
-      {/* 오늘(거래일) 거래 — 클라이언트 로컬 기준 */}
-      <TodayList recent={recent} items={options.items} />
-    </>
-  )
+  return <CalendarHome recent={recent} options={options} balances={balances} fx={fx} initialDate={d} />
 }

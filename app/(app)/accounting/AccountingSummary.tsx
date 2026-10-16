@@ -1,69 +1,18 @@
 'use client'
+// MFH-ACCOUNTING-SUMMARY-V5 — 자산 탭 전용(잔액 카드만). 이번달 수입/지출은 달력 홈(CalendarHome)으로 이동.
 // MFH-ACCOUNTING-SUMMARY-V4 — 자산/부채/순자산 공시 환율 평가액 기준 · BalanceGroups 에 fx 전달
-// MFH-ACCOUNTING-SUMMARY-V3 — 잔액 그룹(BalanceGroups) · 자산/부채/순자산 헤더 · 양수 청색/음수 적색
-// 메인 요약 — 이번달 수입/지출/순액(브라우저 로컬월 기준) + 계좌별 잔액(통화·카드 그룹)·자산/부채/순자산.
-// 데이터는 page.tsx 가 장부에서 read 후 전달. Balances 카드 '+ 계좌' → AccountAddForm(노션 자산 DB 에 계좌 추가).
-import { useMemo, useState } from 'react'
-import type { AccountBalance, FxInfo, InoutRow } from '@/lib/accounting-types'
+// 계좌별 잔액(통화·카드 그룹)·자산/부채/순자산. '+ 계좌' → AccountAddForm.
+import { useState } from 'react'
+import type { AccountBalance, FxInfo } from '@/lib/accounting-types'
 import AccountAddForm from './AccountAddForm'
 import BalanceGroups, { amtColor, fmtUsd, summarize } from './BalanceGroups'
 
-
-export default function AccountingSummary({
-  recent,
-  balances,
-  fx,
-}: {
-  recent: InoutRow[]
-  balances: AccountBalance[]
-  fx?: FxInfo[]
-}) {
-  const now = new Date()
-  const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const monthLabel = `${now.getFullYear()}년 ${now.getMonth() + 1}월`
-
-  const { income, expense } = useMemo(() => {
-    let income = 0
-    let expense = 0
-    for (const r of recent) {
-      if ((r.date ?? '').slice(0, 7) !== ym) continue
-      if (r.gubun === '수입') income += r.amountUsd ?? 0
-      else if (r.gubun === '지출') expense += r.amountUsd ?? 0
-    }
-    return { income, expense }
-  }, [recent, ym])
-  const net = income - expense
+export default function AccountingSummary({ balances, fx }: { balances: AccountBalance[]; fx?: FxInfo[] }) {
   const { assets, debt, net: netWorth } = summarize(balances)
   const [adding, setAdding] = useState(false)
 
   return (
-    <section className="mb-5 grid gap-3 @2xl:grid-cols-2">
-      {/* 이번달 */}
-      <div className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-            This month
-          </span>
-          <span className="text-[11px] text-faint">{monthLabel}</span>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <div>
-            <div className="text-[11px] text-faint">수입</div>
-            <div className="font-display text-[15px] font-bold text-emerald-700">{fmtUsd(income)}</div>
-          </div>
-          <div>
-            <div className="text-[11px] text-faint">지출</div>
-            <div className="font-display text-[15px] font-bold text-red-700">{fmtUsd(expense)}</div>
-          </div>
-          <div>
-            <div className="text-[11px] text-faint">순액</div>
-            <div className={`font-display text-[15px] font-bold ${net >= 0 ? 'text-ink' : 'text-red-700'}`}>
-              {fmtUsd(net)}
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <section className="mb-5">
       {/* 계좌 잔액 */}
       <div className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <div className="mb-3 flex items-center justify-between">

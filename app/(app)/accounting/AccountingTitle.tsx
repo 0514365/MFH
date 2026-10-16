@@ -1,5 +1,5 @@
 'use client'
-// MFH-ACCOUNTING-TITLE-V1
+// MFH-ACCOUNTING-TITLE-V2 — 위플형 탭: 달력(홈)·통계·자산·내역
 // 회계 헤더 타이틀 — 현재 경로에 따라 섹션명 표시(중앙 정렬). layout 헤더에서 절대 중앙 배치.
 import { usePathname } from 'next/navigation'
 
@@ -8,7 +8,8 @@ const TITLES: Record<string, string> = {
   '/accounting/entry': '기록',
   '/accounting/inbox': '승인대기',
   '/accounting/ledger': '거래내역',
-  '/accounting/report': '분석',
+  '/accounting/report': '통계',
+  '/accounting/assets': '자산',
 }
 
 export default function AccountingTitle() {

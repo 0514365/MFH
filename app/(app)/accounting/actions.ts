@@ -37,6 +37,7 @@ function revalidateAccounting() {
   revalidatePath('/accounting/entry')
   revalidatePath('/accounting/ledger')
   revalidatePath('/accounting/report')
+  revalidatePath('/accounting/assets')
 }
 
 export async function saveInout(input: InoutInput): Promise<{ ok: boolean; error?: string }> {

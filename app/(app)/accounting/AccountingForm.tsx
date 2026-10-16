@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V8 — 달력 홈 ＋ 진입 ?date= 거래일 프리필
 // MFH-ACCOUNTING-FORM-V7 — 영수증 첨부(ReceiptField, patch111): 저장 전 업로드분은 교체·취소 시 즉시 정리
 // MFH-ACCOUNTING-FORM-V6 — 항목 콤보에서 숨긴 항목 제외(수정 중 현재 값은 유지) + 항목 관리(⚙)
 // MFH-ACCOUNTING-FORM-V5 — 구매처(vendor) 입력(patch105)
@@ -208,6 +209,15 @@ export default function AccountingForm({
     // startEdit 은 매 렌더 새 함수 — ref 가드로 1회만 실행하므로 deps 제외.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, recent])
+
+  // 달력 홈 ＋ → ?date=YYYY-MM-DD 로 진입하면 거래일 프리필(1회, 수정 진입이 아닐 때만).
+  const handledDate = useRef<string | null>(null)
+  useEffect(() => {
+    const d = searchParams.get('date')
+    if (!d || searchParams.get('edit') || handledDate.current === d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return
+    handledDate.current = d
+    setDate(d)
+  }, [searchParams])
 
   async function onSave() {
     setErr('')

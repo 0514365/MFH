@@ -1,12 +1,11 @@
 'use client'
-// MFH-ACCOUNTING-NAV-V4 — 기록 탭에 승인대기 건수 배지(pending prop, layout 서버 계산)
+// MFH-ACCOUNTING-NAV-V5 — 위플형 재구성: [달력][통계] [＋(중앙·돌출)] [자산][내역]. 기록 탭 제거 → ＋ = /accounting/entry
+//   (달력 홈에서 누르면 선택일 ?date= 프리필), 승인대기 배지는 ＋ 우상단(탭 → /accounting/inbox). 메인홈은 헤더 집 아이콘.
+// MFH-ACCOUNTING-NAV-V4 — 승인대기 건수 배지(pending prop, layout 서버 계산)
 // MFH-ACCOUNTING-NAV-V3 — md 이상 하단 탭바 숨김 + AccountingSegments(상단 세그먼트) export(셸 e 단계).
-// MFH-ACCOUNTING-NAV-V2
-// 회계 브랜치 전용 하단 탭바 — 5버튼: [요약][기록] [홈(중앙·돌출)] [내역][분석].
-// 중앙 홈 = 마룬 원형 FAB(탭바 위로 돌출) + 흰 집 아이콘, 라벨 없음 — 메인 홈 BottomNav 와 동일 패턴.
-// 전역 BottomNav 는 /accounting 하위에서 숨김(BottomNav HIDDEN_PREFIXES). fixed 라 layout main 이 pb 로 여백 확보.
+// 회계 브랜치 전용 하단 탭바. 전역 BottomNav 는 /accounting 하위에서 숨김(BottomNav HIDDEN_PREFIXES). fixed 라 스페이서로 여백 확보.
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 type Tab = { href: string; label: string; sub: string; icon: JSX.Element }
 
@@ -26,35 +25,47 @@ const I = (path: JSX.Element) => (
   </svg>
 )
 
-// 중앙 홈 기준 좌(요약·기록)·우(내역·분석) 2개씩.
+// 중앙 ＋ 기준 좌(달력·통계)·우(자산·내역) 2개씩.
 const LEFT_TABS: Tab[] = [
   {
     href: '/accounting',
-    label: '요약',
-    sub: 'Summary',
+    label: '달력',
+    sub: 'Calendar',
     icon: I(
       <>
-        <rect x="4" y="4" width="6" height="6" rx="1" />
-        <rect x="14" y="4" width="6" height="6" rx="1" />
-        <rect x="4" y="14" width="6" height="6" rx="1" />
-        <rect x="14" y="14" width="6" height="6" rx="1" />
+        <rect x="3.5" y="5" width="17" height="15" rx="2" />
+        <path d="M3.5 10h17" />
+        <path d="M8 3v4" />
+        <path d="M16 3v4" />
       </>,
     ),
   },
   {
-    href: '/accounting/entry',
-    label: '기록',
-    sub: 'Entry',
+    href: '/accounting/report',
+    label: '통계',
+    sub: 'Stats',
     icon: I(
       <>
-        <path d="M4 20h4l10.5-10.5a1.5 1.5 0 0 0 0-2.12l-1.88-1.88a1.5 1.5 0 0 0-2.12 0L4 16v4Z" />
-        <path d="M13.5 6.5l4 4" />
+        <path d="M12 3a9 9 0 1 0 9 9h-9Z" />
+        <path d="M15 3.5A9 9 0 0 1 20.5 9H15Z" />
       </>,
     ),
   },
 ]
 
 const RIGHT_TABS: Tab[] = [
+  {
+    href: '/accounting/assets',
+    label: '자산',
+    sub: 'Assets',
+    icon: I(
+      <>
+        <rect x="3" y="6" width="18" height="13" rx="2" />
+        <path d="M3 10h18" />
+        <path d="M16 15h2" />
+      </>,
+    ),
+  },
   {
     href: '/accounting/ledger',
     label: '내역',
@@ -70,51 +81,42 @@ const RIGHT_TABS: Tab[] = [
       </>,
     ),
   },
-  {
-    href: '/accounting/report',
-    label: '분석',
-    sub: 'Report',
-    icon: I(
-      <>
-        <path d="M4 20h16" />
-        <rect x="6" y="11" width="3" height="6" rx="0.5" />
-        <rect x="11" y="7" width="3" height="10" rx="0.5" />
-        <rect x="16" y="13" width="3" height="4" rx="0.5" />
-      </>,
-    ),
-  },
 ]
 
-// 활성 판정 — 정확 매칭(요약 '/accounting' 은 하위 경로에 끌려가지 않게 exact, 나머지는 prefix).
+// 활성 판정 — 달력 '/accounting' 은 exact, 나머지는 prefix. 기록·승인대기 화면은 어느 탭도 활성 아님.
 function isActive(pathname: string, href: string): boolean {
   if (href === '/accounting') return pathname === '/accounting'
-  // 승인대기(/accounting/inbox)는 기록 탭 소속으로 표시.
-  if (href === '/accounting/entry' && pathname.startsWith('/accounting/inbox')) return true
   return pathname === href || pathname.startsWith(href + '/')
 }
 
-// 중앙 홈 버튼 아이콘(집) — 마룬 원형 위 흰 선(currentColor 상속, Feather home 기반).
-function HomeIcon() {
+// ＋ 이동 — 달력 홈이면 선택일(URL ?d=, CalendarHome 이 replaceState 로 갱신)을 기록 폼 날짜로 넘긴다.
+function entryHref(pathname: string): string {
+  if (pathname === '/accounting' && typeof window !== 'undefined') {
+    const d = new URLSearchParams(window.location.search).get('d')
+    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) return `/accounting/entry?date=${d}`
+  }
+  return '/accounting/entry'
+}
+
+function PlusIcon({ size = 28 }: { size?: number }) {
   return (
     <svg
-      width="26"
-      height="26"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2.2"
+      strokeWidth="2.4"
       strokeLinecap="round"
-      strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M3 9 l9 -7 l9 7 v11 a2 2 0 0 1 -2 2 H5 a2 2 0 0 1 -2 -2 Z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
     </svg>
   )
 }
 
-// 승인대기 배지 — 기록 탭(승인대기 화면이 기록 탭 소속)에만.
-const BADGE_HREF = '/accounting/entry'
+// 승인대기 배지 — ＋ 버튼 우상단(모바일) · 기록 버튼 옆(md 이상).
 function CountBadge({ n, className = '' }: { n: number; className?: string }) {
   if (n <= 0) return null
   return (
@@ -127,7 +129,7 @@ function CountBadge({ n, className = '' }: { n: number; className?: string }) {
   )
 }
 
-function TabLink({ tab, pathname, pending }: { tab: Tab; pathname: string; pending: number }) {
+function TabLink({ tab, pathname }: { tab: Tab; pathname: string }) {
   const active = isActive(pathname, tab.href)
   return (
     <li className="flex-1">
@@ -138,10 +140,7 @@ function TabLink({ tab, pathname, pending }: { tab: Tab; pathname: string; pendi
           active ? 'text-accent' : 'text-muted'
         }`}
       >
-        <span className="relative">
-          {tab.icon}
-          {tab.href === BADGE_HREF && <CountBadge n={pending} className="absolute -right-2.5 -top-1.5" />}
-        </span>
+        {tab.icon}
         <span className="text-[11px] font-semibold">{tab.label}</span>
       </Link>
     </li>
@@ -150,6 +149,7 @@ function TabLink({ tab, pathname, pending }: { tab: Tab; pathname: string; pendi
 
 export default function AccountingNav({ pending = 0 }: { pending?: number }) {
   const pathname = usePathname() ?? '/accounting'
+  const router = useRouter()
   return (
     <>
       {/* fixed 탭바 높이만큼 스페이서(safe-area 포함) */}
@@ -164,20 +164,34 @@ export default function AccountingNav({ pending = 0 }: { pending?: number }) {
       >
         <ul className="mx-auto flex max-w-md items-end justify-around px-2 pt-1.5">
           {LEFT_TABS.map((tab) => (
-            <TabLink key={tab.href} tab={tab} pathname={pathname} pending={pending} />
+            <TabLink key={tab.href} tab={tab} pathname={pathname} />
           ))}
 
-          {/* 중앙 홈 — 마룬 원형 FAB, 탭바 위로 돌출(-translate-y). 라벨 없음. */}
+          {/* 중앙 ＋ — 마룬 원형 FAB, 탭바 위로 돌출. 승인대기 배지 = 우상단(탭 → 승인대기). */}
           <li className="flex-1">
-            <Link href="/" aria-label="메인홈" className="flex justify-center">
-              <span className="flex h-14 w-14 -translate-y-4 items-center justify-center rounded-full bg-[#b61821] text-white shadow-lg transition active:scale-95">
-                <HomeIcon />
-              </span>
-            </Link>
+            <div className="relative mx-auto w-14 -translate-y-4">
+              <button
+                type="button"
+                onClick={() => router.push(entryHref(pathname))}
+                aria-label="새 기록"
+                className="flex h-14 w-14 items-center justify-center rounded-full bg-[#b61821] text-white shadow-lg transition active:scale-95"
+              >
+                <PlusIcon />
+              </button>
+              {pending > 0 && (
+                <Link
+                  href="/accounting/inbox"
+                  aria-label={`승인대기 ${pending}건`}
+                  className="absolute -right-1.5 -top-1 rounded-full ring-2 ring-[var(--surface)]"
+                >
+                  <CountBadge n={pending} />
+                </Link>
+              )}
+            </div>
           </li>
 
           {RIGHT_TABS.map((tab) => (
-            <TabLink key={tab.href} tab={tab} pathname={pathname} pending={pending} />
+            <TabLink key={tab.href} tab={tab} pathname={pathname} />
           ))}
         </ul>
       </nav>
@@ -185,13 +199,14 @@ export default function AccountingNav({ pending = 0 }: { pending?: number }) {
   )
 }
 
-// md 이상(셸 사이드바 있음): 같은 4탭을 헤더 아래 상단 세그먼트로. 중앙 홈 FAB 는 없음(사이드바가 홈 담당). <md 숨김.
+// md 이상(셸 사이드바 있음): 같은 4탭을 헤더 아래 상단 세그먼트로 + 우측 ＋ 기록 버튼 · 승인대기 배지. <md 숨김.
 export function AccountingSegments({ pending = 0 }: { pending?: number }) {
   const pathname = usePathname() ?? ''
+  const router = useRouter()
   const tabs = [...LEFT_TABS, ...RIGHT_TABS]
   return (
-    <nav aria-label="Accounting 섹션" className="mb-4 hidden md:block">
-      <ul className="flex gap-1 rounded-xl bg-surface-subtle p-1">
+    <nav aria-label="Accounting 섹션" className="mb-4 hidden items-center gap-2 md:flex">
+      <ul className="flex flex-1 gap-1 rounded-xl bg-surface-subtle p-1">
         {tabs.map((tab) => {
           const active = isActive(pathname, tab.href)
           return (
@@ -205,12 +220,27 @@ export function AccountingSegments({ pending = 0 }: { pending?: number }) {
               >
                 <span className="[&>svg]:h-[18px] [&>svg]:w-[18px]">{tab.icon}</span>
                 {tab.label}
-                {tab.href === BADGE_HREF && <CountBadge n={pending} />}
               </Link>
             </li>
           )
         })}
       </ul>
+      <button
+        type="button"
+        onClick={() => router.push(entryHref(pathname))}
+        className="flex h-10 shrink-0 items-center gap-1 rounded-xl bg-accent px-4 text-[13px] font-bold text-white transition active:scale-[0.98]"
+      >
+        <PlusIcon size={16} />
+        기록
+      </button>
+      {pending > 0 && (
+        <Link
+          href="/accounting/inbox"
+          className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-muted hover:text-primary"
+        >
+          승인대기 <CountBadge n={pending} />
+        </Link>
+      )}
     </nav>
   )
 }
