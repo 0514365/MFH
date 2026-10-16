@@ -1,18 +1,20 @@
+// MFH-ACCOUNTING-PAGE-V6 — 공시 환율(getFxInfo) 전달
 // MFH-ACCOUNTING-PAGE-V5
 // 회계 요약 대시보드(요약 탭) — 이번달 수입/지출/순액·계좌잔액(AccountingSummary) + 빠른 이동 + Today(거래일 오늘).
 // 셸(가드·헤더·4탭 네비)은 layout.tsx 담당. 입력은 /accounting/entry, 전체 내역은 /accounting/ledger.
 import Link from 'next/link'
-import { getAcctOptions, getRecentInout, getAccountBalances } from '@/lib/accounting-db'
+import { getAcctOptions, getRecentInout, getAccountBalances, getFxInfo } from '@/lib/accounting-db'
 import AccountingSummary from './AccountingSummary'
 import TodayList from './TodayList'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AccountingPage() {
-  const [options, recent, balances] = await Promise.all([
+  const [options, recent, balances, fx] = await Promise.all([
     getAcctOptions(),
     getRecentInout().then((r) => r ?? []),
     getAccountBalances().then((b) => b ?? []),
+    getFxInfo(),
   ])
 
   if (!options) {
@@ -25,7 +27,7 @@ export default async function AccountingPage() {
 
   return (
     <>
-      <AccountingSummary recent={recent} balances={balances} />
+      <AccountingSummary recent={recent} balances={balances} fx={fx} />
 
       {/* 빠른 이동 — 새 기록(주요 CTA·accent) + 거래내역·분석 */}
       <div className="mb-5 space-y-3">

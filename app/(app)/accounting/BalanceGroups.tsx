@@ -1,10 +1,11 @@
 'use client'
+// MFH-BALANCE-GROUPS-V3 — 공시 환율 평가액(valueUsd) 우선 표시 · 장부가 병기 · 하단 적용 환율·평가손익(fx prop)
 // MFH-BALANCE-GROUPS-V2 — 카드 행에 사용자 표기(info)
 // MFH-BALANCE-GROUPS-V1
 // 계좌 잔액 그룹 목록 — 통화별(USD·KRW·HNL) + 신용카드(부채) 그룹, 그룹 소계(현지통화 ≈ + USD), 접기/펼치기.
 // 금액 색: 양수 청색 · 음수 적색 · 0 기본. 요약 카드(AccountingSummary)·분석 탭(ReportView) 공용.
 import { useMemo, useState } from 'react'
-import type { AccountBalance } from '@/lib/accounting-types'
+import type { AccountBalance, FxInfo } from '@/lib/accounting-types'
 
 export function fmtUsd(n: number): string {
   const s = `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -34,24 +35,35 @@ const groupOf = (b: AccountBalance): GroupKey =>
 // 목록 표시명: "Ficohsa 신용카드 4956" → "Ficohsa 4956"
 const shortName = (b: AccountBalance) => (b.kind === '신용카드' ? b.name.replace(' 신용카드 ', ' ') : b.name)
 
-// 자산(비카드 합) · 부채(카드 합, 음수) · 순자산
+// 표시 금액(USD) = 공시 환율 평가액, 없으면 장부가.
+export const shownUsd = (b: AccountBalance) => b.valueUsd ?? b.balanceUsd
+
+// 자산(비카드 합) · 부채(카드 합, 음수) · 순자산 — 평가액 기준. bookNet = 장부가 순자산, fxDiff = 평가손익(평가 − 장부).
 export function summarize(balances: AccountBalance[]) {
   let assets = 0
   let debt = 0
+  let bookNet = 0
   for (const b of balances) {
-    if (groupOf(b) === 'CARD') debt += b.balanceUsd
-    else assets += b.balanceUsd
+    if (groupOf(b) === 'CARD') debt += shownUsd(b)
+    else assets += shownUsd(b)
+    bookNet += b.balanceUsd
   }
-  return { assets, debt, net: assets + debt }
+  const net = assets + debt
+  return { assets, debt, net, bookNet, fxDiff: net - bookNet }
 }
 
-export default function BalanceGroups({ balances }: { balances: AccountBalance[] }) {
+const FX_SOURCE: Record<string, string> = { bch: 'BCH', koreaexim: '수출입은행', manual: '수동' }
+const fmtRate = (f: FxInfo) =>
+  f.currency === 'KRW' ? f.rate.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : f.rate.toFixed(4)
+const mdOf = (ymd: string) => `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}`
+
+export default function BalanceGroups({ balances, fx }: { balances: AccountBalance[]; fx?: FxInfo[] }) {
   const [closed, setClosed] = useState<Record<string, boolean>>({})
   const groups = useMemo(
     () =>
       GROUPS.map((g) => {
         const rows = balances.filter((b) => groupOf(b) === g.key)
-        const usd = rows.reduce((s, b) => s + b.balanceUsd, 0)
+        const usd = rows.reduce((s, b) => s + shownUsd(b), 0)
         // 소계 현지통화: 그룹 통화가 하나(KRW·HNL·카드=HNL)이고 전부 환율이 있을 때만
         const cur = g.key === 'CARD' ? 'HNL' : g.key
         const sameCur = rows.length > 0 && rows.every((b) => b.currency === cur && b.balanceLocal != null)
@@ -105,7 +117,17 @@ export default function BalanceGroups({ balances }: { balances: AccountBalance[]
                           {fmtLocal(b.balanceLocal, b.currency)}
                         </span>
                       )}
-                      <span className={`font-display font-bold ${amtColor(b.balanceUsd)}`}>{fmtUsd(b.balanceUsd)}</span>
+                      {b.valueUsd != null && Math.abs(b.valueUsd - b.balanceUsd) >= 0.01 && (
+                        <span className="text-[10px] text-faint" title="거래 시점 환율로 쌓은 장부가">
+                          장부 {fmtUsd(b.balanceUsd)}
+                        </span>
+                      )}
+                      <span
+                        className={`font-display font-bold ${amtColor(shownUsd(b))}`}
+                        title={b.valueUsd != null ? '공시 환율 평가액' : b.currency !== 'USD' ? '공시 환율 없음 — 장부가' : undefined}
+                      >
+                        {fmtUsd(shownUsd(b))}
+                      </span>
                     </span>
                   </li>
                 ))}
@@ -114,6 +136,32 @@ export default function BalanceGroups({ balances }: { balances: AccountBalance[]
           </div>
         )
       })}
+      {fx && <FxFooter balances={balances} fx={fx} />}
+    </div>
+  )
+}
+
+// 적용 공시 환율 + 평가손익(장부 대비). 공시 환율이 없는 통화는 "장부가" 안내.
+function FxFooter({ balances, fx }: { balances: AccountBalance[]; fx: FxInfo[] }) {
+  const need = [...new Set(balances.flatMap((b) => b.holdings.map((h) => h.currency)).filter((c) => c !== 'USD'))].sort()
+  if (need.length === 0) return null
+  const { fxDiff } = summarize(balances)
+  return (
+    <div className="mt-2 border-t border-line pt-2 text-[10px] leading-relaxed text-faint">
+      <div>
+        공시 환율{' '}
+        {need
+          .map((c) => {
+            const f = fx.find((x) => x.currency === c)
+            return f ? `${c} ${fmtRate(f)} (${mdOf(f.date)} ${FX_SOURCE[f.source] ?? f.source})` : `${c} 없음 → 장부가`
+          })
+          .join(' · ')}
+      </div>
+      {Math.abs(fxDiff) >= 0.01 && (
+        <div>
+          평가손익(장부 대비) <b className={amtColor(fxDiff)}>{fxDiff > 0 ? '+' : ''}{fmtUsd(fxDiff)}</b> — 미실현, 장부는 그대로
+        </div>
+      )}
     </div>
   )
 }

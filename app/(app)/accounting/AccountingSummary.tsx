@@ -1,9 +1,10 @@
 'use client'
+// MFH-ACCOUNTING-SUMMARY-V4 — 자산/부채/순자산 공시 환율 평가액 기준 · BalanceGroups 에 fx 전달
 // MFH-ACCOUNTING-SUMMARY-V3 — 잔액 그룹(BalanceGroups) · 자산/부채/순자산 헤더 · 양수 청색/음수 적색
 // 메인 요약 — 이번달 수입/지출/순액(브라우저 로컬월 기준) + 계좌별 잔액(통화·카드 그룹)·자산/부채/순자산.
 // 데이터는 page.tsx 가 장부에서 read 후 전달. Balances 카드 '+ 계좌' → AccountAddForm(노션 자산 DB 에 계좌 추가).
 import { useMemo, useState } from 'react'
-import type { AccountBalance, InoutRow } from '@/lib/accounting-types'
+import type { AccountBalance, FxInfo, InoutRow } from '@/lib/accounting-types'
 import AccountAddForm from './AccountAddForm'
 import BalanceGroups, { amtColor, fmtUsd, summarize } from './BalanceGroups'
 
@@ -11,9 +12,11 @@ import BalanceGroups, { amtColor, fmtUsd, summarize } from './BalanceGroups'
 export default function AccountingSummary({
   recent,
   balances,
+  fx,
 }: {
   recent: InoutRow[]
   balances: AccountBalance[]
+  fx?: FxInfo[]
 }) {
   const now = new Date()
   const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -93,7 +96,7 @@ export default function AccountingSummary({
             <div className={`font-display text-[14px] font-bold ${amtColor(netWorth)}`}>{fmtUsd(netWorth)}</div>
           </div>
         </div>
-        <BalanceGroups balances={balances} />
+        <BalanceGroups balances={balances} fx={fx} />
         {adding && <AccountAddForm onClose={() => setAdding(false)} />}
       </div>
     </section>

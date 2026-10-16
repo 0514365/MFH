@@ -1,11 +1,12 @@
 'use client'
+// MFH-ACCOUNTING-REPORT-V5 — 계좌 잔액에 공시 환율(fx) 전달
 // MFH-ACCOUNTING-REPORT-V4 — b단계: 도넛 항목 클릭 → 내역 탭 필터 딥링크 · 후원자 클릭 → 후원자 상세
 // MFH-ACCOUNTING-REPORT-V3 — KPI 타일 · 추이 hover 툴팁 + 월 클릭 필터 · 수입/지출 도넛(대분류 → 항목 drill-down) · 후원자 Top · 계좌 잔액
 // MFH-ACCOUNTING-REPORT-V2
 // 회계 분석 — 연도 선택(+월 선택) 기준으로 집계. 표시 전용, 집계는 클라이언트(recent·options·balances). 차트는 ./charts.tsx(의존성 0 SVG).
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { AccountBalance, AcctOptions, InoutRow } from '@/lib/accounting-types'
+import type { AccountBalance, FxInfo, AcctOptions, InoutRow } from '@/lib/accounting-types'
 import BalanceGroups, { amtColor, summarize } from '../BalanceGroups'
 import { Card, Donut, KpiTiles, TrendChart, fmtUsd, foldSlices, type Kpi, type Slice, type TrendBucket } from './charts'
 
@@ -119,10 +120,12 @@ export default function ReportView({
   recent,
   options,
   balances,
+  fx,
 }: {
   recent: InoutRow[]
   options: AcctOptions
   balances: AccountBalance[]
+  fx?: FxInfo[]
 }) {
   const router = useRouter()
   const thisYear = String(new Date().getFullYear())
@@ -331,7 +334,7 @@ export default function ReportView({
           <BarList rows={supporterRows} color="var(--primary)" onGo={(href) => router.push(href)} />
         </Card>
         <Card title="계좌 잔액" right={`순자산 ${fmtUsd(netAssets)}`} rightColor={amtColor(netAssets)}>
-          <BalanceGroups balances={balances} />
+          <BalanceGroups balances={balances} fx={fx} />
         </Card>
       </div>
     </div>

@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-TYPES-V3 — 계좌 실보유(holdings)·공시 환율 평가액(valueUsd, patch114)
 // MFH-ACCOUNTING-TYPES-V2 — AcctOption.active(숨긴 항목 포함, 콤보에서만 제외)
 // MFH-ACCOUNTING-TYPES-V1
 // 회계 공용 타입 — 서버(accounting-db.ts)·클라이언트 컴포넌트가 함께 import(타입 + 순수 헬퍼, 런타임 의존 없음).
@@ -28,8 +29,15 @@ export type AccountBalance = {
   cardLast4: string | null
   info: string | null // 계좌정보(카드는 사용자 표기: 우진 · 진아)
   rate: number | null // 현지통화 환산율(그 통화의 최근 거래 환율, USD=1)
-  balanceLocal: number | null // 현지통화 근사 잔액 = balanceUsd × rate (환율 없으면 null)
+  balanceLocal: number | null // 계좌 통화 실보유액(holdings 의 계좌 통화분). USD 계좌는 null
+  // 실보유(계좌 통화 기준, 통화별) — 계좌 통화와 같은 거래는 원금, 다른 통화 거래·USD 계좌는 금액(USD)로 USD 버킷.
+  holdings: { currency: string; amount: number }[]
+  // 공시 환율 평가액(USD) = Σ 보유 ÷ 공시 환율. 필요한 공시 환율이 없으면 null(→ 장부가로 표시).
+  valueUsd: number | null
 }
+
+// 통화별 최신 공시 환율(fx_rates) — 평가 표시용.
+export type FxInfo = { currency: string; rate: number; date: string; source: string }
 
 export type AccountInput = {
   name: string

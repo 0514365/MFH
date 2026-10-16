@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-DB-V10 — 계좌 실보유(통화별)·공시 환율 평가액(valueUsd) · getFxInfo(patch114)
 // MFH-ACCOUNTING-DB-V9 — 영수증(receipt_path, patch111): 읽기·쓰기·교체/삭제 시 Storage 파일 정리
 // MFH-ACCOUNTING-DB-V8 — 항목 관리(updateItem·setItemActive·reorderItems), 옵션에 숨긴 항목 포함(active)
 // MFH-ACCOUNTING-DB-V7 — toRow 조정 지원(폼 입력)
@@ -11,6 +12,7 @@
 // 테이블: acct_items(항목) · acct_accounts(계좌) · acct_inout(거래) — supabase/patch102-accounting.sql.
 // RLS(멤버 부부) 하에서 쿠키 세션 클라이언트로 접근. 실패 시 read 는 null, write 는 {ok:false,error}.
 import { createClient } from './supabase-server'
+import { latestFxRates } from './fx'
 import type {
   AcctOption,
   AcctOptions,
@@ -18,6 +20,7 @@ import type {
   AccountInput,
   ActionResult,
   DonationYearly,
+  FxInfo,
   Gubun,
   InoutInput,
   InoutPatch,
@@ -73,8 +76,9 @@ export async function getAcctOptions(): Promise<AcctOptions | null> {
   return out
 }
 
-// 계좌별 잔액(USD) = 초기 + 조정 + Σ수입 − Σ지출 ± 이체. 실패 시 null.
-// 현지통화 잔액은 그 통화의 최근 거래 환율로 역환산한 근사치(KRW 정수 · HNL 소수 2자리). USD 는 그대로.
+// 계좌별 잔액(USD 장부가) = 초기 + 조정 + Σ수입 − Σ지출 ± 이체. 실패 시 null.
+// 실보유(holdings) = 계좌 통화 기준 통화별 합계 — 계좌 통화와 같은 거래는 원금, 그 외(USD 계좌 · 카드의 USD/KRW 결제 등)는 금액(USD).
+// 평가액(valueUsd) = Σ 보유 ÷ 공시 환율(fx_rates 최신, patch114). 공시 환율이 없으면 null.
 export async function getAccountBalances(): Promise<AccountBalance[] | null> {
   const sb = await createClient()
   const latestRate = (cur: 'KRW' | 'HNL') =>
@@ -86,16 +90,17 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-  const [acc, tx, krw, hnl] = await Promise.all([
+  const [acc, tx, krw, hnl, fx] = await Promise.all([
     sb
       .from('acct_accounts')
       .select('id, name, currency, kind, card_last4, info, initial_usd, adjust_usd')
       .eq('is_active', true)
       .order('sort_order')
       .order('name'),
-    sb.from('acct_inout').select('gubun, account_id, to_account_id, amount_usd'),
+    sb.from('acct_inout').select('gubun, account_id, to_account_id, amount_usd, currency, principal'),
     latestRate('KRW'),
     latestRate('HNL'),
+    latestFxRates(sb),
   ])
   if (acc.error || tx.error) return null
   const rateOf: Record<string, number | null> = {
@@ -103,26 +108,52 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
     KRW: num(krw.data?.rate) ?? null,
     HNL: num(hnl.data?.rate) ?? null,
   }
-  // 수입 +계좌 · 지출 −계좌 · 이체 −출금계좌 +입금계좌 · 조정 ±계좌
+  const curOf = new Map((acc.data ?? []).map((a) => [a.id as string, (a.currency ?? 'USD') as string]))
+  // 장부 USD + 통화별 실보유. 수입 +계좌 · 지출 −계좌 · 이체 −출금계좌 +입금계좌 · 조정 ±계좌
   const sum = new Map<string, number>()
-  const add = (id: string | null, v: number) => {
-    if (id) sum.set(id, (sum.get(id) ?? 0) + v)
+  const hold = new Map<string, Map<string, number>>()
+  const add = (id: string | null, sign: number, t: { amount_usd: unknown; currency: string | null; principal: unknown }) => {
+    if (!id) return
+    const usd = num(t.amount_usd) ?? 0
+    sum.set(id, (sum.get(id) ?? 0) + sign * usd)
+    const acur = curOf.get(id) ?? 'USD'
+    const same = acur !== 'USD' && t.currency === acur
+    const bucket = same ? acur : 'USD'
+    const v = same ? (num(t.principal) ?? 0) : usd
+    const m = hold.get(id) ?? new Map<string, number>()
+    m.set(bucket, (m.get(bucket) ?? 0) + sign * v)
+    hold.set(id, m)
   }
   for (const t of tx.data ?? []) {
-    const amt = num(t.amount_usd) ?? 0
-    if (t.gubun === '수입') add(t.account_id, amt)
-    else if (t.gubun === '지출') add(t.account_id, -amt)
+    if (t.gubun === '수입') add(t.account_id, 1, t)
+    else if (t.gubun === '지출') add(t.account_id, -1, t)
     else if (t.gubun === '이체') {
-      add(t.account_id, -amt)
-      add(t.to_account_id, amt)
-    } else if (t.gubun === '조정') add(t.account_id, amt) // 잔액 조정(부호 있음, patch108)
+      add(t.account_id, -1, t)
+      add(t.to_account_id, 1, t)
+    } else if (t.gubun === '조정') add(t.account_id, 1, t) // 잔액 조정(부호 있음, patch108)
   }
+  const fxRate = (cur: string): number | null => (cur === 'USD' ? 1 : (fx[cur as 'HNL' | 'KRW']?.rate ?? null))
   return (acc.data ?? []).map((a) => {
-    const balanceUsd = r2((num(a.initial_usd) ?? 0) + (num(a.adjust_usd) ?? 0) + (sum.get(a.id) ?? 0))
+    const base = (num(a.initial_usd) ?? 0) + (num(a.adjust_usd) ?? 0)
+    const balanceUsd = r2(base + (sum.get(a.id) ?? 0))
     const currency = a.currency ?? null
     const rate = currency ? (rateOf[currency] ?? null) : null
-    const balanceLocal =
-      rate == null ? null : currency === 'KRW' ? Math.round(balanceUsd * rate) : r2(balanceUsd * rate)
+    const m = hold.get(a.id) ?? new Map<string, number>()
+    if (base) m.set('USD', (m.get('USD') ?? 0) + base)
+    const holdings = [...m.entries()]
+      .map(([cur, amount]) => ({ currency: cur, amount: cur === 'KRW' ? Math.round(amount) : r2(amount) }))
+      .filter((h) => h.amount !== 0)
+    const own = holdings.find((h) => h.currency === currency)
+    const balanceLocal = currency && currency !== 'USD' ? (own?.amount ?? 0) : null
+    let valueUsd: number | null = 0
+    for (const h of holdings) {
+      const fr = fxRate(h.currency)
+      if (fr == null) {
+        valueUsd = null
+        break
+      }
+      valueUsd += h.amount / fr
+    }
     return {
       id: a.id,
       name: a.name,
@@ -133,8 +164,17 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
       rate,
       balanceUsd,
       balanceLocal,
+      holdings,
+      valueUsd: valueUsd == null ? null : r2(valueUsd),
     }
   })
+}
+
+// 통화별 최신 공시 환율(평가 표시용). 없으면 빈 배열.
+export async function getFxInfo(): Promise<FxInfo[]> {
+  const sb = await createClient()
+  const fx = await latestFxRates(sb)
+  return Object.values(fx).map((f) => ({ currency: f!.currency, rate: f!.rate, date: f!.rate_date, source: f!.source }))
 }
 
 // 거래 목록(표시·수정·집계용) — 날짜 내림차순(동일 날짜는 최근 입력 먼저). limit 미지정 시 전체.
