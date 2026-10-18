@@ -65,6 +65,7 @@
 
 ## 유의 사항
 - 커밋은 우진 승인 후, 푸시는 "푸시"/"커밋 푸시" 명시 때만. 메인 브랜치 직접 작업. 다른 세션이 같은 회계 파일을 동시에 고칠 수 있음 — 작업 전 `git log`·`git status` 확인.
+- **Dropbox 온라인 전용(dataless) 주의 (2026-10-17 장애)**: Dropbox 저장공간 최적화로 repo 파일 대부분(10,553/10,858)이 온라인 전용이 되자, launchd 수집이 `Unknown system error -11, read`(EDEADLK — 백그라운드 프로세스는 Dropbox 내려받기를 요청 못 함)로 10/17 07:00~19:49 약 68회 실패. 조치: 우진이 MFH 폴더 「오프라인에서 사용 가능」 설정 + lib·scripts 를 직접 읽어 내려받음 → 20:05 수집 정상(최근 3일 재확인이라 누락 없음). 재발 점검: `find lib scripts -type f -flags +dataless | wc -l`(0 이어야 함) · 로그 `~/Library/Logs/mfh-ficohsa-collect.log` 의 `-11` 오류. 재발 시 대안 = 수집기를 단일 파일로 묶어 Dropbox 밖(`~/.mfh/`)에 배치.
 - Supabase SQL 은 **MFH 프로젝트(ref `ocygdrwdpoytwwbsrdmp`)**. 아이패드·폰 작업 중엔 SQL 을 채팅 코드블록으로.
 - 회계 금액 의미: `amount_usd` 는 2026-09~ 트리거가 정함(수동 rate 수정은 다음 재계산 때 덮일 수 있음). 2026-08 이전 거래 수정 폼은 예전처럼 환율 입력.
 - 미커밋 잔여물(그대로): `flyers/dongsan-2026-07/`, `applications/`, `reports/2026-H1/06-sermon-manuscript.md`, `scripts/measure-usage.ts`, `docs/bible-qt-kit/`, `letter-templates/assets/2026추석.heic`, `out/`.
