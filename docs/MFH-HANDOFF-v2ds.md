@@ -59,6 +59,7 @@
 
 ## 운용 (git 밖)
 - 예약 작업 `fx-rates-0730`(매일 07:30): HNL 웹검색(BCH) + KRW API → fx_rates, **3일 이후 지난달 마감 자동**(프롬프트에 "마감:" 보고·HNL 월말값 없으면 웹검색 후 fx-close-month 지시 추가). 첫 Run now 권한 승인 **미확인**.
+- `fx-rates-0730` 첫 실행(Run now 포함 3회) 결과: KRW 정상 · **HNL 3회 모두 건너뜀**(standard 웹검색이 10/6 기사까지만 찾음 → 7일 기준 초과). 10/16 extended 검색으로 BCH 매입 26.8910 / 매도 27.0255(La Prensa 10/16) 수동 저장. 예약 작업 지시문을 **「오늘 날짜(스페인어) + mode extended, 못 찾으면 전날로 재검색」** 으로 수정 → 다음 실행에서 HNL 저장 여부 확인 필요. 계속 실패하면 대안 = AllRatesToday BCH API(비공식 중개, 무료 latest 300회/월).
 - Mac 카드 문자 수집 launchd `com.mfh.ficohsa-collect`(07:00~22:50 10분) 정상. 단축어는 불가 확정(v2dr).
 - 이번 세션 빌드 검증은 **임시 복사본**(scratchpad/buildcheck, node_modules 링크)에서 수행 — 같은 폴더에서 다른 세션 `next dev` 가 돌 때 `.next` 충돌 방지.
 
@@ -69,6 +70,7 @@
 - 미커밋 잔여물(그대로): `flyers/dongsan-2026-07/`, `applications/`, `reports/2026-H1/06-sermon-manuscript.md`, `scripts/measure-usage.ts`, `docs/bible-qt-kit/`, `letter-templates/assets/2026추석.heic`, `out/`.
 
 ## 다음 과제
+0. **10월호는 11월 초 착수(우진 결정 2026-10-16)** — 자료 기간 2026-10-05 ~ 10월 말(직전 9월호 9/2~10/4). 디자인은 7·8월호 고정.
 1. **11/3 이후 10월 마감 확인** — `fx_closings` 2026-10 HNL·KRW 고정 + 10월 거래 재계산 로그("마감: …") 확인. 실패 시 `npx tsx scripts/fx-close-month.ts --ym 2026-10 …`.
 2. `fx-rates-0730` Run now 1회(권한 승인).
 3. **10월호(MFH #2610)**: 자료 기간 2026-10-05~. 5-에이전트 팀(`docs/MFH-LETTER-AGENTS.md`).
