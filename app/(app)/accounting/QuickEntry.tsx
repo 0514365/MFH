@@ -1,4 +1,6 @@
 'use client'
+// MFH-QUICK-ENTRY-V4 — 입력 중 숫자도 천단위 쉼표 · 큰 숫자는 글자 크기를 자동으로 줄여 전부 표시(줄임표 없음)
+// MFH-QUICK-ENTRY-V3 — [이체][조정] 아래 「상세 입력」 긴 버튼 · 키패드 위 줄 = C 와 = 를 같은 크기로 항상 표시
 // MFH-QUICK-ENTRY-V2 — ① 통화 선택 세그먼트(L/$/₩) · [이체][조정] 버튼(→ 상세 폼) · C 버튼 강조 · ③ 구매처 입력칸을 내역 바로 아래 같은 크기로
 // MFH-QUICK-ENTRY-V1
 // 모바일 빠른 기록(위플 가계부형, 전체 화면 3단계) — /accounting/entry 의 <md 화면(수정·상세 입력은 기존 AccountingForm).
@@ -28,6 +30,14 @@ const todayLocal = () => {
 }
 const fmtNum = (n: number, cur: Cur) =>
   cur === 'KRW' ? Math.round(n).toLocaleString('en-US') : n.toLocaleString('en-US', { maximumFractionDigits: 2 })
+// 입력 중 문자열("1234.5" · "1234." · "0.")에 천단위 쉼표 — 소수부·끝의 점은 그대로.
+const fmtTyping = (t: string) => {
+  const [int, dec] = t.split('.')
+  const i = int ? Number(int).toLocaleString('en-US') : '0'
+  return dec !== undefined ? `${i}.${dec}` : i
+}
+// 글자 수에 따라 큰 숫자 글꼴 크기 — 전부 보이게(줄임표 대신 축소).
+const bigSize = (len: number) => (len <= 7 ? 64 : len <= 10 ? 50 : len <= 13 ? 40 : len <= 16 ? 32 : 26)
 
 // ===== 계산기 — 토큰(숫자·연산자) 배열, × ÷ 우선 후 + − 순(좌→우) =====
 type Op = '+' | '-' | '*' | '/'
@@ -78,7 +88,7 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
   }, [tokens, typing])
   const exprText = useMemo(() => {
     const parts = tokens.map((t) => (typeof t === 'number' ? fmtNum(t, cur) : OP_LABEL[t]))
-    if (typing) parts.push(typing)
+    if (typing) parts.push(fmtTyping(typing))
     return parts.join(' ')
   }, [tokens, typing, cur])
   const pendingOp = tokens.length > 0
@@ -253,9 +263,16 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
                 ))}
               </div>
             </div>
-            <div className="min-w-0 text-right">
-              <div className="truncate font-display text-[64px] font-light leading-none text-[#1B7FC3]">{typing || fmtNum(amount, cur)}</div>
-              {tokens.length > 0 && <div className="mt-2 truncate font-display text-[14px] text-faint">{exprText}</div>}
+            <div className="min-w-0 flex-1 text-right">
+              {(() => {
+                const text = typing ? fmtTyping(typing) : fmtNum(amount, cur)
+                return (
+                  <div className="break-all font-display font-light leading-none text-[#1B7FC3]" style={{ fontSize: bigSize(text.length), minHeight: 64 }}>
+                    {text}
+                  </div>
+                )
+              })()}
+              {tokens.length > 0 && <div className="mt-2 break-all font-display text-[14px] text-faint">{exprText}</div>}
             </div>
           </div>
 
@@ -274,24 +291,26 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
             <Link href={`/accounting/entry?full=1&date=${date}&gubun=조정`} className="flex h-11 items-center justify-center rounded-2xl border border-line bg-surface text-[15px] font-medium text-muted active:bg-surface-subtle">
               조정
             </Link>
+            <Link href={`/accounting/entry?full=1&date=${date}`} className="col-span-2 flex h-11 items-center justify-center rounded-2xl border border-line bg-surface text-[15px] font-medium text-muted active:bg-surface-subtle">
+              상세 입력
+            </Link>
           </div>
           {err && <p className="px-6 pt-3 text-center text-[13px] text-red-700">{err}</p>}
 
           <div className="mt-auto">
-            <div className="flex items-center justify-between border-b border-line px-4 py-2 text-[12px] text-faint">
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={clearAll} aria-label="모두 지우기" className="flex h-9 w-12 items-center justify-center rounded-lg bg-[#F46D93]/15 font-display text-[17px] font-bold text-[#D1456F]">
-                  C
-                </button>
-                {pendingOp && (
-                  <button type="button" onClick={pressEquals} className="rounded-lg bg-surface-subtle px-3 py-1.5 font-display text-[15px] text-primary">
-                    =
-                  </button>
-                )}
-              </div>
-              <Link href={`/accounting/entry?full=1&date=${date}`} className="text-[12px] text-muted underline-offset-2 hover:underline">
-                상세 입력
-              </Link>
+            <div className="flex items-center justify-between border-b border-line px-4 py-2">
+              <button type="button" onClick={clearAll} aria-label="모두 지우기" className="flex h-9 w-14 items-center justify-center rounded-lg bg-[#F46D93]/15 font-display text-[17px] font-bold text-[#D1456F]">
+                C
+              </button>
+              <button
+                type="button"
+                onClick={pressEquals}
+                disabled={!pendingOp}
+                aria-label="계산"
+                className="flex h-9 w-14 items-center justify-center rounded-lg bg-[#1B7FC3]/15 font-display text-[20px] font-bold text-[#1B7FC3] disabled:opacity-35"
+              >
+                =
+              </button>
             </div>
             <div className="grid grid-cols-4" style={{ gridTemplateRows: 'repeat(4, 72px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
               {(['7', '8', '9'] as const).map((d) => <button key={d} type="button" onClick={() => pressDigit(d)} className={key}>{d}</button>)}
