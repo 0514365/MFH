@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V10 — 카드대금 단순화: 카드사별 합계 1줄(Ficohsa(우진,진아) $… / 삼성카드 $…) · 제목에 매월 상환일 · 글자 확대
 // MFH-ACCOUNTING-CALENDAR-V9 — 카드대금 = 항상 전체 미상환(확정 청구 + 이용 중) 합계, 청구 주기는 괄호 안 「MM/DD 상환 … · MM/DD 예정 …」
 // MFH-ACCOUNTING-CALENDAR-V8 — 청구 주기 카드(삼성 7092): 확정 청구(상환일·미상환 표시)만 합계에, 이용 중은 「다음 MM/DD …」로 덧붙임
 // MFH-ACCOUNTING-CALENDAR-V7 — 카드 라벨에 상환일(15일, patch117)
@@ -28,7 +29,6 @@ const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.ge
 const isYmd = (s: string | null | undefined): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s)
 const fmtFull = fmtShow
 const fmtCell = fmtCompact
-const mdOf = (s: string) => `${Number(s.slice(5, 7))}/${Number(s.slice(8, 10))}`
 
 export default function CalendarHome({
   recent,
@@ -102,54 +102,34 @@ export default function CalendarHome({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recent, ym, showCur, hnlRate])
 
-  // 카드대금 상환할 금액(현재 미상환) — 카드별 카드 통화 원금(L·원) + USD 결제분. L 표시 = 원금(+ $), $ 표시 = 평가액.
-  // 금액·합계 = 항상 전체 미상환. 청구 주기 카드(cycle)는 확정 청구(bill)·이용 중(next)을 괄호 안에 나눠 표시.
+  // 카드대금(전체 미상환) — 카드사별 합계 1줄: 「Ficohsa(우진,진아) $… / 삼성카드 $…」, 제목에 카드사별 매월 상환일.
+  // 카드사 = 계좌 이름 첫 단어(Ficohsa · 삼성카드). 금액 = $ 표시면 평가액, L 표시면 렘피라 카드는 원금(+ $분 × 공시), 그 외 평가액 × 공시.
   const cardDue = useMemo(() => {
-    const rows = balances
-      .filter((b) => b.kind === '신용카드')
-      .map((b) => {
-        const cur = b.currency ?? 'HNL'
-        const name = `${b.cardLast4 ?? b.name.slice(-4)}${b.info ? ` ${b.info}` : ''}`
-        const cy = b.cycle
-        if (cy) {
-          const bill = cy.billed.valueUsd > 0.005 ? { date: cy.dueDate, overdue: cy.overdue, ...cy.billed } : null
-          const next = cy.unbilled.valueUsd > 0.005 ? { date: cy.nextDueDate, ...cy.unbilled } : null
-          const local = cy.billed.own + cy.unbilled.own
-          const usdPart = cy.billed.usd + cy.unbilled.usd
-          return { id: b.id, label: name, cur, local, usdPart, usd: cy.billed.valueUsd + cy.unbilled.valueUsd, bill, next }
-        }
-        const local = -(b.holdings.find((h) => h.currency === cur)?.amount ?? 0)
-        const usdPart = cur === 'USD' ? 0 : -(b.holdings.find((h) => h.currency === 'USD')?.amount ?? 0)
-        const usd = -(b.valueUsd ?? b.balanceUsd)
-        return { id: b.id, label: `${name}${b.dueDay ? `(${b.dueDay}일)` : ''}`, cur, local, usdPart, usd, bill: null, next: null }
-      })
-      .filter((c) => c.usd > 0.005)
-    const totalUsd = rows.reduce((s, c) => s + c.usd, 0)
-    const onlyHnl = rows.every((c) => c.cur === 'HNL')
-    const totalHnl = rows.reduce((s, c) => s + c.local, 0)
-    const totalUsdPart = rows.reduce((s, c) => s + c.usdPart, 0)
-    return { rows, totalUsd, onlyHnl, totalHnl, totalUsdPart }
-  }, [balances])
-  const fmtUsdPart = (usdPart: number) =>
-    usdPart > 0.005 ? ` + $${usdPart.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''
-  const fmtDue = (cur: string, local: number, usdPart: number, usd: number) =>
-    showCur === 'HNL' && hnlRate
-      ? `${cur === 'KRW' ? `${Math.round(local).toLocaleString('ko-KR')}원` : fmtFull(local, 'HNL')}${fmtUsdPart(usdPart)}`
-      : fmtFull(usd, 'USD')
-  const fmtRow = (c: (typeof cardDue.rows)[number]) => {
-    const parts = [
-      c.bill ? `${c.bill.overdue ? '미상환 ' : ''}${mdOf(c.bill.date)} 상환 ${fmtDue(c.cur, c.bill.own, c.bill.usd, c.bill.valueUsd)}` : null,
-      c.next ? `${mdOf(c.next.date)} 예정${c.bill ? ` ${fmtDue(c.cur, c.next.own, c.next.usd, c.next.valueUsd)}` : ''}` : null,
-    ].filter(Boolean)
-    return `${c.label} ${fmtDue(c.cur, c.local, c.usdPart, c.usd)}${parts.length ? ` (${parts.join(' · ')})` : ''}`
-  }
-  // 합계: 렘피라 카드만이면 L 원금 + $, 원화 카드가 섞이면 환산액(L 표시 = 평가액 × 공시 HNL)
-  const dueTotal =
-    showCur === 'HNL' && hnlRate
-      ? cardDue.onlyHnl
-        ? `${fmtFull(cardDue.totalHnl, 'HNL')}${fmtUsdPart(cardDue.totalUsdPart)}`
-        : fmtFull(cardDue.totalUsd * hnlRate, 'HNL')
-      : fmtFull(cardDue.totalUsd, 'USD')
+    const groups = new Map<string, { brand: string; owners: string[]; count: number; dueDay: number | null; usd: number; hnl: number }>()
+    for (const b of balances) {
+      if (b.kind !== '신용카드') continue
+      const brand = b.name.split(' ')[0]
+      const g = groups.get(brand) ?? { brand, owners: [], count: 0, dueDay: null, usd: 0, hnl: 0 }
+      g.count += 1
+      if (b.info && !g.owners.includes(b.info)) g.owners.push(b.info)
+      g.dueDay = g.dueDay ?? b.dueDay
+      g.usd += -(b.valueUsd ?? b.balanceUsd)
+      if (b.currency === 'HNL') {
+        const own = -(b.holdings.find((h) => h.currency === 'HNL')?.amount ?? 0)
+        const usdPart = -(b.holdings.find((h) => h.currency === 'USD')?.amount ?? 0)
+        g.hnl += own + usdPart * (hnlRate ?? 0)
+      } else g.hnl += -(b.valueUsd ?? b.balanceUsd) * (hnlRate ?? 0)
+      groups.set(brand, g)
+    }
+    const list = [...groups.values()]
+    const title = list
+      .filter((g) => g.dueDay)
+      .map((g) => `${g.brand.replace(/카드$/, '')} 매월 ${g.dueDay}일`)
+      .join(' · ')
+    return { list, title }
+  }, [balances, hnlRate])
+  const fmtGroup = (g: (typeof cardDue.list)[number]) =>
+    showCur === 'HNL' && hnlRate ? fmtFull(g.hnl, 'HNL') : fmtFull(g.usd, 'USD')
 
   const dayRows = useMemo(() => recent.filter((r) => r.date === selected), [recent, selected])
 
@@ -224,16 +204,23 @@ export default function CalendarHome({
           <div className="text-[11px] text-faint">수입−지출</div>
           <div className={`font-display text-[15px] font-bold ${net >= 0 ? 'text-ink' : 'text-red-700'}`}>{fmtFull(net, showCur)}</div>
         </div>
-        {cardDue.rows.length > 0 && (
-          <Link href="/accounting/assets" className="col-span-3 mt-1 flex items-start justify-between gap-3 border-t border-line pt-3">
-            <span className="min-w-0">
-              <span className="block text-[11px] text-faint">카드대금 상환할 금액</span>
-              <span className="mt-0.5 block text-[11px] text-muted">
-                {cardDue.rows.map(fmtRow).join(' · ')}
+        {cardDue.list.length > 0 && (
+          <Link href="/accounting/assets" className="col-span-3 mt-1 block border-t border-line pt-3">
+            <span className="block text-[12px] text-faint">카드대금{cardDue.title ? ` (${cardDue.title})` : ''}</span>
+            <span className="mt-1 flex items-center justify-between gap-3">
+              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                {cardDue.list.map((g, i) => (
+                  <span key={g.brand} className="whitespace-nowrap">
+                    {i > 0 && <span className="mr-2 text-faint">/</span>}
+                    <span className="text-[14px] font-medium text-ink">
+                      {g.brand}
+                      {g.count > 1 && g.owners.length ? `(${g.owners.join(',')})` : ''}
+                    </span>{' '}
+                    <span className="font-display text-[16px] font-bold text-red-700">{fmtGroup(g)}</span>
+                  </span>
+                ))}
               </span>
-            </span>
-            <span className="shrink-0 font-display text-[15px] font-bold text-red-700">
-              {dueTotal} <span className="text-[12px] font-normal text-faint">›</span>
+              <span className="shrink-0 text-[12px] text-faint">›</span>
             </span>
           </Link>
         )}
