@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V14 — 모바일: 페이지 끝에서 80px 이상 더 당기면 기록 화면(당기는 동안 안내 표시)
 // MFH-ACCOUNTING-CALENDAR-V13 — 카드대금: 카드사별 행(Ficohsa·삼성 2행) + 오른쪽 합계
 // MFH-ACCOUNTING-CALENDAR-V12 — L/$ = 공용 CurToggle(크게) · 모바일은 헤더로 이동(요약 라벨 줄은 md 이상만)
 // MFH-ACCOUNTING-CALENDAR-V11 — 요약 3단 격자 통일(라벨 13px·숫자 17px) · 카드대금 합계 + 카드사별 · L/$ 는 수입−지출 라벨 줄 오른쪽(빈 행 제거) · 오늘은 카드대금 제목 줄
@@ -17,7 +18,7 @@
 // 표시 통화 = L 기본 + USD 토글(기기별 localStorage). HNL 거래는 원금, 그 외는 금액(USD) × 공시 HNL 환율.
 // 선택일은 URL ?d=YYYY-MM-DD 로 유지(＋ 버튼이 읽어 기록 폼 날짜 프리필, 수정 후 뒤로 오면 같은 날).
 // 집계는 수입·지출만(이체·조정 제외 — 목록엔 흐리게 표시). 날짜 기준은 브라우저 로컬(서버 UTC 어긋남 방지 위해 마운트 후 렌더).
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { AccountBalance, AcctOptions, FxInfo, InoutRow } from '@/lib/accounting-types'
@@ -72,6 +73,47 @@ export default function CalendarHome({
   }, [selected])
 
   const amt = (r: InoutRow): number => toShow(r, showCur, hnlRate)
+
+  // 아래로 당겨 기록(모바일) — 페이지 끝에 닿은 상태에서 손가락을 위로 80px 이상 끌면 기록 화면(선택일 프리필).
+  const [pull, setPull] = useState(0)
+  const pullStart = useRef<number | null>(null)
+  const pullFired = useRef(false)
+  const PULL_MAX = 80
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 767px)').matches) return
+    const atBottom = () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2
+    const onStart = (e: TouchEvent) => {
+      pullStart.current = atBottom() ? e.touches[0].clientY : null
+      pullFired.current = false
+    }
+    const onMove = (e: TouchEvent) => {
+      if (pullStart.current == null) return
+      const d = pullStart.current - e.touches[0].clientY
+      if (d <= 0 || !atBottom()) {
+        setPull(0)
+        return
+      }
+      setPull(Math.min(d * 0.6, PULL_MAX + 20))
+    }
+    const onEnd = () => {
+      if (pullStart.current != null && pull >= PULL_MAX && !pullFired.current) {
+        pullFired.current = true
+        router.push(`/accounting/entry?date=${selected ?? ''}`)
+      }
+      pullStart.current = null
+      setPull(0)
+    }
+    window.addEventListener('touchstart', onStart, { passive: true })
+    window.addEventListener('touchmove', onMove, { passive: true })
+    window.addEventListener('touchend', onEnd)
+    window.addEventListener('touchcancel', onEnd)
+    return () => {
+      window.removeEventListener('touchstart', onStart)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onEnd)
+      window.removeEventListener('touchcancel', onEnd)
+    }
+  }, [pull, selected, router])
 
   const itemOf = useMemo(() => {
     const m = new Map<string, { name: string; category: string | null }>()
@@ -328,11 +370,20 @@ export default function CalendarHome({
         )}
         <Link
           href={`/accounting/entry?date=${selected}`}
-          className="mt-2 flex h-9 items-center justify-center rounded-xl border border-dashed border-line text-[12px] font-medium text-muted transition hover:border-primary hover:text-primary"
+          className="mt-2 flex h-9 items-center justify-center rounded-xl border border-dashed border-line text-[12px] font-medium text-muted transition hover:border-primary hover:text-primary max-md:hidden"
         >
           ＋ 이 날 기록
         </Link>
       </section>
+
+      {/* 당겨서 기록 안내(모바일) — 당긴 만큼 높이가 늘어나고, 기준을 넘으면 색이 바뀐다 */}
+      <div
+        className={`flex items-center justify-center overflow-hidden text-[12px] font-medium transition-colors md:hidden ${pull >= PULL_MAX ? 'text-primary' : 'text-faint'}`}
+        style={{ height: pull, opacity: pull > 8 ? 1 : 0 }}
+        aria-hidden="true"
+      >
+        {pull >= PULL_MAX ? '놓으면 기록 화면으로' : '↑ 더 당겨서 기록'}
+      </div>
     </div>
   )
 }
