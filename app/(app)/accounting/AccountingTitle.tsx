@@ -1,10 +1,12 @@
 'use client'
+// MFH-ACCOUNTING-TITLE-V4 — 모바일(<md) 달력: 월 이동 슬롯을 왼쪽 흐름 배치 + 헤더 L/$ 토글(HeaderCurToggle) · 월 라벨 22px · L/$ 크게
 // MFH-ACCOUNTING-TITLE-V3 — 달력·통계는 헤더 중앙 = 페이지가 채우는 슬롯(월 이동, HeaderPortal) · 통계는 왼쪽 ‹ 옆에 「통계」(AccountingSideTitle)
 // MFH-ACCOUNTING-TITLE-V2 — 위플형 탭: 달력(홈)·통계·자산·내역
 // 회계 헤더 타이틀 — 현재 경로에 따라 섹션명 표시(중앙 정렬). layout 헤더에서 절대 중앙 배치.
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname } from 'next/navigation'
+import { useShowCur, type ShowCur } from '@/lib/acct-display'
 
 const TITLES: Record<string, string> = {
   '/accounting': '회계관리',
@@ -25,7 +27,9 @@ export const HEADER_SLOT_ID = 'acct-header-center'
 export default function AccountingTitle() {
   const pathname = usePathname() ?? '/accounting'
   if (SLOT_PATHS.has(pathname)) {
-    return <div id={HEADER_SLOT_ID} className="absolute left-1/2 -translate-x-1/2" />
+    // 달력(회계 홈) 모바일: 오른쪽에 L/$ 토글이 들어오므로 월 이동은 중앙 대신 왼쪽 흐름 배치
+    const cls = pathname === '/accounting' ? 'md:absolute md:left-1/2 md:-translate-x-1/2' : 'absolute left-1/2 -translate-x-1/2'
+    return <div id={HEADER_SLOT_ID} className={cls} />
   }
   const title = TITLES[pathname] ?? '회계관리'
   return (
@@ -62,13 +66,13 @@ export function HeaderMonthNav({
   onLabel?: () => void
   labelTitle?: string
 }) {
-  const btn = 'flex h-8 w-7 items-center justify-center rounded-full text-[18px] text-muted hover:bg-surface-subtle hover:text-primary'
+  const btn = 'flex h-10 w-8 items-center justify-center rounded-full text-[24px] text-muted hover:bg-surface-subtle hover:text-primary'
   return (
     <div className="flex items-center whitespace-nowrap">
       <button type="button" onClick={onPrev} aria-label="이전" className={btn}>
         ‹
       </button>
-      <button type="button" onClick={onLabel} disabled={!onLabel} title={labelTitle} className="px-0.5 font-display text-[17px] font-bold text-ink disabled:cursor-default">
+      <button type="button" onClick={onLabel} disabled={!onLabel} title={labelTitle} className="px-0.5 font-display text-[22px] font-bold text-ink disabled:cursor-default">
         {label}
       </button>
       <button type="button" onClick={onNext} aria-label="다음" className={btn}>
@@ -76,4 +80,30 @@ export function HeaderMonthNav({
       </button>
     </div>
   )
+}
+
+// L/$ 표시 통화 토글(기기별 저장 · 화면 간 동기화) — 모바일 달력은 헤더 오른쪽, 그 외는 요약 카드 라벨 줄.
+export function CurToggle({ className = '' }: { className?: string }) {
+  const [cur, setCur] = useShowCur()
+  return (
+    <span className={`flex shrink-0 rounded-full bg-surface-subtle p-0.5 text-[13px] font-semibold ${className}`}>
+      {(['HNL', 'USD'] as ShowCur[]).map((c) => (
+        <button
+          key={c}
+          type="button"
+          onClick={() => setCur(c)}
+          aria-pressed={cur === c}
+          className={`rounded-full px-3 py-1 leading-none transition ${cur === c ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
+        >
+          {c === 'HNL' ? 'L' : '$'}
+        </button>
+      ))}
+    </span>
+  )
+}
+
+// 헤더용 — 모바일(<md) 달력에서만 표시.
+export function HeaderCurToggle() {
+  const pathname = usePathname() ?? '/accounting'
+  return pathname === '/accounting' ? <CurToggle className="mr-1 md:hidden" /> : null
 }

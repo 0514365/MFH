@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-LAYOUT-V7 — 모바일(<md) 헤더 압축(여백 축소) · 달력 헤더 L/$ 토글 · 후원자 아이콘은 md 이상만
 // MFH-ACCOUNTING-LAYOUT-V6 — 헤더 중앙 슬롯(달력·통계 월 이동) · 왼쪽 ‹ 옆 섹션명(통계)
 // MFH-ACCOUNTING-LAYOUT-V5 — 왼쪽 뒤로 = 회계 안에서 뒤로(AccountingBack). 메인홈은 오른쪽 홈 버튼
 // MFH-ACCOUNTING-LAYOUT-V4 — 승인대기 건수 → 기록 탭 배지(AccountingNav·Segments)
@@ -11,7 +12,7 @@ import { createClient } from '@/lib/supabase-server'
 import { canManageFinance } from '@/lib/members'
 import AccountingBack from './AccountingBack'
 import AccountingNav, { AccountingSegments } from './AccountingNav'
-import AccountingTitle, { AccountingSideTitle } from './AccountingTitle'
+import AccountingTitle, { AccountingSideTitle, HeaderCurToggle } from './AccountingTitle'
 import { getInboxPendingCount } from '@/lib/card-inbox-db'
 import { getRecurringDueCount } from '@/lib/recurring-db'
 import '@/app/p/portfolio-theme.css'
@@ -32,9 +33,9 @@ export default async function AccountingLayout({ children }: { children: React.R
   const pending = cardPending + recPending
 
   return (
-    <main className="app-theme mx-auto max-w-md px-4 pb-4 pt-2 @2xl:max-w-5xl @2xl:px-6">
+    <main className="app-theme mx-auto max-w-md px-4 pb-4 pt-0 md:pt-2 @2xl:max-w-5xl @2xl:px-6">
       <header
-        className="sticky top-0 z-30 -mx-4 mb-4 border-b border-line px-4 py-3 @2xl:-mx-6 @2xl:px-6"
+        className="sticky top-0 z-30 -mx-4 mb-3 border-b border-line px-4 py-1.5 md:mb-4 md:py-3 @2xl:-mx-6 @2xl:px-6"
         style={{ background: 'var(--paper)' }}
       >
         <div className="relative flex items-center">
@@ -49,6 +50,7 @@ export default async function AccountingLayout({ children }: { children: React.R
 
           {/* 우: 메인홈 · 후원자관리 링크 */}
           <div className="ml-auto flex shrink-0 items-center gap-0.5">
+            <HeaderCurToggle />
             <Link href="/" aria-label="메인홈" className={linkBtn}>
               <svg
                 width="21"
@@ -65,7 +67,7 @@ export default async function AccountingLayout({ children }: { children: React.R
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
             </Link>
-            <Link href="/supporters" aria-label="후원자관리" className={linkBtn}>
+            <Link href="/supporters" aria-label="후원자관리" className={`${linkBtn} max-md:hidden`}>
               <svg
                 width="21"
                 height="21"

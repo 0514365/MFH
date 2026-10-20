@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V12 — L/$ = 공용 CurToggle(크게) · 모바일은 헤더로 이동(요약 라벨 줄은 md 이상만)
 // MFH-ACCOUNTING-CALENDAR-V11 — 요약 3단 격자 통일(라벨 13px·숫자 17px) · 카드대금 합계 + 카드사별 · L/$ 는 수입−지출 라벨 줄 오른쪽(빈 행 제거) · 오늘은 카드대금 제목 줄
 // MFH-ACCOUNTING-CALENDAR-V10 — 카드대금 단순화: 카드사별 합계 1줄(Ficohsa(우진,진아) $… / 삼성카드 $…) · 제목에 매월 상환일 · 글자 확대
 // MFH-ACCOUNTING-CALENDAR-V9 — 카드대금 = 항상 전체 미상환(확정 청구 + 이용 중) 합계, 청구 주기는 괄호 안 「MM/DD 상환 … · MM/DD 예정 …」
@@ -21,7 +22,7 @@ import Link from 'next/link'
 import type { AccountBalance, AcctOptions, FxInfo, InoutRow } from '@/lib/accounting-types'
 import { PASTEL_NEUTRAL, fmtCompact, fmtShow, hnlRateOf, itemPastels, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
 import { CatIcon } from '@/lib/acct-icons'
-import { HeaderMonthNav, HeaderPortal } from './AccountingTitle'
+import { CurToggle, HeaderMonthNav, HeaderPortal } from './AccountingTitle'
 
 // 요약 카드 공통 글자 — 라벨(수입·지출·카드사)·숫자
 const sumLabel = 'text-[13px] font-medium text-muted'
@@ -51,7 +52,7 @@ export default function CalendarHome({
   const router = useRouter()
   const [today, setToday] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
-  const [cur, toggleCur] = useShowCur()
+  const [cur] = useShowCur()
   const hnlRate = useMemo(() => hnlRateOf(fx, balances), [fx, balances])
   const showCur: ShowCur = hnlRate ? cur : 'USD'
 
@@ -196,23 +197,10 @@ export default function CalendarHome({
           <div className={`${sumNum} text-red-700`}>{fmtFull(expense, showCur)}</div>
         </div>
         <div>
-          {/* 라벨 줄 오른쪽 = L/$ 토글(별도 행 없이) */}
+          {/* 라벨 줄 오른쪽 = L/$ 토글(md 이상 · 모바일은 헤더) */}
           <div className="flex items-center justify-between gap-1">
             <span className={`${sumLabel} truncate`}>수입−지출</span>
-            {hnlRate && (
-              <span className="flex shrink-0 rounded-full bg-surface-subtle p-0.5 text-[10px] font-semibold">
-                {(['HNL', 'USD'] as ShowCur[]).map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => toggleCur(c)}
-                    className={`rounded-full px-2 py-px transition ${showCur === c ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
-                  >
-                    {c === 'HNL' ? 'L' : '$'}
-                  </button>
-                ))}
-              </span>
-            )}
+            {hnlRate && <CurToggle className="max-md:hidden" />}
           </div>
           <div className={`${sumNum} ${net >= 0 ? 'text-ink' : 'text-red-700'}`}>{fmtFull(net, showCur)}</div>
         </div>
