@@ -30,6 +30,9 @@ export type AccountBalance = {
   kind: string | null // 현금 · 신용카드
   cardLast4: string | null
   info: string | null // 계좌정보(카드는 사용자 표기: 우진 · 진아)
+  dueDay: number | null // 신용카드 매월 상환일(1~31, patch117). 미지정 null
+  // 신용카드 청구 주기(cycle_end_day + due_day, patch118). 마감일 미지정이면 null(전체 미상환만 표시).
+  cycle: CardCycle | null
   rate: number | null // 현지통화 환산율(그 통화의 최근 거래 환율, USD=1)
   balanceLocal: number | null // 계좌 통화 실보유액(holdings 의 계좌 통화분). USD 계좌는 null
   // 실보유(계좌 통화 기준, 통화별) — 계좌 통화와 같은 거래는 원금, 다른 통화 거래·USD 계좌는 금액(USD)로 USD 버킷.
@@ -38,6 +41,18 @@ export type AccountBalance = {
   valueUsd: number | null
   // 오늘 이후 날짜 거래(예약·반복 입력) — 잔액에 넣지 않은 예정액(계좌 통화 기준, USD 계좌는 USD)·건수·가장 이른 날짜.
   upcoming: { amount: number; count: number; first: string } | null
+}
+
+// 카드 청구 주기 — 확정 청구(직전 마감일까지 이용분 − 마감 후 상환) · 이용 중(마감 다음날 ~ 오늘). 금액은 양수 = 갚을 돈.
+// own = 카드 통화(KRW 등) 원금 · usd = 달러 결제분 · valueUsd = 공시 환율 평가액.
+export type CardCycleAmount = { own: number; usd: number; valueUsd: number }
+export type CardCycle = {
+  closeDate: string // 직전 마감일(YYYY-MM-DD)
+  dueDate: string // 확정 청구 상환일
+  nextDueDate: string // 이용 중 금액의 상환일
+  billed: CardCycleAmount
+  unbilled: CardCycleAmount
+  overdue: boolean // 상환일이 지났는데 확정 청구가 남음
 }
 
 // 통화별 최신 공시 환율(fx_rates) — 평가 표시용.

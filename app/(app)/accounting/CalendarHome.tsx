@@ -1,4 +1,6 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V8 — 청구 주기 카드(삼성 7092): 확정 청구(상환일·미상환 표시)만 합계에, 이용 중은 「다음 MM/DD …」로 덧붙임
+// MFH-ACCOUNTING-CALENDAR-V7 — 카드 라벨에 상환일(15일, patch117)
 // MFH-ACCOUNTING-CALENDAR-V6 — 카드대금: 카드 통화별(L·원) 원금 + $결제분(원화 카드 삼성 7092 대응), 섞이면 합계는 환산액
 // MFH-ACCOUNTING-CALENDAR-V5 — 월 이동을 헤더 중앙으로(HeaderPortal, 라벨 탭 = 오늘) · 오늘·L/$ 는 요약 카드 위 · 달력 칸·날짜 크게
 // MFH-ACCOUNTING-CALENDAR-V4 — 요약: 지출 현금·카드 구분 제거 → 「카드대금 상환할 금액」(카드별 미상환, 탭 = 자산 탭)
@@ -25,6 +27,7 @@ const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.ge
 const isYmd = (s: string | null | undefined): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s)
 const fmtFull = fmtShow
 const fmtCell = fmtCompact
+const mdOf = (s: string) => `${Number(s.slice(5, 7))}/${Number(s.slice(8, 10))}`
 
 export default function CalendarHome({
   recent,
@@ -99,17 +102,25 @@ export default function CalendarHome({
   }, [recent, ym, showCur, hnlRate])
 
   // 카드대금 상환할 금액(현재 미상환) — 카드별 카드 통화 원금(L·원) + USD 결제분. L 표시 = 원금(+ $), $ 표시 = 평가액.
+  // 청구 주기 카드(cycle)는 확정 청구분만 금액·합계에 넣고, 이용 중(다음 청구 예정)은 next 로 따로 표시.
   const cardDue = useMemo(() => {
     const rows = balances
       .filter((b) => b.kind === '신용카드')
       .map((b) => {
         const cur = b.currency ?? 'HNL'
+        const name = `${b.cardLast4 ?? b.name.slice(-4)}${b.info ? ` ${b.info}` : ''}`
+        const cy = b.cycle
+        if (cy) {
+          const next = cy.unbilled.valueUsd > 0.005 ? { date: cy.nextDueDate, ...cy.unbilled } : null
+          const label = `${name} ${cy.overdue ? '미상환 ' : ''}${mdOf(cy.dueDate)}`
+          return { id: b.id, label, cur, local: cy.billed.own, usdPart: cy.billed.usd, usd: cy.billed.valueUsd, next }
+        }
         const local = -(b.holdings.find((h) => h.currency === cur)?.amount ?? 0)
         const usdPart = cur === 'USD' ? 0 : -(b.holdings.find((h) => h.currency === 'USD')?.amount ?? 0)
         const usd = -(b.valueUsd ?? b.balanceUsd)
-        return { id: b.id, label: `${b.cardLast4 ?? b.name.slice(-4)}${b.info ? ` ${b.info}` : ''}`, cur, local, usdPart, usd }
+        return { id: b.id, label: `${name}${b.dueDay ? `(${b.dueDay}일)` : ''}`, cur, local, usdPart, usd, next: null }
       })
-      .filter((c) => c.usd > 0.005)
+      .filter((c) => c.usd > 0.005 || c.next)
     const totalUsd = rows.reduce((s, c) => s + c.usd, 0)
     const onlyHnl = rows.every((c) => c.cur === 'HNL')
     const totalHnl = rows.reduce((s, c) => s + c.local, 0)
@@ -122,6 +133,10 @@ export default function CalendarHome({
     showCur === 'HNL' && hnlRate
       ? `${cur === 'KRW' ? `${Math.round(local).toLocaleString('ko-KR')}원` : fmtFull(local, 'HNL')}${fmtUsdPart(usdPart)}`
       : fmtFull(usd, 'USD')
+  const fmtRow = (c: (typeof cardDue.rows)[number]) =>
+    `${c.label}${c.usd > 0.005 ? ` ${fmtDue(c.cur, c.local, c.usdPart, c.usd)}` : ' 없음'}${
+      c.next ? ` (다음 ${mdOf(c.next.date)} ${fmtDue(c.cur, c.next.own, c.next.usd, c.next.valueUsd)})` : ''
+    }`
   // 합계: 렘피라 카드만이면 L 원금 + $, 원화 카드가 섞이면 환산액(L 표시 = 평가액 × 공시 HNL)
   const dueTotal =
     showCur === 'HNL' && hnlRate
@@ -208,7 +223,7 @@ export default function CalendarHome({
             <span className="min-w-0">
               <span className="block text-[11px] text-faint">카드대금 상환할 금액</span>
               <span className="mt-0.5 block text-[11px] text-muted">
-                {cardDue.rows.map((c) => `${c.label} ${fmtDue(c.cur, c.local, c.usdPart, c.usd)}`).join(' · ')}
+                {cardDue.rows.map(fmtRow).join(' · ')}
               </span>
             </span>
             <span className="shrink-0 font-display text-[15px] font-bold text-red-700">

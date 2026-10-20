@@ -1,4 +1,6 @@
 'use client'
+// MFH-CARD-REPAY-BUTTON-V8 — 청구 주기 카드: 상환일 기본값 = 확정 청구 상환일, 상환 금액 기본값 = 확정 청구 원화분 · 확정/이용 중 안내
+// MFH-CARD-REPAY-BUTTON-V7 — 원화 카드 상환일 기본값 = 카드 상환일(dueDay, patch117) 중 오늘 이후 가장 가까운 날
 // MFH-CARD-REPAY-BUTTON-V6 — 원화 카드(삼성 7092 진아): 렘피라 분할은 HNL 카드만, 원화 카드는 「원화 카드」 탭에서 원화 계좌 → 카드 이체 1건
 //   (달러 결제분도 원화로 청구 → 원화 상환, 남는 환차는 「잔액 0 맞춤」)
 // MFH-CARD-REPAY-BUTTON-V5 — actionsOnly(자산 탭 신용카드 카드 안: 요약 없이 「상환 입력」·「잔액 0 맞춤」 버튼만)
@@ -9,7 +11,7 @@
 // 카드대금 상환 도우미 — 기록 탭 카드. 신용카드 계좌(4956 우진 · 7697 진아)의 미상환 잔액을 보여주고,
 // 상환 총액(HNL, 선택 USD)·환율·날짜·출금계좌만 입력하면 카드별 잔액 비율로 자동 분할 → 이체 N건 저장(bulkCreateInout, source=manual).
 // 분할액은 미리보기에서 수정 가능. 잔차(환차)는 카드 잔액에 남겨 월 1회 환차익/수수료로 0 맞춤(설계 §5).
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { AccountBalance, AcctOptions, InoutInput } from '@/lib/accounting-types'
 import { bulkCreateInout } from './actions'
@@ -22,6 +24,16 @@ const r2 = (n: number) => Math.round(n * 100) / 100
 const today = () => {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+// 다가오는 상환일(오늘 포함) — 이번 달 day 가 지났으면 다음 달. 말일보다 크면 말일.
+const nextDue = (day: number) => {
+  const d = new Date()
+  const at = (y: number, m: number) => {
+    const last = new Date(y, m + 1, 0).getDate()
+    return `${y}-${String(m + 1).padStart(2, '0')}-${String(Math.min(day, last)).padStart(2, '0')}`
+  }
+  const cur = at(d.getFullYear(), d.getMonth())
+  return cur >= today() ? cur : at(d.getFullYear(), d.getMonth() + 1)
 }
 // 총액을 카드별 부채(음수 잔액) 비율로 분할. 부채가 없으면 균등. 마지막 카드가 잔여분(합계 정확).
 function split(total: number, cards: AccountBalance[]): number[] {
@@ -92,6 +104,18 @@ export default function CardRepayButton({
   const sumUsd = hnlCards.reduce((s, _, i) => s + rowUsd(i), 0)
   const kAmt = Number(krwAmt) || 0
   const kCard = krwCards.find((c) => c.id === krwCard)
+  // 원화 카드 탭: 상환일 기본값 = 카드 상환일 · 렘피라 탭: 오늘
+  const kDueDay = kCard?.dueDay ?? null
+  const kCycle = kCard?.cycle ?? null
+  useEffect(() => {
+    if (!open) return
+    if (mode !== 'KRW') return setDate(today())
+    // 확정 청구가 남아 있으면 그 상환일(지났으면 오늘), 없으면 다가오는 상환일
+    if (kCycle && kCycle.billed.valueUsd > 0.005) {
+      setDate(kCycle.dueDate < today() ? today() : kCycle.dueDate)
+      setKrwAmt((v) => v || (kCycle.billed.own > 0 ? String(kCycle.billed.own) : ''))
+    } else setDate(kDueDay ? nextDue(kDueDay) : today())
+  }, [open, mode, kDueDay, kCycle])
   const kDue = kCard ? -(kCard.holdings.find((h) => h.currency === 'KRW')?.amount ?? 0) : 0
   const kDueUsd = kCard ? -(kCard.holdings.find((h) => h.currency === 'USD')?.amount ?? 0) : 0
 
@@ -335,7 +359,25 @@ export default function CardRepayButton({
                     <input type="number" inputMode="numeric" value={krwAmt} onChange={(e) => setKrwAmt(e.target.value)} placeholder="명세서 청구 금액" className={inp} autoFocus />
                   </div>
                 </div>
-                {kCard && (
+                {kCycle && (
+                  <div className="mt-3 space-y-0.5 rounded-xl border border-line px-3 py-2 text-[12px] text-muted">
+                    <div>
+                      확정 청구 ({Number(kCycle.closeDate.slice(5, 7))}/{Number(kCycle.closeDate.slice(8, 10))} 마감 · {Number(kCycle.dueDate.slice(5, 7))}/{Number(kCycle.dueDate.slice(8, 10))} 상환){' '}
+                      <b className={`font-display ${kCycle.overdue ? 'text-red-700' : 'text-ink'}`}>
+                        {fmtLocal(kCycle.billed.own, 'KRW')}
+                        {kCycle.billed.usd > 0.005 ? ` + ${fmtUsd(kCycle.billed.usd)}` : ''}
+                      </b>
+                    </div>
+                    <div>
+                      이용 중 ({Number(kCycle.nextDueDate.slice(5, 7))}/{Number(kCycle.nextDueDate.slice(8, 10))} 예정){' '}
+                      <b className="font-display text-ink">
+                        {fmtLocal(kCycle.unbilled.own, 'KRW')}
+                        {kCycle.unbilled.usd > 0.005 ? ` + ${fmtUsd(kCycle.unbilled.usd)}` : ''}
+                      </b>
+                    </div>
+                  </div>
+                )}
+                {kCard && !kCycle && (
                   <div className="mt-3 rounded-xl border border-line px-3 py-2 text-[12px] text-muted">
                     현재 미상환{' '}
                     <b className="font-display text-ink">

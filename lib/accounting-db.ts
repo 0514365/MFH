@@ -1,3 +1,5 @@
+// MFH-ACCOUNTING-DB-V14 — 카드 청구 주기 cycle(확정 청구·이용 중, cycle_end_day + due_day, patch118)
+// MFH-ACCOUNTING-DB-V13 — 신용카드 상환일 dueDay(acct_accounts.due_day, patch117)
 // MFH-ACCOUNTING-DB-V12 — 잔액 = 오늘(온두라스)까지 거래만. 미래 날짜 거래(예약·반복 입력)는 upcoming(예정)으로 분리
 // MFH-ACCOUNTING-DB-V11 — to_principal(통화가 다른 이체 입금 금액, patch116) 읽기·쓰기·실보유 반영. rate·amount_usd 는 DB 트리거가 최종 결정
 // MFH-ACCOUNTING-DB-V10 — 계좌 실보유(통화별)·공시 환율 평가액(valueUsd) · getFxInfo(patch114)
@@ -20,6 +22,8 @@ import type {
   AcctOptions,
   AccountBalance,
   AccountInput,
+  CardCycle,
+  CardCycleAmount,
   ActionResult,
   DonationYearly,
   FxInfo,
@@ -95,7 +99,7 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
   const [acc, tx, krw, hnl, fx] = await Promise.all([
     sb
       .from('acct_accounts')
-      .select('id, name, currency, kind, card_last4, info, initial_usd, adjust_usd')
+      .select('id, name, currency, kind, card_last4, info, due_day, cycle_end_day, initial_usd, adjust_usd')
       .eq('is_active', true)
       .order('sort_order')
       .order('name'),
@@ -165,6 +169,72 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
     } else if (t.gubun === '조정') add(t.account_id, 1, t) // 잔액 조정(부호 있음, patch108)
   }
   const fxRate = (cur: string): number | null => (cur === 'USD' ? 1 : (fx[cur as 'HNL' | 'KRW']?.rate ?? null))
+  // 카드 청구 주기 — 직전 마감일 D(오늘이 마감일 이후면 이번 달, 아니면 지난달) 기준으로
+  // 확정 청구 = D 까지 잔액의 부채 − D 이후 상환·환불 · 이용 중 = D 이후 이용액. 버킷 = 카드 통화(own) · USD.
+  // 상환은 카드 통화 부채 먼저, 남으면 공시 환율로 달러분을 갚은 것으로 본다(원화로 청구된 해외 결제).
+  const cardCycle = (id: string, cur: string, closeDay: number, dueDay: number): CardCycle => {
+    const ymdOf = (y: number, m: number, d: number) => {
+      const dt = new Date(Date.UTC(y, m, 1))
+      const last = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 0)).getUTCDate()
+      return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(Math.min(d, last)).padStart(2, '0')}`
+    }
+    const [ty, tm, td] = todayHn.split('-').map(Number)
+    const cm = td > closeDay ? tm - 1 : tm - 2 // 직전 마감 월(0-based)
+    const closeDate = ymdOf(ty, cm, closeDay)
+    const dueOf = (m: number) => ymdOf(ty, dueDay > closeDay ? m : m + 1, dueDay)
+    const dueDate = dueOf(cm)
+    const nextDueDate = dueOf(cm + 1)
+    const rate = fxRate(cur) ?? rateOf[cur] ?? null
+    // D 까지 버킷 잔액 · D 이후 양(상환·환불)/음(이용) 합
+    const at = { own: 0, usd: 0 }
+    const credit = { own: 0, usd: 0 }
+    const charge = { own: 0, usd: 0 }
+    const put = (sign: number, t: { date: string | null; amount_usd: unknown; currency: string | null; principal: unknown; to_principal?: unknown }, toSide: boolean) => {
+      const toP = toSide ? num(t.to_principal) : null
+      const same = cur !== 'USD' && (toP != null || t.currency === cur)
+      const k = same ? 'own' : 'usd'
+      const v = sign * (same ? (toP ?? num(t.principal) ?? 0) : (num(t.amount_usd) ?? 0))
+      if (!t.date || t.date <= closeDate) at[k] += v
+      else if (v > 0) credit[k] += v
+      else charge[k] -= v
+    }
+    for (const t of tx.data ?? []) {
+      if (t.date && t.date > todayHn) continue
+      if (t.account_id === id) put(t.gubun === '지출' || t.gubun === '이체' ? -1 : 1, t, false)
+      if (t.gubun === '이체' && t.to_account_id === id) put(1, t, true)
+    }
+    // 마감 시점 과납분은 상환으로 본다
+    const billed = { own: Math.max(0, -at.own), usd: Math.max(0, -at.usd) }
+    credit.own += Math.max(0, at.own)
+    credit.usd += Math.max(0, at.usd)
+    const unbilled = { own: charge.own, usd: charge.usd }
+    // 상환·환불을 확정 청구 → 이용 중 순으로 차감(같은 버킷 먼저, 남으면 환율로 다른 버킷)
+    const payDown = (debt: { own: number; usd: number }) => {
+      let x = Math.min(debt.own, credit.own)
+      debt.own -= x
+      credit.own -= x
+      x = Math.min(debt.usd, credit.usd)
+      debt.usd -= x
+      credit.usd -= x
+      if (rate) {
+        x = Math.min(debt.usd, credit.own / rate)
+        debt.usd -= x
+        credit.own -= x * rate
+        x = Math.min(debt.own, credit.usd * rate)
+        debt.own -= x
+        credit.usd -= x / rate
+      }
+    }
+    payDown(billed)
+    payDown(unbilled)
+    const amt = (d: { own: number; usd: number }): CardCycleAmount => {
+      const own = cur === 'KRW' ? Math.round(d.own) : r2(d.own)
+      const usd = r2(d.usd)
+      return { own, usd, valueUsd: r2(usd + (rate ? own / rate : 0)) }
+    }
+    const b = amt(billed)
+    return { closeDate, dueDate, nextDueDate, billed: b, unbilled: amt(unbilled), overdue: todayHn > dueDate && b.valueUsd > 0.005 }
+  }
   return (acc.data ?? []).map((a) => {
     const base = (num(a.initial_usd) ?? 0) + (num(a.adjust_usd) ?? 0)
     const balanceUsd = r2(base + (sum.get(a.id) ?? 0))
@@ -193,6 +263,8 @@ export async function getAccountBalances(): Promise<AccountBalance[] | null> {
       kind: a.kind ?? null,
       cardLast4: a.card_last4 ?? null,
       info: a.info ?? null,
+      dueDay: a.due_day ?? null,
+      cycle: a.kind === '신용카드' && a.cycle_end_day && a.due_day && currency ? cardCycle(a.id, currency, a.cycle_end_day, a.due_day) : null,
       rate,
       balanceUsd,
       balanceLocal,

@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-ASSETS-VIEW-V3 — 신용카드 상환일(N일 상환) · 청구 주기 카드 줄 「MM/DD 상환 … · MM/DD 예정 …」(patch117·118)
 // MFH-ACCOUNTING-ASSETS-VIEW-V2 — 계좌 행에 「예정」(오늘 이후 날짜 거래, 잔액 미포함) 표시
 // MFH-ACCOUNTING-ASSETS-VIEW-V1
 // 위플형 자산 탭(c단계) — 순자산 큰 숫자(자산·부채) · L/$ 토글(통계·달력과 공유) · 자산 구성 띠(달러·원화·렘피라)
@@ -103,6 +104,17 @@ export default function AssetsView({
     const upLine = up
       ? `예정 ${up.amount > 0 ? '+' : ''}${b.currency && b.currency !== 'USD' ? fmtLocal(up.amount, b.currency) : `${up.amount < 0 ? '−' : ''}$${Math.abs(up.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} (${MD(up.first)}${up.count > 1 ? ` 외 ${up.count - 1}건` : ''})`
       : null
+    const cy = b.cycle
+    const cyAmt = (a: { own: number; usd: number }) =>
+      `${fmtLocal(a.own, b.currency)}${a.usd > 0.005 ? ` + $${a.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}`
+    const cycleLine = cy
+      ? [
+          cy.billed.valueUsd > 0.005 ? `${cy.overdue ? '미상환 · ' : ''}${MD(cy.dueDate)} 상환 ${cyAmt(cy.billed)}` : `${MD(cy.dueDate)} 상환 완료`,
+          cy.unbilled.valueUsd > 0.005 ? `${MD(cy.nextDueDate)} 예정 ${cyAmt(cy.unbilled)}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : null
     const subs = [localLine, Math.abs(usdDiff) >= 0.01 ? `장부 $${b.balanceUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null, upLine].filter(Boolean)
     return (
       <li key={b.id}>
@@ -113,9 +125,12 @@ export default function AssetsView({
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium text-ink">
               {shortName(b)}
-              {b.kind === '신용카드' && b.info && <span className="ml-1.5 text-[11px] text-faint">{b.info}</span>}
+              {b.kind === '신용카드' && (b.info || b.dueDay) && (
+                <span className="ml-1.5 text-[11px] text-faint">{[b.info, b.dueDay ? `${b.dueDay}일 상환` : null].filter(Boolean).join(' · ')}</span>
+              )}
             </span>
             {subs.length > 0 && <span className="block truncate text-[11px] text-faint">{subs.join(' · ')}</span>}
+            {cycleLine && <span className={`block truncate text-[11px] ${cy?.overdue ? 'font-medium text-red-700' : 'text-muted'}`}>{cycleLine}</span>}
           </span>
           <span className={`shrink-0 font-display text-[15px] font-bold ${v < 0 ? 'text-red-700' : 'text-ink'}`}>
             {fmt(v)} <span className="text-[12px] font-normal text-faint">›</span>
