@@ -1,4 +1,6 @@
 'use client'
+// MFH-QUICK-ENTRY-V6 — 통화 기호는 숫자 앞 작은 회색 글자 · = 뒤에도 계산 과정(식 = 결과)을 C 누를 때까지 표시
+// MFH-QUICK-ENTRY-V5 — 통화 선택(L/$/₩)을 상단 날짜 줄 중앙으로 · 금액 숫자는 화면 폭 전체 사용(큰 L 글자 제거)
 // MFH-QUICK-ENTRY-V4 — 입력 중 숫자도 천단위 쉼표 · 큰 숫자는 글자 크기를 자동으로 줄여 전부 표시(줄임표 없음)
 // MFH-QUICK-ENTRY-V3 — [이체][조정] 아래 「상세 입력」 긴 버튼 · 키패드 위 줄 = C 와 = 를 같은 크기로 항상 표시
 // MFH-QUICK-ENTRY-V2 — ① 통화 선택 세그먼트(L/$/₩) · [이체][조정] 버튼(→ 상세 폼) · C 버튼 강조 · ③ 구매처 입력칸을 내역 바로 아래 같은 크기로
@@ -37,7 +39,7 @@ const fmtTyping = (t: string) => {
   return dec !== undefined ? `${i}.${dec}` : i
 }
 // 글자 수에 따라 큰 숫자 글꼴 크기 — 전부 보이게(줄임표 대신 축소).
-const bigSize = (len: number) => (len <= 7 ? 64 : len <= 10 ? 50 : len <= 13 ? 40 : len <= 16 ? 32 : 26)
+const bigSize = (len: number) => (len <= 9 ? 64 : len <= 12 ? 52 : len <= 15 ? 42 : len <= 18 ? 34 : 28)
 
 // ===== 계산기 — 토큰(숫자·연산자) 배열, × ÷ 우선 후 + − 순(좌→우) =====
 type Op = '+' | '-' | '*' | '/'
@@ -73,6 +75,7 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
   // 계산기: 확정 토큰 + 입력 중 숫자 문자열
   const [tokens, setTokens] = useState<(number | Op)[]>([])
   const [typing, setTyping] = useState('')
+  const [history, setHistory] = useState('') // = 누른 뒤 남기는 「식 = 결과」(C 로 지움)
   const [gubun, setGubun] = useState<Gubun>('지출')
   const [accountId, setAccountId] = useState('')
   const [name, setName] = useState('')
@@ -114,6 +117,7 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
   function pressEquals() {
     if (!tokens.length) return
     const v = evaluate(typing ? [...tokens, Number(typing)] : tokens)
+    setHistory(`${exprText} = ${fmtNum(v, cur)}`)
     setTokens([])
     setTyping(v ? String(v) : '')
   }
@@ -130,6 +134,7 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
   function clearAll() {
     setTokens([])
     setTyping('')
+    setHistory('')
   }
 
   // ---- 단계 이동 ----
@@ -212,7 +217,23 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
   return (
     <div className="fixed inset-0 z-50 flex flex-col md:hidden" style={{ background: 'var(--paper)', paddingTop: 'env(safe-area-inset-top)' }}>
       {/* 상단 바 */}
-      <div className="flex h-14 shrink-0 items-center justify-between px-3">
+      <div className="relative flex h-14 shrink-0 items-center justify-between px-3">
+        {step === 1 && (
+          <div className="absolute left-1/2 flex -translate-x-1/2 rounded-full bg-surface-subtle p-0.5" role="radiogroup" aria-label="통화">
+            {CUR_ORDER.map((c) => (
+              <button
+                key={c}
+                type="button"
+                role="radio"
+                aria-checked={cur === c}
+                onClick={() => setCur(c)}
+                className={`rounded-full px-2.5 py-1.5 font-display text-[13px] font-semibold transition ${cur === c ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
+              >
+                {CUR_SIGN[c]} <span className="text-[10px] font-medium">{c}</span>
+              </button>
+            ))}
+          </div>
+        )}
         {step === 1 ? (
           <label className="relative px-1 font-display text-[20px] text-muted">
             {date.replace(/-/g, '/')}
@@ -244,36 +265,19 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
       {/* ① 금액 + 계산기 */}
       {step === 1 && (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex items-start justify-between px-6 pt-4">
-            <div className="flex flex-col items-start gap-3">
-              <span className="font-display text-[64px] font-light leading-none text-muted">{CUR_SIGN[cur]}</span>
-              {/* 통화 선택 */}
-              <div className="flex rounded-full bg-surface-subtle p-0.5" role="radiogroup" aria-label="통화">
-                {CUR_ORDER.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    role="radio"
-                    aria-checked={cur === c}
-                    onClick={() => setCur(c)}
-                    className={`rounded-full px-3.5 py-1.5 font-display text-[14px] font-semibold transition ${cur === c ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
-                  >
-                    {CUR_SIGN[c]} <span className="text-[11px] font-medium">{c}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="min-w-0 flex-1 text-right">
-              {(() => {
-                const text = typing ? fmtTyping(typing) : fmtNum(amount, cur)
-                return (
-                  <div className="break-all font-display font-light leading-none text-[#1B7FC3]" style={{ fontSize: bigSize(text.length), minHeight: 64 }}>
-                    {text}
-                  </div>
-                )
-              })()}
-              {tokens.length > 0 && <div className="mt-2 break-all font-display text-[14px] text-faint">{exprText}</div>}
-            </div>
+          <div className="px-6 pt-4">
+            {(() => {
+              const text = typing ? fmtTyping(typing) : fmtNum(amount, cur)
+              return (
+                <div className="break-all text-right font-display font-light leading-none text-[#1B7FC3]" style={{ fontSize: bigSize(text.length), minHeight: 64 }}>
+                  <span className="mr-2 text-[0.45em] text-muted">{CUR_SIGN[cur]}</span>
+                  {text}
+                </div>
+              )
+            })()}
+            {(tokens.length > 0 || history) && (
+              <div className="mt-2 break-all text-right font-display text-[14px] text-faint">{tokens.length > 0 ? exprText : history}</div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4 px-6 pt-8">
