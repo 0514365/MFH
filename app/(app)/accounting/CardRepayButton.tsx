@@ -236,11 +236,11 @@ export default function CardRepayButton({
   )
 
   const compactActions = (
-    <span className="flex items-center gap-1">
-      <button type="button" onClick={() => setOpen(true)} className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-white transition active:opacity-80">
+    <span className="flex items-center gap-1.5">
+      <button type="button" onClick={() => setOpen(true)} className="h-8 rounded-full bg-primary px-3.5 text-[13px] font-bold text-white transition active:opacity-80">
         상환
       </button>
-      <button type="button" onClick={openZero} className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-muted transition hover:border-primary hover:text-primary">
+      <button type="button" onClick={openZero} className="h-8 rounded-full border border-line px-3.5 text-[13px] font-medium text-muted transition hover:border-primary hover:text-primary">
         잔액 0
       </button>
     </span>

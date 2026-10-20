@@ -1,5 +1,5 @@
 'use client'
-// MFH-ACCOUNTING-CALENDAR-V16 — 카드대금 제목 줄 오른쪽 「상환」·「잔액 0」 버튼(CardRepayButton compact, 모든 폭)
+// MFH-ACCOUNTING-CALENDAR-V16 — 카드대금 제목 줄 오른쪽 「상환」·「잔액 0」 버튼(CardRepayButton compact, 모든 폭) · 상환일 글자 작게, 한 줄 고정
 // MFH-ACCOUNTING-CALENDAR-V15 — 달력 아래 승인대기 배너(홈과 같은 모양) · 선택일 머리줄 「수입 n · 지출 n」 라벨형(위플)
 // MFH-ACCOUNTING-CALENDAR-V14 — 모바일: 페이지 끝에서 80px 이상 더 당기면 기록 화면(당기는 동안 안내 표시)
 // MFH-ACCOUNTING-CALENDAR-V13 — 카드대금: 카드사별 행(Ficohsa·삼성 2행) + 오른쪽 합계
@@ -256,12 +256,12 @@ export default function CalendarHome({
         </div>
         {cardDue.list.length > 0 && (
           <>
-            <div className="col-span-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-t border-line pt-3">
-              <span className="text-[13px] font-semibold text-ink">
+            <div className="col-span-3 flex items-center justify-between gap-2 border-t border-line pt-3">
+              <span className="min-w-0 truncate text-[13px] font-semibold text-ink">
                 카드대금
-                {cardDue.title && <span className="ml-1 font-normal text-muted">({cardDue.title})</span>}
+                {cardDue.title && <span className="ml-1 text-[11px] font-normal text-muted">({cardDue.title})</span>}
               </span>
-              <span className="flex items-center gap-2">
+              <span className="flex shrink-0 items-center gap-2">
                 <CardRepayButton balances={balances} options={options} compact />
                 {todayBtn}
               </span>
