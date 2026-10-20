@@ -1,4 +1,5 @@
 'use client'
+// MFH-QUICK-ENTRY-V7 — 상단 통화 선택은 기호만(L · $ · ₩), 선택 = 마룬 배경 흰 글자, 날짜 글자 축소(겹침 방지)
 // MFH-QUICK-ENTRY-V6 — 통화 기호는 숫자 앞 작은 회색 글자 · = 뒤에도 계산 과정(식 = 결과)을 C 누를 때까지 표시
 // MFH-QUICK-ENTRY-V5 — 통화 선택(L/$/₩)을 상단 날짜 줄 중앙으로 · 금액 숫자는 화면 폭 전체 사용(큰 L 글자 제거)
 // MFH-QUICK-ENTRY-V4 — 입력 중 숫자도 천단위 쉼표 · 큰 숫자는 글자 크기를 자동으로 줄여 전부 표시(줄임표 없음)
@@ -219,23 +220,24 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
       {/* 상단 바 */}
       <div className="relative flex h-14 shrink-0 items-center justify-between px-3">
         {step === 1 && (
-          <div className="absolute left-1/2 flex -translate-x-1/2 rounded-full bg-surface-subtle p-0.5" role="radiogroup" aria-label="통화">
+          <div className="absolute left-1/2 flex -translate-x-1/2 gap-1 rounded-full border border-line bg-surface-subtle p-1" role="radiogroup" aria-label="통화">
             {CUR_ORDER.map((c) => (
               <button
                 key={c}
                 type="button"
                 role="radio"
                 aria-checked={cur === c}
+                aria-label={c}
                 onClick={() => setCur(c)}
-                className={`rounded-full px-2.5 py-1.5 font-display text-[13px] font-semibold transition ${cur === c ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
+                className={`flex h-8 w-9 items-center justify-center rounded-full font-display text-[15px] font-bold transition ${cur === c ? 'bg-primary text-white shadow-soft' : 'text-muted'}`}
               >
-                {CUR_SIGN[c]} <span className="text-[10px] font-medium">{c}</span>
+                {CUR_SIGN[c]}
               </button>
             ))}
           </div>
         )}
         {step === 1 ? (
-          <label className="relative px-1 font-display text-[20px] text-muted">
+          <label className="relative px-1 font-display text-[17px] text-muted">
             {date.replace(/-/g, '/')}
             <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} className="absolute inset-0 opacity-0" aria-label="날짜" />
           </label>

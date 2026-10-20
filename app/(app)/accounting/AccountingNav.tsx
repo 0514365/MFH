@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-NAV-V7 — EntryFab 는 달력(/accounting)·내역(/accounting/ledger)에서만 표시
 // MFH-ACCOUNTING-NAV-V6 — 중앙 = 메인홈(집) · 기록 ＋ 는 EntryFab(화면 오른쪽 아래 플로팅, 승인대기 배지 포함, 기록·승인대기 화면에선 숨김)
 // MFH-ACCOUNTING-NAV-V5 — 위플형 재구성: [달력][통계] [＋(중앙·돌출)] [자산][내역]. 기록 탭 제거 → ＋ = /accounting/entry
 //   (달력 홈에서 누르면 선택일 ?date= 프리필), 승인대기 배지는 ＋ 우상단(탭 → /accounting/inbox). 메인홈은 헤더 집 아이콘.
@@ -148,12 +149,12 @@ function TabLink({ tab, pathname }: { tab: Tab; pathname: string }) {
   )
 }
 
-// 기록 ＋ 플로팅(모바일) — 화면 오른쪽 아래, 탭바 위. 승인대기 배지 우상단(탭 → 승인대기). 기록·승인대기 화면에선 숨김.
-const FAB_HIDDEN = ['/accounting/entry', '/accounting/inbox']
+// 기록 ＋ 플로팅(모바일) — 화면 오른쪽 아래, 탭바 위. 승인대기 배지 우상단(탭 → 승인대기). 달력·내역 화면에서만 표시.
+const FAB_PATHS = ['/accounting', '/accounting/ledger']
 export function EntryFab({ pending = 0 }: { pending?: number }) {
   const pathname = usePathname() ?? '/accounting'
   const router = useRouter()
-  if (FAB_HIDDEN.some((p) => pathname === p || pathname.startsWith(p + '/'))) return null
+  if (!FAB_PATHS.includes(pathname)) return null
   return (
     <div className="fixed right-4 z-40 md:hidden" style={{ bottom: 'calc(84px + env(safe-area-inset-bottom))' }}>
       <button
