@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-ENTRY-PAGE-V7 — 카드 미상환(CardRepayButton)은 md 이상만(모바일은 달력 카드대금 「상환」·「잔액 0」 버튼)
 // MFH-ACCOUNTING-ENTRY-PAGE-V6 — 모바일(<md)은 QuickEntry(위플형 3단계, 전체 화면). ?edit= · ?full=1 은 기존 폼. 데스크탑은 기존 폼 그대로
 // MFH-ACCOUNTING-ENTRY-PAGE-V5 — 공시 환율(getFxInfo) → 입력 폼 잠정 환산
 // MFH-ACCOUNTING-ENTRY-PAGE-V4 — 카드대금 상환 도우미(CardRepayButton)
@@ -7,8 +8,8 @@ import { getInboxPendingCount } from '@/lib/card-inbox-db'
 import { getRecurringDueCount } from '@/lib/recurring-db'
 import AccountingForm from '../AccountingForm'
 import CsvImport from '../CsvImport'
-import InboxBanner from '../InboxBanner'
 import CardRepayButton from '../CardRepayButton'
+import InboxBanner from '../InboxBanner'
 import QuickEntry from '../QuickEntry'
 
 export const dynamic = 'force-dynamic'
@@ -44,7 +45,9 @@ export default async function AccountingEntryPage({
       {quick && <QuickEntry options={options} fx={fx} initialDate={date} />}
       <div className={quick ? 'max-md:hidden' : ''}>
         <InboxBanner count={pending} recurring={recurring} />
-        <CardRepayButton balances={balances} options={options} />
+        <div className="max-md:hidden">
+          <CardRepayButton balances={balances} options={options} />
+        </div>
         <CsvImport options={options} />
         <AccountingForm options={options} recent={recent} fx={fx} />
       </div>

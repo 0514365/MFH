@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-REPAY-BUTTON-V9 — compact 모드(달력 카드대금 제목 줄: 작은 「상환」·「잔액 0」 알약 버튼 + 같은 모달)
 // MFH-CARD-REPAY-BUTTON-V8 — 청구 주기 카드: 상환일 기본값 = 확정 청구 상환일, 상환 금액 기본값 = 확정 청구 원화분 · 확정/이용 중 안내
 // MFH-CARD-REPAY-BUTTON-V7 — 원화 카드 상환일 기본값 = 카드 상환일(dueDay, patch117) 중 오늘 이후 가장 가까운 날
 // MFH-CARD-REPAY-BUTTON-V6 — 원화 카드(삼성 7092 진아): 렘피라 분할은 HNL 카드만, 원화 카드는 「원화 카드」 탭에서 원화 계좌 → 카드 이체 1건
@@ -48,6 +49,7 @@ function split(total: number, cards: AccountBalance[]): number[] {
 const cardLabel = (c: AccountBalance) => `${c.name.replace(' 신용카드 ', ' ')}${c.info ? ` (${c.info})` : ''}`
 
 export default function CardRepayButton({
+  compact = false,
   balances,
   options,
   actionsOnly = false,
@@ -55,6 +57,7 @@ export default function CardRepayButton({
   balances: AccountBalance[]
   options?: AcctOptions
   actionsOnly?: boolean
+  compact?: boolean
 }) {
   const router = useRouter()
   const cards = useMemo(() => balances.filter((b) => b.kind === '신용카드'), [balances])
@@ -232,9 +235,22 @@ export default function CardRepayButton({
     </>
   )
 
+  const compactActions = (
+    <span className="flex items-center gap-1">
+      <button type="button" onClick={() => setOpen(true)} className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-white transition active:opacity-80">
+        상환
+      </button>
+      <button type="button" onClick={openZero} className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-muted transition hover:border-primary hover:text-primary">
+        잔액 0
+      </button>
+    </span>
+  )
+
   return (
     <>
-      {actionsOnly ? (
+      {compact ? (
+        compactActions
+      ) : actionsOnly ? (
         <div className="flex justify-end gap-2">{actions}</div>
       ) : (
       <div className="mb-4 flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">

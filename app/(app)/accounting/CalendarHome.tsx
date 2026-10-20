@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V16 — 카드대금 제목 줄 오른쪽 「상환」·「잔액 0」 버튼(CardRepayButton compact, 모든 폭)
 // MFH-ACCOUNTING-CALENDAR-V15 — 달력 아래 승인대기 배너(홈과 같은 모양) · 선택일 머리줄 「수입 n · 지출 n」 라벨형(위플)
 // MFH-ACCOUNTING-CALENDAR-V14 — 모바일: 페이지 끝에서 80px 이상 더 당기면 기록 화면(당기는 동안 안내 표시)
 // MFH-ACCOUNTING-CALENDAR-V13 — 카드대금: 카드사별 행(Ficohsa·삼성 2행) + 오른쪽 합계
@@ -26,6 +27,7 @@ import type { AccountBalance, AcctOptions, FxInfo, InoutRow } from '@/lib/accoun
 import { PASTEL_NEUTRAL, fmtCompact, fmtShow, hnlRateOf, itemPastels, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
 import { CatIcon } from '@/lib/acct-icons'
 import { CurToggle, HeaderMonthNav, HeaderPortal } from './AccountingTitle'
+import CardRepayButton from './CardRepayButton'
 
 // 요약 카드 공통 글자 — 라벨(수입·지출·카드사)·숫자
 const sumLabel = 'text-[13px] font-medium text-muted'
@@ -259,7 +261,10 @@ export default function CalendarHome({
                 카드대금
                 {cardDue.title && <span className="ml-1 font-normal text-muted">({cardDue.title})</span>}
               </span>
-              {todayBtn}
+              <span className="flex items-center gap-2">
+                <CardRepayButton balances={balances} options={options} compact />
+                {todayBtn}
+              </span>
             </div>
             {/* 카드사별 행(왼쪽, 금액 오른쪽 정렬) + 합계(오른쪽) */}
             <Link href="/accounting/assets" className="col-span-3 flex items-stretch gap-3">
