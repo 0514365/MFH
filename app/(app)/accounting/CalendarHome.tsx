@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V11 — 요약 3단 격자 통일(라벨 13px·숫자 17px) · 카드대금 합계 + 카드사별 · L/$ 는 수입−지출 라벨 줄 오른쪽(빈 행 제거) · 오늘은 카드대금 제목 줄
 // MFH-ACCOUNTING-CALENDAR-V10 — 카드대금 단순화: 카드사별 합계 1줄(Ficohsa(우진,진아) $… / 삼성카드 $…) · 제목에 매월 상환일 · 글자 확대
 // MFH-ACCOUNTING-CALENDAR-V9 — 카드대금 = 항상 전체 미상환(확정 청구 + 이용 중) 합계, 청구 주기는 괄호 안 「MM/DD 상환 … · MM/DD 예정 …」
 // MFH-ACCOUNTING-CALENDAR-V8 — 청구 주기 카드(삼성 7092): 확정 청구(상환일·미상환 표시)만 합계에, 이용 중은 「다음 MM/DD …」로 덧붙임
@@ -21,6 +22,10 @@ import type { AccountBalance, AcctOptions, FxInfo, InoutRow } from '@/lib/accoun
 import { PASTEL_NEUTRAL, fmtCompact, fmtShow, hnlRateOf, itemPastels, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
 import { CatIcon } from '@/lib/acct-icons'
 import { HeaderMonthNav, HeaderPortal } from './AccountingTitle'
+
+// 요약 카드 공통 글자 — 라벨(수입·지출·카드사)·숫자
+const sumLabel = 'text-[13px] font-medium text-muted'
+const sumNum = 'font-display text-[17px] font-bold'
 
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -130,10 +135,22 @@ export default function CalendarHome({
   }, [balances, hnlRate])
   const fmtGroup = (g: (typeof cardDue.list)[number]) =>
     showCur === 'HNL' && hnlRate ? fmtFull(g.hnl, 'HNL') : fmtFull(g.usd, 'USD')
+  const fmtGroupTotal =
+    showCur === 'HNL' && hnlRate
+      ? fmtFull(cardDue.list.reduce((t, g) => t + g.hnl, 0), 'HNL')
+      : fmtFull(cardDue.list.reduce((t, g) => t + g.usd, 0), 'USD')
 
   const dayRows = useMemo(() => recent.filter((r) => r.date === selected), [recent, selected])
 
   if (!selected || !today) return <div className="min-h-[60vh]" aria-hidden="true" />
+
+  // 다른 달을 볼 때 「오늘」 — 카드대금 제목 줄 오른쪽(헤더 월 라벨 탭도 오늘로 이동)
+  const todayBtn =
+    ym !== today.slice(0, 7) ? (
+      <button type="button" onClick={() => setSelected(today)} className="rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-muted hover:border-primary hover:text-primary">
+        오늘
+      </button>
+    ) : null
 
   const first = new Date(year, month - 1, 1)
   const daysInMonth = new Date(year, month, 0).getDate()
@@ -167,62 +184,63 @@ export default function CalendarHome({
         />
       </HeaderPortal>
 
-      {/* 그달 요약 */}
-      <section className="grid grid-cols-3 gap-2 rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        {(hnlRate || ym !== today.slice(0, 7)) && (
-          <div className="col-span-3 -mt-1 flex items-center justify-end gap-1.5">
-            {ym !== today.slice(0, 7) && (
-              <button type="button" onClick={() => setSelected(today)} className="rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-muted hover:border-primary hover:text-primary">
-                오늘
-              </button>
-            )}
+      {/* 그달 요약 — 라벨 13px · 숫자 17px 통일. L/$ 는 수입−지출 라벨 줄 오른쪽, 오늘은 카드대금 제목 줄 오른쪽 */}
+      <section className="grid grid-cols-3 gap-x-2 gap-y-3 rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        {cardDue.list.length === 0 && todayBtn && <div className="col-span-3 -mb-1 flex justify-end">{todayBtn}</div>}
+        <div>
+          <div className={sumLabel}>수입</div>
+          <div className={`${sumNum} text-blue-700`}>{fmtFull(income, showCur)}</div>
+        </div>
+        <div>
+          <div className={sumLabel}>지출</div>
+          <div className={`${sumNum} text-red-700`}>{fmtFull(expense, showCur)}</div>
+        </div>
+        <div>
+          {/* 라벨 줄 오른쪽 = L/$ 토글(별도 행 없이) */}
+          <div className="flex items-center justify-between gap-1">
+            <span className={`${sumLabel} truncate`}>수입−지출</span>
             {hnlRate && (
-              <div className="flex rounded-full bg-surface-subtle p-0.5 text-[11px] font-semibold">
+              <span className="flex shrink-0 rounded-full bg-surface-subtle p-0.5 text-[10px] font-semibold">
                 {(['HNL', 'USD'] as ShowCur[]).map((c) => (
                   <button
                     key={c}
                     type="button"
                     onClick={() => toggleCur(c)}
-                    className={`rounded-full px-2.5 py-0.5 transition ${showCur === c ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
+                    className={`rounded-full px-2 py-px transition ${showCur === c ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
                   >
                     {c === 'HNL' ? 'L' : '$'}
                   </button>
                 ))}
-              </div>
+              </span>
             )}
           </div>
-        )}
-        <div>
-          <div className="text-[11px] text-faint">수입</div>
-          <div className="font-display text-[15px] font-bold text-blue-700">{fmtFull(income, showCur)}</div>
-        </div>
-        <div>
-          <div className="text-[11px] text-faint">지출</div>
-          <div className="font-display text-[15px] font-bold text-red-700">{fmtFull(expense, showCur)}</div>
-        </div>
-        <div>
-          <div className="text-[11px] text-faint">수입−지출</div>
-          <div className={`font-display text-[15px] font-bold ${net >= 0 ? 'text-ink' : 'text-red-700'}`}>{fmtFull(net, showCur)}</div>
+          <div className={`${sumNum} ${net >= 0 ? 'text-ink' : 'text-red-700'}`}>{fmtFull(net, showCur)}</div>
         </div>
         {cardDue.list.length > 0 && (
-          <Link href="/accounting/assets" className="col-span-3 mt-1 block border-t border-line pt-3">
-            <span className="block text-[12px] text-faint">카드대금{cardDue.title ? ` (${cardDue.title})` : ''}</span>
-            <span className="mt-1 flex items-center justify-between gap-3">
-              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                {cardDue.list.map((g, i) => (
-                  <span key={g.brand} className="whitespace-nowrap">
-                    {i > 0 && <span className="mr-2 text-faint">/</span>}
-                    <span className="text-[14px] font-medium text-ink">
-                      {g.brand}
-                      {g.count > 1 && g.owners.length ? `(${g.owners.join(',')})` : ''}
-                    </span>{' '}
-                    <span className="font-display text-[16px] font-bold text-red-700">{fmtGroup(g)}</span>
-                  </span>
-                ))}
+          <>
+            <div className="col-span-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-t border-line pt-3">
+              <span className="text-[13px] font-semibold text-ink">
+                카드대금
+                {cardDue.title && <span className="ml-1 font-normal text-muted">({cardDue.title})</span>}
               </span>
-              <span className="shrink-0 text-[12px] text-faint">›</span>
-            </span>
-          </Link>
+              {todayBtn}
+            </div>
+            <Link href="/accounting/assets" className="col-span-3 grid grid-cols-3 gap-x-2 gap-y-3">
+              <span className="block">
+                <span className={`block ${sumLabel}`}>합계</span>
+                <span className={`block ${sumNum} text-red-700`}>{fmtGroupTotal}</span>
+              </span>
+              {cardDue.list.map((g) => (
+                <span key={g.brand} className="block min-w-0">
+                  <span className={`block truncate ${sumLabel}`}>
+                    {g.brand}
+                    {g.count > 1 && g.owners.length ? `(${g.owners.join(',')})` : ''}
+                  </span>
+                  <span className={`block ${sumNum} text-red-700`}>{fmtGroup(g)}</span>
+                </span>
+              ))}
+            </Link>
+          </>
         )}
       </section>
 
