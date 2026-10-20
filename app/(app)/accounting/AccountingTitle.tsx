@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TITLE-V5 — 달력 월 이동도 모든 폭에서 헤더 중앙(절대 배치)
 // MFH-ACCOUNTING-TITLE-V4 — 모바일(<md) 달력: 월 이동 슬롯을 왼쪽 흐름 배치 + 헤더 L/$ 토글(HeaderCurToggle) · 월 라벨 22px · L/$ 크게
 // MFH-ACCOUNTING-TITLE-V3 — 달력·통계는 헤더 중앙 = 페이지가 채우는 슬롯(월 이동, HeaderPortal) · 통계는 왼쪽 ‹ 옆에 「통계」(AccountingSideTitle)
 // MFH-ACCOUNTING-TITLE-V2 — 위플형 탭: 달력(홈)·통계·자산·내역
@@ -27,9 +28,7 @@ export const HEADER_SLOT_ID = 'acct-header-center'
 export default function AccountingTitle() {
   const pathname = usePathname() ?? '/accounting'
   if (SLOT_PATHS.has(pathname)) {
-    // 달력(회계 홈) 모바일: 오른쪽에 L/$ 토글이 들어오므로 월 이동은 중앙 대신 왼쪽 흐름 배치
-    const cls = pathname === '/accounting' ? 'md:absolute md:left-1/2 md:-translate-x-1/2' : 'absolute left-1/2 -translate-x-1/2'
-    return <div id={HEADER_SLOT_ID} className={cls} />
+    return <div id={HEADER_SLOT_ID} className="absolute left-1/2 -translate-x-1/2" />
   }
   const title = TITLES[pathname] ?? '회계관리'
   return (

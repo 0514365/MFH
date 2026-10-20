@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V15 — 달력 아래 승인대기 배너(홈과 같은 모양) · 선택일 머리줄 「수입 n · 지출 n」 라벨형(위플)
 // MFH-ACCOUNTING-CALENDAR-V14 — 모바일: 페이지 끝에서 80px 이상 더 당기면 기록 화면(당기는 동안 안내 표시)
 // MFH-ACCOUNTING-CALENDAR-V13 — 카드대금: 카드사별 행(Ficohsa·삼성 2행) + 오른쪽 합계
 // MFH-ACCOUNTING-CALENDAR-V12 — L/$ = 공용 CurToggle(크게) · 모바일은 헤더로 이동(요약 라벨 줄은 md 이상만)
@@ -44,9 +45,13 @@ export default function CalendarHome({
   balances,
   fx,
   initialDate,
+  cardPending = 0,
+  recPending = 0,
 }: {
   recent: InoutRow[]
   options: AcctOptions
+  cardPending?: number
+  recPending?: number
   balances: AccountBalance[]
   fx: FxInfo[]
   initialDate?: string
@@ -317,16 +322,43 @@ export default function CalendarHome({
         </div>
       </section>
 
+      {/* 승인대기 입구 — 대기 있을 때만(홈 배너와 같은 모양) */}
+      {cardPending + recPending > 0 && (
+        <Link
+          href="/accounting/inbox"
+          className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 transition active:scale-[0.99]"
+        >
+          <span className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-accent px-2 font-display text-[13px] font-bold text-white">
+              {cardPending + recPending}
+            </span>
+            <span className="min-w-0 text-sm text-ink">
+              <b>회계 승인대기</b>
+              <span className="ml-1.5 text-[12px] text-muted">
+                {[cardPending > 0 ? `카드 ${cardPending}` : '', recPending > 0 ? `반복 ${recPending}` : ''].filter(Boolean).join(' · ')}
+              </span>
+            </span>
+          </span>
+          <span className="shrink-0 text-[12px] font-medium text-muted">확인 →</span>
+        </Link>
+      )}
+
       {/* 선택일 내역 */}
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-[13px] font-bold text-ink">
+        <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="text-[15px] font-bold text-ink">
             {sel.getMonth() + 1}월 {sel.getDate()}일 ({WEEK[sel.getDay()]})
           </span>
-          <div className="flex gap-2 font-display text-[11px]">
-            {selDay && selDay.inc !== 0 && <span className="text-blue-700">+{fmtFull(selDay.inc, showCur)}</span>}
-            {selDay && selDay.exp !== 0 && <span className="text-red-700">{fmtFull(-selDay.exp, showCur)}</span>}
-          </div>
+          {selDay && selDay.inc !== 0 && (
+            <span className="text-[14px] font-semibold text-blue-700">
+              수입 <span className="font-display">{fmtFull(selDay.inc, showCur)}</span>
+            </span>
+          )}
+          {selDay && selDay.exp !== 0 && (
+            <span className="text-[14px] font-semibold text-red-700">
+              지출 <span className="font-display">{fmtFull(selDay.exp, showCur)}</span>
+            </span>
+          )}
         </div>
         {dayRows.length === 0 ? (
           <p className="py-4 text-center text-xs text-faint">거래 없음</p>

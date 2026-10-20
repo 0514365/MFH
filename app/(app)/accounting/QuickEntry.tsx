@@ -1,4 +1,5 @@
 'use client'
+// MFH-QUICK-ENTRY-V2 — ① 통화 선택 세그먼트(L/$/₩) · [이체][조정] 버튼(→ 상세 폼) · C 버튼 강조 · ③ 구매처 입력칸을 내역 바로 아래 같은 크기로
 // MFH-QUICK-ENTRY-V1
 // 모바일 빠른 기록(위플 가계부형, 전체 화면 3단계) — /accounting/entry 의 <md 화면(수정·상세 입력은 기존 AccountingForm).
 //   ① 금액: 날짜(탭 = 변경) · 통화 글자 L/$/₩(탭 = 순환) · 큰 숫자 · [수입][지출] · 계산기 키패드(0~9 · . · ⌫ · + − × ÷ · =)
@@ -234,14 +235,24 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
       {step === 1 && (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-start justify-between px-6 pt-4">
-            <button
-              type="button"
-              onClick={() => setCur(CUR_ORDER[(CUR_ORDER.indexOf(cur) + 1) % CUR_ORDER.length])}
-              aria-label="통화 변경"
-              className="font-display text-[64px] font-light leading-none text-muted"
-            >
-              {CUR_SIGN[cur]}
-            </button>
+            <div className="flex flex-col items-start gap-3">
+              <span className="font-display text-[64px] font-light leading-none text-muted">{CUR_SIGN[cur]}</span>
+              {/* 통화 선택 */}
+              <div className="flex rounded-full bg-surface-subtle p-0.5" role="radiogroup" aria-label="통화">
+                {CUR_ORDER.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={cur === c}
+                    onClick={() => setCur(c)}
+                    className={`rounded-full px-3.5 py-1.5 font-display text-[14px] font-semibold transition ${cur === c ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
+                  >
+                    {CUR_SIGN[c]} <span className="text-[11px] font-medium">{c}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="min-w-0 text-right">
               <div className="truncate font-display text-[64px] font-light leading-none text-[#1B7FC3]">{typing || fmtNum(amount, cur)}</div>
               {tokens.length > 0 && <div className="mt-2 truncate font-display text-[14px] text-faint">{exprText}</div>}
@@ -256,12 +267,20 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
               지출
             </button>
           </div>
+          <div className="grid grid-cols-2 gap-4 px-6 pt-3">
+            <Link href={`/accounting/entry?full=1&date=${date}&gubun=이체`} className="flex h-11 items-center justify-center rounded-2xl border border-line bg-surface text-[15px] font-medium text-muted active:bg-surface-subtle">
+              이체
+            </Link>
+            <Link href={`/accounting/entry?full=1&date=${date}&gubun=조정`} className="flex h-11 items-center justify-center rounded-2xl border border-line bg-surface text-[15px] font-medium text-muted active:bg-surface-subtle">
+              조정
+            </Link>
+          </div>
           {err && <p className="px-6 pt-3 text-center text-[13px] text-red-700">{err}</p>}
 
           <div className="mt-auto">
             <div className="flex items-center justify-between border-b border-line px-4 py-2 text-[12px] text-faint">
               <div className="flex items-center gap-2">
-                <button type="button" onClick={clearAll} className="rounded-lg bg-surface-subtle px-3 py-1.5 font-display text-[13px] text-muted">
+                <button type="button" onClick={clearAll} aria-label="모두 지우기" className="flex h-9 w-12 items-center justify-center rounded-lg bg-[#F46D93]/15 font-display text-[17px] font-bold text-[#D1456F]">
                   C
                 </button>
                 {pendingOp && (
@@ -271,7 +290,7 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
                 )}
               </div>
               <Link href={`/accounting/entry?full=1&date=${date}`} className="text-[12px] text-muted underline-offset-2 hover:underline">
-                이체 · 조정 · 상세 입력
+                상세 입력
               </Link>
             </div>
             <div className="grid grid-cols-4" style={{ gridTemplateRows: 'repeat(4, 72px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
@@ -334,6 +353,15 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
               className="h-12 w-full bg-transparent font-display text-[24px] text-ink outline-none placeholder:text-faint/60"
             />
           </div>
+          <div className="flex items-center border-b border-line">
+            <input
+              type="text"
+              value={vendor}
+              onChange={(e) => setVendor(e.target.value)}
+              placeholder="구매처"
+              className="h-12 w-full bg-transparent font-display text-[24px] text-ink outline-none placeholder:text-faint/60"
+            />
+          </div>
 
           {useTabs && (
             <div className="mt-4 flex gap-2">
@@ -363,15 +391,6 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
             </div>
           </div>
 
-          <div className="mt-6">
-            <input
-              type="text"
-              value={vendor}
-              onChange={(e) => setVendor(e.target.value)}
-              placeholder="메모 (구매처)"
-              className="h-11 w-full rounded-xl bg-surface-subtle px-4 text-[15px] text-ink outline-none placeholder:text-faint"
-            />
-          </div>
           {err && <p className="mt-3 text-center text-[13px] text-red-700">{err}</p>}
           {saving && <p className="mt-3 text-center text-[13px] text-muted">저장 중…</p>}
         </div>

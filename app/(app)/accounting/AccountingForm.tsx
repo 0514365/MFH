@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V10 — ?gubun=이체|조정 프리필(모바일 빠른 기록의 이체·조정 버튼)
 // MFH-ACCOUNTING-FORM-V9 — 환율 입력 제거(2026-09~: 공시·마감 환율 자동, DB 트리거 patch116 가 최종 결정 · 화면은 잠정 환산 표시)
 //   통화가 다른 이체 = 「입금 금액」(입금 계좌 통화)으로 양쪽 실제 금액 기록 → 실제 교환 비율 표시. 2026-08 이전 거래 수정은 예전처럼 환율 입력.
 // MFH-ACCOUNTING-FORM-V8 — 달력 홈 ＋ 진입 ?date= 거래일 프리필
@@ -253,6 +254,16 @@ export default function AccountingForm({
     if (!d || searchParams.get('edit') || handledDate.current === d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return
     handledDate.current = d
     setDate(d)
+  }, [searchParams])
+  // 모바일 빠른 기록의 [이체][조정] → ?gubun= 으로 구분 프리필(1회).
+  const handledGubun = useRef<string | null>(null)
+  useEffect(() => {
+    const g = searchParams.get('gubun')
+    if (!g || searchParams.get('edit') || handledGubun.current === g) return
+    if (g !== '이체' && g !== '조정') return
+    handledGubun.current = g
+    setGubun(g)
+    setItemId('')
   }, [searchParams])
 
   async function onSave() {
