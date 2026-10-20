@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V13 — 카드대금: 카드사별 행(Ficohsa·삼성 2행) + 오른쪽 합계
 // MFH-ACCOUNTING-CALENDAR-V12 — L/$ = 공용 CurToggle(크게) · 모바일은 헤더로 이동(요약 라벨 줄은 md 이상만)
 // MFH-ACCOUNTING-CALENDAR-V11 — 요약 3단 격자 통일(라벨 13px·숫자 17px) · 카드대금 합계 + 카드사별 · L/$ 는 수입−지출 라벨 줄 오른쪽(빈 행 제거) · 오늘은 카드대금 제목 줄
 // MFH-ACCOUNTING-CALENDAR-V10 — 카드대금 단순화: 카드사별 합계 1줄(Ficohsa(우진,진아) $… / 삼성카드 $…) · 제목에 매월 상환일 · 글자 확대
@@ -213,20 +214,23 @@ export default function CalendarHome({
               </span>
               {todayBtn}
             </div>
-            <Link href="/accounting/assets" className="col-span-3 grid grid-cols-3 gap-x-2 gap-y-3">
-              <span className="block">
-                <span className={`block ${sumLabel}`}>합계</span>
-                <span className={`block ${sumNum} text-red-700`}>{fmtGroupTotal}</span>
-              </span>
-              {cardDue.list.map((g) => (
-                <span key={g.brand} className="block min-w-0">
-                  <span className={`block truncate ${sumLabel}`}>
-                    {g.brand}
-                    {g.count > 1 && g.owners.length ? `(${g.owners.join(',')})` : ''}
+            {/* 카드사별 행(왼쪽, 금액 오른쪽 정렬) + 합계(오른쪽) */}
+            <Link href="/accounting/assets" className="col-span-3 flex items-stretch gap-3">
+              <span className="min-w-0 flex-1 space-y-1">
+                {cardDue.list.map((g) => (
+                  <span key={g.brand} className="flex items-baseline justify-between gap-2">
+                    <span className={`truncate ${sumLabel}`}>
+                      {g.brand}
+                      {g.count > 1 && g.owners.length ? `(${g.owners.join(',')})` : ''}
+                    </span>
+                    <span className={`shrink-0 ${sumNum} text-red-700`}>{fmtGroup(g)}</span>
                   </span>
-                  <span className={`block ${sumNum} text-red-700`}>{fmtGroup(g)}</span>
-                </span>
-              ))}
+                ))}
+              </span>
+              <span className="flex shrink-0 flex-col items-end justify-center border-l border-line pl-3">
+                <span className={sumLabel}>합계</span>
+                <span className={`${sumNum} text-red-700`}>{fmtGroupTotal}</span>
+              </span>
             </Link>
           </>
         )}
