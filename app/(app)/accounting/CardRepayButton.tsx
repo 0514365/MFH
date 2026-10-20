@@ -1,4 +1,6 @@
 'use client'
+// MFH-CARD-REPAY-BUTTON-V6 — 원화 카드(삼성 7092 진아): 렘피라 분할은 HNL 카드만, 원화 카드는 「원화 카드」 탭에서 원화 계좌 → 카드 이체 1건
+//   (달러 결제분도 원화로 청구 → 원화 상환, 남는 환차는 「잔액 0 맞춤」)
 // MFH-CARD-REPAY-BUTTON-V5 — actionsOnly(자산 탭 신용카드 카드 안: 요약 없이 「상환 입력」·「잔액 0 맞춤」 버튼만)
 // MFH-CARD-REPAY-BUTTON-V4 — HNL 상환분 = 통화가 다른 이체(출금 USD + 입금 금액 HNL, patch116)
 // MFH-CARD-REPAY-BUTTON-V3 — 환차익/수수료 항목은 보이는 것 우선(숨겨도 동작)
@@ -44,11 +46,20 @@ export default function CardRepayButton({
 }) {
   const router = useRouter()
   const cards = useMemo(() => balances.filter((b) => b.kind === '신용카드'), [balances])
+  const hnlCards = useMemo(() => cards.filter((c) => c.currency !== 'KRW'), [cards])
+  const krwCards = useMemo(() => cards.filter((c) => c.currency === 'KRW'), [cards])
   const sources = useMemo(() => balances.filter((b) => b.kind !== '신용카드' && b.currency === 'USD'), [balances])
+  const krwSources = useMemo(() => balances.filter((b) => b.kind !== '신용카드' && b.currency === 'KRW'), [balances])
   const defaultRate = useMemo(() => balances.find((b) => b.currency === 'HNL' && b.rate)?.rate ?? 26.5, [balances])
+  const krwRate = useMemo(() => balances.find((b) => b.currency === 'KRW' && b.rate)?.rate ?? 1350, [balances])
   const debt = cards.reduce((s, c) => s + c.balanceUsd, 0)
 
   const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<'HNL' | 'KRW'>(hnlCards.length ? 'HNL' : 'KRW')
+  // 원화 카드 상환(원화 계좌 → 카드, 같은 통화 이체 1건)
+  const [krwCard, setKrwCard] = useState(krwCards[0]?.id ?? '')
+  const [krwFrom, setKrwFrom] = useState(krwSources.find((s) => s.name.includes('6154'))?.id ?? krwSources[0]?.id ?? '')
+  const [krwAmt, setKrwAmt] = useState('')
   const [date, setDate] = useState(today())
   const [from, setFrom] = useState(sources.find((s) => s.cardLast4 === '3070')?.id ?? sources[0]?.id ?? '')
   const [totalHnl, setTotalHnl] = useState('')
@@ -73,12 +84,16 @@ export default function CardRepayButton({
   const tHnl = Number(totalHnl) || 0
   const tUsd = Number(totalUsd) || 0
   const rt = Number(rate) || 0
-  const autoHnl = useMemo(() => split(tHnl, cards), [tHnl, cards])
-  const autoUsd = useMemo(() => split(tUsd, cards), [tUsd, cards])
-  const rowHnl = (i: number) => (hnlOverride[cards[i].id] !== undefined ? Number(hnlOverride[cards[i].id]) || 0 : autoHnl[i])
-  const rowUsd = (i: number) => (usdOverride[cards[i].id] !== undefined ? Number(usdOverride[cards[i].id]) || 0 : autoUsd[i])
-  const sumHnl = cards.reduce((s, _, i) => s + rowHnl(i), 0)
-  const sumUsd = cards.reduce((s, _, i) => s + rowUsd(i), 0)
+  const autoHnl = useMemo(() => split(tHnl, hnlCards), [tHnl, hnlCards])
+  const autoUsd = useMemo(() => split(tUsd, hnlCards), [tUsd, hnlCards])
+  const rowHnl = (i: number) => (hnlOverride[hnlCards[i].id] !== undefined ? Number(hnlOverride[hnlCards[i].id]) || 0 : autoHnl[i])
+  const rowUsd = (i: number) => (usdOverride[hnlCards[i].id] !== undefined ? Number(usdOverride[hnlCards[i].id]) || 0 : autoUsd[i])
+  const sumHnl = hnlCards.reduce((s, _, i) => s + rowHnl(i), 0)
+  const sumUsd = hnlCards.reduce((s, _, i) => s + rowUsd(i), 0)
+  const kAmt = Number(krwAmt) || 0
+  const kCard = krwCards.find((c) => c.id === krwCard)
+  const kDue = kCard ? -(kCard.holdings.find((h) => h.currency === 'KRW')?.amount ?? 0) : 0
+  const kDueUsd = kCard ? -(kCard.holdings.find((h) => h.currency === 'USD')?.amount ?? 0) : 0
 
   function close() {
     setOpen(false)
@@ -87,14 +102,32 @@ export default function CardRepayButton({
     setUsdOverride({})
   }
 
+  async function onSaveKrw() {
+    if (saving) return
+    if (!krwFrom) return setErr('출금계좌를 선택하세요')
+    if (!krwCard) return setErr('카드를 선택하세요')
+    if (!(kAmt > 0)) return setErr('상환 금액을 입력하세요')
+    // 같은 통화(KRW) 이체 — 금액(USD)은 DB 트리거가 마감·공시 환율로 확정(여기 값은 잠정)
+    const item: InoutInput = { gubun: '이체', date, itemId: '', name: '카드대금 상환', currency: 'KRW', principal: Math.round(kAmt), rate: krwRate, amountUsd: r2(kAmt / krwRate), accountId: krwFrom, toAccountId: krwCard, source: 'manual' }
+    setSaving(true)
+    setErr('')
+    const res = await bulkCreateInout([item])
+    setSaving(false)
+    if (!res.ok) return setErr(res.error ?? '저장 실패')
+    close()
+    setKrwAmt('')
+    router.refresh()
+  }
+
   async function onSave() {
     if (saving) return
+    if (mode === 'KRW') return onSaveKrw()
     if (!from) return setErr('출금계좌를 선택하세요')
     if (!(rt > 0)) return setErr('환율을 입력하세요')
     if (!(tHnl > 0) && !(tUsd > 0)) return setErr('상환 금액을 입력하세요')
     if (Math.abs(sumHnl - tHnl) > 0.009 || Math.abs(sumUsd - tUsd) > 0.009) return setErr('분할 합계가 총액과 다릅니다')
     const items: InoutInput[] = []
-    cards.forEach((c, i) => {
+    hnlCards.forEach((c, i) => {
       const h = rowHnl(i)
       const u = rowUsd(i)
       if (h > 0)
@@ -260,6 +293,62 @@ export default function CardRepayButton({
               <h3 className="text-[15px] font-bold text-ink">카드대금 상환</h3>
               <button type="button" onClick={close} className="text-xs text-muted hover:text-primary">닫기</button>
             </div>
+            {hnlCards.length > 0 && krwCards.length > 0 && (
+              <div className="mb-3 flex h-9 overflow-hidden rounded-lg border border-line text-xs">
+                {(['HNL', 'KRW'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => { setMode(m); setErr('') }}
+                    className={`flex-1 ${mode === m ? 'bg-primary font-bold text-white' : 'text-muted'}`}
+                  >
+                    {m === 'HNL' ? 'Ficohsa (렘피라)' : '원화 카드'}
+                  </button>
+                ))}
+              </div>
+            )}
+            {mode === 'KRW' ? (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={lbl}>상환일</label>
+                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inp} />
+                  </div>
+                  <div>
+                    <label className={lbl}>출금계좌</label>
+                    <select value={krwFrom} onChange={(e) => setKrwFrom(e.target.value)} className={inp}>
+                      {krwSources.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>카드</label>
+                    <select value={krwCard} onChange={(e) => setKrwCard(e.target.value)} className={inp}>
+                      {krwCards.map((c) => (
+                        <option key={c.id} value={c.id}>{cardLabel(c)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>상환 금액 (원)</label>
+                    <input type="number" inputMode="numeric" value={krwAmt} onChange={(e) => setKrwAmt(e.target.value)} placeholder="명세서 청구 금액" className={inp} autoFocus />
+                  </div>
+                </div>
+                {kCard && (
+                  <div className="mt-3 rounded-xl border border-line px-3 py-2 text-[12px] text-muted">
+                    현재 미상환{' '}
+                    <b className="font-display text-ink">
+                      {fmtLocal(Math.max(0, kDue), 'KRW')}
+                      {kDueUsd > 0.005 ? ` + ${fmtUsd(kDueUsd)}` : ''}
+                    </b>{' '}
+                    · 평가 <span className={`font-display ${amtColor(kCard.valueUsd ?? kCard.balanceUsd)}`}>{fmtUsd(kCard.valueUsd ?? kCard.balanceUsd)}</span>
+                  </div>
+                )}
+                <p className="mt-2 text-[11px] text-faint">달러 결제분도 원화로 청구된 금액을 합쳐 입력하세요. 상환 후 남는 환차는 「잔액 0 맞춤」으로 정리합니다.</p>
+              </>
+            ) : (
+            <>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className={lbl}>상환일</label>
@@ -299,7 +388,7 @@ export default function CardRepayButton({
                   </tr>
                 </thead>
                 <tbody>
-                  {cards.map((c, i) => {
+                  {hnlCards.map((c, i) => {
                     const after = r2(c.balanceUsd + (rt > 0 ? rowHnl(i) / rt : 0) + rowUsd(i))
                     return (
                       <tr key={c.id} className="border-t border-line">
@@ -328,6 +417,8 @@ export default function CardRepayButton({
               </table>
             </div>
             <p className="mt-2 text-[11px] text-faint">카드별 미상환 잔액 비율로 자동 분할됩니다. 칸을 고치면 그 값으로 저장되며, 합계는 총액과 같아야 합니다. 상환 후 남는 잔차는 월말 환차익/수수료 1건으로 정리하세요.</p>
+            </>
+            )}
             {err && <p className="mt-2 text-xs text-red-700">{err}</p>}
             <div className="mt-3 flex justify-end gap-2">
               <button type="button" onClick={close} className="h-10 rounded-lg border border-line px-4 text-sm text-muted">취소</button>

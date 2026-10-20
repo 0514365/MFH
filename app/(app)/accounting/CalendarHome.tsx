@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V6 — 카드대금: 카드 통화별(L·원) 원금 + $결제분(원화 카드 삼성 7092 대응), 섞이면 합계는 환산액
 // MFH-ACCOUNTING-CALENDAR-V5 — 월 이동을 헤더 중앙으로(HeaderPortal, 라벨 탭 = 오늘) · 오늘·L/$ 는 요약 카드 위 · 달력 칸·날짜 크게
 // MFH-ACCOUNTING-CALENDAR-V4 — 요약: 지출 현금·카드 구분 제거 → 「카드대금 상환할 금액」(카드별 미상환, 탭 = 자산 탭)
 // MFH-ACCOUNTING-CALENDAR-V3 — 내역 아이콘 = 위플형 CatIcon(항목 고정색 원 + 흰 선 아이콘)
@@ -97,26 +98,37 @@ export default function CalendarHome({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recent, ym, showCur, hnlRate])
 
-  // 카드대금 상환할 금액(현재 미상환) — 카드별 HNL 원금 + USD 결제분. L 표시 = 렘피라 원금(+ $), $ 표시 = 평가액.
+  // 카드대금 상환할 금액(현재 미상환) — 카드별 카드 통화 원금(L·원) + USD 결제분. L 표시 = 원금(+ $), $ 표시 = 평가액.
   const cardDue = useMemo(() => {
     const rows = balances
       .filter((b) => b.kind === '신용카드')
       .map((b) => {
-        const hnl = -(b.holdings.find((h) => h.currency === 'HNL')?.amount ?? 0)
-        const usdPart = -(b.holdings.find((h) => h.currency === 'USD')?.amount ?? 0)
+        const cur = b.currency ?? 'HNL'
+        const local = -(b.holdings.find((h) => h.currency === cur)?.amount ?? 0)
+        const usdPart = cur === 'USD' ? 0 : -(b.holdings.find((h) => h.currency === 'USD')?.amount ?? 0)
         const usd = -(b.valueUsd ?? b.balanceUsd)
-        return { id: b.id, label: `${b.cardLast4 ?? b.name.slice(-4)}${b.info ? ` ${b.info}` : ''}`, hnl, usdPart, usd }
+        return { id: b.id, label: `${b.cardLast4 ?? b.name.slice(-4)}${b.info ? ` ${b.info}` : ''}`, cur, local, usdPart, usd }
       })
       .filter((c) => c.usd > 0.005)
     const totalUsd = rows.reduce((s, c) => s + c.usd, 0)
-    const totalHnl = rows.reduce((s, c) => s + c.hnl, 0)
+    const onlyHnl = rows.every((c) => c.cur === 'HNL')
+    const totalHnl = rows.reduce((s, c) => s + c.local, 0)
     const totalUsdPart = rows.reduce((s, c) => s + c.usdPart, 0)
-    return { rows, totalUsd, totalHnl, totalUsdPart }
+    return { rows, totalUsd, onlyHnl, totalHnl, totalUsdPart }
   }, [balances])
-  const fmtDue = (hnl: number, usdPart: number, usd: number) =>
+  const fmtUsdPart = (usdPart: number) =>
+    usdPart > 0.005 ? ` + $${usdPart.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''
+  const fmtDue = (cur: string, local: number, usdPart: number, usd: number) =>
     showCur === 'HNL' && hnlRate
-      ? `${fmtFull(hnl, 'HNL')}${usdPart > 0.005 ? ` + $${usdPart.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}`
+      ? `${cur === 'KRW' ? `${Math.round(local).toLocaleString('ko-KR')}원` : fmtFull(local, 'HNL')}${fmtUsdPart(usdPart)}`
       : fmtFull(usd, 'USD')
+  // 합계: 렘피라 카드만이면 L 원금 + $, 원화 카드가 섞이면 환산액(L 표시 = 평가액 × 공시 HNL)
+  const dueTotal =
+    showCur === 'HNL' && hnlRate
+      ? cardDue.onlyHnl
+        ? `${fmtFull(cardDue.totalHnl, 'HNL')}${fmtUsdPart(cardDue.totalUsdPart)}`
+        : fmtFull(cardDue.totalUsd * hnlRate, 'HNL')
+      : fmtFull(cardDue.totalUsd, 'USD')
 
   const dayRows = useMemo(() => recent.filter((r) => r.date === selected), [recent, selected])
 
@@ -196,11 +208,11 @@ export default function CalendarHome({
             <span className="min-w-0">
               <span className="block text-[11px] text-faint">카드대금 상환할 금액</span>
               <span className="mt-0.5 block text-[11px] text-muted">
-                {cardDue.rows.map((c) => `${c.label} ${fmtDue(c.hnl, c.usdPart, c.usd)}`).join(' · ')}
+                {cardDue.rows.map((c) => `${c.label} ${fmtDue(c.cur, c.local, c.usdPart, c.usd)}`).join(' · ')}
               </span>
             </span>
             <span className="shrink-0 font-display text-[15px] font-bold text-red-700">
-              {fmtDue(cardDue.totalHnl, cardDue.totalUsdPart, cardDue.totalUsd)} <span className="text-[12px] font-normal text-faint">›</span>
+              {dueTotal} <span className="text-[12px] font-normal text-faint">›</span>
             </span>
           </Link>
         )}
