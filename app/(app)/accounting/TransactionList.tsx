@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V17 — 검색 UI 차용(SearchFilters): 둥근 검색창·최근 검색어 · 기간 칩(전체·이번 주·이번 달·지정) · 구분 칩 · 금액순/날짜순 글자 토글 · 검색어에 항목명·금액 숫자
 // MFH-ACCOUNTING-TXLIST-V16 — 영수증 📎(행 내용 옆) → ReceiptViewer(보기·교체·삭제)
 // MFH-ACCOUNTING-TXLIST-V15 — 일괄 수정 항목 콤보에서 숨긴 항목 제외(필터 콤보는 포함)
 // MFH-ACCOUNTING-TXLIST-V14 — 조정 행도 클릭 수정 허용(폼 조정 지원)
@@ -17,6 +18,17 @@
 // 행 클릭 → 수정(onEdit, 기록 페이지로 이동) · 행별 삭제 + 다중선택 → 일괄 삭제 / 통합 수정(항목·계좌). 노션(SoT) read, 변경은 server action.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ReceiptViewer from './ReceiptViewer'
+import {
+  ChipRow,
+  PeriodFilter,
+  SearchInput,
+  SortToggle,
+  matchText,
+  rangeOf,
+  useRecentQueries,
+  useToday,
+  type Period,
+} from './SearchFilters'
 import { activeOnly, type AcctOptions, type InoutRow, type InoutPatch } from '@/lib/accounting-types'
 import { deleteInout, bulkDeleteInout, bulkPatchInout } from './actions'
 
@@ -62,6 +74,7 @@ function monthLabel(key: string): string {
 }
 
 type SortKey = 'date' | 'amount'
+const GUBUN_FILTERS = ['전체', '수입', '지출', '이체', '조정'] as const
 type GubunFilter = '전체' | '수입' | '지출' | '이체' | '조정'
 export type LedgerFilter = { gubun?: string; cat?: string; item?: string; from?: string; to?: string; q?: string; account?: string }
 const isGubun = (g?: string): g is GubunFilter => g === '수입' || g === '지출' || g === '이체' || g === '조정'
@@ -91,7 +104,11 @@ export default function TransactionList({
   const [fCur, setFCur] = useState('')
   const [fFrom, setFFrom] = useState(initialFilter?.from ?? '')
   const [fTo, setFTo] = useState(initialFilter?.to ?? '')
+  const [period, setPeriod] = useState<Period>(initialFilter?.from || initialFilter?.to ? 'custom' : 'all')
   const [q, setQ] = useState(initialFilter?.q ?? '')
+  const [dq, setDq] = useState(initialFilter?.q ?? '') // 검색어 디바운스(200ms)
+  const today = useToday()
+  const recentQs = useRecentQueries()
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
@@ -148,21 +165,24 @@ export default function TransactionList({
   useEffect(() => {
     if (fItemId && !itemOptions.some((i) => i.id === fItemId)) setFItemId('')
   }, [itemOptions, fItemId])
-  const periodMode = !!fFrom || !!fTo // 기간 검색 → 월 그룹 대신 기간 1그룹
+  useEffect(() => {
+    const id = setTimeout(() => setDq(q), 200)
+    return () => clearTimeout(id)
+  }, [q])
+  const [eFrom, eTo] = rangeOf(period, today, fFrom, fTo) // 기간 칩 → 실제 범위
+  const periodMode = !!eFrom || !!eTo // 기간 검색 → 월 그룹 대신 기간 1그룹
 
   // 필터 → 정렬 → 월별 그룹 → 그룹별 수입/지출 합계.
   const groups = useMemo(() => {
-    const ql = q.trim().toLowerCase()
     const filtered = recent.filter((r) => {
       if (fGubun !== '전체' && r.gubun !== fGubun) return false
       if (fItemId && r.itemId !== fItemId) return false
       if (fAccountId && r.accountId !== fAccountId && r.toAccountId !== fAccountId) return false
       if (fCat && (!r.itemId || catOf.get(r.itemId) !== fCat)) return false
       if (fCur && r.currency !== fCur) return false
-      if (fFrom && (r.date ?? '') < fFrom) return false
-      if (fTo && (r.date ?? '') > fTo) return false
-      if (ql && !(r.name ?? '').toLowerCase().includes(ql) && !(r.vendor ?? '').toLowerCase().includes(ql)) return false
-      return true
+      if (eFrom && (r.date ?? '') < eFrom) return false
+      if (eTo && (r.date ?? '') > eTo) return false
+      return matchText(r, dq, (r.itemId ? nameOf.get(r.itemId) : '') ?? '')
     })
     const dir = sortDir === 'asc' ? 1 : -1
     filtered.sort((a, b) => {
@@ -199,7 +219,7 @@ export default function TransactionList({
       }
       return { key, rows, inUsd, outUsd, net, netUsd: inUsd - outUsd }
     })
-  }, [recent, fGubun, fItemId, fAccountId, fCat, fCur, fFrom, fTo, q, sortKey, sortDir, catOf, periodMode])
+  }, [recent, fGubun, fItemId, fAccountId, fCat, fCur, eFrom, eTo, dq, sortKey, sortDir, catOf, nameOf, periodMode])
 
   const visibleIds = useMemo(() => groups.flatMap((g) => g.rows.map((r) => r.id)), [groups])
   // 항목 열 폭(em): 일반 행 = 항목 이름 1줄, 이체·조정 행 = 2줄 → 보이는 행 중 최대 필요폭. 통화 열 펼치면 65% 로 축소(내용 열 확보).
@@ -222,15 +242,14 @@ export default function TransactionList({
     !!fAccountId ||
     !!fCat ||
     !!fCur ||
-    !!fFrom ||
-    !!fTo ||
+    period !== 'all' ||
     !!q.trim()
 
   // 필터·정렬이 바뀌면 선택을 초기화(보이지 않는 선택에 작업되는 혼란 방지).
   useEffect(() => {
     setSelected(new Set())
     setBulkOpen(false)
-  }, [fGubun, fItemId, fAccountId, fCat, fCur, fFrom, fTo, q, sortKey, sortDir])
+  }, [fGubun, fItemId, fAccountId, fCat, fCur, eFrom, eTo, dq, sortKey, sortDir])
 
   // 선택 행 분석 — 통합 수정 대상(수입·지출만), 구분 혼합 여부.
   const selRows = useMemo(() => recent.filter((r) => selected.has(r.id)), [recent, selected])
@@ -277,9 +296,11 @@ export default function TransactionList({
     setFAccountId('')
     setFCat('')
     setFCur('')
+    setPeriod('all')
     setFFrom('')
     setFTo('')
     setQ('')
+    setDq('')
   }
   function toggleRow(id: string) {
     setSelected((prev) => {
@@ -378,8 +399,66 @@ export default function TransactionList({
 
   return (
     <section className="mt-6">
-      <div className="mb-2 flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
+      {/* 검색·필터 — 검색 화면(SearchFilters)과 같은 모양 */}
+      <SearchInput value={q} onChange={setQ} onCommit={setDq} recent={recentQs} />
+      <div className="mt-3 space-y-2">
+        <PeriodFilter period={period} onPeriod={setPeriod} from={fFrom} to={fTo} onFrom={setFFrom} onTo={setFTo} range={[eFrom, eTo]} />
+        <ChipRow
+          label="구분"
+          options={GUBUN_FILTERS}
+          value={fGubun}
+          onChange={(g) => {
+            setFGubun(g)
+            setFItemId('')
+          }}
+        />
+        <div className="flex flex-wrap items-center gap-2 pl-14">
+          <select
+            value={fCat}
+            onChange={(e) => {
+              setFCat(e.target.value)
+              setFItemId('')
+            }}
+            className={`${ctl} min-w-[88px]`}
+          >
+            <option value="">분류 전체</option>
+            {catOptions.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <select value={fItemId} onChange={(e) => setFItemId(e.target.value)} className={`${ctl} min-w-[96px]`}>
+            <option value="">항목 전체</option>
+            {itemOptions.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name}
+              </option>
+            ))}
+          </select>
+          <select value={fCur} onChange={(e) => setFCur(e.target.value)} className={`${ctl} min-w-[72px]`}>
+            <option value="">통화 전체</option>
+            <option value="KRW">KRW</option>
+            <option value="USD">USD</option>
+            <option value="HNL">HNL</option>
+          </select>
+          <select
+            value={fAccountId}
+            onChange={(e) => setFAccountId(e.target.value)}
+            className={`${ctl} min-w-[96px]`}
+          >
+            <option value="">계좌 전체</option>
+            {options.accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="mb-2 mt-4 flex items-center gap-3 px-1">
+        <div className="flex flex-1 items-center gap-2">
           <input
             type="checkbox"
             className={`${cbCls} @2xl:hidden`}
@@ -391,125 +470,24 @@ export default function TransactionList({
             거래 내역
             <span className="ml-1.5 font-normal text-faint">{shownCount}건</span>
           </h2>
-        </div>
-        {hasFilter && (
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-muted transition hover:border-primary"
-          >
-            필터 초기화
-          </button>
-        )}
-      </div>
-
-      {/* 필터 바 */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex h-8 overflow-hidden rounded-lg border border-line text-xs">
-          {(['전체', '수입', '지출', '이체', '조정'] as const).map((g) => (
+          {hasFilter && (
             <button
-              key={g}
               type="button"
-              onClick={() => {
-                setFGubun(g)
-                setFItemId('')
-              }}
-              className={`flex items-center justify-center px-3 ${
-                fGubun === g
-                  ? g === '수입'
-                    ? 'bg-blue-100 font-bold text-blue-700'
-                    : g === '지출'
-                      ? 'bg-red-100 font-bold text-red-700'
-                      : g === '이체'
-                        ? 'bg-sky-100 font-bold text-sky-700'
-                        : g === '조정'
-                          ? 'bg-surface-subtle font-bold text-muted'
-                          : 'bg-primary-soft font-bold text-primary'
-                  : 'text-faint'
-              }`}
+              onClick={resetFilters}
+              className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-muted transition hover:border-primary"
             >
-              {g}
+              필터 초기화
             </button>
-          ))}
+          )}
         </div>
-        <select
-          value={fCat}
-          onChange={(e) => {
-            setFCat(e.target.value)
-            setFItemId('')
-          }}
-          className={`${ctl} min-w-[88px]`}
-        >
-          <option value="">분류 전체</option>
-          {catOptions.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <select value={fItemId} onChange={(e) => setFItemId(e.target.value)} className={`${ctl} min-w-[96px]`}>
-          <option value="">항목 전체</option>
-          {itemOptions.map((i) => (
-            <option key={i.id} value={i.id}>
-              {i.name}
-            </option>
-          ))}
-        </select>
-        <select value={fCur} onChange={(e) => setFCur(e.target.value)} className={`${ctl} min-w-[72px]`}>
-          <option value="">통화 전체</option>
-          <option value="KRW">KRW</option>
-          <option value="USD">USD</option>
-          <option value="HNL">HNL</option>
-        </select>
-        <select
-          value={fAccountId}
-          onChange={(e) => setFAccountId(e.target.value)}
-          className={`${ctl} min-w-[96px]`}
-        >
-          <option value="">계좌 전체</option>
-          {options.accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="내용·구매처 검색"
-          className={`${ctl} min-w-[120px] flex-1`}
-        />
-        <div className="flex h-8 items-center gap-1 @2xl:hidden">
-          <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className={ctl}>
-            <option value="date">날짜순</option>
-            <option value="amount">금액순</option>
-          </select>
-          <button
-            type="button"
-            onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
-            className={`${ctl} px-2`}
-            aria-label="정렬 방향"
-          >
-            {sortDir === 'asc' ? '오름 ↑' : '내림 ↓'}
-          </button>
-        </div>
-        {/* 기간 — 시작·종료(날짜 범위) */}
-        <div className="flex w-full items-center gap-1.5 @xl:w-auto">
-          <span className="text-[11px] text-faint">기간</span>
-          <input
-            type="date"
-            value={fFrom}
-            onChange={(e) => setFFrom(e.target.value)}
-            className={`${ctl} flex-1 @xl:flex-none`}
-            aria-label="시작일"
-          />
-          <span className="text-faint">~</span>
-          <input
-            type="date"
-            value={fTo}
-            onChange={(e) => setFTo(e.target.value)}
-            className={`${ctl} flex-1 @xl:flex-none`}
-            aria-label="종료일"
+        <div className="flex items-center gap-3 @2xl:hidden">
+          <SortToggle
+            sortKey={sortKey}
+            sortDir={sortDir}
+            onChange={(k, d) => {
+              setSortKey(k)
+              setSortDir(d)
+            }}
           />
         </div>
       </div>
