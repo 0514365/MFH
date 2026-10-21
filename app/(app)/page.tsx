@@ -1,3 +1,5 @@
+// MFH-HOME-V2 — 2027 Minimal Block(3단계): theme-2027 스코프 · 승인대기 상태 알약 · 연 주제 요약 면 + 블록색 옆줄 목표 · QT/동향 요약 면
+//   · 모듈 = 블록 격자(3열·직각·틈 3px, 파스텔 + 흰 글자 할로, 숫자 또는 아이콘 · 한글 이름 · 신호 한 줄) · 푸터 Manrope 회색.
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -9,31 +11,31 @@ import SignOutButton from '@/components/SignOutButton'
 import type { ReadingPlan, YearTheme } from '@/lib/types'
 import type { Highlight } from './honduras/BriefingView'
 import BibleHomeCard, { type HomeDay } from './bible/BibleHomeCard'
-import { projectSignals, taskSignals, type Signal, type SignalKind } from '@/lib/signals'
+import { projectSignals, taskSignals, type Signal } from '@/lib/signals'
+import { blockColor, blockHalo } from '@/lib/palette'
 import pkg from '@/package.json'
 import { getInboxPendingCount } from '@/lib/card-inbox-db'
 import { getRecurringDueCount } from '@/lib/recurring-db'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
 // Facebook 은 ModuleIcon 에 없어 인라인 유지(페이퍼 비행기).
 const FacebookIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M3 11l18-5v12L3 14z" />
     <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
   </svg>
 )
 
 const HeartIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
   </svg>
 )
 
 // 후원자 — ModuleIcon 에 없어 인라인(Lucide users).
 const SupportersIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
     <circle cx="9" cy="7" r="4" />
     <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -43,7 +45,7 @@ const SupportersIcon = () => (
 
 // 회계 — ModuleIcon 에 없어 인라인(Lucide calculator).
 const AccountingIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="4" y="2" width="16" height="20" rx="2" />
     <line x1="8" y1="6" x2="16" y2="6" />
     <line x1="8" y1="10" x2="8" y2="10" />
@@ -56,57 +58,50 @@ const AccountingIcon = () => (
   </svg>
 )
 
-// 홈 타일용 신호 칩(SignalChips 와 동색, 더 작게). 시급순 정렬은 signals.ts 가 보장 → 앞 2개만.
-const SIG_CLS: Record<SignalKind, string> = {
-  overdue: 'bg-red-50 text-red-700',
-  soon: 'bg-orange-50 text-orange-700',
-  stalled: 'bg-slate-100 text-slate-600',
-  important: 'bg-yellow-50 text-yellow-700',
-}
-function SignalBadges({ signals }: { signals: Signal[] }) {
+// 신호 한 줄 — 시급순(signals.ts 보장) 앞 2개만. 블록 위 흰 글자.
+function signalLine(signals: Signal[]): string | null {
   if (signals.length === 0) return null
-  return (
-    <div className="flex flex-wrap justify-end gap-1">
-      {signals.slice(0, 2).map((s) => (
-        <span key={s.kind} className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${SIG_CLS[s.kind]}`}>
-          {s.label} {s.count}
-        </span>
-      ))}
-    </div>
-  )
+  return signals
+    .slice(0, 2)
+    .map((s) => `${s.label} ${s.count}`)
+    .join(' · ')
 }
 
-// 벤토 모듈 타일 — 모듈별 색 칩 아이콘 + 영문 타이틀/서브타이틀. chipClass=칩 색(모듈별), topRight=배지/시각.
-function ModuleTile({
+// 모듈 블록 — 파스텔 면(blockColor n) + 흰 글자 할로(blockHalo n). 위 = 큰 숫자(value) 또는 흰 아이콘 / 아래 = 한글 이름 + 보조 한 줄(note).
+// 아이콘은 같은 할로 색 drop-shadow 로 가장자리 대비 확보(원칙 6).
+function ModuleBlock({
   href,
+  n,
+  label,
+  value,
   icon,
-  title,
-  sub,
-  topRight,
-  chipClass,
+  note,
   className = '',
 }: {
   href: string
+  n: number
+  label: string
+  value?: number | null
   icon: ReactNode
-  title: string
-  sub: string
-  topRight?: ReactNode
-  chipClass: string
+  note?: string | null
   className?: string
 }) {
+  const { bg, halo } = blockColor(n)
   return (
     <Link
       href={href}
-      className={`relative flex flex-col justify-between overflow-hidden rounded-3xl border border-line bg-surface p-4 transition hover:border-primary active:scale-[0.99] ${className}`}
+      className={`flex h-24 min-w-0 flex-col justify-between p-3 text-white transition active:opacity-80 ${className}`}
+      style={{ background: bg, textShadow: blockHalo(n) }}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${chipClass}`}>{icon}</div>
-        {topRight}
-      </div>
-      <div className="mt-3">
-        <div className="font-display text-[15px] font-bold leading-tight text-primary">{title}</div>
-        <div className="mt-0.5 text-[11px] text-muted">{sub}</div>
-      </div>
+      {value != null ? (
+        <span className="font-num text-[26px] font-semibold leading-none tabular-nums">{value}</span>
+      ) : (
+        <span style={{ filter: `drop-shadow(0 0 2px ${halo}) drop-shadow(0 0 5px ${halo})` }}>{icon}</span>
+      )}
+      <span className="min-w-0">
+        <span className="block truncate text-[13px] font-medium leading-tight">{label}</span>
+        {note && <span className="mt-0.5 block truncate font-num text-[11px] leading-tight opacity-95">{note}</span>}
+      </span>
     </Link>
   )
 }
@@ -141,7 +136,12 @@ export default async function Home() {
   // 신호 계산 기준일 — 온두라스 현지(다른 페이지와 동일 기준).
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
 
-  const [themeQ, prayerQ, newsQ, qtQ, projQ, taskQ, insightQ, bibleQ] = await Promise.all([
+  // 이번 달(온두라스 현지) — 일지 블록 숫자. lib/aside.ts 와 같은 범위 계산.
+  const [ty, tm] = today.split('-').map(Number)
+  const monthStart = `${today.slice(0, 7)}-01`
+  const nextMonth = `${tm === 12 ? ty + 1 : ty}-${String(tm === 12 ? 1 : tm + 1).padStart(2, '0')}-01`
+
+  const [themeQ, prayerQ, newsQ, qtQ, projQ, taskQ, insightQ, bibleQ, journalQ] = await Promise.all([
     supabase.from('year_themes').select('*').eq('year', year).maybeSingle(),
     supabase.from('intercessions').select('id', { count: 'exact', head: true }).eq('is_read', false),
     supabase
@@ -168,6 +168,11 @@ export default async function Home() {
       .maybeSingle(),
     // 성경통독 — 본인 활성 계획 1개(RLS 본인 전용)
     supabase.from('reading_plans').select('*').eq('is_active', true).maybeSingle(),
+    supabase
+      .from('journal_entries')
+      .select('id', { count: 'exact', head: true })
+      .gte('entry_date', monthStart)
+      .lt('entry_date', nextMonth),
   ])
 
   // 통독 일정(활성 계획의 전체 일차 — 진행률·오늘 분량·밀림 계산용, 가벼운 컬럼만)
@@ -226,14 +231,14 @@ export default async function Home() {
       })
     : null
 
-  const projSignals = projectSignals(
-    (projQ.data ?? []) as { status: string; due_date: string | null; importance: number; updated_at: string }[],
-    today,
-  )
-  const tSignals = taskSignals(
-    (taskQ.data ?? []) as { done: boolean; due_date: string | null; importance: number }[],
-    today,
-  )
+  const projRows = (projQ.data ?? []) as { status: string; due_date: string | null; importance: number; updated_at: string }[]
+  const taskRows = (taskQ.data ?? []) as { done: boolean; due_date: string | null; importance: number }[]
+  const projSignals = projectSignals(projRows, today)
+  const tSignals = taskSignals(taskRows, today)
+  // 블록 숫자 — 진행 중 프로젝트 · 미완료 할 일 중 오늘 + 지남 · 이번 달 일지
+  const projActive = projRows.filter((p) => p.status === 'in_progress').length
+  const taskDue = taskRows.filter((t) => !t.done && t.due_date != null && t.due_date <= today).length
+  const journalCount = journalQ.count ?? 0
 
   const insightAt = (insightQ.data as { created_at?: string } | null)?.created_at ?? null
   const insightTime = insightAt
@@ -247,299 +252,162 @@ export default async function Home() {
       })
     : null
 
+  const finance = canManageFinance(user.id)
+  const goalColors = [1, 5, 3]
+
   return (
     <SplashGate>
-      <main className="app-theme mx-auto max-w-md px-4 pb-10 pt-2 @xl:max-w-3xl @4xl:max-w-6xl @4xl:px-6">
+      <main className="theme-2027 mx-auto max-w-md px-4 pb-10 pt-2 @xl:max-w-3xl @4xl:max-w-6xl @4xl:px-6">
         <header className="mb-4 flex items-center justify-between px-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-primary.svg" alt="MFH — Mission for Honduras" className="h-9 w-auto" />
-          <p className="text-[11px] text-faint">{user.email}</p>
+          <p className="text-[11px] text-b27-muted">{user.email}</p>
         </header>
 
-        {/* 회계 승인대기 입구 — 대기 있을 때만(재정 관리자). 주제 hero 위, 레이아웃 그리드 밖(전폭). */}
+        {/* 회계 승인대기 — 상태 알약(연회색 면 · 호박 글자 · →). 대기 있을 때만(재정 관리자). 레이아웃 그리드 밖(전폭). */}
         {approvalPending > 0 && (
           <Link
             href="/accounting/inbox"
-            className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 transition active:scale-[0.99]"
+            className="mb-3 flex items-center justify-between gap-3 rounded-full bg-b27-card px-4 py-2.5 text-[13px] transition active:opacity-80"
           >
-            <span className="flex min-w-0 items-center gap-2.5">
-              <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-accent px-2 font-display text-[13px] font-bold text-white">
-                {approvalPending}
+            <span className="min-w-0 truncate">
+              <span className="font-medium text-b27-wait">
+                회계 승인대기 <span className="font-num tabular-nums">{approvalPending}</span>
               </span>
-              <span className="min-w-0 text-sm text-ink">
-                <b>회계 승인대기</b>
-                <span className="ml-1.5 text-[12px] text-muted">
-                  {[cardPending > 0 ? `카드 ${cardPending}` : '', recPending > 0 ? `반복 ${recPending}` : ''].filter(Boolean).join(' · ')}
-                </span>
+              <span className="ml-1.5 text-b27-muted">
+                {[cardPending > 0 ? `카드 ${cardPending}` : '', recPending > 0 ? `반복 ${recPending}` : ''].filter(Boolean).join(' · ')}
               </span>
             </span>
-            <span className="shrink-0 text-[12px] font-medium text-muted">확인 →</span>
+            <span className="shrink-0 text-b27-muted" aria-hidden="true">→</span>
           </Link>
         )}
 
-        {/* 와이드 레이아웃(셸 본문 열 기준 컨테이너 쿼리): 모바일=세로 스택, @xl(본문 576+ · iPad 세로)=좌측 그룹 2열, @4xl(본문 896+ · 데스크탑)=좌 5(오늘·sticky) : 우 7(모듈 벤토 3열). iPad 가로(본문 712~868)는 2열 그룹. */}
+        {/* 와이드 레이아웃(셸 본문 열 기준 컨테이너 쿼리): 모바일=세로 스택, @xl=좌측 그룹 2열, @4xl=좌 5(오늘·sticky) : 우 7(모듈 블록 6열). */}
         <div className="flex flex-col gap-3 @4xl:grid @4xl:grid-cols-12 @4xl:gap-5">
-          {/* 좌: 오늘의 정보 — 주제·QT·통독·동향. @4xl 에서 스크롤해도 고정(sticky). 뷰포트 lg 이상(보조 패널 표시)은 QT·동향이 패널로 가고 주제·통독만 남는다. */}
+          {/* 좌: 오늘의 정보 — 주제·QT·통독·동향. 뷰포트 lg 이상(보조 패널 표시)은 QT·동향이 패널로 가고 주제·통독만 남는다. */}
           <div className="flex flex-col gap-3 @xl:grid @xl:grid-cols-2 @4xl:sticky @4xl:top-4 @4xl:col-span-5 @4xl:flex @4xl:flex-col @4xl:self-start">
-          {/* 2026 주제 — hero. 딥 그라데이션(마룬레드→딥마룬)으로 단색 면 부담 분산 — brand 마룬 정체성 유지 */}
-          <section
-            className="flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white @xl:order-1 @xl:col-span-2 @4xl:order-none"
-            style={{ background: 'linear-gradient(150deg, #B61821 0%, #661F20 100%)' }}
-          >
-            <div>
-              <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">
-                {year} 주제
-              </div>
+            {/* 연 주제 — 요약 면(큰 남색 면 금지). 목표 = 블록색 옆줄. */}
+            <section className="flex flex-col rounded-2xl bg-b27-card p-5 @xl:order-1 @xl:col-span-2 @4xl:order-none">
+              <div className="font-num text-[12px] font-medium tracking-[0.08em] text-b27-muted">{year} THEME</div>
               {theme?.theme ? (
-                <h1 className="mt-2 text-[22px] font-bold leading-snug">{theme.theme}</h1>
+                <h1 className="mt-1.5 text-[20px] font-semibold leading-snug text-b27-ink">{theme.theme}</h1>
               ) : (
-                <Link href="/theme" className="mt-2 inline-block text-base font-semibold underline">
+                <Link href="/theme" className="mt-1.5 inline-block text-[15px] font-medium text-b27-ink underline">
                   올해의 주제·목표 설정하기
                 </Link>
               )}
-            </div>
-            {goals.length > 0 && (
-              <ul className="mt-4 space-y-1.5">
-                {goals.map((g, i) => (
-                  <li key={i} className="text-sm text-white/90">&ndash; {g}</li>
-                ))}
-              </ul>
-            )}
-            {theme?.theme && (
-              <Link href="/theme" className="mt-3 inline-block text-xs text-white/60 underline">
-                수정
-              </Link>
-            )}
-          </section>
-
-          {/* 오늘의 QT — wide + 본문·핵심절 미리보기 (아침 묵상 → 주제 아래 최상단). lg 이상은 우측 보조 패널(AsidePanel)이 담당 → 숨김 */}
-          <Link
-            href="/qt"
-            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99] @xl:order-3 lg:hidden"
-          >
-            <div className="flex items-center justify-between">
-              <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
-                오늘의 QT · Daily Bread
-              </div>
-              {qtTime ? (
-                <span className="shrink-0 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-medium text-primary">
-                  {qtTime}
-                </span>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-primary opacity-60">
-                  <path d="M5 12h14" />
-                  <path d="M12 5l7 7-7 7" />
-                </svg>
+              {goals.length > 0 && (
+                <ul className="mt-3 flex flex-col gap-1.5">
+                  {goals.map((g, i) => (
+                    <li
+                      key={i}
+                      className="border-l-[3px] pl-2.5 text-[13px] leading-snug text-b27-ink"
+                      style={{ borderColor: blockColor(goalColors[i % goalColors.length]).bg }}
+                    >
+                      {g}
+                    </li>
+                  ))}
+                </ul>
               )}
-            </div>
-            <div className="mt-2 flex items-baseline justify-between gap-3">
-              <div className="min-w-0 flex-1 truncate text-[19px] font-bold leading-tight text-ink">{qtMain}</div>
-              {qtRefRight && <div className="shrink-0 text-[13px] font-medium text-muted">{qtRefRight}</div>}
-            </div>
-          </Link>
-
-          {/* 성경통독 — 오늘 분량·진행률·바로 체크 (QT 아래) */}
-          {/* @xl 2열: 통독을 주제 바로 아래 wide 로 올리고 QT·동향을 한 줄에. 모바일·@4xl 는 DOM 순서(주제→QT→통독→동향). */}
-          <div className="@xl:order-2 @xl:col-span-2 @4xl:order-none @4xl:col-auto">
-            <BibleHomeCard plan={biblePlan} days={bibleDays} today={today} />
-          </div>
-
-          {/* 온두라스 동향 — wide + 최신 브리핑 미리보기. lg 이상은 우측 보조 패널이 담당 → 숨김 */}
-          <Link
-            href="/honduras"
-            className="flex flex-col overflow-hidden rounded-3xl bg-primary-soft p-5 transition active:scale-[0.99] @xl:order-4 lg:hidden"
-          >
-            <div className="flex items-center justify-between">
-              <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
-                온두라스 동향 · Today in Honduras
-              </div>
-              {newsTime ? (
-                <span className="shrink-0 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-medium text-primary">
-                  {newsTime}
-                </span>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-primary opacity-60">
-                  <path d="M5 12h14" />
-                  <path d="M12 5l7 7-7 7" />
-                </svg>
+              {theme?.theme && (
+                <Link href="/theme" className="mt-3 self-start text-[12px] text-b27-muted">
+                  수정
+                </Link>
               )}
+            </section>
+
+            {/* 오늘의 QT — 요약 면. lg 이상은 우측 보조 패널(AsidePanel)이 담당 → 숨김 */}
+            <Link
+              href="/qt"
+              className="flex flex-col rounded-2xl bg-b27-card p-4 transition active:opacity-80 @xl:order-3 lg:hidden"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-num text-[12px] font-medium text-b27-muted">오늘의 QT</span>
+                {qtTime ? (
+                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 font-num text-[11px] tabular-nums text-b27-muted">{qtTime}</span>
+                ) : (
+                  <span className="text-b27-muted" aria-hidden="true">→</span>
+                )}
+              </div>
+              <div className="mt-1.5 flex items-baseline justify-between gap-3">
+                <div className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-tight text-b27-ink">{qtMain}</div>
+                {qtRefRight && <div className="shrink-0 text-[12px] text-b27-muted">{qtRefRight}</div>}
+              </div>
+            </Link>
+
+            {/* 성경통독 — 오늘 분량·진행률·바로 체크. @xl 2열에서는 주제 바로 아래 wide. */}
+            <div className="@xl:order-2 @xl:col-span-2 @4xl:order-none @4xl:col-auto">
+              <BibleHomeCard plan={biblePlan} days={bibleDays} today={today} />
             </div>
-            <div className="mt-2 text-[15px] font-bold leading-tight text-ink">{newsTitle}</div>
-            <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">{newsBody}</p>
-          </Link>
 
-          {/* Supporters — lg 전용(좌측 컬럼, 동향 아래). 모바일·md 는 아래 벤토 쪽 타일이 표시 */}
-          {canManageFinance(user.id) && (
-            <ModuleTile
-              href="/supporters"
-              icon={<SupportersIcon />}
-              title="Supporters"
-              sub="Partners in mission"
-              chipClass="bg-orange-100 text-orange-700"
-              className="hidden @4xl:flex"
-            />
-          )}
+            {/* 온두라스 동향 — 요약 면. lg 이상은 우측 보조 패널이 담당 → 숨김 */}
+            <Link
+              href="/honduras"
+              className="flex flex-col rounded-2xl bg-b27-card p-4 transition active:opacity-80 @xl:order-4 lg:hidden"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-num text-[12px] font-medium text-b27-muted">온두라스 동향</span>
+                {newsTime ? (
+                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 font-num text-[11px] tabular-nums text-b27-muted">{newsTime}</span>
+                ) : (
+                  <span className="text-b27-muted" aria-hidden="true">→</span>
+                )}
+              </div>
+              <div className="mt-1.5 text-[15px] font-semibold leading-tight text-b27-ink">{newsTitle}</div>
+              <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-b27-muted">{newsBody}</p>
+            </Link>
           </div>
 
-          {/* 우: 모듈 벤토 — 모바일 2열, @xl 4열, @4xl 6열(일반 타일 2칸 = 실질 3열).
-              lg 행 템플릿: 타일 3행 = 1fr 스트레치 + Accounting = auto → 우측 하단이 좌측(Supporters) 하단과 정렬 */}
-          <div className="grid grid-cols-2 gap-3 [grid-auto-rows:minmax(104px,auto)] @xl:grid-cols-4 @4xl:col-span-7 @4xl:grid-cols-6 @4xl:grid-rows-[1fr_1fr_1fr_auto_auto]">
-          {/* Log — tall (좌, 모바일만) */}
-          <ModuleTile
-            href="/journal"
-            icon={<ModuleIcon name="log" size={20} />}
-            title="Log"
-            sub="Today's grace"
-            chipClass="bg-emerald-100 text-emerald-700"
-            className="row-span-2 @xl:row-span-1 @4xl:col-span-2"
-          />
-
-          {/* Insights — 우(상). 최종 업데이트 시각 */}
-          <ModuleTile
-            href="/insights"
-            icon={<ModuleIcon name="insights" size={18} />}
-            title="Insights"
-            sub="Light on the path"
-            chipClass="bg-amber-100 text-amber-700"
-            className="@4xl:col-span-2"
-            topRight={
-              insightTime ? (
-                <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-medium text-muted">
-                  {insightTime}
-                </span>
-              ) : null
-            }
-          />
-
-          {/* Calendar — 우(하) */}
-          <ModuleTile
-            href="/calendar"
-            icon={<ModuleIcon name="calendar" size={18} />}
-            title="Calendar"
-            sub="Times & seasons"
-            chipClass="bg-sky-100 text-sky-700"
-            className="@4xl:col-span-2"
-          />
-
-          {/* Projects — 좌. 임박·정체 등 신호 배지 */}
-          <ModuleTile
-            href="/projects"
-            icon={<ModuleIcon name="projects" size={18} />}
-            title="Projects"
-            sub="The calling's path"
-            chipClass="bg-violet-100 text-violet-700"
-            className="@4xl:col-span-2"
-            topRight={<SignalBadges signals={projSignals} />}
-          />
-
-          {/* To-Do — 우. 지남·임박 등 신호 배지 */}
-          <ModuleTile
-            href="/tasks"
-            icon={<ModuleIcon name="todo" size={18} />}
-            title="To-Do"
-            sub="Entrusted work"
-            chipClass="bg-teal-100 text-teal-700"
-            className="@4xl:col-span-2"
-            topRight={<SignalBadges signals={tSignals} />}
-          />
-
-          {/* 중보기도 — 좌. 레드틴트 + 안 읽은 수 */}
-          <ModuleTile
-            href="/intercessions"
-            icon={<HeartIcon />}
-            title="중보기도"
-            sub="Prayers & blessings"
-            chipClass="bg-rose-100 text-rose-700"
-            className="@4xl:col-span-2"
-            topRight={
-              unreadPrayers > 0 ? (
-                <span className="rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">
-                  {unreadPrayers} NEW
-                </span>
-              ) : null
-            }
-          />
-
-          {/* Photos — 우 */}
-          <ModuleTile
-            href="/photos"
-            icon={<ModuleIcon name="photos" size={18} />}
-            title="Photos"
-            sub="Moments of grace"
-            chipClass="bg-fuchsia-100 text-fuchsia-700"
-            className="@4xl:col-span-2"
-          />
-
-          {/* Facebook — 좌 */}
-          <ModuleTile
-            href="/facebook"
-            icon={<FacebookIcon />}
-            title="Facebook"
-            sub="This week's story"
-            chipClass="bg-blue-100 text-blue-700"
-            className="@4xl:col-span-2"
-          />
-
-          {/* Bible — 우. 읽기·검색·번역 비교(/bible/study) */}
-          <ModuleTile
-            href="/bible/study"
-            icon={<ModuleIcon name="bible" size={18} />}
-            title="Bible"
-            sub="Read · Search · Compare"
-            chipClass="bg-yellow-100 text-yellow-700"
-            className="@4xl:col-span-2"
-          />
-
-          {/* Portfolio — 좌(다음 줄). sm 4열에서는 wide 로 줄 정렬 */}
-          <ModuleTile
-            href="/portfolio"
-            icon={<ModuleIcon name="portfolio" size={18} />}
-            title="Portfolio"
-            sub="Sharing our journey"
-            chipClass="bg-indigo-100 text-indigo-700"
-            className="@xl:col-span-2 @4xl:col-span-6"
-          />
-
-          {/* 후원자 — 공개 전까지 우진(마스터)만. 관계·후원 관리 (wide) */}
-          {canManageFinance(user.id) && (
-            <ModuleTile
-              href="/supporters"
-              icon={<SupportersIcon />}
-              title="Supporters"
-              sub="Partners in mission"
-              chipClass="bg-orange-100 text-orange-700"
-              className="col-span-2 @4xl:hidden"
+          {/* 우: 모듈 블록 격자 — 모바일 3열×4줄 · @xl 4열 · @4xl 6열×2줄. 직각 블록 · 틈 3px(흰) · 묶음 바깥만 둥글게.
+              색 = 모듈 고정색(일지1 프로젝트5 할일3 인사이트8 달력4 중보6 성경7 회계2 / 보조: 사진1 Facebook8 포트폴리오5 후원자3) — 이웃 칸 같은 색 없음.
+              재정 권한 없으면 10칸 → 포트폴리오가 마지막 줄을 채운다(3칸). */}
+          <nav
+            aria-label="모듈"
+            className="grid grid-cols-3 gap-[3px] self-start overflow-hidden rounded-2xl bg-b27-paper @xl:grid-cols-4 @4xl:col-span-7 @4xl:grid-cols-6"
+          >
+            <ModuleBlock href="/journal" n={1} label="일지" value={journalCount} icon={<ModuleIcon name="log" size={22} />} note={`${tm}월`} />
+            <ModuleBlock href="/projects" n={5} label="프로젝트" value={projActive} icon={<ModuleIcon name="projects" size={22} />} note={signalLine(projSignals) ?? '진행 중'} />
+            <ModuleBlock href="/tasks" n={3} label="할 일" value={taskDue} icon={<ModuleIcon name="todo" size={22} />} note={signalLine(tSignals) ?? '오늘까지'} />
+            <ModuleBlock href="/insights" n={8} label="인사이트" icon={<ModuleIcon name="insights" size={22} />} note={insightTime} />
+            <ModuleBlock href="/calendar" n={4} label="캘린더" icon={<ModuleIcon name="calendar" size={22} />} />
+            <ModuleBlock
+              href="/intercessions"
+              n={6}
+              label="중보기도"
+              value={unreadPrayers > 0 ? unreadPrayers : null}
+              icon={<HeartIcon />}
+              note={unreadPrayers > 0 ? '새 기도' : null}
             />
-          )}
-
-          {/* 회계 입력 — 마스터만. 노션 회계(SoT)에 앱에서 직접 입력 (wide) */}
-          {canManageFinance(user.id) && (
-            <ModuleTile
-              href="/accounting"
-              icon={<AccountingIcon />}
-              title="Accounting"
-              sub="Stewardship & records"
-              topRight={
-                approvalPending > 0 ? (
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white">대기 {approvalPending}</span>
-                ) : undefined
-              }
-              chipClass="bg-lime-100 text-lime-700"
-              className="col-span-2 @xl:col-span-4 @4xl:col-span-6"
+            <ModuleBlock href="/bible/study" n={7} label="성경" icon={<ModuleIcon name="bible" size={22} />} />
+            <ModuleBlock href="/photos" n={1} label="사진" icon={<ModuleIcon name="photos" size={22} />} />
+            <ModuleBlock href="/facebook" n={8} label="Facebook" icon={<FacebookIcon />} />
+            <ModuleBlock
+              href="/portfolio"
+              n={5}
+              label="포트폴리오"
+              icon={<ModuleIcon name="portfolio" size={22} />}
+              className={finance ? '' : 'col-span-3'}
             />
-          )}
-          </div>
+            {/* 후원자·회계 — 공개 전까지 우진(마스터)만 */}
+            {finance && <ModuleBlock href="/supporters" n={3} label="후원자" icon={<SupportersIcon />} />}
+            {finance && (
+              <ModuleBlock
+                href="/accounting"
+                n={2}
+                label="회계"
+                value={approvalPending > 0 ? approvalPending : null}
+                icon={<AccountingIcon />}
+                note={approvalPending > 0 ? '승인대기' : null}
+              />
+            )}
+          </nav>
         </div>
 
         {/* 마일스톤 (자매앱 WorshipFlow·Brew Journal 형식).
             버전 = package.json 의 version 을 그대로 자동 표기(SoT). 2026.5.29 13:49 = "the First Chapter" — 최초 공개 배포 마일스톤. */}
         <footer className="mt-8 text-center">
-          <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-faint">
-            v {pkg.version} · 2026
-          </p>
-          <p className="mt-1 text-[11px] italic tracking-wide text-faint">
-            the First Chapter · 2026. 5. 29. 13:49
-          </p>
+          <p className="font-num text-[11px] tabular-nums tracking-[0.08em] text-b27-muted">v {pkg.version} · 2026</p>
+          <p className="mt-1 text-[11px] text-b27-muted">the First Chapter · 2026. 5. 29. 13:49</p>
           <div className="mt-5">
             <SignOutButton />
           </div>
