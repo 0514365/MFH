@@ -1,3 +1,5 @@
+// MFH-ACCOUNTING-LAYOUT-V10 — 2027 Minimal Block(b 단계): app-theme → theme-2027 스코프(lib/palette.ts brand2027 · globals.css) · 흰 바탕 · 남색 글자
+//   · 탭바 글자형 + 내역 탭 승인 배지(pending → AccountingNav) · ＋ 기록 = 터키석 하단 중앙. 다른 화면 영향 없음.
 // MFH-ACCOUNTING-LAYOUT-V9 — 달력 헤더 왼쪽 🔍(HeaderSearchLink) → 검색 화면
 // MFH-ACCOUNTING-LAYOUT-V8 — 모바일: 헤더 집 아이콘 제거(하단 탭바 중앙으로) · 기록 ＋ = EntryFab(오른쪽 아래 플로팅)
 // MFH-ACCOUNTING-LAYOUT-V7 — 모바일(<md) 헤더 압축(여백 축소) · 달력 헤더 L/$ 토글 · 후원자 아이콘은 md 이상만
@@ -17,12 +19,11 @@ import AccountingNav, { AccountingSegments, EntryFab } from './AccountingNav'
 import AccountingTitle, { AccountingSideTitle, HeaderCurToggle, HeaderSearchLink } from './AccountingTitle'
 import { getInboxPendingCount } from '@/lib/card-inbox-db'
 import { getRecurringDueCount } from '@/lib/recurring-db'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
 const linkBtn =
-  'inline-flex h-10 w-10 items-center justify-center rounded-full text-muted transition hover:bg-surface-subtle hover:text-primary'
+  'inline-flex h-10 w-10 items-center justify-center rounded-full text-b27-muted transition hover:bg-b27-card hover:text-b27-ink'
 
 export default async function AccountingLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -35,11 +36,9 @@ export default async function AccountingLayout({ children }: { children: React.R
   const pending = cardPending + recPending
 
   return (
-    <main className="app-theme mx-auto max-w-md px-4 pb-4 pt-0 md:pt-2 @2xl:max-w-5xl @2xl:px-6">
-      <header
-        className="sticky top-0 z-30 -mx-4 mb-3 border-b border-line px-4 py-1.5 md:mb-4 md:py-3 @2xl:-mx-6 @2xl:px-6"
-        style={{ background: 'var(--paper)' }}
-      >
+    <main className="theme-2027 font-sans mx-auto max-w-md px-4 pb-4 pt-0 md:pt-2 @2xl:max-w-5xl @2xl:px-6">
+      {/* 헤더 — 흰 바탕, 구분선 없음(미니멀: 면이 곧 경계) */}
+      <header className="sticky top-0 z-30 -mx-4 mb-3 bg-b27-paper px-4 py-1.5 md:mb-4 md:py-3 @2xl:-mx-6 @2xl:px-6">
         <div className="relative flex items-center">
           {/* 좌: 뒤로 */}
           <div className="flex shrink-0 items-center">
@@ -97,8 +96,8 @@ export default async function AccountingLayout({ children }: { children: React.R
 
       {children}
 
-      <EntryFab pending={pending} />
-      <AccountingNav />
+      <EntryFab />
+      <AccountingNav pending={pending} />
     </main>
   )
 }
