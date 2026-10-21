@@ -1,4 +1,6 @@
 'use client'
+// MFH-ACCOUNTING-REPORT-V13 — 실기 피드백 2차(블록 → 원형): 블록 지도·연간 12개월 격자 제거 → 도넛(PastelDonut 2027) + 범례(이름 · 금액 · %, 탭 = 드릴다운/내역)
+//   · 추이 막대는 월·연간 공통 12개월(연간은 그해 1~12월, 탭 = 그달 월 모드). 집계 로직은 그대로.
 // MFH-ACCOUNTING-REPORT-V12 — 실기 피드백(남색 과다): 1위 대분류 블록 = 제 색(2×2 유지) · 연간 최대 달 = 같은 계열 진한 톤(Rose/Periwinkle) + 「최대」 글자 · 이번 달 테두리 2px → 남색 면 0
 // MFH-ACCOUNTING-REPORT-V11 — 2027 실기 피드백(블록 재활용 ①): 연간 모드 = 그해 12개월 블록 격자(4열 × 3행, 분기 = 행)가 연도 추이 막대를 대체.
 //   달마다 「월 · 금액」, 가장 큰 달 = 남색 앵커, 이번 달 = 남색 안쪽 테두리, 기록 없는 달 = 연회색, 탭 = 그달 월 모드로. 월 모드 추이 막대(1~12월)는 그대로.
@@ -16,10 +18,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { AccountBalance, FxInfo, AcctOptions, InoutRow } from '@/lib/accounting-types'
-import { PASTEL_NEUTRAL, fmtShow, hnlRateOf, itemPastels, pastelAt, pastelOf, toShow, useShowCur, type Pastel, type ShowCur } from '@/lib/acct-display'
-import { blockHalo, brand2027 } from '@/lib/palette'
+import { PASTEL_NEUTRAL, fmtShow, hnlRateOf, itemPastels, pastelAt, pastelOf, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
+import { brand2027 } from '@/lib/palette'
 import { CurToggle, HeaderMonthNav, HeaderPortal } from '../AccountingTitle'
-import type { TrendBucket } from './charts'
+import { PastelDonut, type PastelSlice, type TrendBucket } from './charts'
 
 type Kind = '지출' | '수입'
 type Mode = 'month' | 'year'
@@ -285,31 +287,28 @@ export default function ReportView({
     router.push(`/accounting/ledger?${q.toString()}`)
   }
 
-  // 블록 지도 — 전체: 대분류(탭 = 드릴다운) · 드릴다운: 항목(탭 = 내역). 큰 순서, 상위 7 + 기타. 1위는 남색 2×2.
-  type Block = { key: string; name: string; sum: number; p: Pastel; go: () => void }
-  const rawBlocks: Block[] = dg
-    ? dg.items.map((it, i) => ({ key: it.id, name: it.name, sum: it.sum, p: itemColor.get(it.id) ?? pastelAt(i), go: () => goLedger(dg.cat, it.id) }))
-    : groups.map((g) => ({ key: g.cat, name: g.cat, sum: g.sum, p: pastelOf(g.cat), go: () => setDrill(g.cat) }))
-  const blocks: Block[] =
-    rawBlocks.length <= 8
-      ? rawBlocks
-      : [...rawBlocks.slice(0, 7), { key: '__rest__', name: '기타', sum: rawBlocks.slice(7).reduce((t, b) => t + b.sum, 0), p: PASTEL_NEUTRAL, go: () => (dg ? goLedger(dg.cat) : undefined) }]
-  const fmtBlock = (n: number) => (Math.abs(n) >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : Math.round(n).toLocaleString('en-US'))
+  // 도넛 조각 + 범례 — 전체: 대분류(탭 = 드릴다운) · 드릴다운: 항목(탭 = 내역). 큰 순서. 범례는 상위 7 + 「그 외」.
+  type Slice = PastelSlice & { go: () => void }
+  const sliceRows: Slice[] = dg
+    ? dg.items.map((it, i) => ({ key: it.id, name: it.name, sum: it.sum, fill: (itemColor.get(it.id) ?? pastelAt(i)).fill, cat: dg.cat, go: () => goLedger(dg.cat, it.id) }))
+    : groups.map((g) => ({ key: g.cat, name: g.cat, sum: g.sum, fill: pastelOf(g.cat).fill, cat: g.cat, go: () => setDrill(g.cat) }))
+  const legend: Slice[] =
+    sliceRows.length <= 8
+      ? sliceRows
+      : [...sliceRows.slice(0, 7), { key: '__rest__', name: '그 외', sum: sliceRows.slice(7).reduce((t, b) => t + b.sum, 0), fill: PASTEL_NEUTRAL.fill, cat: null, go: () => (dg ? goLedger(dg.cat) : undefined) }]
+  const fmtShort = (n: number) => (Math.abs(n) >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : Math.round(n).toLocaleString('en-US'))
 
-  // 추이 막대 — 현재 종류(지출/수입)만, 회색 · 현재 기간 남색
-  const trendVals = trend.map((b) => (kind === '지출' ? b.expense : b.income))
-  const trendMax = Math.max(1, ...trendVals)
-
-  // 연간 12개월 블록 — 종류별 값, 가장 큰 달 = 남색, 이번 달 = 안쪽 테두리. 색은 종류별 1색(지출 Salmon · 수입 Lagoon)
-  const gridVals = monthGrid.map((m) => (kind === '지출' ? m.expense : m.income))
-  const gridMaxIdx = gridVals.length ? gridVals.indexOf(Math.max(...gridVals)) : -1
+  // 추이 막대 — 월 모드: 그해 1~12월(현재 달 남색) · 연간 모드: 그해 12개월(이번 달 남색, 탭 = 그달 월 모드)
+  const bars =
+    mode === 'year'
+      ? monthGrid.map((m) => ({ key: m.key, label: String(m.month), v: kind === '지출' ? m.expense : m.income }))
+      : trend.map((b) => ({ key: b.key, label: b.label, v: kind === '지출' ? b.expense : b.income }))
+  const barMax = Math.max(1, ...bars.map((b) => b.v))
   const thisMonthKey = (() => {
     const d = new Date()
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`
   })()
-  const gridP = kind === '지출' ? pastelAt(1) : pastelAt(0)
-  // 최대 달 = 같은 계열 진한 톤(지출 6 Rose · 수입 8 Periwinkle) — 남색 면 대신
-  const gridMax = kind === '지출' ? pastelAt(5) : pastelAt(7)
+  const barCur = mode === 'year' ? thisMonthKey : key
 
   const band = [
     { label: '현금', sum: cash, fill: brand2027.block3 },
@@ -372,50 +371,21 @@ export default function ReportView({
           )}
         </div>
 
-        {/* 연간: 12개월 블록 격자(4열 = 분기별 행). 탭 = 그달 월 모드 */}
-        {mode === 'year' && (
-          <div className="mt-4 grid grid-cols-4 gap-[3px] overflow-hidden rounded-2xl bg-b27-paper" style={{ gridAutoRows: '60px' }}>
-            {monthGrid.map((m, i) => {
-              const v = gridVals[i]
-              const has = v > 0
-              const top = has && i === gridMaxIdx
-              const now = m.key === thisMonthKey
-              return (
-                <button
-                  key={m.key}
-                  type="button"
-                  onClick={() => {
-                    setYm(m.key)
-                    setMode('month')
-                  }}
-                  aria-label={`${m.month}월 ${fmt(v)}`}
-                  className={`flex min-w-0 flex-col items-center justify-center overflow-hidden transition active:scale-[0.97] ${
-                    has ? 'text-white' : 'bg-b27-card text-b27-muted'
-                  } ${now ? 'shadow-[inset_0_0_0_2px_var(--b27-ink)]' : ''}`}
-                  style={!has ? undefined : top ? { background: gridMax.bg, textShadow: blockHalo(gridMax.n) } : { background: gridP.bg, textShadow: blockHalo(gridP.n) }}
-                >
-                  <span className="font-num text-[10px] leading-none">
-                    {m.month}월{top ? ' · 최대' : ''}
-                  </span>
-                  <span className="mt-1 max-w-full truncate px-1 font-num text-[14px] font-medium leading-none">{has ? fmtBlock(v) : '–'}</span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {/* 월: 추이 — 회색 막대(1~12월), 현재 남색. 탭 = 그 기간으로 */}
-        {mode === 'month' && trendVals.some((v) => v > 0) && (
+        {/* 추이 — 회색 막대 12개, 현재(월) / 이번 달(연간) 남색. 탭 = 그달로 */}
+        {bars.some((b) => b.v > 0) && (
           <div className="mt-4 flex items-end gap-1.5" style={{ height: 56 }}>
-            {trend.map((b, i) => {
-              const h = Math.max(2, (trendVals[i] / trendMax) * 44)
-              const isCur = b.key === key
+            {bars.map((b) => {
+              const h = Math.max(2, (b.v / barMax) * 44)
+              const isCur = b.key === barCur
               return (
                 <button
                   key={b.key}
                   type="button"
-                  onClick={() => setYm(b.key)}
-                  aria-label={`${b.label} ${fmt(trendVals[i])}`}
+                  onClick={() => {
+                    setYm(b.key)
+                    if (mode === 'year') setMode('month')
+                  }}
+                  aria-label={`${b.label}월 ${fmt(b.v)}`}
                   className="flex flex-1 flex-col items-center justify-end gap-1"
                 >
                   <span className={`block w-full rounded-[2px] ${isCur ? 'bg-b27-ink' : 'bg-[#E4E7EC]'}`} style={{ height: h }} />
@@ -427,34 +397,26 @@ export default function ReportView({
         )}
       </section>
 
-      {/* 블록 지도 — 3열 · 1위 남색 2×2 · 흰 글자 + 할로. 모바일은 화면 폭 꽉 채움 */}
-      {blocks.length === 0 ? (
+      {/* 도넛 + 범례 — 조각·범례 탭 = 드릴다운(전체) / 내역(드릴다운) */}
+      {legend.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-b27-line px-4 py-8 text-center text-[13px] text-b27-muted">
           {label} {dg ? dg.cat : kind} 기록이 없어요
         </p>
       ) : (
-        <section className="grid grid-cols-3 gap-[3px] bg-b27-paper max-md:-mx-4 md:overflow-hidden md:rounded-2xl" style={{ gridAutoRows: '84px', gridAutoFlow: 'dense' }}>
-          {blocks.map((b, i) => {
-            const first = i === 0
-            const neutral = b.p.n === 0
-            return (
-              <button
-                key={b.key}
-                type="button"
-                onClick={b.go}
-                className={`flex min-w-0 flex-col items-center justify-center overflow-hidden transition active:scale-[0.97] ${first ? 'col-span-2 row-span-2' : ''} ${
-                  neutral ? 'bg-b27-card text-b27-ink' : 'text-white'
-                }`}
-                style={neutral ? undefined : { background: b.p.bg, textShadow: blockHalo(b.p.n) }}
-              >
-                <span className={`font-num font-medium leading-none ${first ? 'text-[30px]' : 'text-[19px]'}`}>{fmtBlock(b.sum)}</span>
-                <span className={`mt-1.5 max-w-full truncate px-2 text-[12px] font-medium ${neutral ? 'text-b27-muted' : ''}`}>
-                  {b.name}
-                  {total > 0 && <span className="ml-1 opacity-80">{Math.round((b.sum / total) * 100)}%</span>}
-                </span>
-              </button>
-            )
-          })}
+        <section className="flex items-center gap-4 px-1">
+          <PastelDonut slices={sliceRows} total={total} topLabel={dg ? `${dg.cat} 중 최대` : kind === '지출' ? '가장 큰 지출' : '가장 큰 수입'} onPick={(s) => (sliceRows.find((x) => x.key === s.key) ?? legend[0]).go()} />
+          <ul className="min-w-0 flex-1">
+            {legend.map((b) => (
+              <li key={b.key}>
+                <button type="button" onClick={b.go} className="flex w-full items-center gap-2 py-1.5 text-left">
+                  <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: b.fill }} aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-b27-ink">{b.name}</span>
+                  <span className="shrink-0 font-num text-[13px] font-medium text-b27-ink">{fmtShort(b.sum)}</span>
+                  <span className="w-8 shrink-0 text-right font-num text-[11px] text-b27-muted">{total > 0 ? Math.round((b.sum / total) * 100) : 0}%</span>
+                </button>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
       {dg && dg.items.length > 0 && (

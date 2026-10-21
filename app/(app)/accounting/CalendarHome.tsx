@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V22 — 실기 피드백 2차: 카드대금 = 연한 빨강 알약 한 줄(총액 · 다음 상환일 · ▾) → 탭하면 흰 바탕 세부 행 + [상환][잔액 0][자산 →]. 접힘 기기별 기억, 상환 3일 전 자동 펼침
 // MFH-ACCOUNTING-CALENDAR-V21 — 실기 피드백(카드대금 구분감): 카드대금 묶음을 연한 빨강 면(#FDECEA)으로, 합계는 머리줄 제목으로, 행 구분선은 연한 빨강
 // MFH-ACCOUNTING-CALENDAR-V20 — 2027 실기 피드백: 블록 지도 제거(효용 없음 → 통계·검색에 재활용 예정) · 제목 줄 토글 = 전체/지출/수입 3상태(기본 전체 = 두 금액, 선택일 내역도 필터)
 //   · 달력 아래 「카드대금」 글자 행(카드사별 + 합계 + [상환][잔액 0], 탭 = 자산 탭) · 제목 줄 아래 「승인대기 N건」 한 줄(대기색, 탭 = 승인함)
@@ -22,6 +23,8 @@ import CardRepayButton from './CardRepayButton'
 type Mode = '전체' | '지출' | '수입'
 const MODES: Mode[] = ['전체', '지출', '수입']
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
+const CARD_OPEN_KEY = 'mfh-acct-carddue-open'
+const DUE_SOON_DAYS = 3
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -49,6 +52,21 @@ export default function CalendarHome({
   const [today, setToday] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode>('전체')
+  // 카드대금 접힘 — 기기별 기억(localStorage). 가장 가까운 상환일 3일 전부터는 자동 펼침(dueSoon).
+  const [cardOpen, setCardOpen] = useState(false)
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(CARD_OPEN_KEY) === '1') setCardOpen(true)
+    } catch {}
+  }, [])
+  const toggleCard = () =>
+    setCardOpen((v) => {
+      const n = !v
+      try {
+        localStorage.setItem(CARD_OPEN_KEY, n ? '1' : '0')
+      } catch {}
+      return n
+    })
   const [cur] = useShowCur()
   const hnlRate = useMemo(() => hnlRateOf(fx, balances), [fx, balances])
   const showCur: ShowCur = hnlRate ? cur : 'USD'
@@ -166,6 +184,21 @@ export default function CalendarHome({
     }
     return [...groups.values()]
   }, [balances, hnlRate])
+  // 가장 가까운 상환일(카드사 dueDay 중 오늘 이후 첫 날) — 접힘 줄 라벨 · 자동 펼침 판정
+  const nextDue = useMemo(() => {
+    if (!today) return null
+    const [ty, tm, td] = today.split('-').map(Number)
+    let best: Date | null = null
+    for (const g of cardDue) {
+      if (!g.dueDay) continue
+      const d = new Date(ty, tm - 1, g.dueDay)
+      if (g.dueDay < td) d.setMonth(d.getMonth() + 1)
+      if (!best || d < best) best = d
+    }
+    return best
+  }, [cardDue, today])
+  const dueSoon = !!nextDue && !!today && (nextDue.getTime() - new Date(`${today}T00:00:00`).getTime()) / 864e5 <= DUE_SOON_DAYS
+  const cardExpanded = cardOpen || dueSoon
   const useHnl = showCur === 'HNL' && !!hnlRate
   const fmtGroup = (g: (typeof cardDue)[number]) => (useHnl ? fmtFull(g.hnl, 'HNL') : fmtFull(g.usd, 'USD'))
   const cardTotal = useHnl ? fmtFull(cardDue.reduce((t, g) => t + g.hnl, 0), 'HNL') : fmtFull(cardDue.reduce((t, g) => t + g.usd, 0), 'USD')
@@ -293,29 +326,46 @@ export default function CalendarHome({
         </div>
       </section>
 
-      {/* 카드대금 — 연한 빨강 면(부채 구분): 머리줄 = 「카드대금 합계」(적색) · [상환][잔액 0] → 카드사별 행(이름 · 매월 N일 · 금액). 행 탭 = 자산 탭 */}
+      {/* 카드대금 — 접힘 줄 = 연한 빨강 알약(총액 · 가장 가까운 상환일 · ▾), 탭 = 펼침(기기별 기억, 상환 3일 전 자동).
+          펼침 = 흰 바탕 행(카드사 · 매월 N일 · 금액, 탭 = 자산 탭) + [상환][잔액 0][자산 →] */}
       {cardDue.length > 0 && (
-        <section className="rounded-2xl bg-[#FDECEA] px-3 pb-1 pt-2.5">
-          <div className="flex items-center justify-between font-num text-[13px]">
-            <span className="font-medium text-b27-expense">
-              카드대금 <span className="ml-1">{cardTotal}</span>
+        <section>
+          <button
+            type="button"
+            onClick={toggleCard}
+            aria-expanded={cardExpanded}
+            className="flex w-full items-center justify-between rounded-full bg-[#FDECEA] px-4 py-2 font-num text-[13px] text-b27-expense transition active:opacity-80"
+          >
+            <span>
+              카드대금 <span className="ml-1 font-medium">{cardTotal}</span>
             </span>
-            <CardRepayButton balances={balances} options={options} compact />
-          </div>
-          <Link href="/accounting/assets" className="mt-1 block">
-            {cardDue.map((g, i) => (
-              <span key={g.brand} className={`flex items-center justify-between gap-3 py-2.5 ${i < cardDue.length - 1 ? 'border-b border-[#F3C9C6]' : ''}`}>
-                <span className="min-w-0">
-                  <span className="block truncate text-[14px] text-b27-ink">
-                    {g.brand}
-                    {g.count > 1 && g.owners.length ? `(${g.owners.join(',')})` : ''}
+            <span className="text-[12px] text-[#C98E8B]">
+              {nextDue ? `${nextDue.getMonth() + 1}/${nextDue.getDate()} 상환` : ''}
+              <span className="ml-1.5">{cardExpanded ? '▴' : '▾'}</span>
+            </span>
+          </button>
+          {cardExpanded && (
+            <div className="px-1 pt-1">
+              {cardDue.map((g) => (
+                <Link key={g.brand} href="/accounting/assets" className="flex items-center justify-between gap-3 border-b border-b27-line py-2.5">
+                  <span className="min-w-0">
+                    <span className="block truncate text-[14px] text-b27-ink">
+                      {g.brand}
+                      {g.count > 1 && g.owners.length ? `(${g.owners.join(',')})` : ''}
+                    </span>
+                    {g.dueDay && <span className="block font-num text-[11px] text-b27-muted">매월 {g.dueDay}일</span>}
                   </span>
-                  {g.dueDay && <span className="block font-num text-[11px] text-b27-muted">매월 {g.dueDay}일</span>}
-                </span>
-                <span className="shrink-0 font-num text-[14px] font-medium text-b27-expense">{fmtGroup(g)}</span>
-              </span>
-            ))}
-          </Link>
+                  <span className="shrink-0 font-num text-[14px] font-medium text-b27-expense">{fmtGroup(g)}</span>
+                </Link>
+              ))}
+              <div className="flex items-center justify-end gap-1.5 pb-1 pt-2">
+                <CardRepayButton balances={balances} options={options} compact />
+                <Link href="/accounting/assets" className="inline-flex h-8 items-center rounded-full bg-b27-card px-3.5 font-num text-[13px] font-medium text-b27-muted">
+                  자산 →
+                </Link>
+              </div>
+            </div>
+          )}
         </section>
       )}
 

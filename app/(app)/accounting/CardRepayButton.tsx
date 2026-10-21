@@ -242,7 +242,7 @@ export default function CardRepayButton({
       <button type="button" onClick={() => setOpen(true)} className="h-8 rounded-full bg-b27-plus px-3.5 font-num text-[13px] font-medium text-white transition active:opacity-80">
         상환
       </button>
-      <button type="button" onClick={openZero} className="h-8 rounded-full bg-white px-3.5 font-num text-[13px] font-medium text-b27-muted transition active:opacity-80">
+      <button type="button" onClick={openZero} className="h-8 rounded-full bg-b27-card px-3.5 font-num text-[13px] font-medium text-b27-muted transition active:opacity-80">
         잔액 0
       </button>
     </span>
