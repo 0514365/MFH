@@ -1,3 +1,4 @@
+// MFH-ACCT-DISPLAY-V4 — 2027 Minimal Block: 항목 색 15색 사전 → brand2027 블록 8색 순번(itemPastels) · 대분류 고정 블록(pastelOf) · Pastel 에 n·halo 추가
 // MFH-ACCT-DISPLAY-V3 — 파스텔 fill 을 위플 톤(흰 아이콘이 보이는 중간 채도)으로 조정 · 보조색 7종
 // MFH-ACCT-DISPLAY-V2 — pastelAt(순번 파스텔: 대분류 → 중분류 도넛)
 // MFH-ACCT-DISPLAY-V1
@@ -7,6 +8,7 @@
 // · 카테고리 파스텔(위플 톤): bg(아이콘 배경) · fg(아이콘 글자·진한 텍스트) · fill(차트 조각·막대).
 import { useEffect, useState } from 'react'
 import type { AccountBalance, FxInfo, InoutRow } from './accounting-types'
+import { BLOCK_COUNT, blockColor, brand2027 } from './palette'
 
 export type ShowCur = 'HNL' | 'USD'
 const CUR_KEY = 'mfh-acct-show-cur'
@@ -61,35 +63,20 @@ export function fmtCompact(n: number): string {
   return n < 0 ? `−${body}` : body
 }
 
-export type Pastel = { bg: string; fg: string; fill: string }
-const PASTEL: Record<string, Pastel> = {
-  후원: { bg: '#E3EEFB', fg: '#3B6FB6', fill: '#7FA6DE' },
-  헌금: { bg: '#E8E4F8', fg: '#6A55B8', fill: '#9C8AD8' },
-  기타수입: { bg: '#E2F3EC', fg: '#2F8A63', fill: '#6FBF98' },
-  사역비: { bg: '#FBE7E4', fg: '#B65446', fill: '#E5847A' },
-  사역: { bg: '#FDEBDD', fg: '#B8692E', fill: '#E9A06C' },
-  생활비: { bg: '#FFF3D6', fg: '#A27A12', fill: '#E2BE55' },
-  생활: { bg: '#FCE6EF', fg: '#B24C77', fill: '#DE8AAE' },
-  차량: { bg: '#E0F1F5', fg: '#2C7F92', fill: '#6CB4C4' },
-  '운영/행정': { bg: '#ECEBE8', fg: '#6B6A66', fill: '#A9A7A1' },
+// 2027 Minimal Block — 항목 색 = brand2027 블록 8색 순번(대분류 안 항목 정렬 순서). 15색 파스텔 사전 폐지.
+// Pastel 필드 호환: bg·fill = 블록 색(면), fg = 남색(글자). n = 블록 번호(1~8, 0 = 중립), halo = 블록 위 흰 글자용 진한 톤 rgba.
+export type Pastel = { bg: string; fg: string; fill: string; n: number; halo: string }
+const mk = (n: number): Pastel => {
+  const { bg, halo } = blockColor(n)
+  return { bg, fg: brand2027.ink, fill: bg, n, halo }
 }
-// 사전에 없는 카테고리 — 이름 해시로 보조 파스텔 순환.
-const EXTRA: Pastel[] = [
-  { bg: '#EAF4E1', fg: '#5B8A2E', fill: '#96C26D' },
-  { bg: '#F4E9F7', fg: '#8A4FA0', fill: '#B88FCB' },
-  { bg: '#FFF0E6', fg: '#B0623A', fill: '#E9A57E' },
-  { bg: '#E3F1F2', fg: '#2F7A80', fill: '#6FAAB0' },
-  { bg: '#EFE8F0', fg: '#6E4F75', fill: '#9B80A0' },
-  { bg: '#E3F5E7', fg: '#2E8546', fill: '#7DCB8F' },
-  { bg: '#FBE4E4', fg: '#B23B3B', fill: '#E8706F' },
-]
-export const PASTEL_NEUTRAL: Pastel = { bg: '#EEEDEA', fg: '#80807F', fill: '#D3D1CC' }
+const SERIES: Pastel[] = Array.from({ length: BLOCK_COUNT }, (_, i) => mk(i + 1))
+export const PASTEL_NEUTRAL: Pastel = { bg: brand2027.card, fg: brand2027.muted, fill: '#E4E7EC', n: 0, halo: 'transparent' }
 
-// 순번 파스텔 — 대분류 안 항목(중분류) 도넛처럼 이름과 무관하게 순위별로 서로 다른 색이 필요할 때.
-const SERIES: Pastel[] = [...Object.values(PASTEL), ...EXTRA]
-export const pastelAt = (i: number): Pastel => SERIES[((i % SERIES.length) + SERIES.length) % SERIES.length]
+// 순번 블록 색 — 대분류 안 항목(중분류) 순서대로 1~8 순환.
+export const pastelAt = (i: number): Pastel => SERIES[((i % BLOCK_COUNT) + BLOCK_COUNT) % BLOCK_COUNT]
 
-// 항목별 고정색 — 대분류 안 항목 순서(sort_order)대로 순번 파스텔. 달력 내역·통계 중분류 도넛이 같은 색을 쓴다.
+// 항목별 고정색 — 대분류 안 항목 순서(sort_order)대로 순번 블록. 달력 블록 지도·내역 사각형·통계가 같은 색을 쓴다.
 export function itemPastels(items: { id: string; category?: string | null }[]): Map<string, Pastel> {
   const idx = new Map<string, number>()
   const out = new Map<string, Pastel>()
@@ -102,15 +89,27 @@ export function itemPastels(items: { id: string; category?: string | null }[]): 
   return out
 }
 
+// 대분류 고정색 — "전체" 보기(통계)의 대분류 단위 블록·띠. 생활비 = 1 Lagoon · 사역비 = 5 Lavender. 사전에 없으면 이름 해시.
+const CATEGORY_BLOCK: Record<string, number> = {
+  생활비: 1,
+  사역비: 5,
+  생활: 7,
+  사역: 2,
+  차량: 1,
+  '운영/행정': 3,
+  후원: 8,
+  헌금: 5,
+  기타수입: 4,
+}
 export function pastelOf(category: string | null | undefined): Pastel {
   if (!category) return PASTEL_NEUTRAL
-  const p = PASTEL[category]
-  if (p) return p
+  const n = CATEGORY_BLOCK[category]
+  if (n) return mk(n)
   let h = 0
   for (const ch of category) h = (h * 31 + ch.charCodeAt(0)) >>> 0
-  return EXTRA[h % EXTRA.length]
+  return mk((h % BLOCK_COUNT) + 1)
 }
 
-// 수입·지출 추이(차트) 파스텔.
-export const PASTEL_INCOME = '#8FB8EE'
-export const PASTEL_EXPENSE = '#F2A39A'
+// 수입·지출 추이(차트) — 블록 8 Periwinkle · 2 Salmon.
+export const PASTEL_INCOME = brand2027.block8
+export const PASTEL_EXPENSE = brand2027.block2

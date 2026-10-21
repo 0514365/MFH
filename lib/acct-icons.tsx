@@ -1,5 +1,6 @@
+// MFH-ACCT-ICONS-V2 — 2027 블록 8색(연한 파스텔) 위에서는 흰 선이 흐려 아이콘을 남색(brand2027.ink)으로. c-3·c-4 에서 블록/사각형으로 대체 예정.
 // MFH-ACCT-ICONS-V1
-// 회계 항목·대분류 아이콘(위플 스타일) — 색 원 안에 흰색 단순 선 아이콘(Lucide). 통계 도넛·막대·달력 내역 공용.
+// 회계 항목·대분류 아이콘(위플 스타일) — 색 원 안에 단순 선 아이콘(Lucide). 통계 도넛·막대·달력 내역 공용.
 //   · 항목 이름 → 아이콘(ITEM_ICON) · 없으면 대분류 아이콘(CAT_ICON) · 그것도 없으면 기본(동전).
 //   · 같은 이름이 대분류가 달라도(사역비/생활비 주유 등) 같은 아이콘. 색은 호출부가 정한다(도넛 조각과 같은 색).
 import {
@@ -45,6 +46,7 @@ import {
   Utensils,
   type LucideIcon,
 } from 'lucide-react'
+import { brand2027 } from './palette'
 
 const ITEM_ICON: Record<string, LucideIcon> = {
   // 사역비
@@ -137,7 +139,7 @@ export function CatIcon({
       style={{ width: size, height: size, background: color }}
       aria-hidden="true"
     >
-      <Icon size={Math.round(size * 0.52)} strokeWidth={2.3} color="#fff" absoluteStrokeWidth={false} />
+      <Icon size={Math.round(size * 0.52)} strokeWidth={2} color={brand2027.ink} absoluteStrokeWidth={false} />
     </span>
   )
 }
