@@ -1,4 +1,6 @@
 'use client'
+// MFH-ACCOUNTING-REPORT-V11 — 2027 실기 피드백(블록 재활용 ①): 연간 모드 = 그해 12개월 블록 격자(4열 × 3행, 분기 = 행)가 연도 추이 막대를 대체.
+//   달마다 「월 · 금액」, 가장 큰 달 = 남색 앵커, 이번 달 = 남색 안쪽 테두리, 기록 없는 달 = 연회색, 탭 = 그달 월 모드로. 월 모드 추이 막대(1~12월)는 그대로.
 // MFH-ACCOUNTING-REPORT-V10 — 2027 Minimal Block(c-4a): 지출/수입 글자 토글 · 월/연간 남색 알약 · 공용 CurToggle → 큰 숫자(남색) + 전기 대비
 //   → 기간 추이 회색 막대(현재 남색, 탭 = 이동) → 블록 지도(3열 · 1위 = 남색 2×2 · 상위 7 + 기타 · 흰 글자 + 할로 · 탭 = 드릴다운/내역)
 //   → 지출 전체: 현금·카드·납부 띠 한 줄 · 수입 전체: 후원자 목록. 도넛·% 막대·CatIcon·카드 테두리 제거. 집계 로직은 V9 그대로.
@@ -240,6 +242,22 @@ export default function ReportView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recent, key, mode, showCur, hnlRate])
 
+  // 연간 모드 — 그해 12개월 합(종류별)
+  const monthGrid = useMemo(() => {
+    if (!key || mode !== 'year') return []
+    return MONTHS.map((mm) => {
+      let income = 0
+      let expense = 0
+      for (const r of recent) {
+        if (!inKey(r, `${key}-${mm}`)) continue
+        if (r.gubun === '수입') income += amt(r)
+        else if (r.gubun === '지출') expense += amt(r)
+      }
+      return { key: `${key}-${mm}`, month: Number(mm), income, expense }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recent, key, mode, showCur, hnlRate])
+
   // 지출/수입을 바꾸면 전체로(기간 이동은 드릴다운 유지 — 같은 대분류를 달별로 비교)
   useEffect(() => setDrill(null), [kind])
 
@@ -280,6 +298,15 @@ export default function ReportView({
   // 추이 막대 — 현재 종류(지출/수입)만, 회색 · 현재 기간 남색
   const trendVals = trend.map((b) => (kind === '지출' ? b.expense : b.income))
   const trendMax = Math.max(1, ...trendVals)
+
+  // 연간 12개월 블록 — 종류별 값, 가장 큰 달 = 남색, 이번 달 = 안쪽 테두리. 색은 종류별 1색(지출 Salmon · 수입 Lagoon)
+  const gridVals = monthGrid.map((m) => (kind === '지출' ? m.expense : m.income))
+  const gridMaxIdx = gridVals.length ? gridVals.indexOf(Math.max(...gridVals)) : -1
+  const thisMonthKey = (() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`
+  })()
+  const gridP = kind === '지출' ? pastelAt(1) : pastelAt(0)
 
   const band = [
     { label: '현금', sum: cash, fill: brand2027.block3 },
@@ -342,8 +369,38 @@ export default function ReportView({
           )}
         </div>
 
-        {/* 추이 — 회색 막대, 현재 남색. 탭 = 그 기간으로 */}
-        {trendVals.some((v) => v > 0) && (
+        {/* 연간: 12개월 블록 격자(4열 = 분기별 행). 탭 = 그달 월 모드 */}
+        {mode === 'year' && (
+          <div className="mt-4 grid grid-cols-4 gap-[3px] overflow-hidden rounded-2xl bg-b27-paper" style={{ gridAutoRows: '60px' }}>
+            {monthGrid.map((m, i) => {
+              const v = gridVals[i]
+              const has = v > 0
+              const top = has && i === gridMaxIdx
+              const now = m.key === thisMonthKey
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => {
+                    setYm(m.key)
+                    setMode('month')
+                  }}
+                  aria-label={`${m.month}월 ${fmt(v)}`}
+                  className={`flex min-w-0 flex-col items-center justify-center overflow-hidden transition active:scale-[0.97] ${
+                    top ? 'bg-b27-ink text-white' : has ? 'text-white' : 'bg-b27-card text-b27-muted'
+                  } ${now ? 'shadow-[inset_0_0_0_3px_var(--b27-ink)]' : ''}`}
+                  style={top || !has ? undefined : { background: gridP.bg, textShadow: blockHalo(gridP.n) }}
+                >
+                  <span className={`font-num text-[10px] leading-none ${top ? 'opacity-85' : ''}`}>{m.month}월</span>
+                  <span className="mt-1 max-w-full truncate px-1 font-num text-[14px] font-medium leading-none">{has ? fmtBlock(v) : '–'}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* 월: 추이 — 회색 막대(1~12월), 현재 남색. 탭 = 그 기간으로 */}
+        {mode === 'month' && trendVals.some((v) => v > 0) && (
           <div className="mt-4 flex items-end gap-1.5" style={{ height: 56 }}>
             {trend.map((b, i) => {
               const h = Math.max(2, (trendVals[i] / trendMax) * 44)
@@ -352,7 +409,7 @@ export default function ReportView({
                 <button
                   key={b.key}
                   type="button"
-                  onClick={() => (mode === 'year' ? setYear(b.key) : setYm(b.key))}
+                  onClick={() => setYm(b.key)}
                   aria-label={`${b.label} ${fmt(trendVals[i])}`}
                   className="flex flex-1 flex-col items-center justify-end gap-1"
                 >
