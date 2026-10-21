@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TITLE-V9 — HeaderCurToggle 을 통계(/accounting/report)에서도 표시(달력과 같은 헤더 행)
 // MFH-ACCOUNTING-TITLE-V8 — 실기 피드백: L/$ 토글 = 알약 세그먼트 15px(활성 남색 채움·흰 글자 / 비활성 회색), 구분감·크기 확대
 // MFH-ACCOUNTING-TITLE-V7 — 2027 Minimal Block(b 단계): 제목·월 라벨 Manrope(font-num) 500 남색 · L/$ 토글 = 알약 없이 글자(활성 남색·비활성 회색) · 🔍 도 b27 토큰
 // MFH-ACCOUNTING-TITLE-V6 — 달력 헤더 왼쪽 🔍(HeaderSearchLink → /accounting/search) · 「검색」 타이틀
@@ -107,10 +108,10 @@ export function CurToggle({ className = '' }: { className?: string }) {
   )
 }
 
-// 헤더용 — 모바일(<md) 달력에서만 표시.
+// 헤더용 — 모바일(<md) 달력·통계에서 표시(월 이동 헤더 행 오른쪽).
 export function HeaderCurToggle() {
   const pathname = usePathname() ?? '/accounting'
-  return pathname === '/accounting' ? <CurToggle className="mr-1 md:hidden" /> : null
+  return pathname === '/accounting' || pathname === '/accounting/report' ? <CurToggle className="mr-1 md:hidden" /> : null
 }
 
 // 헤더용 — 달력(/accounting)에서 검색 화면으로(모든 폭, 헤더 왼쪽 ‹ 옆).

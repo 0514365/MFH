@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-REPORT-V14 — 실기 피드백(밋밋함, A안): 요약 = 연회색 면 · 추이 막대 종류 색 · 구성/결제수단/후원자 = 알약 제목 · 범례 옆줄 · 결제수단 3칸 · L/$ 는 모바일 헤더 행(HeaderCurToggle)
 // MFH-ACCOUNTING-REPORT-V13 — 실기 피드백 2차(블록 → 원형): 블록 지도·연간 12개월 격자 제거 → 도넛(PastelDonut 2027) + 범례(이름 · 금액 · %, 탭 = 드릴다운/내역)
 //   · 추이 막대는 월·연간 공통 12개월(연간은 그해 1~12월, 탭 = 그달 월 모드). 집계 로직은 그대로.
 // MFH-ACCOUNTING-REPORT-V12 — 실기 피드백(남색 과다): 1위 대분류 블록 = 제 색(2×2 유지) · 연간 최대 달 = 같은 계열 진한 톤(Rose/Periwinkle) + 「최대」 글자 · 이번 달 테두리 2px → 남색 면 0
@@ -311,9 +312,9 @@ export default function ReportView({
   const barCur = mode === 'year' ? thisMonthKey : key
 
   const band = [
-    { label: '현금', sum: cash, fill: brand2027.block3 },
-    { label: '카드', sum: card, fill: brand2027.block2 },
-    { label: '카드대금 납부', sum: repay, fill: brand2027.block5 },
+    { label: '현금', sum: cash, fill: brand2027.block3, tint: '#FEF6E7' },
+    { label: '카드', sum: card, fill: brand2027.block2, tint: '#FDECEA' },
+    { label: '납부', sum: repay, fill: brand2027.block5, tint: '#F1EFFA' },
   ]
   const bandTotal = band.reduce((s, b) => s + Math.max(0, b.sum), 0)
 
@@ -341,12 +342,12 @@ export default function ReportView({
         </div>
         <div className="flex items-center gap-2">
           <Seg value={mode} onChange={switchMode} options={[{ v: 'month', label: '월' }, { v: 'year', label: '연간' }]} />
-          {hnlRate && <CurToggle />}
+          {hnlRate && <CurToggle className="max-md:hidden" />}
         </div>
       </div>
 
-      {/* 큰 숫자 + 전기 대비 */}
-      <section className="px-1">
+      {/* 요약 — 연회색 면: 라벨 · 큰 숫자 · 전기 대비 · 추이(종류 색) */}
+      <section className="rounded-2xl bg-b27-card px-4 pb-3 pt-3">
         {dg && (
           <button type="button" onClick={() => setDrill(null)} className="mb-1 font-num text-[12px] text-b27-muted">
             ‹ 전체 {kind}
@@ -371,7 +372,7 @@ export default function ReportView({
           )}
         </div>
 
-        {/* 추이 — 회색 막대 12개, 현재(월) / 이번 달(연간) 남색. 탭 = 그달로 */}
+        {/* 추이 — 12개 막대, 종류 색(지출 연한 빨강 · 수입 연한 파랑), 현재(월)/이번 달(연간)은 진하게. 탭 = 그달로 */}
         {bars.some((b) => b.v > 0) && (
           <div className="mt-4 flex items-end gap-1.5" style={{ height: 56 }}>
             {bars.map((b) => {
@@ -388,7 +389,7 @@ export default function ReportView({
                   aria-label={`${b.label}월 ${fmt(b.v)}`}
                   className="flex flex-1 flex-col items-center justify-end gap-1"
                 >
-                  <span className={`block w-full rounded-[2px] ${isCur ? 'bg-b27-ink' : 'bg-[#E4E7EC]'}`} style={{ height: h }} />
+                  <span className="block w-full rounded-[2px]" style={{ height: h, background: kind === '지출' ? (isCur ? '#F07F8A' : '#FBE1DF') : isCur ? '#8FB8EE' : '#E1EAFB' }} />
                   <span className={`font-num text-[9px] leading-none ${isCur ? 'font-medium text-b27-ink' : 'text-b27-muted'}`}>{b.label}</span>
                 </button>
               )
@@ -403,13 +404,19 @@ export default function ReportView({
           {label} {dg ? dg.cat : kind} 기록이 없어요
         </p>
       ) : (
-        <section className="flex items-center gap-4 px-1">
+        <section className="px-1">
+          <div className="mb-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-num text-[12px] text-b27-ink" style={{ background: kind === '지출' ? '#FBE1DF' : '#E1EAFB' }}>
+              <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: kind === '지출' ? '#F07F8A' : '#8FB8EE' }} aria-hidden="true" />
+              {dg ? `${dg.cat} 중` : kind === '지출' ? '어디에 썼나' : '어디서 들어왔나'}
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
           <PastelDonut slices={sliceRows} total={total} topLabel={dg ? `${dg.cat} 중 최대` : kind === '지출' ? '가장 큰 지출' : '가장 큰 수입'} onPick={(s) => (sliceRows.find((x) => x.key === s.key) ?? legend[0]).go()} />
           <ul className="min-w-0 flex-1">
             {legend.map((b) => (
               <li key={b.key}>
-                <button type="button" onClick={b.go} className="flex w-full items-center gap-2 py-1.5 text-left">
-                  <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: b.fill }} aria-hidden="true" />
+                <button type="button" onClick={b.go} className="flex w-full items-center gap-2 border-l-[3px] py-1.5 pl-2 text-left" style={{ borderLeftColor: b.fill }}>
                   <span className="min-w-0 flex-1 truncate text-[13px] text-b27-ink">{b.name}</span>
                   <span className="shrink-0 font-num text-[13px] font-medium text-b27-ink">{fmtShort(b.sum)}</span>
                   <span className="w-8 shrink-0 text-right font-num text-[11px] text-b27-muted">{total > 0 ? Math.round((b.sum / total) * 100) : 0}%</span>
@@ -417,6 +424,7 @@ export default function ReportView({
               </li>
             ))}
           </ul>
+          </div>
         </section>
       )}
       {dg && dg.items.length > 0 && (
@@ -425,18 +433,18 @@ export default function ReportView({
         </button>
       )}
 
-      {/* 띠 — 현금 · 카드 · 카드대금 납부(지출 전체만), 한 줄 */}
+      {/* 결제수단 — 알약 제목 + 3칸(현금 살구 · 카드 살몬 · 납부 라벤더), 지출 전체만 */}
       {!dg && kind === '지출' && bandTotal > 0 && (
         <section className="px-1">
-          <div className="flex h-1.5 gap-[3px] overflow-hidden rounded-full">
-            {band.map((b) => (b.sum > 0 ? <div key={b.label} style={{ width: `${(b.sum / bandTotal) * 100}%`, background: b.fill }} /> : null))}
+          <div className="mb-2">
+            <span className="inline-flex items-center rounded-full bg-b27-card px-2.5 py-1 font-num text-[12px] text-b27-ink">결제수단</span>
           </div>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-num text-[11px] text-b27-muted">
+          <div className="flex gap-1.5">
             {band.map((b) => (
-              <span key={b.label} className="flex items-center gap-1">
-                <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: b.fill }} />
-                {b.label} <b className="font-medium text-b27-ink">{fmt(b.sum)}</b>
-              </span>
+              <div key={b.label} className="min-w-0 flex-1 rounded-xl px-3 py-2 font-num" style={{ background: b.tint }}>
+                <div className="truncate text-[11px] text-b27-muted">{b.label}</div>
+                <div className="truncate text-[13px] font-medium text-b27-ink">{fmt(b.sum)}</div>
+              </div>
             ))}
           </div>
         </section>
@@ -445,8 +453,11 @@ export default function ReportView({
       {/* 후원자별 헌금(수입 전체만) */}
       {!dg && kind === '수입' && supporterRows.length > 0 && (
         <section className="px-1">
-          <div className="flex items-baseline justify-between font-num text-[12px] text-b27-muted">
-            <span>후원자별</span>
+          <div className="flex items-center justify-between font-num text-[12px] text-b27-muted">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-b27-ink" style={{ background: '#EAF6F5' }}>
+              <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: brand2027.block1 }} aria-hidden="true" />
+              후원자별
+            </span>
             <span className="text-b27-ink">{fmt(supporterRows.reduce((s, r) => s + r.sum, 0))}</span>
           </div>
           <BarList rows={supporterRows} fmt={fmt} onGo={(href) => router.push(href)} />
