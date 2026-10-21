@@ -1,4 +1,4 @@
-// MFH-ACCOUNTING-LAYOUT-V9 — 달력 헤더 🔍(HeaderSearchLink) → 검색 화면
+// MFH-ACCOUNTING-LAYOUT-V9 — 달력 헤더 왼쪽 🔍(HeaderSearchLink) → 검색 화면
 // MFH-ACCOUNTING-LAYOUT-V8 — 모바일: 헤더 집 아이콘 제거(하단 탭바 중앙으로) · 기록 ＋ = EntryFab(오른쪽 아래 플로팅)
 // MFH-ACCOUNTING-LAYOUT-V7 — 모바일(<md) 헤더 압축(여백 축소) · 달력 헤더 L/$ 토글 · 후원자 아이콘은 md 이상만
 // MFH-ACCOUNTING-LAYOUT-V6 — 헤더 중앙 슬롯(달력·통계 월 이동) · 왼쪽 ‹ 옆 섹션명(통계)
@@ -44,6 +44,7 @@ export default async function AccountingLayout({ children }: { children: React.R
           {/* 좌: 뒤로 */}
           <div className="flex shrink-0 items-center">
             <AccountingBack />
+            <HeaderSearchLink />
             <AccountingSideTitle />
           </div>
 
@@ -52,7 +53,6 @@ export default async function AccountingLayout({ children }: { children: React.R
 
           {/* 우: 메인홈 · 후원자관리 링크 */}
           <div className="ml-auto flex shrink-0 items-center gap-0.5">
-            <HeaderSearchLink />
             <HeaderCurToggle />
             <Link href="/" aria-label="메인홈" className={`${linkBtn} max-md:hidden`}>
               <svg

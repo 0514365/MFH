@@ -1,5 +1,5 @@
 'use client'
-// MFH-ACCOUNTING-TITLE-V6 — 달력 헤더 오른쪽 🔍(HeaderSearchLink → /accounting/search) · 「검색」 타이틀
+// MFH-ACCOUNTING-TITLE-V6 — 달력 헤더 왼쪽 🔍(HeaderSearchLink → /accounting/search) · 「검색」 타이틀
 // MFH-ACCOUNTING-TITLE-V5 — 달력 월 이동도 모든 폭에서 헤더 중앙(절대 배치)
 // MFH-ACCOUNTING-TITLE-V4 — 모바일(<md) 달력: 월 이동 슬롯을 왼쪽 흐름 배치 + 헤더 L/$ 토글(HeaderCurToggle) · 월 라벨 22px · L/$ 크게
 // MFH-ACCOUNTING-TITLE-V3 — 달력·통계는 헤더 중앙 = 페이지가 채우는 슬롯(월 이동, HeaderPortal) · 통계는 왼쪽 ‹ 옆에 「통계」(AccountingSideTitle)
@@ -110,7 +110,7 @@ export function HeaderCurToggle() {
   return pathname === '/accounting' ? <CurToggle className="mr-1 md:hidden" /> : null
 }
 
-// 헤더용 — 달력(/accounting)에서 검색 화면으로(모든 폭, L/$ 토글 왼쪽).
+// 헤더용 — 달력(/accounting)에서 검색 화면으로(모든 폭, 헤더 왼쪽 ‹ 옆).
 export function HeaderSearchLink() {
   const pathname = usePathname() ?? '/accounting'
   if (pathname !== '/accounting') return null
