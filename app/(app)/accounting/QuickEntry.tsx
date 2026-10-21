@@ -1,4 +1,6 @@
 'use client'
+// MFH-QUICK-ENTRY-V8 — 2027 Minimal Block(c-3): 흰 바탕·남색 글자·Manrope. ① 통화 알약(남색)·큰 숫자 남색·[지출][수입] 연한 면 버튼·이체/조정/상세는 글자 링크·키패드 연회색(연산 = 연한 터키석, = 남색)
+//   ② 계좌 = 이름 행 목록(통화 기호 오른쪽, 입력 통화 먼저) ③ 항목 = 블록 3열(이름만, 흰 글자 + 할로, 탭 = 즉시 저장) · 대분류 알약 · 추가 블록. 로직(계산기·저장·2026-09 가드)은 V7 그대로.
 // MFH-QUICK-ENTRY-V7 — 상단 통화 선택은 기호만(L · $ · ₩), 선택 = 마룬 배경 흰 글자, 날짜 글자 축소(겹침 방지)
 // MFH-QUICK-ENTRY-V6 — 통화 기호는 숫자 앞 작은 회색 글자 · = 뒤에도 계산 과정(식 = 결과)을 C 누를 때까지 표시
 // MFH-QUICK-ENTRY-V5 — 통화 선택(L/$/₩)을 상단 날짜 줄 중앙으로 · 금액 숫자는 화면 폭 전체 사용(큰 L 글자 제거)
@@ -16,7 +18,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { activeOnly, type AcctOption, type AcctOptions, type FxInfo, type InoutInput } from '@/lib/accounting-types'
 import { itemPastels, useShowCur } from '@/lib/acct-display'
-import { CatIcon } from '@/lib/acct-icons'
+import { blockHalo } from '@/lib/palette'
 import { saveInout } from './actions'
 import ItemAddButton from './ItemAddButton'
 
@@ -212,15 +214,17 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
   }
 
   const accountName = options.accounts.find((a) => a.id === accountId)?.name ?? ''
-  const key = 'flex h-full items-center justify-center font-display text-[30px] font-light text-ink active:bg-surface-subtle'
-  const opKey = 'flex h-full items-center justify-center font-display text-[26px] text-primary active:bg-surface-subtle'
+  const amtColor = gubun === '수입' ? 'text-b27-income' : 'text-b27-expense'
+  const key = 'flex h-full items-center justify-center bg-b27-card font-num text-[26px] font-medium text-b27-ink active:opacity-70'
+  const opKey = 'flex h-full items-center justify-center bg-[#DDF6F3] font-num text-[24px] font-medium text-b27-ink active:opacity-70'
+  const iconBtn = 'flex h-10 w-10 items-center justify-center text-b27-ink'
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col md:hidden" style={{ background: 'var(--paper)', paddingTop: 'env(safe-area-inset-top)' }}>
-      {/* 상단 바 */}
+    <div className="fixed inset-0 z-50 flex flex-col bg-b27-paper font-sans text-b27-ink md:hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      {/* 상단 바 — ① 날짜 · 통화 알약(중앙) · ✕ / ②③ ← · 금액 · ✕ */}
       <div className="relative flex h-14 shrink-0 items-center justify-between px-3">
         {step === 1 && (
-          <div className="absolute left-1/2 flex -translate-x-1/2 gap-1 rounded-full border border-line bg-surface-subtle p-1" role="radiogroup" aria-label="통화">
+          <div className="absolute left-1/2 flex -translate-x-1/2 rounded-full bg-b27-card p-[3px]" role="radiogroup" aria-label="통화">
             {CUR_ORDER.map((c) => (
               <button
                 key={c}
@@ -229,7 +233,7 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
                 aria-checked={cur === c}
                 aria-label={c}
                 onClick={() => setCur(c)}
-                className={`flex h-8 w-9 items-center justify-center rounded-full font-display text-[15px] font-bold transition ${cur === c ? 'bg-primary text-white shadow-soft' : 'text-muted'}`}
+                className={`flex h-8 w-10 items-center justify-center rounded-full font-num text-[15px] font-medium transition ${cur === c ? 'bg-b27-ink text-white' : 'text-b27-muted'}`}
               >
                 {CUR_SIGN[c]}
               </button>
@@ -237,27 +241,25 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
           </div>
         )}
         {step === 1 ? (
-          <label className="relative px-1 font-display text-[17px] text-muted">
-            {date.replace(/-/g, '/')}
+          <label className="relative px-1 font-num text-[15px] text-b27-muted">
+            {date.replace(/-/g, '.')}
             <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} className="absolute inset-0 opacity-0" aria-label="날짜" />
           </label>
         ) : (
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={goBack} aria-label="뒤로" className="flex h-10 w-10 items-center justify-center text-ink">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={goBack} aria-label="뒤로" className={iconBtn}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M19 12H5" />
                 <path d="M12 19l-7-7 7-7" />
               </svg>
             </button>
-            {step === 3 && (
-              <span className={`font-display text-[24px] font-medium ${gubun === '수입' ? 'text-blue-700' : 'text-[#E0607A]'}`}>
-                {CUR_SIGN[cur]} {fmtNum(amount, cur)}
-              </span>
-            )}
+            <span className={`font-num text-[20px] font-medium ${amtColor}`}>
+              {CUR_SIGN[cur]} {fmtNum(amount, cur)}
+            </span>
           </div>
         )}
-        <button type="button" onClick={close} aria-label="닫기" className="flex h-10 w-10 items-center justify-center text-ink">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+        <button type="button" onClick={close} aria-label="닫기" className={iconBtn}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
             <path d="M18 6 6 18" />
             <path d="m6 6 12 12" />
           </svg>
@@ -267,45 +269,46 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
       {/* ① 금액 + 계산기 */}
       {step === 1 && (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="px-6 pt-4">
+          <div className="px-6 pt-2">
+            {/* 계산 과정(입력 중 식 또는 = 뒤 「식 = 결과」) — 큰 숫자 위 작은 회색 */}
+            <div className="min-h-[18px] break-all text-right font-num text-[13px] text-b27-muted">{tokens.length > 0 ? exprText : history}</div>
             {(() => {
               const text = typing ? fmtTyping(typing) : fmtNum(amount, cur)
               return (
-                <div className="break-all text-right font-display font-light leading-none text-[#1B7FC3]" style={{ fontSize: bigSize(text.length), minHeight: 64 }}>
-                  <span className="mr-2 text-[0.45em] text-muted">{CUR_SIGN[cur]}</span>
+                <div className="break-all text-right font-num font-medium leading-none tracking-[-0.02em] text-b27-ink" style={{ fontSize: bigSize(text.length), minHeight: 64 }}>
+                  <span className="mr-2 text-[0.42em] font-normal text-b27-muted">{CUR_SIGN[cur]}</span>
                   {text}
                 </div>
               )
             })()}
-            {(tokens.length > 0 || history) && (
-              <div className="mt-2 break-all text-right font-display text-[14px] text-faint">{tokens.length > 0 ? exprText : history}</div>
-            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4 px-6 pt-8">
-            <button type="button" onClick={() => pickGubun('수입')} className="h-16 rounded-2xl bg-gradient-to-r from-[#3FC7B0] to-[#4AD28A] font-display text-[22px] font-medium text-white active:opacity-90">
-              수입
-            </button>
-            <button type="button" onClick={() => pickGubun('지출')} className="h-16 rounded-2xl bg-[#F46D93] font-display text-[22px] font-medium text-white active:opacity-90">
+          {/* 구분 — 탭 = 다음(계좌). 지출 = 연한 빨강 면 · 수입 = 연한 파랑 면 */}
+          <div className="grid grid-cols-2 gap-[3px] overflow-hidden rounded-2xl px-6 pt-6">
+            <button type="button" onClick={() => pickGubun('지출')} className="h-14 rounded-l-2xl bg-[#FBE1DF] font-num text-[17px] font-medium text-b27-expense active:opacity-80">
               지출
             </button>
+            <button type="button" onClick={() => pickGubun('수입')} className="h-14 rounded-r-2xl bg-[#E1EAFB] font-num text-[17px] font-medium text-b27-income active:opacity-80">
+              수입
+            </button>
           </div>
-          <div className="grid grid-cols-2 gap-4 px-6 pt-3">
-            <Link href={`/accounting/entry?full=1&date=${date}&gubun=이체`} className="flex h-11 items-center justify-center rounded-2xl border border-line bg-surface text-[15px] font-medium text-muted active:bg-surface-subtle">
+          <div className="flex justify-center gap-6 px-6 pt-3 text-[13px] text-b27-muted">
+            <Link href={`/accounting/entry?full=1&date=${date}&gubun=이체`} className="py-1 active:text-b27-ink">
               이체
             </Link>
-            <Link href={`/accounting/entry?full=1&date=${date}&gubun=조정`} className="flex h-11 items-center justify-center rounded-2xl border border-line bg-surface text-[15px] font-medium text-muted active:bg-surface-subtle">
+            <Link href={`/accounting/entry?full=1&date=${date}&gubun=조정`} className="py-1 active:text-b27-ink">
               조정
             </Link>
-            <Link href={`/accounting/entry?full=1&date=${date}`} className="col-span-2 flex h-11 items-center justify-center rounded-2xl border border-line bg-surface text-[15px] font-medium text-muted active:bg-surface-subtle">
+            <Link href={`/accounting/entry?full=1&date=${date}`} className="py-1 active:text-b27-ink">
               상세 입력
             </Link>
           </div>
-          {err && <p className="px-6 pt-3 text-center text-[13px] text-red-700">{err}</p>}
+          {err && <p className="px-6 pt-3 text-center text-[13px] text-b27-expense">{err}</p>}
 
           <div className="mt-auto">
-            <div className="flex items-center justify-between border-b border-line px-4 py-2">
-              <button type="button" onClick={clearAll} aria-label="모두 지우기" className="flex h-9 w-14 items-center justify-center rounded-lg bg-[#F46D93]/15 font-display text-[17px] font-bold text-[#D1456F]">
+            {/* C · = 줄 */}
+            <div className="flex items-center justify-between px-4 py-2">
+              <button type="button" onClick={clearAll} aria-label="모두 지우기" className="flex h-9 w-14 items-center justify-center rounded-full bg-b27-card font-num text-[16px] font-medium text-b27-muted">
                 C
               </button>
               <button
@@ -313,12 +316,13 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
                 onClick={pressEquals}
                 disabled={!pendingOp}
                 aria-label="계산"
-                className="flex h-9 w-14 items-center justify-center rounded-lg bg-[#1B7FC3]/15 font-display text-[20px] font-bold text-[#1B7FC3] disabled:opacity-35"
+                className="flex h-9 w-14 items-center justify-center rounded-full bg-b27-ink font-num text-[18px] font-medium text-white disabled:opacity-25"
               >
                 =
               </button>
             </div>
-            <div className="grid grid-cols-4" style={{ gridTemplateRows: 'repeat(4, 72px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
+            {/* 키패드 — 연회색 블록, 흰 틈 3px, 연산 키 연한 터키석 */}
+            <div className="grid grid-cols-4 gap-[3px] bg-b27-paper" style={{ gridTemplateRows: 'repeat(4, 68px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
               {(['7', '8', '9'] as const).map((d) => <button key={d} type="button" onClick={() => pressDigit(d)} className={key}>{d}</button>)}
               <button type="button" onClick={() => pressOp('/')} className={opKey}>÷</button>
               {(['4', '5', '6'] as const).map((d) => <button key={d} type="button" onClick={() => pressDigit(d)} className={key}>{d}</button>)}
@@ -328,7 +332,7 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
               <button type="button" onClick={() => pressDigit('.')} className={key}>.</button>
               <button type="button" onClick={() => pressDigit('0')} className={key}>0</button>
               <button type="button" onClick={pressBack} aria-label="지우기" className={key}>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M19 12H5" />
                   <path d="M12 19l-7-7 7-7" />
                 </svg>
@@ -339,63 +343,71 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
         </div>
       )}
 
-      {/* ② 결제수단(계좌) */}
+      {/* ② 결제수단(계좌) — 이름 행 목록, 입력 통화 먼저 */}
       {step === 2 && (
-        <div className="flex flex-1 flex-col items-center overflow-y-auto px-8 pt-16">
-          <p className="mb-6 text-[13px] text-faint">
-            {gubun === '수입' ? '입금 계좌' : '결제 수단'} · {CUR_SIGN[cur]} {fmtNum(amount, cur)}
-          </p>
-          <div className="flex w-full max-w-xs flex-col gap-4">
-            {accounts.same.map((a, i) => (
-              <button key={a.id} type="button" onClick={() => pickAccount(a.id)} className="h-16 rounded-full text-[18px] font-medium text-white active:opacity-90" style={{ background: ['#D95C6B', '#9CD47A', '#86CFD6', '#E9A06C', '#9C8AD8', '#7FA6DE'][i % 6] }}>
-                {a.name}
-              </button>
+        <div className="flex flex-1 flex-col overflow-y-auto px-6 pt-4">
+          <p className="font-num text-[12px] text-b27-muted">{gubun === '수입' ? '입금 계좌' : '결제 수단'} · {CUR_SIGN[cur]} 계좌 먼저</p>
+          <ul className="mt-2">
+            {accounts.same.map((a) => (
+              <li key={a.id} className="border-b border-b27-line">
+                <button type="button" onClick={() => pickAccount(a.id)} className="flex h-14 w-full items-center justify-between text-left text-[16px] text-b27-ink active:opacity-70">
+                  <span className="truncate">{a.name}</span>
+                  <span className="font-num text-[14px] text-b27-muted">{CUR_SIGN[(a.currency as Cur) ?? 'HNL'] ?? a.currency}</span>
+                </button>
+              </li>
             ))}
-            {accounts.other.length > 0 && (
-              <>
-                <p className="pt-2 text-center text-[11px] text-faint">다른 통화 계좌</p>
+          </ul>
+          {accounts.other.length > 0 && (
+            <>
+              <p className="mt-6 font-num text-[12px] text-b27-muted">다른 통화</p>
+              <ul className="mt-2">
                 {accounts.other.map((a) => (
-                  <button key={a.id} type="button" onClick={() => pickAccount(a.id)} className="h-12 rounded-full border border-line bg-surface text-[15px] text-muted active:bg-surface-subtle">
-                    {a.name} <span className="text-[11px] text-faint">{a.currency}</span>
-                  </button>
+                  <li key={a.id} className="border-b border-b27-line">
+                    <button type="button" onClick={() => pickAccount(a.id)} className="flex h-14 w-full items-center justify-between text-left text-[16px] text-b27-ink active:opacity-70">
+                      <span className="truncate">{a.name}</span>
+                      <span className="font-num text-[14px] text-b27-muted">{CUR_SIGN[(a.currency as Cur) ?? 'HNL'] ?? a.currency}</span>
+                    </button>
+                  </li>
                 ))}
-              </>
-            )}
-          </div>
+              </ul>
+            </>
+          )}
+          <p className="mt-6 text-center text-[11px] text-b27-muted">계좌를 누르면 항목으로</p>
         </div>
       )}
 
-      {/* ③ 내역 · 항목 · 메모 */}
+      {/* ③ 내역 · 구매처 · 항목 블록 */}
       {step === 3 && (
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-6">
-          <p className="px-1 text-[12px] text-faint">{accountName}</p>
-          <div className="mt-2 flex items-center border-b border-line">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-6">
+          <p className="px-6 font-num text-[12px] text-b27-muted">{accountName}</p>
+          <div className="mx-6 mt-1 border-b border-b27-line">
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="내역"
-              className="h-12 w-full bg-transparent font-display text-[24px] text-ink outline-none placeholder:text-faint/60"
+              className="h-12 w-full bg-transparent font-num text-[20px] text-b27-ink outline-none placeholder:text-b27-muted/60"
             />
           </div>
-          <div className="flex items-center border-b border-line">
+          <div className="mx-6 border-b border-b27-line">
             <input
               type="text"
               value={vendor}
               onChange={(e) => setVendor(e.target.value)}
               placeholder="구매처"
-              className="h-12 w-full bg-transparent font-display text-[24px] text-ink outline-none placeholder:text-faint/60"
+              className="h-12 w-full bg-transparent font-num text-[20px] text-b27-ink outline-none placeholder:text-b27-muted/60"
             />
           </div>
 
           {useTabs && (
-            <div className="mt-4 flex gap-2">
+            <div className="mx-6 mt-4 flex rounded-full bg-b27-card p-[3px]">
               {groups.map(([c]) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setCatTab(c)}
-                  className={`rounded-full px-4 py-1.5 text-[13px] font-semibold transition ${activeTab === c ? 'bg-primary text-white' : 'bg-surface-subtle text-muted'}`}
+                  aria-pressed={activeTab === c}
+                  className={`flex-1 rounded-full py-1.5 text-[13px] transition ${activeTab === c ? 'bg-b27-ink font-medium text-white' : 'text-b27-muted'}`}
                 >
                   {c}
                 </button>
@@ -403,21 +415,31 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
             </div>
           )}
 
-          <div className="mt-5 grid grid-cols-5 gap-y-5">
-            {gridItems.map((it) => (
-              <button key={it.id} type="button" onClick={() => save(it.id)} disabled={saving} className="flex flex-col items-center gap-1.5 active:opacity-70 disabled:opacity-50">
-                <CatIcon name={it.name} category={it.category} color={itemColor.get(it.id)?.fill ?? '#D3D1CC'} size={60} />
-                <span className="max-w-full truncate text-[12px] text-ink">{it.name}</span>
-              </button>
-            ))}
-            <div className="flex flex-col items-center gap-1.5 [&_button]:flex [&_button]:h-[60px] [&_button]:w-[60px] [&_button]:items-center [&_button]:justify-center [&_button]:rounded-full [&_button]:bg-[#C9C7C2] [&_button]:text-white">
+          {/* 항목 블록 — 3열, 흰 틈 3px, 이름만. 탭 = 즉시 저장 */}
+          <div className="mt-4 grid grid-cols-3 gap-[3px] bg-b27-paper" style={{ gridAutoRows: '76px' }}>
+            {gridItems.map((it) => {
+              const c = itemColor.get(it.id)
+              return (
+                <button
+                  key={it.id}
+                  type="button"
+                  onClick={() => save(it.id)}
+                  disabled={saving}
+                  className="flex min-w-0 items-center justify-center px-2 text-[14px] font-medium text-white transition active:scale-[0.97] disabled:opacity-50"
+                  style={{ background: c?.bg ?? '#E4E7EC', textShadow: c?.n ? blockHalo(c.n) : undefined }}
+                >
+                  <span className="truncate">{it.name}</span>
+                </button>
+              )
+            })}
+            <div className="flex items-center justify-center bg-b27-card text-b27-muted [&>button]:flex [&>button]:h-full [&>button]:w-full [&>button]:items-center [&>button]:justify-center [&>button]:rounded-none [&>button]:border-0 [&>button]:font-num [&>button]:text-[24px] [&>button]:font-normal [&>button]:text-b27-muted">
               <ItemAddButton gubun={gubun} categories={categories} onCreated={(id) => save(id)} />
-              <span className="text-[12px] text-ink">추가</span>
             </div>
           </div>
+          <p className="mt-3 text-center text-[11px] text-b27-muted">블록을 누르면 바로 저장됩니다</p>
 
-          {err && <p className="mt-3 text-center text-[13px] text-red-700">{err}</p>}
-          {saving && <p className="mt-3 text-center text-[13px] text-muted">저장 중…</p>}
+          {err && <p className="mt-3 text-center text-[13px] text-b27-expense">{err}</p>}
+          {saving && <p className="mt-3 text-center text-[13px] text-b27-muted">저장 중…</p>}
         </div>
       )}
     </div>
