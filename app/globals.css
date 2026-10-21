@@ -22,18 +22,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 종이 질감 노이즈 오버레이 — 전역, 시각 전용(클릭 통과). Variant 홈 리프레시 도입. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0.04;
-  /* 전체화면 SVG 노이즈를 별도 GPU 레이어로 고정 — iOS 스크롤 중 재합성(tearing) 방지. */
-  transform: translateZ(0);
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-}
+/* 종이 질감 노이즈 오버레이 — 2027 셸(2단계)에서 전역 제거(원칙 7 "밝게": 순백 바탕, 질감 없음). */
 
 /* MFH 2027 "Minimal Block" 테마 스코프 — 색 변수(--b27-*)는 app/layout.tsx 가 lib/palette.ts brand2027 에서 :root 에 주입(전 앱 공통).
    여기서는 스코프 안에서 기존 공용 토큰(--paper 등)을 2027 값으로 덮어 공용 컴포넌트가 함께 전환되도록 브릿지만 둔다.
@@ -58,10 +47,6 @@ body::before {
   --font-num: var(--font-manrope), 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--b27-paper);
   color: var(--b27-ink);
-}
-/* 2027 스코프에서는 종이 노이즈 오버레이 없음(흰 바탕) */
-body:has(.theme-2027)::before {
-  display: none;
 }
 body:has(.theme-2027) {
   background: #ffffff;

@@ -1,3 +1,4 @@
+// MFH-DETAIL-NAV-V4 — 2027 셸(2단계): 버튼 테두리 제거(box·minimal = 회색 캐럿, pad = 연회색 면) · n/total Manrope 500 회색.
 // MFH-DETAIL-NAV-V3
 // 상세/편집 페이지 상단 이전/다음 내비게이션. ◀ (3/12) ▶ 형태.
 // 서버·클라 어디서나 렌더(정적 Link). 양끝에서는 비활성(흐리게, 클릭 불가).
@@ -20,9 +21,9 @@ function withQuery(href: string, query?: string) {
 }
 
 const btnBase =
-  'inline-flex h-9 w-9 items-center justify-center rounded-xl border text-muted transition'
-const btnActive = 'border-line hover:border-primary'
-const btnDisabled = 'border-line opacity-40'
+  'inline-flex h-10 w-10 items-center justify-center rounded-xl text-b27-muted transition'
+const btnActive = 'hover:text-b27-ink active:opacity-70'
+const btnDisabled = 'opacity-30'
 
 function Arrow({ dir }: { dir: 'prev' | 'next' }) {
   return (
@@ -39,9 +40,9 @@ export default function DetailNav({ basePath, prevId, nextId, index, total, quer
   // minimal: 상세 상단바용 — 테두리 없는 캐럿 + n/total.
   if (variant === 'minimal') {
     return (
-      <div className="flex items-center gap-3 text-muted">
+      <div className="flex items-center gap-3 text-b27-muted">
         {prevId ? (
-          <Link href={withQuery(`${basePath}/${prevId}${suffix}`, query)} replace aria-label="이전" className="transition hover:text-ink">
+          <Link href={withQuery(`${basePath}/${prevId}${suffix}`, query)} replace aria-label="이전" className="transition hover:text-b27-ink">
             <Arrow dir="prev" />
           </Link>
         ) : (
@@ -49,11 +50,11 @@ export default function DetailNav({ basePath, prevId, nextId, index, total, quer
             <Arrow dir="prev" />
           </span>
         )}
-        <span className="font-display text-[10px] font-bold tracking-[0.15em] text-muted">
+        <span className="font-num text-[11px] font-medium tabular-nums text-b27-muted">
           {index} / {total}
         </span>
         {nextId ? (
-          <Link href={withQuery(`${basePath}/${nextId}${suffix}`, query)} replace aria-label="다음" className="transition hover:text-ink">
+          <Link href={withQuery(`${basePath}/${nextId}${suffix}`, query)} replace aria-label="다음" className="transition hover:text-b27-ink">
             <Arrow dir="next" />
           </Link>
         ) : (
@@ -68,11 +69,11 @@ export default function DetailNav({ basePath, prevId, nextId, index, total, quer
   // pad: 1/7 위 + 큰 [‹][›] 아래(세로) — 프로젝트 상세 헤더용(터치 영역↑·가로 폭↓).
   if (variant === 'pad') {
     const pBtn =
-      'inline-flex h-[34px] w-[38px] items-center justify-center rounded-[10px] border border-line text-muted transition hover:border-primary hover:text-ink'
-    const pDis = 'inline-flex h-[34px] w-[38px] items-center justify-center rounded-[10px] border border-line text-faint opacity-40'
+      'inline-flex h-[34px] w-[38px] items-center justify-center rounded-[10px] bg-b27-card text-b27-ink transition active:opacity-70'
+    const pDis = 'inline-flex h-[34px] w-[38px] items-center justify-center rounded-[10px] bg-b27-card text-b27-muted opacity-40'
     return (
       <div className="flex flex-col items-center gap-1">
-        <span className="font-display text-[10.5px] font-bold tracking-wide text-muted">
+        <span className="font-num text-[11px] font-medium tabular-nums text-b27-muted">
           {index} / {total}
         </span>
         <div className="flex gap-1.5">
@@ -116,7 +117,7 @@ export default function DetailNav({ basePath, prevId, nextId, index, total, quer
         </span>
       )}
 
-      <span className="min-w-[3rem] text-center text-xs font-semibold text-faint">
+      <span className="min-w-[3rem] text-center font-num text-[12px] font-medium tabular-nums text-b27-muted">
         {index} / {total}
       </span>
 

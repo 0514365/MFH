@@ -44,7 +44,7 @@ export const light: PaletteTokens = {
   accentSoft: "#FAE3E4",
   onPrimarySoft: "#661F20",
   onAccentSoft: "#B61821",
-  paper: "#FAF8F7",
+  paper: "#FFFFFF", // 2027 셸(2단계): 미색 #FAF8F7 → 순백(셸과 본문 경계 제거)
   surface: "#FFFFFF",
   surfaceSubtle: "#F2EEEC",
   line: "#E5DFDC",
