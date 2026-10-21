@@ -241,7 +241,7 @@ export default function CardRepayButton({
         상환
       </button>
       <button type="button" onClick={openZero} className="h-8 rounded-full border border-line px-3.5 text-[13px] font-medium text-muted transition hover:border-primary hover:text-primary">
-        잔액 0
+        잔액
       </button>
     </span>
   )

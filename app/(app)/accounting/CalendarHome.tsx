@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V17 — 카드대금: 제목 줄 = 「카드대금」 + [상환][잔액], 상환일은 카드사 행 아래 작은 글씨(매월 N일)
 // MFH-ACCOUNTING-CALENDAR-V16 — 카드대금 제목 줄 오른쪽 「상환」·「잔액 0」 버튼(CardRepayButton compact, 모든 폭) · 상환일 글자 작게, 한 줄 고정
 // MFH-ACCOUNTING-CALENDAR-V15 — 달력 아래 승인대기 배너(홈과 같은 모양) · 선택일 머리줄 「수입 n · 지출 n」 라벨형(위플)
 // MFH-ACCOUNTING-CALENDAR-V14 — 모바일: 페이지 끝에서 80px 이상 더 당기면 기록 화면(당기는 동안 안내 표시)
@@ -178,11 +179,7 @@ export default function CalendarHome({
       groups.set(brand, g)
     }
     const list = [...groups.values()]
-    const title = list
-      .filter((g) => g.dueDay)
-      .map((g) => `${g.brand.replace(/카드$/, '')} 매월 ${g.dueDay}일`)
-      .join(' · ')
-    return { list, title }
+    return { list }
   }, [balances, hnlRate])
   const fmtGroup = (g: (typeof cardDue.list)[number]) =>
     showCur === 'HNL' && hnlRate ? fmtFull(g.hnl, 'HNL') : fmtFull(g.usd, 'USD')
@@ -257,10 +254,7 @@ export default function CalendarHome({
         {cardDue.list.length > 0 && (
           <>
             <div className="col-span-3 flex items-center justify-between gap-2 border-t border-line pt-3">
-              <span className="min-w-0 truncate text-[13px] font-semibold text-ink">
-                카드대금
-                {cardDue.title && <span className="ml-1 text-[11px] font-normal text-muted">({cardDue.title})</span>}
-              </span>
+              <span className="min-w-0 truncate text-[13px] font-semibold text-ink">카드대금</span>
               <span className="flex shrink-0 items-center gap-2">
                 <CardRepayButton balances={balances} options={options} compact />
                 {todayBtn}
@@ -270,10 +264,13 @@ export default function CalendarHome({
             <Link href="/accounting/assets" className="col-span-3 flex items-stretch gap-3">
               <span className="min-w-0 flex-1 space-y-1">
                 {cardDue.list.map((g) => (
-                  <span key={g.brand} className="flex items-baseline justify-between gap-2">
-                    <span className={`truncate ${sumLabel}`}>
-                      {g.brand}
-                      {g.count > 1 && g.owners.length ? `(${g.owners.join(',')})` : ''}
+                  <span key={g.brand} className="flex items-center justify-between gap-2">
+                    <span className="min-w-0">
+                      <span className={`block truncate ${sumLabel}`}>
+                        {g.brand}
+                        {g.count > 1 && g.owners.length ? `(${g.owners.join(',')})` : ''}
+                      </span>
+                      {g.dueDay && <span className="block text-[11px] leading-tight text-faint">매월 {g.dueDay}일</span>}
                     </span>
                     <span className={`shrink-0 ${sumNum} text-red-700`}>{fmtGroup(g)}</span>
                   </span>
