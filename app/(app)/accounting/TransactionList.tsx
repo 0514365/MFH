@@ -430,8 +430,9 @@ export default function TransactionList({
 
   return (
     <section className="mt-6">
-      {/* 검색·필터 — 검색 화면(SearchFilters)과 같은 모양 */}
-      <SearchInput value={q} onChange={setQ} onCommit={setDq} recent={recentQs} />
+      {/* 검색·필터 — 연회색 면으로 목록과 분리(검색창은 흰 알약). 부품은 검색 화면(SearchFilters)과 공용 */}
+      <div className="rounded-2xl bg-b27-card px-3 pb-3 pt-3 max-md:-mx-1">
+      <SearchInput value={q} onChange={setQ} onCommit={setDq} recent={recentQs} className="[&>label]:border-0 [&>label]:bg-b27-paper" />
       <div className="mt-3 space-y-2">
         <PeriodFilter period={period} onPeriod={setPeriod} from={fFrom} to={fTo} onFrom={setFFrom} onTo={setFTo} range={[eFrom, eTo]} />
         <ChipRow
@@ -469,6 +470,7 @@ export default function TransactionList({
             <AmountRange min={fMin} max={fMax} onMin={setFMin} onMax={setFMax} symbol={fCur ? CUR_SYMBOL[fCur] : '원금'} />
           </>
         )}
+      </div>
       </div>
       {sheet === 'item' && <ItemSheet options={options} colors={itemColor} value={fItemIds} onChange={setFItemIds} onClose={() => setSheet(null)} />}
       {sheet === 'account' && (
@@ -869,10 +871,12 @@ export default function TransactionList({
               const isCollapsed = collapsed.has(g.key)
               return (
                 <div key={g.key}>
+                  {/* 월 머리줄 — 그달 순액 부호 색 면(수입 초과 연한 파랑 · 지출 초과 연한 빨강) */}
                   <button
                     type="button"
                     onClick={() => toggleCollapse(g.key)}
-                    className="mb-2 flex w-full items-center justify-between px-1"
+                    className="mb-1 flex w-full items-center justify-between rounded-xl px-3 py-2"
+                    style={{ background: g.inUsd - g.outUsd >= 0 ? '#E1EAFB' : '#FBE1DF' }}
                   >
                     <span className="flex items-center gap-1.5 text-[13px] font-medium text-b27-ink">
                       <span className="text-b27-muted">{isCollapsed ? '▸' : '▾'}</span>
@@ -907,84 +911,57 @@ export default function TransactionList({
                                 aria-label="선택"
                               />
                               <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-2 text-[14px] text-b27-ink">
                                   {r.itemId && (r.gubun === '수입' || r.gubun === '지출') && (
                                     <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: itemColor.get(r.itemId)?.fill ?? '#E4E7EC' }} aria-hidden="true" />
                                   )}
-                                  <span
-                                    className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                                      r.gubun === '수입'
-                                        ? 'bg-[#E1EAFB] text-b27-income'
-                                        : r.gubun === '지출'
-                                          ? 'bg-[#FBE1DF] text-b27-expense'
-                                          : r.gubun === '이체'
-                                            ? 'bg-b27-card text-b27-muted'
-                                            : 'bg-b27-card text-b27-muted'
-                                    }`}
-                                  >
-                                    {r.gubun ?? '—'}
+                                  <span className="truncate">
+                                    {r.gubun === '이체'
+                                      ? `${nameOf.get(r.accountId ?? '') ?? '?'} → ${nameOf.get(r.toAccountId ?? '') ?? '?'}`
+                                      : r.gubun === '조정'
+                                        ? `잔액 조정 · ${nameOf.get(r.accountId ?? '') ?? '?'}`
+                                        : r.itemId
+                                          ? (nameOf.get(r.itemId) ?? '')
+                                          : ''}
+                                    {r.name ? ` · ${r.name}` : ''}
                                   </span>
-                                  {r.itemId && catOf.get(r.itemId) && (
-                                    <span className="text-[11px] font-medium text-b27-muted">
-                                      {catOf.get(r.itemId)}
-                                    </span>
+                                  {r.receiptPath && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setReceiptRow(r)
+                                      }}
+                                      className="shrink-0 text-[13px] leading-none opacity-70 transition hover:opacity-100"
+                                      aria-label="영수증 보기"
+                                      title="영수증"
+                                    >
+                                      📎
+                                    </button>
                                   )}
                                 </div>
-                                <div className="mt-1 text-sm text-b27-ink">
-                                  {r.gubun === '이체'
-                                    ? `${nameOf.get(r.accountId ?? '') ?? '?'} → ${nameOf.get(r.toAccountId ?? '') ?? '?'}`
-                                    : r.gubun === '조정'
-                                      ? `잔액 조정 · ${nameOf.get(r.accountId ?? '') ?? '?'}`
-                                      : r.itemId
-                                        ? (nameOf.get(r.itemId) ?? '')
-                                        : ''}
-                                  {r.name ? ` · ${r.name}` : ''}
-                                  {r.receiptPath && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setReceiptRow(r)
-                                    }}
-                                    className="ml-1 align-middle text-[13px] leading-none opacity-70 transition hover:opacity-100"
-                                    aria-label="영수증 보기"
-                                    title="영수증"
-                                  >
-                                    📎
-                                  </button>
-                          )}
-                                </div>
-                                <div className="mt-0.5 text-xs text-b27-muted">
-                                  {r.date ?? ''}
+                                <div className="mt-0.5 truncate font-num text-[11px] text-b27-muted">
+                                  {(r.date ?? '').slice(5).replace('-', '/')}
                                   {r.vendor ? ` · ${r.vendor}` : ''}
                                   {r.gubun !== '이체' && r.accountId ? ` · ${nameOf.get(r.accountId) ?? ''}` : ''}
+                                  {r.itemId && catOf.get(r.itemId) && (
+                                    <span className={`ml-1.5 ${r.gubun === '수입' ? 'text-b27-income' : r.gubun === '지출' ? 'text-b27-expense' : ''}`}>{catOf.get(r.itemId)}</span>
+                                  )}
+                                  {r.gubun === '이체' || r.gubun === '조정' ? <span className="ml-1.5">{r.gubun}</span> : null}
                                 </div>
                               </div>
                             </div>
-                            {/* 우: 금액 + 삭제 */}
-                            <div className="flex shrink-0 flex-col items-end gap-2">
-                              <span className="text-right">
-                                <span className={`block font-num text-[15px] font-medium ${gubunColor(r.gubun, r.amountUsd)}`}>
-                                  {fmtLocal(r.currency, r.principal)}
-                                </span>
-                                {r.currency !== 'USD' && (
-                                  <span className="block font-num text-[11px] text-b27-muted">
-                                    {fmtUsd(r.amountUsd)}
-                                  </span>
-                                )}
+                            {/* 우: 금액(원금 + USD) — 삭제는 체크 선택 → 선택 액션 바 */}
+                            <span className="shrink-0 text-right">
+                              <span className={`block font-num text-[15px] font-medium ${gubunColor(r.gubun, r.amountUsd)}`}>
+                                {fmtLocal(r.currency, r.principal)}
                               </span>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onDelete(r)
-                                }}
-                                disabled={busyId === r.id}
-                                className="rounded-md border border-b27-line px-2.5 py-1 text-[11px] text-b27-muted transition hover:border-b27-ink hover:text-b27-ink active:scale-[0.98] disabled:opacity-40"
-                              >
-                                {busyId === r.id ? '…' : '삭제'}
-                              </button>
-                            </div>
+                              {r.currency !== 'USD' && (
+                                <span className="block font-num text-[11px] text-b27-muted">
+                                  {fmtUsd(r.amountUsd)}
+                                </span>
+                              )}
+                            </span>
                           </div>
                         </li>
                       ))}

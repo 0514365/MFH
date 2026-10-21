@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-SEARCH-FILTERS-V3 — 실기 피드백: Sheet 높이 고정(72vh) — 대분류 탭을 바꿔도 시트가 내려앉지 않음(내용 적으면 아래 여백)
 // MFH-ACCOUNTING-SEARCH-FILTERS-V2 — 2027 블록 재활용: ItemSheet = 대분류 알약 + 블록 3열 다중선택(✓ + 남색 안쪽 테두리) · AccountSheet = 통화별 이름 행 + 체크 원 · Sheet 헤더 2027(닫기 알약)
 // MFH-ACCOUNTING-SEARCH-FILTERS-V1
 // 회계 검색 공용 UI — 검색 화면(search/SearchView)·내역 탭(TransactionList)이 함께 쓴다.
@@ -324,8 +325,9 @@ export function Sheet({
 }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(43,49,96,0.25)] md:items-center" onClick={onClose}>
+      {/* 높이 고정(72vh) — 탭 내용이 적어도 시트가 내려앉지 않고 아래 여백이 남는다(선택 위치 안정) */}
       <div
-        className="flex max-h-[80vh] w-full max-w-md flex-col rounded-t-[22px] bg-b27-paper font-sans text-b27-ink md:rounded-[22px]"
+        className="flex h-[72vh] w-full max-w-md flex-col rounded-t-[22px] bg-b27-paper font-sans text-b27-ink md:h-[70vh] md:rounded-[22px]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -338,7 +340,7 @@ export function Sheet({
             닫기
           </button>
         </div>
-        <div className="overflow-y-auto px-4 pb-3">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">{children}</div>
       </div>
     </div>
   )
