@@ -1,13 +1,14 @@
 'use client'
+// MFH-ACCOUNTING-SEARCH-FILTERS-V2 — 2027 블록 재활용: ItemSheet = 대분류 알약 + 블록 3열 다중선택(✓ + 남색 안쪽 테두리) · AccountSheet = 통화별 이름 행 + 체크 원 · Sheet 헤더 2027(닫기 알약)
 // MFH-ACCOUNTING-SEARCH-FILTERS-V1
 // 회계 검색 공용 UI — 검색 화면(search/SearchView)·내역 탭(TransactionList)이 함께 쓴다.
 // · SearchInput(둥근 검색창 + ✕ + 최근 검색어 5개, 기기별 localStorage) · FilterRow(라벨 + 칩) · PeriodFilter(전체·이번 주·이번 달·지정)
 // · SortToggle(금액순 · 날짜순, 같은 것 다시 = 방향) · Sheet(바텀시트) · ItemSheet(항목 아이콘 다중선택) · AccountSheet(계좌 다중선택)
 // · rangeOf(기간 → [from, to]) · matchText(내용·구매처·항목명·금액 숫자)
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import type { AcctOptions, InoutRow } from '@/lib/accounting-types'
+import type { AcctOption, AcctOptions, InoutRow } from '@/lib/accounting-types'
 import { PASTEL_NEUTRAL, type Pastel } from '@/lib/acct-display'
-import { CatIcon } from '@/lib/acct-icons'
+import { blockHalo } from '@/lib/palette'
 
 export type Period = 'all' | 'week' | 'month' | 'custom'
 export type SortKey = 'date' | 'amount'
@@ -316,34 +317,35 @@ export function Sheet({
   onClose,
   children,
 }: {
-  title: string
+  title: ReactNode
   onClear: () => void
   onClose: () => void
   children: ReactNode
 }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 md:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(43,49,96,0.25)] md:items-center" onClick={onClose}>
       <div
-        className="flex max-h-[80vh] w-full max-w-md flex-col rounded-t-2xl bg-surface md:rounded-2xl"
+        className="flex max-h-[80vh] w-full max-w-md flex-col rounded-t-[22px] bg-b27-paper font-sans text-b27-ink md:rounded-[22px]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center border-b border-line px-4 py-3">
-          <span className="flex-1 text-[16px] font-bold text-ink">{title}</span>
-          <button type="button" onClick={onClear} className="mr-3 text-[13px] font-medium text-muted">
+        <div className="flex items-center px-4 py-3">
+          <span className="flex-1 font-num text-[15px] font-medium">{title}</span>
+          <button type="button" onClick={onClear} className="mr-2 rounded-full px-3 py-1.5 font-num text-[13px] text-b27-muted">
             초기화
           </button>
-          <button type="button" onClick={onClose} className="rounded-full bg-primary px-4 py-1.5 text-[13px] font-semibold text-white">
-            완료
+          <button type="button" onClick={onClose} className="rounded-full bg-b27-card px-4 py-1.5 font-num text-[13px] font-medium text-b27-ink">
+            닫기
           </button>
         </div>
-        <div className="overflow-y-auto px-4 pt-3">{children}</div>
+        <div className="overflow-y-auto px-4 pb-3">{children}</div>
       </div>
     </div>
   )
 }
 
-// 항목 시트 — 지출·수입별 아이콘 5열 다중선택(숨긴 항목은 흐리게).
+// 항목 시트 — 대분류 알약(지출 대분류… · 수입) + 블록 3열 다중선택(탭 = 즉시 반영, ✓ + 남색 안쪽 테두리, 숨긴 항목 흐림). 빠른 기록 ③과 같은 격자.
+const CAT_ORDER = ['생활비', '사역비', '사역', '차량', '생활', '운영/행정']
 export function ItemSheet({
   options,
   colors,
@@ -357,37 +359,81 @@ export function ItemSheet({
   onChange: (v: Set<string>) => void
   onClose: () => void
 }) {
+  // 탭 = 지출 대분류(정해진 순서, 그 외 이름순) + 「수입」
+  const tabs: [string, AcctOption[]][] = (() => {
+    const m = new Map<string, AcctOption[]>()
+    for (const it of options.items['지출']) {
+      const c = it.category || '기타'
+      if (!m.has(c)) m.set(c, [])
+      m.get(c)!.push(it)
+    }
+    const exp = [...m.entries()].sort((a, b) => (CAT_ORDER.indexOf(a[0]) + 1 || 99) - (CAT_ORDER.indexOf(b[0]) + 1 || 99) || a[0].localeCompare(b[0]))
+    return options.items['수입'].length ? [...exp, ['수입', options.items['수입']]] : exp
+  })()
+  const [tab, setTab] = useState(tabs[0]?.[0] ?? '')
+  const list = tabs.find(([c]) => c === tab)?.[1] ?? []
+  const countIn = (items: AcctOption[]) => items.filter((i) => value.has(i.id)).length
   return (
-    <Sheet title="항목" onClear={() => onChange(new Set())} onClose={onClose}>
-      {(['지출', '수입'] as const).map((g) => (
-        <div key={g} className="mb-4">
-          <div className="mb-2 text-[13px] font-semibold text-muted">{g}</div>
-          <div className="grid grid-cols-5 gap-x-1 gap-y-3">
-            {options.items[g].map((i) => {
-              const on = value.has(i.id)
-              return (
-                <button
-                  key={i.id}
-                  type="button"
-                  onClick={() => onChange(toggleIn(value, i.id))}
-                  aria-pressed={on}
-                  className={`flex flex-col items-center gap-1 ${i.active === false ? 'opacity-50' : ''}`}
-                >
-                  <span className={`rounded-full p-0.5 ring-2 ${on ? 'ring-primary' : 'ring-transparent'}`}>
-                    <CatIcon name={i.name} category={i.category} color={colors.get(i.id)?.fill ?? PASTEL_NEUTRAL.fill} size={40} />
-                  </span>
-                  <span className={`w-full truncate text-center text-[11px] ${on ? 'font-bold text-primary' : 'text-ink'}`}>{i.name}</span>
-                </button>
-              )
-            })}
-          </div>
+    <Sheet
+      title={
+        <>
+          항목{value.size > 0 && <span className="ml-1.5 text-[12px] font-normal text-b27-muted">{value.size} 선택</span>}
+        </>
+      }
+      onClear={() => onChange(new Set())}
+      onClose={onClose}
+    >
+      {tabs.length > 1 && (
+        <div className="mb-3 flex gap-1 overflow-x-auto rounded-full bg-b27-card p-[3px] font-num text-[12px]">
+          {tabs.map(([c, items]) => {
+            const n = countIn(items)
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setTab(c)}
+                aria-pressed={tab === c}
+                className={`shrink-0 rounded-full px-3 py-1.5 leading-none transition ${tab === c ? 'bg-b27-ink font-medium text-white' : 'text-b27-muted'}`}
+              >
+                {c}
+                {n > 0 && <span className="ml-1 opacity-80">{n}</span>}
+              </button>
+            )
+          })}
         </div>
-      ))}
+      )}
+      <div className="-mx-4 grid grid-cols-3 gap-[3px] bg-b27-paper" style={{ gridAutoRows: '56px' }}>
+        {list.map((i) => {
+          const on = value.has(i.id)
+          const c = colors.get(i.id) ?? PASTEL_NEUTRAL
+          return (
+            <button
+              key={i.id}
+              type="button"
+              onClick={() => onChange(toggleIn(value, i.id))}
+              aria-pressed={on}
+              className={`relative flex min-w-0 items-center justify-center px-2 text-[13px] font-medium transition active:scale-[0.97] ${
+                c.n ? 'text-white' : 'bg-b27-card text-b27-muted'
+              } ${on ? 'shadow-[inset_0_0_0_3px_var(--b27-ink)]' : ''} ${i.active === false ? 'opacity-45' : ''}`}
+              style={c.n ? { background: c.bg, textShadow: blockHalo(c.n) } : undefined}
+            >
+              <span className="truncate">{i.name}</span>
+              {on && (
+                <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white font-num text-[10px] text-b27-ink" style={{ textShadow: 'none' }} aria-hidden="true">
+                  ✓
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+      {list.length === 0 && <p className="py-6 text-center text-[12px] text-b27-muted">항목 없음</p>}
     </Sheet>
   )
 }
 
-// 계좌 시트 — 계좌 알약 다중선택(신용카드는 「카드」 표시).
+// 계좌 시트 — 통화별(렘피라 · 달러 · 원화) 이름 행 + 오른쪽 체크 원. 신용카드는 「카드」 표시. 빠른 기록 ②와 같은 행.
+const CUR_LABEL: Record<string, string> = { HNL: '렘피라', USD: '달러', KRW: '원화' }
 export function AccountSheet({
   options,
   cardIds,
@@ -401,27 +447,43 @@ export function AccountSheet({
   onChange: (v: Set<string>) => void
   onClose: () => void
 }) {
+  const groups = (['HNL', 'USD', 'KRW'] as const)
+    .map((cur) => [cur, options.accounts.filter((a) => (a.currency ?? 'USD') === cur)] as const)
+    .filter(([, list]) => list.length > 0)
+  const rest = options.accounts.filter((a) => !['HNL', 'USD', 'KRW'].includes(a.currency ?? 'USD'))
+  const row = (a: AcctOption) => {
+    const on = value.has(a.id)
+    return (
+      <li key={a.id}>
+        <button type="button" onClick={() => onChange(toggleIn(value, a.id))} aria-pressed={on} className={`flex w-full items-center justify-between gap-3 border-b border-b27-line py-3 text-left ${a.active === false ? 'opacity-50' : ''}`}>
+          <span className="min-w-0 truncate text-[14px] text-b27-ink">
+            {a.name}
+            {cardIds.has(a.id) && <span className="ml-1.5 font-num text-[11px] text-b27-muted">카드</span>}
+          </span>
+          <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-num text-[11px] ${on ? 'bg-b27-ink text-white' : 'border border-b27-line'}`} aria-hidden="true">
+            {on ? '✓' : ''}
+          </span>
+        </button>
+      </li>
+    )
+  }
   return (
-    <Sheet title="계좌" onClear={() => onChange(new Set())} onClose={onClose}>
-      <div className="flex flex-wrap gap-2 pb-2">
-        {options.accounts.map((a) => {
-          const on = value.has(a.id)
-          return (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => onChange(toggleIn(value, a.id))}
-              aria-pressed={on}
-              className={`rounded-full border px-3 py-1.5 text-[14px] font-semibold transition ${
-                on ? 'border-primary bg-primary text-white' : 'border-line bg-surface text-ink'
-              } ${a.active === false ? 'opacity-50' : ''}`}
-            >
-              {a.name}
-              {cardIds.has(a.id) && <span className={`ml-1 text-[10px] ${on ? 'text-white/80' : 'text-faint'}`}>카드</span>}
-            </button>
-          )
-        })}
-      </div>
+    <Sheet
+      title={
+        <>
+          계좌{value.size > 0 && <span className="ml-1.5 text-[12px] font-normal text-b27-muted">{value.size} 선택</span>}
+        </>
+      }
+      onClear={() => onChange(new Set())}
+      onClose={onClose}
+    >
+      {groups.map(([cur, list]) => (
+        <div key={cur}>
+          <div className="mt-1 font-num text-[11px] text-b27-muted">{CUR_LABEL[cur]}</div>
+          <ul className="mb-2">{list.map(row)}</ul>
+        </div>
+      ))}
+      {rest.length > 0 && <ul className="mb-2">{rest.map(row)}</ul>}
     </Sheet>
   )
 }
