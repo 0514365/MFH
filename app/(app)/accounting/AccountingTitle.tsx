@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TITLE-V6 — 달력 헤더 오른쪽 🔍(HeaderSearchLink → /accounting/search) · 「검색」 타이틀
 // MFH-ACCOUNTING-TITLE-V5 — 달력 월 이동도 모든 폭에서 헤더 중앙(절대 배치)
 // MFH-ACCOUNTING-TITLE-V4 — 모바일(<md) 달력: 월 이동 슬롯을 왼쪽 흐름 배치 + 헤더 L/$ 토글(HeaderCurToggle) · 월 라벨 22px · L/$ 크게
 // MFH-ACCOUNTING-TITLE-V3 — 달력·통계는 헤더 중앙 = 페이지가 채우는 슬롯(월 이동, HeaderPortal) · 통계는 왼쪽 ‹ 옆에 「통계」(AccountingSideTitle)
@@ -6,6 +7,7 @@
 // 회계 헤더 타이틀 — 현재 경로에 따라 섹션명 표시(중앙 정렬). layout 헤더에서 절대 중앙 배치.
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useShowCur, type ShowCur } from '@/lib/acct-display'
 
@@ -16,6 +18,7 @@ const TITLES: Record<string, string> = {
   '/accounting/ledger': '거래내역',
   '/accounting/report': '통계',
   '/accounting/assets': '자산',
+  '/accounting/search': '검색',
 }
 
 // 헤더 중앙을 페이지가 채우는 경로(월 이동 등) — 타이틀 대신 빈 슬롯.
@@ -105,4 +108,22 @@ export function CurToggle({ className = '' }: { className?: string }) {
 export function HeaderCurToggle() {
   const pathname = usePathname() ?? '/accounting'
   return pathname === '/accounting' ? <CurToggle className="mr-1 md:hidden" /> : null
+}
+
+// 헤더용 — 달력(/accounting)에서 검색 화면으로(모든 폭, L/$ 토글 왼쪽).
+export function HeaderSearchLink() {
+  const pathname = usePathname() ?? '/accounting'
+  if (pathname !== '/accounting') return null
+  return (
+    <Link
+      href="/accounting/search"
+      aria-label="검색"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full text-muted transition hover:bg-surface-subtle hover:text-primary"
+    >
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" />
+        <path d="M20 20l-4-4" />
+      </svg>
+    </Link>
+  )
 }
