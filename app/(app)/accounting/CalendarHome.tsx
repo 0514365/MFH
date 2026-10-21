@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V23 — 실기 피드백: 모바일 상단(제목 줄·승인대기·달력) sticky 고정, 카드대금·선택일 내역만 스크롤 · 기록 = 맨 위에서 아래로 당기기(기존 페이지 끝 밀어올리기 폐지)
 // MFH-ACCOUNTING-CALENDAR-V22 — 실기 피드백 2차: 카드대금 = 연한 빨강 알약 한 줄(총액 · 다음 상환일 · ▾) → 탭하면 흰 바탕 세부 행 + [상환][잔액 0][자산 →]. 접힘 기기별 기억, 상환 3일 전 자동 펼침
 // MFH-ACCOUNTING-CALENDAR-V21 — 실기 피드백(카드대금 구분감): 카드대금 묶음을 연한 빨강 면(#FDECEA)으로, 합계는 머리줄 제목으로, 행 구분선은 연한 빨강
 // MFH-ACCOUNTING-CALENDAR-V20 — 2027 실기 피드백: 블록 지도 제거(효용 없음 → 통계·검색에 재활용 예정) · 제목 줄 토글 = 전체/지출/수입 3상태(기본 전체 = 두 금액, 선택일 내역도 필터)
@@ -87,22 +88,23 @@ export default function CalendarHome({
 
   const amt = (r: InoutRow): number => toShow(r, showCur, hnlRate)
 
-  // 아래로 당겨 기록(모바일) — 페이지 끝에 닿은 상태에서 손가락을 위로 80px 이상 끌면 기록 화면(선택일 프리필).
+  // 아래로 당겨 기록(모바일) — 창 스크롤이 맨 위일 때 손가락을 아래로 80px 이상 끌면 기록 화면(선택일 프리필).
+  // html 의 overscroll-behavior 가 none 이라 러버밴드 대신 상단 안내 띠(높이 = 당긴 만큼)로 피드백.
   const [pull, setPull] = useState(0)
   const pullStart = useRef<number | null>(null)
   const pullFired = useRef(false)
   const PULL_MAX = 80
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia('(max-width: 767px)').matches) return
-    const atBottom = () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2
+    const atTop = () => window.scrollY <= 0
     const onStart = (e: TouchEvent) => {
-      pullStart.current = atBottom() ? e.touches[0].clientY : null
+      pullStart.current = atTop() ? e.touches[0].clientY : null
       pullFired.current = false
     }
     const onMove = (e: TouchEvent) => {
       if (pullStart.current == null) return
-      const d = pullStart.current - e.touches[0].clientY
-      if (d <= 0 || !atBottom()) {
+      const d = e.touches[0].clientY - pullStart.current
+      if (d <= 0 || !atTop()) {
         setPull(0)
         return
       }
@@ -244,6 +246,18 @@ export default function CalendarHome({
         />
       </HeaderPortal>
 
+      {/* 상단 고정 묶음(모바일) — 당김 안내 · 제목 줄 · 승인대기 · 달력. 헤더(52px) 아래에 sticky, 목록은 그 밑으로 스크롤 */}
+      <div className="space-y-5 max-md:sticky max-md:top-[52px] max-md:z-20 max-md:-mx-4 max-md:bg-b27-paper max-md:px-4 max-md:pb-3">
+      {/* 당겨서 기록 안내(모바일) — 당긴 만큼 높이가 늘어나고, 기준을 넘으면 색이 바뀐다 */}
+      <div
+        className={`flex items-center justify-center overflow-hidden text-[12px] transition-colors md:hidden ${pull >= PULL_MAX ? 'text-b27-ink' : 'text-b27-muted'}`}
+        style={{ height: pull, opacity: pull > 8 ? 1 : 0 }}
+        hidden={pull <= 0}
+        aria-hidden="true"
+      >
+        {pull >= PULL_MAX ? '놓으면 기록 화면으로' : '↓ 더 당겨서 기록'}
+      </div>
+
       {/* 제목 줄 — 전체/지출/수입 글자 토글(선택 글자 다시 탭 = 전체) · 오늘 · (md 이상 L/$) · 그달 금액(전체는 수입·지출 둘 다) */}
       <div className="flex items-center justify-between gap-3 px-1">
         <div className="flex items-center gap-4 font-num text-[15px]">
@@ -325,6 +339,7 @@ export default function CalendarHome({
           })}
         </div>
       </section>
+      </div>
 
       {/* 카드대금 — 접힘 줄 = 연한 빨강 알약(총액 · 가장 가까운 상환일 · ▾), 탭 = 펼침(기기별 기억, 상환 3일 전 자동).
           펼침 = 흰 바탕 행(카드사 · 매월 N일 · 금액, 탭 = 자산 탭) + [상환][잔액 0][자산 →] */}
@@ -428,14 +443,6 @@ export default function CalendarHome({
         </Link>
       </section>
 
-      {/* 당겨서 기록 안내(모바일) — 당긴 만큼 높이가 늘어나고, 기준을 넘으면 색이 바뀐다 */}
-      <div
-        className={`flex items-center justify-center overflow-hidden text-[12px] transition-colors md:hidden ${pull >= PULL_MAX ? 'text-b27-ink' : 'text-b27-muted'}`}
-        style={{ height: pull, opacity: pull > 8 ? 1 : 0 }}
-        aria-hidden="true"
-      >
-        {pull >= PULL_MAX ? '놓으면 기록 화면으로' : '↑ 더 당겨서 기록'}
-      </div>
     </div>
   )
 }
