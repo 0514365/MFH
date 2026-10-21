@@ -47,9 +47,9 @@ function fmtUsd(n: number | null): string {
   return n < 0 ? `−${s}` : s
 }
 // 금액 색 — 수입 청색 · 지출 적색 · 조정 부호색 · 이체 기본.
-const signColor = (n: number) => (n > 0 ? 'text-blue-700' : n < 0 ? 'text-red-700' : 'text-ink')
+const signColor = (n: number) => (n > 0 ? 'text-b27-income' : n < 0 ? 'text-b27-expense' : 'text-b27-ink')
 const gubunColor = (g: string | null, n?: number | null) =>
-  g === '수입' ? 'text-blue-700' : g === '지출' ? 'text-red-700' : g === '조정' ? signColor(n ?? 0) : 'text-ink'
+  g === '수입' ? 'text-b27-income' : g === '지출' ? 'text-b27-expense' : g === '조정' ? signColor(n ?? 0) : 'text-b27-ink'
 // 통화 기호 — 모바일 카드에서 원금 앞에 붙인다.
 const CUR_SYMBOL: Record<string, string> = { KRW: '₩', USD: '$', HNL: 'L' }
 // 현지통화 원금(기호 + 천단위, 소수 최대 2) — 모바일.
@@ -93,7 +93,7 @@ export type LedgerFilter = { gubun?: string; cat?: string; item?: string; from?:
 const isGubun = (g?: string): g is GubunFilter => g === '수입' || g === '지출' || g === '이체' || g === '조정'
 
 const ctl =
-  'h-8 rounded-lg border border-line bg-surface px-2 text-xs text-ink outline-none transition focus:border-primary'
+  'h-8 rounded-lg border border-b27-line bg-b27-paper px-2 text-xs text-b27-ink outline-none transition focus:border-b27-ink'
 
 export default function TransactionList({
   recent,
@@ -484,15 +484,15 @@ export default function TransactionList({
             onChange={toggleAllVisible}
             aria-label="전체 선택"
           />
-          <h2 className="text-[13px] font-bold text-muted">
+          <h2 className="text-[13px] font-medium text-b27-muted">
             거래 내역
-            <span className="ml-1.5 font-normal text-faint">{shownCount}건</span>
+            <span className="ml-1.5 font-normal text-b27-muted">{shownCount}건</span>
           </h2>
           {hasFilter && (
             <button
               type="button"
               onClick={resetFilters}
-              className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-muted transition hover:border-primary"
+              className="rounded-full border border-b27-line px-2.5 py-0.5 text-[11px] font-medium text-b27-muted transition hover:border-b27-ink"
             >
               필터 초기화
             </button>
@@ -512,15 +512,15 @@ export default function TransactionList({
 
       {/* 선택 액션 바 */}
       {selCount > 0 && (
-        <div className="mb-3 rounded-xl border border-primary/30 bg-primary-soft px-2 py-2">
+        <div className="mb-3 rounded-xl border border-b27-ink bg-b27-card px-2 py-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-[13px] font-bold text-primary">{selCount}건 선택</span>
+            <span className="text-[13px] font-medium text-b27-ink">{selCount}건 선택</span>
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setBulkOpen((o) => !o)}
                 disabled={bulkBusy}
-                className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink transition hover:border-primary disabled:opacity-40"
+                className="rounded-lg border border-b27-line bg-b27-paper px-2.5 py-1 text-xs font-medium text-b27-ink transition hover:border-b27-ink disabled:opacity-40"
               >
                 통합 수정
               </button>
@@ -528,7 +528,7 @@ export default function TransactionList({
                 type="button"
                 onClick={onBulkDelete}
                 disabled={bulkBusy}
-                className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium text-accent transition hover:border-accent disabled:opacity-40"
+                className="rounded-lg border border-b27-line bg-b27-paper px-2.5 py-1 text-xs font-medium text-b27-ink transition hover:border-b27-ink disabled:opacity-40"
               >
                 {bulkBusy ? '처리 중…' : '삭제'}
               </button>
@@ -536,7 +536,7 @@ export default function TransactionList({
                 type="button"
                 onClick={clearSel}
                 disabled={bulkBusy}
-                className="rounded-lg px-2 py-1 text-xs font-medium text-muted transition hover:text-ink disabled:opacity-40"
+                className="rounded-lg px-2 py-1 text-xs font-medium text-b27-muted transition hover:text-b27-ink disabled:opacity-40"
               >
                 해제
               </button>
@@ -544,9 +544,9 @@ export default function TransactionList({
           </div>
 
           {bulkOpen && (
-            <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-primary/20 pt-2">
+            <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-b27-ink pt-2">
               <div>
-                <label className="mb-0.5 block text-[10px] font-medium text-faint">항목 변경</label>
+                <label className="mb-0.5 block text-[10px] font-medium text-b27-muted">항목 변경</label>
                 <select
                   value={bulkItemId}
                   onChange={(e) => setBulkItemId(e.target.value)}
@@ -562,7 +562,7 @@ export default function TransactionList({
                 </select>
               </div>
               <div>
-                <label className="mb-0.5 block text-[10px] font-medium text-faint">계좌 변경</label>
+                <label className="mb-0.5 block text-[10px] font-medium text-b27-muted">계좌 변경</label>
                 <select
                   value={bulkAccountId}
                   onChange={(e) => setBulkAccountId(e.target.value)}
@@ -577,11 +577,11 @@ export default function TransactionList({
                 </select>
               </div>
               <div>
-                <label className="mb-0.5 block text-[10px] font-medium text-faint">날짜 변경</label>
+                <label className="mb-0.5 block text-[10px] font-medium text-b27-muted">날짜 변경</label>
                 <input type="date" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} className={`${ctl} min-w-[130px]`} />
               </div>
               <div>
-                <label className="mb-0.5 block text-[10px] font-medium text-faint">내용 변경</label>
+                <label className="mb-0.5 block text-[10px] font-medium text-b27-muted">내용 변경</label>
                 <input
                   value={bulkName}
                   onChange={(e) => setBulkName(e.target.value)}
@@ -590,7 +590,7 @@ export default function TransactionList({
                 />
               </div>
               <div>
-                <label className="mb-0.5 block text-[10px] font-medium text-faint">구매처 변경</label>
+                <label className="mb-0.5 block text-[10px] font-medium text-b27-muted">구매처 변경</label>
                 <input
                   value={bulkVendor}
                   onChange={(e) => setBulkVendor(e.target.value)}
@@ -599,18 +599,18 @@ export default function TransactionList({
                 />
               </div>
               <div>
-                <label className="mb-0.5 block text-[10px] font-medium text-faint">환율 변경 (USD 제외)</label>
+                <label className="mb-0.5 block text-[10px] font-medium text-b27-muted">환율 변경 (USD 제외)</label>
                 <input
                   value={bulkRate}
                   onChange={(e) => setBulkRate(e.target.value.replace(/[^\d.]/g, ''))}
                   inputMode="decimal"
                   placeholder="변경 안 함"
-                  className={`${ctl} min-w-[90px] text-right font-display`}
+                  className={`${ctl} min-w-[90px] text-right font-num`}
                 />
               </div>
               {onlyGubun === '수입' && (
                 <div>
-                  <label className="mb-0.5 block text-[10px] font-medium text-faint">후원자 연결</label>
+                  <label className="mb-0.5 block text-[10px] font-medium text-b27-muted">후원자 연결</label>
                   <select value={bulkSupporter} onChange={(e) => setBulkSupporter(e.target.value)} className={`${ctl} min-w-[120px]`}>
                     <option value="">변경 안 함</option>
                     <option value="__clear__">연결 해제</option>
@@ -626,12 +626,12 @@ export default function TransactionList({
                 type="button"
                 onClick={onBulkPatch}
                 disabled={bulkBusy}
-                className="h-8 rounded-lg bg-accent px-3 text-xs font-bold text-white transition active:scale-[0.98] disabled:opacity-50"
+                className="h-8 rounded-lg bg-b27-ink px-3 text-xs font-medium text-white transition active:scale-[0.98] disabled:opacity-50"
               >
                 {bulkBusy ? '…' : '적용'}
               </button>
               {!itemEditable && (
-                <p className="w-full text-[11px] text-faint">
+                <p className="w-full text-[11px] text-b27-muted">
                   수입·지출이 섞여 있어 항목·후원자는 변경할 수 없습니다. (이체는 통합 수정 제외)
                 </p>
               )}
@@ -640,12 +640,12 @@ export default function TransactionList({
         </div>
       )}
 
-      {err && <p className="mb-2 text-xs font-medium text-accent">{err}</p>}
+      {err && <p className="mb-2 text-xs font-medium text-b27-ink">{err}</p>}
 
       {recent.length === 0 ? (
-        <p className="py-4 text-center text-xs text-faint">거래가 없습니다.</p>
+        <p className="py-4 text-center text-xs text-b27-muted">거래가 없습니다.</p>
       ) : shownCount === 0 ? (
-        <p className="py-4 text-center text-xs text-faint">조건에 맞는 거래가 없습니다.</p>
+        <p className="py-4 text-center text-xs text-b27-muted">조건에 맞는 거래가 없습니다.</p>
       ) : (
         <>
           {/* 데스크탑 — 통화 열 토글(표 바로 위) + 월별 그룹 테이블 */}
@@ -654,17 +654,17 @@ export default function TransactionList({
               type="button"
               onClick={() => setShowCur((v) => !v)}
               aria-pressed={showCur}
-              className={`rounded-lg px-3 py-1 text-[12px] font-bold transition ${
-                showCur ? 'bg-primary text-white' : 'bg-accent text-white hover:opacity-90'
+              className={`rounded-lg px-3 py-1 text-[12px] font-medium transition ${
+                showCur ? 'bg-b27-ink text-white' : 'bg-b27-ink text-white hover:opacity-90'
               }`}
             >
               {showCur ? '통화 열 접기 ▾' : '원화·렘피라·달러 열 펼치기 ▸'}
             </button>
           </div>
-          <div className="hidden overflow-hidden rounded-2xl border border-line @2xl:block">
+          <div className="hidden overflow-hidden rounded-2xl border border-b27-line @2xl:block">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-line bg-surface-subtle text-center text-[13px] font-medium text-muted">
+                <tr className="border-b border-b27-line bg-b27-card text-center text-[13px] font-medium text-b27-muted">
                   <th className="w-9 px-2 py-2">
                     <input
                       ref={headRef}
@@ -677,7 +677,7 @@ export default function TransactionList({
                   </th>
                   <th className="whitespace-nowrap px-2 py-2 font-medium">구분</th>
                   <th
-                    className="cursor-pointer select-none whitespace-nowrap px-2 py-2 font-medium hover:text-primary"
+                    className="cursor-pointer select-none whitespace-nowrap px-2 py-2 font-medium hover:text-b27-ink"
                     onClick={() => toggleSort('date')}
                   >
                     날짜{arrow('date')}
@@ -693,7 +693,7 @@ export default function TransactionList({
                     </>
                   )}
                   <th
-                    className="cursor-pointer select-none whitespace-nowrap px-2 py-2 font-medium hover:text-primary"
+                    className="cursor-pointer select-none whitespace-nowrap px-2 py-2 font-medium hover:text-b27-ink"
                     onClick={() => toggleSort('amount')}
                   >
                     {`환산$${arrow('amount')}`}
@@ -704,24 +704,24 @@ export default function TransactionList({
               {groups.map((g) => {
                 const isCollapsed = collapsed.has(g.key)
                 return (
-                  <tbody key={g.key} className="border-b border-line last:border-0">
-                    <tr className="bg-surface-subtle/60">
+                  <tbody key={g.key} className="border-b border-b27-line last:border-0">
+                    <tr className="bg-b27-card">
                       <td colSpan={colSpan} className="px-3 py-1.5">
                         <div className="flex items-center justify-between">
                           <button
                             type="button"
                             onClick={() => toggleCollapse(g.key)}
-                            className="flex items-center gap-1.5 text-[12px] font-bold text-ink transition hover:text-primary"
+                            className="flex items-center gap-1.5 text-[12px] font-medium text-b27-ink transition hover:text-b27-ink"
                           >
-                            <span className="text-faint">{isCollapsed ? '▸' : '▾'}</span>
+                            <span className="text-b27-muted">{isCollapsed ? '▸' : '▾'}</span>
                             {monthLabel(g.key)}
-                            <span className="font-normal text-faint">· {g.rows.length}건</span>
+                            <span className="font-normal text-b27-muted">· {g.rows.length}건</span>
                           </button>
                           {isCollapsed && (
-                            <span className="font-display text-[12px] font-medium">
-                              <span className="text-blue-700">+{fmtUsd(g.inUsd)}</span>
-                              <span className="mx-1.5 text-faint">·</span>
-                              <span className="text-red-700">−{fmtUsd(g.outUsd)}</span>
+                            <span className="font-num text-[12px] font-medium">
+                              <span className="text-b27-income">+{fmtUsd(g.inUsd)}</span>
+                              <span className="mx-1.5 text-b27-muted">·</span>
+                              <span className="text-b27-expense">−{fmtUsd(g.outUsd)}</span>
                             </span>
                           )}
                         </div>
@@ -732,11 +732,11 @@ export default function TransactionList({
                         <tr
                           key={r.id}
                           onClick={() => onEdit(r)}
-                          className={`cursor-pointer border-t border-line transition hover:bg-surface-subtle/50 ${
+                          className={`cursor-pointer border-t border-b27-line transition hover:bg-b27-card ${
                             selected.has(r.id)
-                              ? 'bg-primary-soft/60'
+                              ? 'bg-b27-card'
                               : editingId === r.id
-                                ? 'bg-primary-soft'
+                                ? 'bg-b27-card'
                                 : ''
                           }`}
                         >
@@ -753,22 +753,22 @@ export default function TransactionList({
                             <span
                               className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
                                 r.gubun === '수입'
-                                  ? 'bg-blue-50 text-blue-700'
+                                  ? 'bg-[#E1EAFB] text-b27-income'
                                   : r.gubun === '지출'
-                                    ? 'bg-red-50 text-red-700'
+                                    ? 'bg-[#FBE1DF] text-b27-expense'
                                     : r.gubun === '이체'
-                                      ? 'bg-sky-50 text-sky-700'
-                                      : 'bg-surface-subtle text-faint'
+                                      ? 'bg-b27-card text-b27-muted'
+                                      : 'bg-b27-card text-b27-muted'
                               }`}
                             >
                               {r.gubun ?? '—'}
                             </span>
                           </td>
-                          <td className="whitespace-nowrap px-2 py-2 text-muted">{r.date ?? '—'}</td>
+                          <td className="whitespace-nowrap px-2 py-2 text-b27-muted">{r.date ?? '—'}</td>
                           {/* 항목 — 최대 2줄(대분류 + 이름 / 이체·조정은 line-clamp-2), 폭 제한 → 내용 열이 남는 폭 전부 */}
-                          <td className="px-2 py-2 text-ink" style={itemColStyle}>
+                          <td className="px-2 py-2 text-b27-ink" style={itemColStyle}>
                             {r.itemId && catOf.get(r.itemId) && (
-                              <div className="whitespace-nowrap text-[10px] font-medium leading-tight text-faint">
+                              <div className="whitespace-nowrap text-[10px] font-medium leading-tight text-b27-muted">
                                 {catOf.get(r.itemId)}
                               </div>
                             )}
@@ -782,7 +782,7 @@ export default function TransactionList({
                                     : '—'}
                             </div>
                           </td>
-                          <td className="px-2 py-2 text-ink">
+                          <td className="px-2 py-2 text-b27-ink">
                             {r.name || '—'}
                             {r.receiptPath && (
                             <button
@@ -799,21 +799,21 @@ export default function TransactionList({
                             </button>
                           )}
                           </td>
-                          <td className="max-w-[9rem] truncate px-2 py-2 text-muted" title={r.vendor ?? undefined}>{r.vendor || '—'}</td>
+                          <td className="max-w-[9rem] truncate px-2 py-2 text-b27-muted" title={r.vendor ?? undefined}>{r.vendor || '—'}</td>
                           {showCur && (
                             <>
-                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun, r.amountUsd)}`}>
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-num ${gubunColor(r.gubun, r.amountUsd)}`}>
                                 {fmtColCell(r.currency, 'KRW', r.principal)}
                               </td>
-                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun, r.amountUsd)}`}>
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-num ${gubunColor(r.gubun, r.amountUsd)}`}>
                                 {fmtColCell(r.currency, 'HNL', r.principal)}
                               </td>
-                              <td className={`whitespace-nowrap px-2 py-2 text-right font-display ${gubunColor(r.gubun, r.amountUsd)}`}>
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-num ${gubunColor(r.gubun, r.amountUsd)}`}>
                                 {fmtColCell(r.currency, 'USD', r.principal)}
                               </td>
                             </>
                           )}
-                          <td className={`whitespace-nowrap px-2 py-2 text-right font-display font-bold ${gubunColor(r.gubun, r.amountUsd)}`}>
+                          <td className={`whitespace-nowrap px-2 py-2 text-right font-num font-medium ${gubunColor(r.gubun, r.amountUsd)}`}>
                             {fmtUsd(r.amountUsd)}
                           </td>
                           <td className="whitespace-nowrap px-2 py-2" onClick={(e) => e.stopPropagation()}>
@@ -822,7 +822,7 @@ export default function TransactionList({
                                 type="button"
                                 onClick={() => onDelete(r)}
                                 disabled={busyId === r.id}
-                                className="rounded-md border border-line px-2 py-1 text-[11px] text-muted transition hover:border-accent hover:text-accent disabled:opacity-40"
+                                className="rounded-md border border-b27-line px-2 py-1 text-[11px] text-b27-muted transition hover:border-b27-ink hover:text-b27-ink disabled:opacity-40"
                               >
                                 {busyId === r.id ? '…' : '삭제'}
                               </button>
@@ -833,8 +833,8 @@ export default function TransactionList({
                     {!isCollapsed && (
                       <>
                         {/* 소계 ① 통화별 순액(수입 + · 지출 − · 이체 제외) + 환산$ — 통화 열 접힘이면 환산$만 */}
-                        <tr className="border-t border-line bg-surface-subtle/60 font-display text-[12px] font-bold">
-                          <td colSpan={6} className="px-3 py-1.5 text-right text-[11px] font-medium text-faint">
+                        <tr className="border-t border-b27-line bg-b27-card font-num text-[12px] font-medium">
+                          <td colSpan={6} className="px-3 py-1.5 text-right text-[11px] font-medium text-b27-muted">
                             {periodMode ? '기간 소계' : '월 소계'}
                           </td>
                           {showCur && (
@@ -848,11 +848,11 @@ export default function TransactionList({
                           <td />
                         </tr>
                         {/* 소계 ② 환산$ 수입·지출 */}
-                        <tr className="bg-surface-subtle/60">
+                        <tr className="bg-b27-card">
                           <td colSpan={colSpan} className="px-3 pb-1.5 pt-0 text-right">
-                            <span className="font-display text-[12px] font-bold text-blue-700">수입 {fmtUsd(g.inUsd)}</span>
-                            <span className="mx-1.5 text-faint">·</span>
-                            <span className="font-display text-[12px] font-bold text-red-700">지출 {fmtUsd(g.outUsd)}</span>
+                            <span className="font-num text-[12px] font-medium text-b27-income">수입 {fmtUsd(g.inUsd)}</span>
+                            <span className="mx-1.5 text-b27-muted">·</span>
+                            <span className="font-num text-[12px] font-medium text-b27-expense">지출 {fmtUsd(g.outUsd)}</span>
                           </td>
                         </tr>
                       </>
@@ -874,29 +874,25 @@ export default function TransactionList({
                     onClick={() => toggleCollapse(g.key)}
                     className="mb-2 flex w-full items-center justify-between px-1"
                   >
-                    <span className="flex items-center gap-1.5 text-[13px] font-bold text-ink">
-                      <span className="text-faint">{isCollapsed ? '▸' : '▾'}</span>
+                    <span className="flex items-center gap-1.5 text-[13px] font-medium text-b27-ink">
+                      <span className="text-b27-muted">{isCollapsed ? '▸' : '▾'}</span>
                       {monthLabel(g.key)}
-                      <span className="font-normal text-faint">· {g.rows.length}건</span>
+                      <span className="font-normal text-b27-muted">· {g.rows.length}건</span>
                     </span>
-                    <span className="font-display text-[11px] font-medium">
-                      <span className="text-blue-700">+{fmtUsd(g.inUsd)}</span>
-                      <span className="mx-1 text-faint">·</span>
-                      <span className="text-red-700">−{fmtUsd(g.outUsd)}</span>
+                    <span className="font-num text-[11px] font-medium">
+                      <span className="text-b27-income">+{fmtUsd(g.inUsd)}</span>
+                      <span className="mx-1 text-b27-muted">·</span>
+                      <span className="text-b27-expense">−{fmtUsd(g.outUsd)}</span>
                     </span>
                   </button>
                   {!isCollapsed && (
-                    <ul className="space-y-2">
+                    <ul>
                       {g.rows.map((r) => (
                         <li
                           key={r.id}
                           onClick={() => onEdit(r)}
-                          className={`cursor-pointer rounded-xl border bg-surface p-3 transition active:scale-[0.99] ${
-                            selected.has(r.id)
-                              ? 'border-primary ring-1 ring-primary/30'
-                              : editingId === r.id
-                                ? 'border-primary'
-                                : 'border-line'
+                          className={`cursor-pointer border-b border-b27-line px-1 py-3 transition active:opacity-70 ${
+                            selected.has(r.id) ? 'bg-b27-card' : editingId === r.id ? 'bg-b27-card' : ''
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3">
@@ -912,26 +908,29 @@ export default function TransactionList({
                               />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
+                                  {r.itemId && (r.gubun === '수입' || r.gubun === '지출') && (
+                                    <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: itemColor.get(r.itemId)?.fill ?? '#E4E7EC' }} aria-hidden="true" />
+                                  )}
                                   <span
                                     className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
                                       r.gubun === '수입'
-                                        ? 'bg-blue-50 text-blue-700'
+                                        ? 'bg-[#E1EAFB] text-b27-income'
                                         : r.gubun === '지출'
-                                          ? 'bg-red-50 text-red-700'
+                                          ? 'bg-[#FBE1DF] text-b27-expense'
                                           : r.gubun === '이체'
-                                            ? 'bg-sky-50 text-sky-700'
-                                            : 'bg-surface-subtle text-faint'
+                                            ? 'bg-b27-card text-b27-muted'
+                                            : 'bg-b27-card text-b27-muted'
                                     }`}
                                   >
                                     {r.gubun ?? '—'}
                                   </span>
                                   {r.itemId && catOf.get(r.itemId) && (
-                                    <span className="text-[11px] font-medium text-faint">
+                                    <span className="text-[11px] font-medium text-b27-muted">
                                       {catOf.get(r.itemId)}
                                     </span>
                                   )}
                                 </div>
-                                <div className="mt-1 text-sm text-ink">
+                                <div className="mt-1 text-sm text-b27-ink">
                                   {r.gubun === '이체'
                                     ? `${nameOf.get(r.accountId ?? '') ?? '?'} → ${nameOf.get(r.toAccountId ?? '') ?? '?'}`
                                     : r.gubun === '조정'
@@ -955,7 +954,7 @@ export default function TransactionList({
                                   </button>
                           )}
                                 </div>
-                                <div className="mt-0.5 text-xs text-faint">
+                                <div className="mt-0.5 text-xs text-b27-muted">
                                   {r.date ?? ''}
                                   {r.vendor ? ` · ${r.vendor}` : ''}
                                   {r.gubun !== '이체' && r.accountId ? ` · ${nameOf.get(r.accountId) ?? ''}` : ''}
@@ -965,11 +964,11 @@ export default function TransactionList({
                             {/* 우: 금액 + 삭제 */}
                             <div className="flex shrink-0 flex-col items-end gap-2">
                               <span className="text-right">
-                                <span className={`block font-display text-[15px] font-bold ${gubunColor(r.gubun, r.amountUsd)}`}>
+                                <span className={`block font-num text-[15px] font-medium ${gubunColor(r.gubun, r.amountUsd)}`}>
                                   {fmtLocal(r.currency, r.principal)}
                                 </span>
                                 {r.currency !== 'USD' && (
-                                  <span className="block font-display text-[11px] text-faint">
+                                  <span className="block font-num text-[11px] text-b27-muted">
                                     {fmtUsd(r.amountUsd)}
                                   </span>
                                 )}
@@ -981,7 +980,7 @@ export default function TransactionList({
                                   onDelete(r)
                                 }}
                                 disabled={busyId === r.id}
-                                className="rounded-md border border-line px-2.5 py-1 text-[11px] text-muted transition hover:border-accent hover:text-accent active:scale-[0.98] disabled:opacity-40"
+                                className="rounded-md border border-b27-line px-2.5 py-1 text-[11px] text-b27-muted transition hover:border-b27-ink hover:text-b27-ink active:scale-[0.98] disabled:opacity-40"
                               >
                                 {busyId === r.id ? '…' : '삭제'}
                               </button>
@@ -992,9 +991,9 @@ export default function TransactionList({
                     </ul>
                   )}
                   {!isCollapsed && (
-                    <div className="mt-2 flex justify-end gap-3 px-1 font-display text-[11px] font-bold">
-                      <span className="text-blue-700">수입 {fmtUsd(g.inUsd)}</span>
-                      <span className="text-red-700">지출 {fmtUsd(g.outUsd)}</span>
+                    <div className="mt-2 flex justify-end gap-3 px-1 font-num text-[11px] font-medium">
+                      <span className="text-b27-income">수입 {fmtUsd(g.inUsd)}</span>
+                      <span className="text-b27-expense">지출 {fmtUsd(g.outUsd)}</span>
                     </div>
                   )}
                 </div>
