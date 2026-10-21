@@ -1,8 +1,9 @@
+// MFH-ACCOUNTING-LEDGER-PAGE-V5 — 계좌 info·kind(사용자·카드 필터) 전달
 // MFH-ACCOUNTING-LEDGER-PAGE-V4 — ?account 계좌 필터(자산 탭 딥링크)
 // MFH-ACCOUNTING-LEDGER-PAGE-V3 — ?gubun·cat·item·from·to·q 쿼리 → 필터 선적용(분석 탭 딥링크)
 // MFH-ACCOUNTING-LEDGER-PAGE-V2
 // 회계 내역(내역 탭) — 전체 거래 + 검색·필터 강화(LedgerView→TransactionList). 셸은 ../layout.tsx 담당.
-import { getAcctOptions, getRecentInout } from '@/lib/accounting-db'
+import { getAcctOptions, getRecentInout, getAccountBalances } from '@/lib/accounting-db'
 import LedgerView from './LedgerView'
 
 export const dynamic = 'force-dynamic'
@@ -18,10 +19,12 @@ export default async function AccountingLedgerPage({
     return typeof v === 'string' && v ? v : undefined
   }
   const initialFilter = { gubun: one('gubun'), cat: one('cat'), item: one('item'), from: one('from'), to: one('to'), q: one('q'), account: one('account') }
-  const [options, recent] = await Promise.all([
+  const [options, recent, balances] = await Promise.all([
     getAcctOptions(),
     getRecentInout().then((r) => r ?? []),
+    getAccountBalances().then((b) => b ?? []),
   ])
+  const accountInfo = balances.map((b) => ({ id: b.id, info: b.info, kind: b.kind }))
 
   if (!options) {
     return (
@@ -31,5 +34,5 @@ export default async function AccountingLedgerPage({
     )
   }
 
-  return <LedgerView recent={recent} options={options} initialFilter={initialFilter} />
+  return <LedgerView recent={recent} options={options} initialFilter={initialFilter} accountInfo={accountInfo} />
 }

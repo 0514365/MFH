@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V18 — 항목·계좌 = 바텀시트 다중선택(SearchFilters) · 더 보기(분류·통화·사용자·금액 원금 범위) — 드롭다운 4개 제거
 // MFH-ACCOUNTING-TXLIST-V17 — 검색 UI 차용(SearchFilters): 둥근 검색창·최근 검색어 · 기간 칩(전체·이번 주·이번 달·지정) · 구분 칩 · 금액순/날짜순 글자 토글 · 검색어에 항목명·금액 숫자
 // MFH-ACCOUNTING-TXLIST-V16 — 영수증 📎(행 내용 옆) → ReceiptViewer(보기·교체·삭제)
 // MFH-ACCOUNTING-TXLIST-V15 — 일괄 수정 항목 콤보에서 숨긴 항목 제외(필터 콤보는 포함)
@@ -19,16 +20,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ReceiptViewer from './ReceiptViewer'
 import {
+  AccountSheet,
+  AmountRange,
   ChipRow,
+  ItemSheet,
+  MoreToggle,
   PeriodFilter,
+  PickRow,
   SearchInput,
   SortToggle,
   matchText,
+  numOf,
   rangeOf,
+  summary,
   useRecentQueries,
   useToday,
   type Period,
 } from './SearchFilters'
+import { itemPastels } from '@/lib/acct-display'
 import { activeOnly, type AcctOptions, type InoutRow, type InoutPatch } from '@/lib/accounting-types'
 import { deleteInout, bulkDeleteInout, bulkPatchInout } from './actions'
 
@@ -75,6 +84,10 @@ function monthLabel(key: string): string {
 
 type SortKey = 'date' | 'amount'
 const GUBUN_FILTERS = ['전체', '수입', '지출', '이체', '조정'] as const
+const CUR_FILTERS = ['', 'HNL', 'USD', 'KRW'] as const
+const USERS = ['우진', '진아']
+// 사용자·카드 판별용 계좌 정보(getAccountBalances 의 일부).
+export type LedgerAccountInfo = { id: string; info: string | null; kind: string | null }
 type GubunFilter = '전체' | '수입' | '지출' | '이체' | '조정'
 export type LedgerFilter = { gubun?: string; cat?: string; item?: string; from?: string; to?: string; q?: string; account?: string }
 const isGubun = (g?: string): g is GubunFilter => g === '수입' || g === '지출' || g === '이체' || g === '조정'
@@ -89,19 +102,26 @@ export default function TransactionList({
   onEdit,
   onAfterMutate,
   initialFilter,
+  accountInfo = [],
 }: {
   recent: InoutRow[]
   options: AcctOptions
+  accountInfo?: LedgerAccountInfo[]
   editingId: string | null
   onEdit: (r: InoutRow) => void
   onAfterMutate: () => void
   initialFilter?: LedgerFilter // 분석 탭 딥링크(?gubun=&cat=&item=&from=&to=&q=) 선적용
 }) {
   const [fGubun, setFGubun] = useState<GubunFilter>(isGubun(initialFilter?.gubun) ? initialFilter.gubun : '전체')
-  const [fItemId, setFItemId] = useState(initialFilter?.item ?? '')
-  const [fAccountId, setFAccountId] = useState(initialFilter?.account ?? '')
+  const [fItemIds, setFItemIds] = useState<Set<string>>(() => new Set(initialFilter?.item ? [initialFilter.item] : []))
+  const [fAccountIds, setFAccountIds] = useState<Set<string>>(() => new Set(initialFilter?.account ? [initialFilter.account] : []))
   const [fCat, setFCat] = useState(initialFilter?.cat ?? '')
   const [fCur, setFCur] = useState('')
+  const [fUser, setFUser] = useState('')
+  const [fMin, setFMin] = useState('')
+  const [fMax, setFMax] = useState('')
+  const [moreOpen, setMoreOpen] = useState(!!initialFilter?.cat)
+  const [sheet, setSheet] = useState<'item' | 'account' | null>(null)
   const [fFrom, setFFrom] = useState(initialFilter?.from ?? '')
   const [fTo, setFTo] = useState(initialFilter?.to ?? '')
   const [period, setPeriod] = useState<Period>(initialFilter?.from || initialFilter?.to ? 'custom' : 'all')
@@ -151,20 +171,17 @@ export default function TransactionList({
     return [...s].sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99))
   }, [options])
 
-  // 항목 필터 옵션 — 구분·대분류 필터에 맞춰 좁힌다(대분류 선택 시 그 대분류 항목만).
-  const itemOptions = useMemo(() => {
-    const base =
-      fGubun === '수입'
-        ? options.items['수입']
-        : fGubun === '지출'
-          ? options.items['지출']
-          : [...options.items['수입'], ...options.items['지출']]
-    return fCat ? base.filter((i) => i.category === fCat) : base
-  }, [options, fGubun, fCat])
-  // 선택된 항목이 범위 밖이면 초기화.
-  useEffect(() => {
-    if (fItemId && !itemOptions.some((i) => i.id === fItemId)) setFItemId('')
-  }, [itemOptions, fItemId])
+  const itemColor = useMemo(() => itemPastels([...options.items['수입'], ...options.items['지출']]), [options])
+  const cardIds = useMemo(() => new Set(accountInfo.filter((a) => a.kind === '신용카드').map((a) => a.id)), [accountInfo])
+  // 사용자 → 그 사람 계좌(info 에 이름 포함). 실제 info 에 나오는 이름만 칩으로.
+  const userAccIds = useMemo(() => {
+    const m = new Map<string, Set<string>>()
+    for (const u of USERS) {
+      const ids = new Set(accountInfo.filter((a) => a.info?.includes(u)).map((a) => a.id))
+      if (ids.size) m.set(u, ids)
+    }
+    return m
+  }, [accountInfo])
   useEffect(() => {
     const id = setTimeout(() => setDq(q), 200)
     return () => clearTimeout(id)
@@ -174,10 +191,17 @@ export default function TransactionList({
 
   // 필터 → 정렬 → 월별 그룹 → 그룹별 수입/지출 합계.
   const groups = useMemo(() => {
+    const lo = numOf(fMin)
+    const hi = numOf(fMax)
     const filtered = recent.filter((r) => {
       if (fGubun !== '전체' && r.gubun !== fGubun) return false
-      if (fItemId && r.itemId !== fItemId) return false
-      if (fAccountId && r.accountId !== fAccountId && r.toAccountId !== fAccountId) return false
+      if (fItemIds.size && !(r.itemId && fItemIds.has(r.itemId))) return false
+      const accs = [r.accountId, r.toAccountId].filter((x): x is string => !!x)
+      if (fAccountIds.size && !accs.some((x) => fAccountIds.has(x))) return false
+      const uIds = fUser ? userAccIds.get(fUser) : undefined
+      if (uIds && !accs.some((x) => uIds.has(x))) return false
+      if (lo != null && Math.abs(r.principal ?? 0) < lo) return false
+      if (hi != null && Math.abs(r.principal ?? 0) > hi) return false
       if (fCat && (!r.itemId || catOf.get(r.itemId) !== fCat)) return false
       if (fCur && r.currency !== fCur) return false
       if (eFrom && (r.date ?? '') < eFrom) return false
@@ -219,7 +243,7 @@ export default function TransactionList({
       }
       return { key, rows, inUsd, outUsd, net, netUsd: inUsd - outUsd }
     })
-  }, [recent, fGubun, fItemId, fAccountId, fCat, fCur, eFrom, eTo, dq, sortKey, sortDir, catOf, nameOf, periodMode])
+  }, [recent, fGubun, fItemIds, fAccountIds, fCat, fCur, fUser, userAccIds, fMin, fMax, eFrom, eTo, dq, sortKey, sortDir, catOf, nameOf, periodMode])
 
   const visibleIds = useMemo(() => groups.flatMap((g) => g.rows.map((r) => r.id)), [groups])
   // 항목 열 폭(em): 일반 행 = 항목 이름 1줄, 이체·조정 행 = 2줄 → 보이는 행 중 최대 필요폭. 통화 열 펼치면 65% 로 축소(내용 열 확보).
@@ -236,12 +260,16 @@ export default function TransactionList({
   }, [groups, nameOf, showCur])
   const itemColStyle = { width: `${itemColEm}em`, minWidth: `${itemColEm}em`, maxWidth: `${itemColEm}em` }
   const shownCount = visibleIds.length
+  const moreFilled = !!(fCat || fCur || fUser || fMin.trim() || fMax.trim())
   const hasFilter =
     fGubun !== '전체' ||
-    !!fItemId ||
-    !!fAccountId ||
+    fItemIds.size > 0 ||
+    fAccountIds.size > 0 ||
     !!fCat ||
     !!fCur ||
+    !!fUser ||
+    !!fMin.trim() ||
+    !!fMax.trim() ||
     period !== 'all' ||
     !!q.trim()
 
@@ -249,7 +277,7 @@ export default function TransactionList({
   useEffect(() => {
     setSelected(new Set())
     setBulkOpen(false)
-  }, [fGubun, fItemId, fAccountId, fCat, fCur, eFrom, eTo, dq, sortKey, sortDir])
+  }, [fGubun, fItemIds, fAccountIds, fCat, fCur, fUser, fMin, fMax, eFrom, eTo, dq, sortKey, sortDir])
 
   // 선택 행 분석 — 통합 수정 대상(수입·지출만), 구분 혼합 여부.
   const selRows = useMemo(() => recent.filter((r) => selected.has(r.id)), [recent, selected])
@@ -292,10 +320,13 @@ export default function TransactionList({
   }
   function resetFilters() {
     setFGubun('전체')
-    setFItemId('')
-    setFAccountId('')
+    setFItemIds(new Set())
+    setFAccountIds(new Set())
     setFCat('')
     setFCur('')
+    setFUser('')
+    setFMin('')
+    setFMax('')
     setPeriod('all')
     setFFrom('')
     setFTo('')
@@ -407,55 +438,42 @@ export default function TransactionList({
           label="구분"
           options={GUBUN_FILTERS}
           value={fGubun}
-          onChange={(g) => {
-            setFGubun(g)
-            setFItemId('')
-          }}
+          onChange={setFGubun}
         />
-        <div className="flex flex-wrap items-center gap-2 pl-14">
-          <select
-            value={fCat}
-            onChange={(e) => {
-              setFCat(e.target.value)
-              setFItemId('')
-            }}
-            className={`${ctl} min-w-[88px]`}
-          >
-            <option value="">분류 전체</option>
-            {catOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <select value={fItemId} onChange={(e) => setFItemId(e.target.value)} className={`${ctl} min-w-[96px]`}>
-            <option value="">항목 전체</option>
-            {itemOptions.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.name}
-              </option>
-            ))}
-          </select>
-          <select value={fCur} onChange={(e) => setFCur(e.target.value)} className={`${ctl} min-w-[72px]`}>
-            <option value="">통화 전체</option>
-            <option value="KRW">KRW</option>
-            <option value="USD">USD</option>
-            <option value="HNL">HNL</option>
-          </select>
-          <select
-            value={fAccountId}
-            onChange={(e) => setFAccountId(e.target.value)}
-            className={`${ctl} min-w-[96px]`}
-          >
-            <option value="">계좌 전체</option>
-            {options.accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <PickRow
+          label="항목"
+          text={fItemIds.size === 0 ? '전체 항목' : summary([...fItemIds].map((id) => nameOf.get(id) ?? '—'))}
+          active={fItemIds.size > 0}
+          onClick={() => setSheet('item')}
+        />
+        <PickRow
+          label="계좌"
+          text={fAccountIds.size === 0 ? '전체 계좌' : summary([...fAccountIds].map((id) => nameOf.get(id) ?? '—'))}
+          active={fAccountIds.size > 0}
+          onClick={() => setSheet('account')}
+          right={<MoreToggle open={moreOpen} filled={moreFilled} onToggle={() => setMoreOpen(!moreOpen)} />}
+        />
+        {moreOpen && (
+          <>
+            <ChipRow label="분류" options={['', ...catOptions]} value={fCat} onChange={setFCat} labelOf={(c) => c || '전체'} />
+            <ChipRow
+              label="통화"
+              options={CUR_FILTERS}
+              value={fCur as (typeof CUR_FILTERS)[number]}
+              onChange={setFCur}
+              labelOf={(c) => (c ? CUR_SYMBOL[c] : '전체')}
+            />
+            {userAccIds.size > 0 && (
+              <ChipRow label="사용자" options={['', ...userAccIds.keys()]} value={fUser} onChange={setFUser} labelOf={(u) => u || '전체'} />
+            )}
+            <AmountRange min={fMin} max={fMax} onMin={setFMin} onMax={setFMax} symbol={fCur ? CUR_SYMBOL[fCur] : '원금'} />
+          </>
+        )}
       </div>
+      {sheet === 'item' && <ItemSheet options={options} colors={itemColor} value={fItemIds} onChange={setFItemIds} onClose={() => setSheet(null)} />}
+      {sheet === 'account' && (
+        <AccountSheet options={options} cardIds={cardIds} value={fAccountIds} onChange={setFAccountIds} onClose={() => setSheet(null)} />
+      )}
 
       <div className="mb-2 mt-4 flex items-center gap-3 px-1">
         <div className="flex flex-1 items-center gap-2">
