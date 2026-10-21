@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V21 — 실기 피드백(카드대금 구분감): 카드대금 묶음을 연한 빨강 면(#FDECEA)으로, 합계는 머리줄 제목으로, 행 구분선은 연한 빨강
 // MFH-ACCOUNTING-CALENDAR-V20 — 2027 실기 피드백: 블록 지도 제거(효용 없음 → 통계·검색에 재활용 예정) · 제목 줄 토글 = 전체/지출/수입 3상태(기본 전체 = 두 금액, 선택일 내역도 필터)
 //   · 달력 아래 「카드대금」 글자 행(카드사별 + 합계 + [상환][잔액 0], 탭 = 자산 탭) · 제목 줄 아래 「승인대기 N건」 한 줄(대기색, 탭 = 승인함)
 // MFH-ACCOUNTING-CALENDAR-V19 — 2027 Minimal Block(c-2): 한 화면에 한 가지.
@@ -292,16 +293,18 @@ export default function CalendarHome({
         </div>
       </section>
 
-      {/* 카드대금 — 머리줄(제목 · [상환][잔액 0]) + 카드사별 행(이름 · 매월 N일 · 금액 적색) + 합계. 행 탭 = 자산 탭 */}
+      {/* 카드대금 — 연한 빨강 면(부채 구분): 머리줄 = 「카드대금 합계」(적색) · [상환][잔액 0] → 카드사별 행(이름 · 매월 N일 · 금액). 행 탭 = 자산 탭 */}
       {cardDue.length > 0 && (
-        <section className="px-1">
-          <div className="flex items-center justify-between font-num text-[12px] text-b27-muted">
-            <span>카드대금 · 미상환</span>
+        <section className="rounded-2xl bg-[#FDECEA] px-3 pb-1 pt-2.5">
+          <div className="flex items-center justify-between font-num text-[13px]">
+            <span className="font-medium text-b27-expense">
+              카드대금 <span className="ml-1">{cardTotal}</span>
+            </span>
             <CardRepayButton balances={balances} options={options} compact />
           </div>
           <Link href="/accounting/assets" className="mt-1 block">
-            {cardDue.map((g) => (
-              <span key={g.brand} className="flex items-center justify-between gap-3 border-b border-b27-line py-2.5">
+            {cardDue.map((g, i) => (
+              <span key={g.brand} className={`flex items-center justify-between gap-3 py-2.5 ${i < cardDue.length - 1 ? 'border-b border-[#F3C9C6]' : ''}`}>
                 <span className="min-w-0">
                   <span className="block truncate text-[14px] text-b27-ink">
                     {g.brand}
@@ -312,12 +315,6 @@ export default function CalendarHome({
                 <span className="shrink-0 font-num text-[14px] font-medium text-b27-expense">{fmtGroup(g)}</span>
               </span>
             ))}
-            {cardDue.length > 1 && (
-              <span className="flex items-center justify-between py-2.5 font-num text-[14px]">
-                <span className="text-b27-muted">합계</span>
-                <span className="font-medium text-b27-expense">{cardTotal}</span>
-              </span>
-            )}
           </Link>
         </section>
       )}

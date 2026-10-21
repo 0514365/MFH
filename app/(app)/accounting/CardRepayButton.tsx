@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-REPAY-BUTTON-V11 — compact 「상환」 = 터키석(행동색), 「잔액 0」 = 흰 알약(연한 빨강 면 위용)
 // MFH-CARD-REPAY-BUTTON-V10 — compact 알약 2027 톤(Manrope 500 · 연회색 면 「잔액 0」)
 // MFH-CARD-REPAY-BUTTON-V9 — compact 모드(달력 카드대금 제목 줄: 작은 「상환」·「잔액 0」 알약 버튼 + 같은 모달)
 // MFH-CARD-REPAY-BUTTON-V8 — 청구 주기 카드: 상환일 기본값 = 확정 청구 상환일, 상환 금액 기본값 = 확정 청구 원화분 · 확정/이용 중 안내
@@ -238,10 +239,10 @@ export default function CardRepayButton({
 
   const compactActions = (
     <span className="flex items-center gap-1.5">
-      <button type="button" onClick={() => setOpen(true)} className="h-8 rounded-full bg-primary px-3.5 font-num text-[13px] font-medium text-white transition active:opacity-80">
+      <button type="button" onClick={() => setOpen(true)} className="h-8 rounded-full bg-b27-plus px-3.5 font-num text-[13px] font-medium text-white transition active:opacity-80">
         상환
       </button>
-      <button type="button" onClick={openZero} className="h-8 rounded-full bg-surface-subtle px-3.5 font-num text-[13px] font-medium text-muted transition active:opacity-80">
+      <button type="button" onClick={openZero} className="h-8 rounded-full bg-white px-3.5 font-num text-[13px] font-medium text-b27-muted transition active:opacity-80">
         잔액 0
       </button>
     </span>

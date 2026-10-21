@@ -1,4 +1,6 @@
 'use client'
+// MFH-CARD-INBOX-VIEW-V10 — 실기 피드백(접힌 행): 1건 = 1행(구매처 · 시각/카드 · 추천 항목 칩(블록 색) · 금액), 행 탭 = 그 행만 펼쳐 항목·계좌·구매처·내용 수정 + 승인/무시
+//   · 제목 줄 「승인 N」 + 「모두 승인」(터키석, 항목 지정된 건) + ⋯ 도구(필터·정렬·전체 선택·일괄 입력). 상태·승인·일괄 로직은 V9 그대로.
 // MFH-CARD-INBOX-VIEW-V9 — 2027 Minimal Block(c-4d): 색·글꼴 토큰만 교체(남색 버튼·선택, 대기 호박색 b27-wait, 금액 b27-expense, Manrope). 행 구조·승인/무시 버튼은 유지(밀기 제스처는 미도입)
 // MFH-CARD-INBOX-VIEW-V8 — 처리 후 앱 아이콘 뱃지 갱신
 // MFH-CARD-INBOX-VIEW-V7 — 숨긴 항목 콤보 제외(추천값이 숨긴 항목이면 비움) + 항목 관리 버튼
@@ -15,6 +17,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { requestBadgeRefresh } from '@/lib/badge'
 import { activeOnly, type AcctOption, type AcctOptions, type InboxRow } from '@/lib/accounting-types'
+import { itemPastels } from '@/lib/acct-display'
+import { blockHalo } from '@/lib/palette'
 import { approveInbox, ignoreInbox } from './actions'
 import ItemAddButton from '../ItemAddButton'
 import ItemManageButton from '../ItemManageButton'
@@ -259,180 +263,148 @@ export default function InboxView({
     requestBadgeRefresh()
   }
 
+  // ── 접힌 행 UI 상태 — 펼친 행(1개) · 도구(필터·일괄) 패널
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [tools, setTools] = useState(false)
+  const itemColor = useMemo(() => itemPastels(items), [items])
+  const itemName = (id: string) => items.find((i) => i.id === id)?.name ?? ''
+
+  const panelInput = 'h-10 w-full rounded-xl border-0 bg-b27-paper px-3 text-[14px] text-b27-ink outline-none'
+
   return (
-    <div className="space-y-3">
-      {/* 상단 — 건수·환율·필터·액션·일괄 입력 */}
-      <section className="rounded-2xl bg-b27-card p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="font-num text-[9px] font-medium uppercase tracking-[0.15em] text-b27-ink">
-              Card SMS Inbox
-            </div>
-            <div className="mt-1 text-sm text-b27-ink">
-              대기 <b className="font-num">{rows.length}</b>건
-              {hasFilter && (
-                <span className="text-b27-muted">
-                  {' '}
-                  · 표시 <b className="font-num">{visible.length}</b>건
-                </span>
-              )}
-              {visible.length > 0 && <span className="text-b27-muted"> · 합계 {fmtUsd(totalUsd)}</span>}
-            </div>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <div className="text-right" title="공시 환율 자동 — 합계는 잠정, 월 마감 때 그달 마감 환율로 확정">
-              <span className="mb-1 block text-[11px] font-medium text-b27-muted">환율 (자동{fxDate ? ` · ${fxDate.slice(5).replace('-', '/')} 공시` : ''})</span>
-              <span className="font-num text-[13px] text-b27-muted">
-                L {Number(rate).toFixed(4)}
-                {hasKrw && <> · ₩{Number(rateKrw).toLocaleString('en-US', { maximumFractionDigits: 2 })}</>}
-              </span>
-            </div>
-          </div>
-        </div>
+    <div className="font-sans text-b27-ink">
+      {/* 제목 줄 — 승인 N · 모두 승인(터키석) · ⋯ 도구 */}
+      <div className="flex items-center justify-between gap-3 px-1">
+        <span className="font-num text-[17px] font-medium">
+          승인 {visible.length}
+          {hasFilter && <span className="ml-1 text-[13px] font-normal text-b27-muted">/ {rows.length}</span>}
+        </span>
+        <span className="flex items-center gap-2">
+          {rows.length > 0 && (
+            <button
+              type="button"
+              disabled={busy !== null || readyIds.length === 0}
+              onClick={() => approve(readyIds)}
+              className="h-8 rounded-full bg-b27-plus px-3.5 font-num text-[13px] font-medium text-white transition active:opacity-80 disabled:opacity-30"
+            >
+              {busy === 'bulk' ? '승인 중…' : `모두 승인 ${readyIds.length}`}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setTools((v) => !v)}
+            aria-pressed={tools}
+            aria-label="필터 · 일괄 입력"
+            className={`flex h-8 w-8 items-center justify-center rounded-full font-num text-[18px] leading-none transition ${tools ? 'bg-b27-ink text-white' : 'bg-b27-card text-b27-muted'}`}
+          >
+            ⋯
+          </button>
+        </span>
+      </div>
+      <p className="mt-1 px-1 font-num text-[12px] text-b27-muted" title="공시 환율 자동 — 합계는 잠정, 월 마감 때 그달 마감 환율로 확정">
+        환율 자동{fxDate ? ` ${fxDate.slice(5).replace('-', '/')}` : ''} · L {Number(rate).toFixed(2)}
+        {hasKrw && <> · ₩{Number(rateKrw).toLocaleString('en-US', { maximumFractionDigits: 0 })}</>}
+        {visible.length > 0 && <> · 합계 {fmtUsd(totalUsd)}</>}
+      </p>
+      {msg && <p className="mt-2 px-1 text-[12px] text-b27-ink">{msg}</p>}
 
-        {rows.length > 0 && (
-          <>
-            {/* 필터 · 검색 · 정렬 */}
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <select
-                value={fMerchant}
-                onChange={(e) => setFMerchant(e.target.value)}
-                className={`${ctl} w-auto max-w-[220px]`}
-                aria-label="구매처 필터"
-              >
-                <option value="">구매처 전체 ({rows.length})</option>
-                {merchants.map(([m, n]) => (
-                  <option key={m} value={m}>
-                    {m} ({n})
-                  </option>
-                ))}
-              </select>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="구매처 검색"
-                className={`${ctl} w-36`}
-              />
-              <div className="flex h-9 overflow-hidden rounded-lg border border-b27-line text-xs">
-                {(
-                  [
-                    ['date', '최신순'],
-                    ['merchant', '구매처순'],
-                    ['amount', '금액순'],
-                  ] as [SortKey, string][]
-                ).map(([k, label]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => setSortKey(k)}
-                    className={`px-3 ${sortKey === k ? 'bg-b27-card font-medium text-b27-ink' : 'text-b27-muted'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {hasFilter && (
+      {/* 도구 패널 — 필터 · 정렬 · 전체 선택 · 항목 추가/관리 · (선택 시) 일괄 입력 */}
+      {tools && rows.length > 0 && (
+        <section className="mt-3 rounded-2xl bg-b27-card p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <select value={fMerchant} onChange={(e) => setFMerchant(e.target.value)} className={`${ctl} w-auto max-w-[220px]`} aria-label="구매처 필터">
+              <option value="">구매처 전체 ({rows.length})</option>
+              {merchants.map(([m, n]) => (
+                <option key={m} value={m}>
+                  {m} ({n})
+                </option>
+              ))}
+            </select>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="구매처 검색" className={`${ctl} w-36`} />
+            <div className="flex h-9 overflow-hidden rounded-full bg-b27-paper p-[3px] text-xs">
+              {(
+                [
+                  ['date', '최신순'],
+                  ['merchant', '구매처순'],
+                  ['amount', '금액순'],
+                ] as [SortKey, string][]
+              ).map(([k, label]) => (
                 <button
+                  key={k}
                   type="button"
-                  onClick={() => {
-                    setFMerchant('')
-                    setQ('')
-                  }}
-                  className="rounded-full border border-b27-line px-2.5 py-1 text-[11px] font-medium text-b27-muted hover:border-b27-ink"
+                  onClick={() => setSortKey(k)}
+                  className={`rounded-full px-3 ${sortKey === k ? 'bg-b27-ink font-medium text-white' : 'text-b27-muted'}`}
                 >
-                  필터 초기화
+                  {label}
                 </button>
-              )}
+              ))}
             </div>
-
-            {/* 액션 줄 */}
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <label className="flex h-9 items-center gap-2 rounded-lg border border-b27-line px-3 text-xs text-b27-muted">
-                <input ref={headRef} type="checkbox" className={cb} checked={allChecked} onChange={toggleAll} aria-label="전체 선택" />
-                전체 선택
-              </label>
+            {hasFilter && (
               <button
                 type="button"
-                disabled={busy !== null || readyIds.length === 0}
-                onClick={() => approve(readyIds)}
-                className="h-9 rounded-lg bg-b27-ink px-3 text-xs font-medium text-white transition active:scale-[0.98] disabled:opacity-40"
+                onClick={() => {
+                  setFMerchant('')
+                  setQ('')
+                }}
+                className="rounded-full px-2.5 py-1 text-[11px] text-b27-muted"
               >
-                {busy === 'bulk' ? '승인 중…' : `항목 지정된 ${readyIds.length}건 모두 승인`}
+                필터 초기화
               </button>
-              <ItemAddButton gubun="지출" categories={categories} label="+ 항목 추가" />
-              <ItemManageButton options={options} initialGubun="지출" label="항목 관리" />
-            </div>
-
-            {/* 일괄 입력 — 선택이 있을 때 */}
-            {selIds.length > 0 && (
-              <div className="mt-3 rounded-xl border border-b27-ink bg-b27-card p-3">
-                <div className="mb-2 text-xs font-medium text-b27-ink">
-                  선택 {selIds.length}건 일괄 입력 <span className="font-normal text-b27-muted">— 빈 칸은 각 행의 값 유지</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 @2xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
-                  <ItemSelect value={bulk.itemId} onChange={(v) => setBulk({ ...bulk, itemId: v })} groups={groups} placeholder="항목 (유지)" />
-                  <input
-                    value={bulk.vendor}
-                    onChange={(e) => setBulk({ ...bulk, vendor: e.target.value })}
-                    placeholder="구매처 (유지)"
-                    className={ctl}
-                  />
-                  <input
-                    value={bulk.name}
-                    onChange={(e) => setBulk({ ...bulk, name: e.target.value })}
-                    placeholder="내용 (유지)"
-                    className={ctl}
-                  />
-                  <select value={bulk.accountId} onChange={(e) => setBulk({ ...bulk, accountId: e.target.value })} className={ctl}>
-                    <option value="">계좌 (유지)</option>
-                    {options.accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={applyBulk}
-                    className="h-9 rounded-lg border border-b27-ink bg-b27-paper px-3 text-xs font-medium text-b27-ink transition hover:bg-b27-ink hover:text-white"
-                  >
-                    선택 행에 적용
-                  </button>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() => approve(selIds)}
-                    className="h-9 rounded-lg bg-b27-ink px-4 text-xs font-medium text-white transition active:scale-[0.98] disabled:opacity-40"
-                  >
-                    {busy === 'bulk' ? '승인 중…' : `선택 ${selIds.length}건 승인`}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() => ignore(selIds)}
-                    className="h-9 rounded-lg border border-b27-line px-3 text-xs text-b27-muted transition hover:text-danger disabled:opacity-40"
-                  >
-                    선택 무시
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelected(new Set())}
-                    className="h-9 px-2 text-xs text-b27-muted hover:text-b27-ink"
-                  >
-                    선택 해제
-                  </button>
-                </div>
-              </div>
             )}
-          </>
-        )}
-        {msg && <p className="mt-2 text-xs text-b27-ink">{msg}</p>}
-      </section>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <label className="flex h-9 items-center gap-2 rounded-full bg-b27-paper px-3 text-xs text-b27-muted">
+              <input ref={headRef} type="checkbox" className={cb} checked={allChecked} onChange={toggleAll} aria-label="전체 선택" />
+              전체 선택
+            </label>
+            <ItemAddButton gubun="지출" categories={categories} label="+ 항목 추가" />
+            <ItemManageButton options={options} initialGubun="지출" label="항목 관리" />
+          </div>
+
+          {selIds.length > 0 && (
+            <div className="mt-3 rounded-xl bg-b27-paper p-3">
+              <div className="mb-2 text-xs font-medium text-b27-ink">
+                선택 {selIds.length}건 일괄 입력 <span className="font-normal text-b27-muted">— 빈 칸은 각 행의 값 유지</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 @2xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+                <ItemSelect value={bulk.itemId} onChange={(v) => setBulk({ ...bulk, itemId: v })} groups={groups} placeholder="항목 (유지)" />
+                <input value={bulk.vendor} onChange={(e) => setBulk({ ...bulk, vendor: e.target.value })} placeholder="구매처 (유지)" className={ctl} />
+                <input value={bulk.name} onChange={(e) => setBulk({ ...bulk, name: e.target.value })} placeholder="내용 (유지)" className={ctl} />
+                <select value={bulk.accountId} onChange={(e) => setBulk({ ...bulk, accountId: e.target.value })} className={ctl}>
+                  <option value="">계좌 (유지)</option>
+                  {options.accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" onClick={applyBulk} className="h-9 rounded-full bg-b27-card px-3 text-xs font-medium text-b27-ink">
+                  선택 행에 적용
+                </button>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => approve(selIds)}
+                  className="h-9 rounded-full bg-b27-ink px-4 text-xs font-medium text-white transition active:scale-[0.98] disabled:opacity-40"
+                >
+                  {busy === 'bulk' ? '승인 중…' : `선택 ${selIds.length}건 승인`}
+                </button>
+                <button type="button" disabled={busy !== null} onClick={() => ignore(selIds)} className="h-9 rounded-full bg-b27-card px-3 text-xs text-b27-muted disabled:opacity-40">
+                  선택 무시
+                </button>
+                <button type="button" onClick={() => setSelected(new Set())} className="h-9 px-2 text-xs text-b27-muted">
+                  선택 해제
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {rows.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-b27-line px-4 py-8 text-center text-sm text-b27-muted">
+        <p className="mt-6 rounded-2xl border border-dashed border-b27-line px-4 py-8 text-center text-[13px] text-b27-muted">
           승인대기 거래가 없습니다. 매일 22:00 에 새 카드 문자가 수집됩니다.
           <br />
           <Link href="/accounting/ledger" className="mt-2 inline-block text-b27-ink">
@@ -440,125 +412,85 @@ export default function InboxView({
           </Link>
         </p>
       ) : visible.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-b27-line px-4 py-8 text-center text-sm text-b27-muted">
-          조건에 맞는 대기 거래가 없습니다.
-        </p>
+        <p className="mt-6 rounded-2xl border border-dashed border-b27-line px-4 py-8 text-center text-[13px] text-b27-muted">조건에 맞는 대기 거래가 없습니다.</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="mt-3">
           {visible.map((r) => {
             const d = draftOf(r)
             const rowBusy = busy === r.id || busy === 'bulk'
             const checked = selected.has(r.id)
+            const open = openId === r.id
+            const color = d.itemId ? itemColor.get(d.itemId) : undefined
+            const title = d.vendor.trim() || r.merchant
+            const showSms = title.toLowerCase() !== r.merchant.toLowerCase()
             return (
-              <li
-                key={r.id}
-                className={`rounded-2xl border bg-b27-paper p-3 @2xl:grid @2xl:grid-cols-[auto_215px_1fr_1fr_1fr_140px_auto] @2xl:items-end @2xl:gap-2 ${
-                  checked ? 'border-b27-ink bg-b27-card' : 'border-b27-line'
-                }`}
-              >
-                {/* 선택 */}
-                <div className="mb-2 flex items-center @2xl:mb-0 @2xl:h-9">
-                  <input type="checkbox" className={cb} checked={checked} onChange={() => toggleRow(r.id)} aria-label="선택" />
-                  <span className="ml-2 text-[11px] text-b27-muted @2xl:hidden">선택</span>
-                </div>
-
-                {/* 원문 정보 */}
-                <div className="mb-2 flex items-start justify-between gap-2 @2xl:mb-0 @2xl:block">
-                  <div className="min-w-0">
-                    {/* 문자 상점명(16자 절단 원문) — 데스크탑은 한 줄 고정(열 폭 215px), 모바일은 필요 시 줄바꿈 */}
-                    <div className="text-sm font-medium text-b27-ink @2xl:whitespace-nowrap">
-                      <span className="mr-1 text-[10px] font-medium text-b27-muted">문자</span>
-                      {r.merchant}
-                    </div>
-                    <div className="whitespace-nowrap text-[11px] text-b27-muted">
-                      {fmtWhen(r.smsAt)} · 카드 {r.cardLast4}
+              <li key={r.id} className={`border-b border-b27-line ${checked ? 'bg-b27-card' : ''}`}>
+                {/* 접힌 행 — 구매처 · 시각/카드/문자 · (추천 항목 칩) · 금액. 탭 = 펼침 */}
+                <div className="flex items-start gap-2 py-3 pl-1 pr-1">
+                  {tools && (
+                    <input type="checkbox" className={`${cb} mt-1`} checked={checked} onChange={() => toggleRow(r.id)} aria-label="선택" />
+                  )}
+                  <button type="button" onClick={() => setOpenId(open ? null : r.id)} className="flex min-w-0 flex-1 items-start justify-between gap-3 text-left">
+                    <span className="min-w-0">
+                      <span className="block truncate text-[14px] text-b27-ink">{title}</span>
+                      <span className="block truncate font-num text-[11px] text-b27-muted">
+                        {fmtWhen(r.smsAt)} · 카드 {r.cardLast4}
+                        {showSms && ` · 문자 ${r.merchant}`}
+                      </span>
                       {!r.suggestedItemId && (
-                        <span className="ml-1 whitespace-nowrap rounded-full bg-[#FFF4E3] px-1.5 py-0.5 text-[10px] font-medium text-b27-wait">
-                          새 상점
-                        </span>
+                        <span className="mt-1 inline-block rounded-full bg-[#FFF4E3] px-1.5 py-0.5 text-[10px] font-medium text-b27-wait">새 상점</span>
                       )}
+                    </span>
+                    <span className="shrink-0 text-right">
+                      <span
+                        className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium ${color ? 'text-white' : 'bg-b27-card text-b27-muted'}`}
+                        style={color ? { background: color.bg, textShadow: blockHalo(color.n) } : undefined}
+                      >
+                        {d.itemId ? itemName(d.itemId) : '항목 선택'}
+                      </span>
+                      <span className="mt-1 block font-num text-[14px] font-medium text-b27-expense">{fmtAmt(r.currency, r.principal)}</span>
+                      {r.currency !== 'USD' && <span className="block font-num text-[10.5px] text-b27-muted">{fmtUsd(usdOf(r))}</span>}
+                    </span>
+                  </button>
+                </div>
+
+                {/* 펼친 행 — 항목 · 구매처 · 내용 · 계좌 + 승인/무시 */}
+                {open && (
+                  <div className="-mx-4 mb-1 bg-b27-card px-4 py-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <ItemSelect value={d.itemId} onChange={(v) => setDraft(r.id, { itemId: v })} groups={groups} className={`${panelInput} ${!d.itemId ? 'ring-1 ring-b27-wait' : ''}`} />
+                      <select value={d.accountId} onChange={(e) => setDraft(r.id, { accountId: e.target.value })} className={panelInput} aria-label="계좌">
+                        <option value="">계좌 (없음)</option>
+                        {options.accounts.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input value={d.vendor} onChange={(e) => setDraft(r.id, { vendor: e.target.value })} placeholder={`구매처 · ${r.merchant}`} className={panelInput} aria-label="구매처" />
+                      <input value={d.name} onChange={(e) => setDraft(r.id, { name: e.target.value })} placeholder="내용 · 예: 식료품" className={panelInput} aria-label="내용" />
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        disabled={rowBusy || !d.itemId}
+                        onClick={() => approve([r.id])}
+                        className="h-10 flex-1 rounded-full bg-b27-ink font-num text-[14px] font-medium text-white transition active:scale-[0.98] disabled:opacity-30"
+                      >
+                        {busy === r.id ? '…' : '승인'}
+                      </button>
+                      <button type="button" disabled={rowBusy} onClick={() => ignore([r.id])} className="h-10 rounded-full bg-b27-paper px-4 text-[13px] text-b27-muted disabled:opacity-40">
+                        무시
+                      </button>
                     </div>
                   </div>
-                  <div className="shrink-0 text-right @2xl:mt-1 @2xl:text-left">
-                    <div className="font-num text-sm font-medium text-b27-expense">{fmtAmt(r.currency, r.principal)}</div>
-                    <div className="text-[11px] text-b27-muted">{fmtUsd(usdOf(r))}</div>
-                  </div>
-                </div>
-
-                {/* 항목 */}
-                <label className="block">
-                  <span className="mb-1 block text-[11px] font-medium text-b27-muted">항목</span>
-                  <ItemSelect
-                    value={d.itemId}
-                    onChange={(v) => setDraft(r.id, { itemId: v })}
-                    groups={groups}
-                    className={`${ctl} ${!d.itemId ? 'border-b27-wait' : ''}`}
-                  />
-                </label>
-
-                {/* 구매처(어디서) — 문자 상점명은 16자로 잘려 오므로 바로잡을 수 있고, 바로잡은 이름은 학습됨 */}
-                <label className="mt-2 block @2xl:mt-0">
-                  <span className="mb-1 block text-[11px] font-medium text-b27-muted">
-                    구매처{r.suggestedVendor ? <span className="ml-1 text-b27-ink">추천</span> : ''}
-                  </span>
-                  <input
-                    value={d.vendor}
-                    onChange={(e) => setDraft(r.id, { vendor: e.target.value })}
-                    placeholder={r.merchant}
-                    className={ctl}
-                  />
-                </label>
-
-                {/* 적요(무엇을) — 상점별로 학습·추천 */}
-                <label className="mt-2 block @2xl:mt-0">
-                  <span className="mb-1 block text-[11px] font-medium text-b27-muted">
-                    내용{r.suggestedName ? <span className="ml-1 text-b27-ink">추천</span> : ''}
-                  </span>
-                  <input
-                    value={d.name}
-                    onChange={(e) => setDraft(r.id, { name: e.target.value })}
-                    placeholder="예: 식료품 · 주유 · 학비"
-                    className={ctl}
-                  />
-                </label>
-
-                {/* 계좌 */}
-                <label className="mt-2 block @2xl:mt-0">
-                  <span className="mb-1 block text-[11px] font-medium text-b27-muted">계좌</span>
-                  <select value={d.accountId} onChange={(e) => setDraft(r.id, { accountId: e.target.value })} className={ctl}>
-                    <option value="">(없음)</option>
-                    {options.accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                {/* 액션 */}
-                <div className="mt-3 flex gap-2 @2xl:mt-0">
-                  <button
-                    type="button"
-                    disabled={rowBusy || !d.itemId}
-                    onClick={() => approve([r.id])}
-                    className="h-9 flex-1 rounded-lg bg-b27-ink px-3 text-sm font-medium text-white transition active:scale-[0.98] disabled:opacity-40 @2xl:flex-none"
-                  >
-                    {busy === r.id ? '…' : '승인'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={rowBusy}
-                    onClick={() => ignore([r.id])}
-                    className="h-9 rounded-lg border border-b27-line px-3 text-sm text-b27-muted transition hover:text-danger disabled:opacity-40"
-                  >
-                    무시
-                  </button>
-                </div>
+                )}
               </li>
             )
           })}
         </ul>
       )}
+      {rows.length > 0 && <p className="mt-3 text-center text-[11px] text-b27-muted">행 탭 = 펼쳐서 수정 · 추천이 맞으면 「모두 승인」</p>}
     </div>
   )
 }

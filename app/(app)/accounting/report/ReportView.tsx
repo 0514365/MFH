@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-REPORT-V12 — 실기 피드백(남색 과다): 1위 대분류 블록 = 제 색(2×2 유지) · 연간 최대 달 = 같은 계열 진한 톤(Rose/Periwinkle) + 「최대」 글자 · 이번 달 테두리 2px → 남색 면 0
 // MFH-ACCOUNTING-REPORT-V11 — 2027 실기 피드백(블록 재활용 ①): 연간 모드 = 그해 12개월 블록 격자(4열 × 3행, 분기 = 행)가 연도 추이 막대를 대체.
 //   달마다 「월 · 금액」, 가장 큰 달 = 남색 앵커, 이번 달 = 남색 안쪽 테두리, 기록 없는 달 = 연회색, 탭 = 그달 월 모드로. 월 모드 추이 막대(1~12월)는 그대로.
 // MFH-ACCOUNTING-REPORT-V10 — 2027 Minimal Block(c-4a): 지출/수입 글자 토글 · 월/연간 남색 알약 · 공용 CurToggle → 큰 숫자(남색) + 전기 대비
@@ -307,6 +308,8 @@ export default function ReportView({
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`
   })()
   const gridP = kind === '지출' ? pastelAt(1) : pastelAt(0)
+  // 최대 달 = 같은 계열 진한 톤(지출 6 Rose · 수입 8 Periwinkle) — 남색 면 대신
+  const gridMax = kind === '지출' ? pastelAt(5) : pastelAt(7)
 
   const band = [
     { label: '현금', sum: cash, fill: brand2027.block3 },
@@ -387,11 +390,13 @@ export default function ReportView({
                   }}
                   aria-label={`${m.month}월 ${fmt(v)}`}
                   className={`flex min-w-0 flex-col items-center justify-center overflow-hidden transition active:scale-[0.97] ${
-                    top ? 'bg-b27-ink text-white' : has ? 'text-white' : 'bg-b27-card text-b27-muted'
-                  } ${now ? 'shadow-[inset_0_0_0_3px_var(--b27-ink)]' : ''}`}
-                  style={top || !has ? undefined : { background: gridP.bg, textShadow: blockHalo(gridP.n) }}
+                    has ? 'text-white' : 'bg-b27-card text-b27-muted'
+                  } ${now ? 'shadow-[inset_0_0_0_2px_var(--b27-ink)]' : ''}`}
+                  style={!has ? undefined : top ? { background: gridMax.bg, textShadow: blockHalo(gridMax.n) } : { background: gridP.bg, textShadow: blockHalo(gridP.n) }}
                 >
-                  <span className={`font-num text-[10px] leading-none ${top ? 'opacity-85' : ''}`}>{m.month}월</span>
+                  <span className="font-num text-[10px] leading-none">
+                    {m.month}월{top ? ' · 최대' : ''}
+                  </span>
                   <span className="mt-1 max-w-full truncate px-1 font-num text-[14px] font-medium leading-none">{has ? fmtBlock(v) : '–'}</span>
                 </button>
               )
@@ -438,12 +443,12 @@ export default function ReportView({
                 type="button"
                 onClick={b.go}
                 className={`flex min-w-0 flex-col items-center justify-center overflow-hidden transition active:scale-[0.97] ${first ? 'col-span-2 row-span-2' : ''} ${
-                  first ? 'bg-b27-ink text-white' : neutral ? 'bg-b27-card text-b27-ink' : 'text-white'
+                  neutral ? 'bg-b27-card text-b27-ink' : 'text-white'
                 }`}
-                style={first || neutral ? undefined : { background: b.p.bg, textShadow: blockHalo(b.p.n) }}
+                style={neutral ? undefined : { background: b.p.bg, textShadow: blockHalo(b.p.n) }}
               >
                 <span className={`font-num font-medium leading-none ${first ? 'text-[30px]' : 'text-[19px]'}`}>{fmtBlock(b.sum)}</span>
-                <span className={`mt-1.5 max-w-full truncate px-2 text-[12px] font-medium ${first ? 'opacity-85' : neutral ? 'text-b27-muted' : ''}`}>
+                <span className={`mt-1.5 max-w-full truncate px-2 text-[12px] font-medium ${neutral ? 'text-b27-muted' : ''}`}>
                   {b.name}
                   {total > 0 && <span className="ml-1 opacity-80">{Math.round((b.sum / total) * 100)}%</span>}
                 </span>
