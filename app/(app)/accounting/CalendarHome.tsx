@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V24 — 당김 안내를 고정 묶음(달력) 아래 경계로: 달력은 고정, 그 아래 틈이 벌어지며 80px 에 닿으면 「놓으면 기록 화면으로」
 // MFH-ACCOUNTING-CALENDAR-V23 — 실기 피드백: 모바일 상단(제목 줄·승인대기·달력) sticky 고정, 카드대금·선택일 내역만 스크롤 · 기록 = 맨 위에서 아래로 당기기(기존 페이지 끝 밀어올리기 폐지)
 // MFH-ACCOUNTING-CALENDAR-V22 — 실기 피드백 2차: 카드대금 = 연한 빨강 알약 한 줄(총액 · 다음 상환일 · ▾) → 탭하면 흰 바탕 세부 행 + [상환][잔액 0][자산 →]. 접힘 기기별 기억, 상환 3일 전 자동 펼침
 // MFH-ACCOUNTING-CALENDAR-V21 — 실기 피드백(카드대금 구분감): 카드대금 묶음을 연한 빨강 면(#FDECEA)으로, 합계는 머리줄 제목으로, 행 구분선은 연한 빨강
@@ -248,16 +249,6 @@ export default function CalendarHome({
 
       {/* 상단 고정 묶음(모바일) — 당김 안내 · 제목 줄 · 승인대기 · 달력. 헤더(52px) 아래에 sticky, 목록은 그 밑으로 스크롤 */}
       <div className="space-y-5 max-md:sticky max-md:top-[52px] max-md:z-20 max-md:-mx-4 max-md:bg-b27-paper max-md:px-4 max-md:pb-3">
-      {/* 당겨서 기록 안내(모바일) — 당긴 만큼 높이가 늘어나고, 기준을 넘으면 색이 바뀐다 */}
-      <div
-        className={`flex items-center justify-center overflow-hidden text-[12px] transition-colors md:hidden ${pull >= PULL_MAX ? 'text-b27-ink' : 'text-b27-muted'}`}
-        style={{ height: pull, opacity: pull > 8 ? 1 : 0 }}
-        hidden={pull <= 0}
-        aria-hidden="true"
-      >
-        {pull >= PULL_MAX ? '놓으면 기록 화면으로' : '↓ 더 당겨서 기록'}
-      </div>
-
       {/* 제목 줄 — 전체/지출/수입 글자 토글(선택 글자 다시 탭 = 전체) · 오늘 · (md 이상 L/$) · 그달 금액(전체는 수입·지출 둘 다) */}
       <div className="flex items-center justify-between gap-3 px-1">
         <div className="flex items-center gap-4 font-num text-[15px]">
@@ -339,6 +330,16 @@ export default function CalendarHome({
           })}
         </div>
       </section>
+      </div>
+
+      {/* 당겨서 기록(모바일) — 고정 묶음 아래 경계가 당긴 만큼 벌어지고, 기준(80px)에 닿으면 메시지 */}
+      <div
+        className="flex items-end justify-center overflow-hidden pb-1 font-num text-[12px] text-b27-ink md:hidden"
+        style={{ height: pull }}
+        hidden={pull <= 0}
+        aria-hidden="true"
+      >
+        {pull >= PULL_MAX ? '놓으면 기록 화면으로' : ''}
       </div>
 
       {/* 카드대금 — 접힘 줄 = 연한 빨강 알약(총액 · 가장 가까운 상환일 · ▾), 탭 = 펼침(기기별 기억, 상환 3일 전 자동).

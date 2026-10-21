@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-ASSETS-VIEW-V6 — 실기 피드백(B안): 통화 색 = 지폐 연상(달러 라군 · 원화 살구 · 렘피라 페리윙클 · 카드 살몬) · 타이틀 = 연한 면 알약 · 목록 = 왼쪽 옆줄 · 총액 연회색 면 유지
 // MFH-ACCOUNTING-ASSETS-VIEW-V5 — 실기 피드백(단조로움): 순자산 연회색 면 · 통화 그룹 = 띠 색의 연한 면(라벤더·블러시·라군) + 색 사각형·비중 · 카드 그룹 연한 빨강
 // MFH-ACCOUNTING-ASSETS-VIEW-V4 — 2027 Minimal Block(c-4b): 순자산 큰 숫자(남색) + 자산·부채 한 줄 + 공용 CurToggle → 통화 구성 띠 한 줄(블록 색)
 //   → 그룹은 작은 머리줄(이름 · 소계) + 이름/금액 행(아이콘·카드 테두리 없음, 보조 정보는 11px 회색 줄) → 신용카드 그룹(미상환 빨강, 상환 버튼)
@@ -18,11 +19,11 @@ import { fmtLocal, shownUsd, summarize } from '../BalanceGroups'
 
 type GroupKey = 'USD' | 'KRW' | 'HNL' | 'CARD'
 // 통화 그룹 색 = 블록 토큰(달러 5 Lavender · 원화 7 Blush · 렘피라 1 Lagoon · 카드 2 Salmon)
-// tint = 그룹 면(띠 색을 아주 연하게) — 달력·통계처럼 영역을 색 면으로 구분
+// 통화 색 = 지폐 연상(B안): 달러 1 Lagoon(녹색 지폐) · 원화 3 Apricot(황금) · 렘피라 8 Periwinkle(파란 지폐) · 카드 2 Salmon. tint = 타이틀 알약 면, color = 띠·옆줄
 const GROUPS: { key: GroupKey; label: string; color: string; tint: string }[] = [
-  { key: 'USD', label: '달러', color: brand2027.block5, tint: '#F1EFFA' },
-  { key: 'KRW', label: '원화', color: brand2027.block7, tint: '#FBEFF1' },
-  { key: 'HNL', label: '렘피라', color: brand2027.block1, tint: '#EAF6F5' },
+  { key: 'USD', label: '달러', color: brand2027.block1, tint: '#EAF6F5' },
+  { key: 'KRW', label: '원화', color: brand2027.block3, tint: '#FEF6E7' },
+  { key: 'HNL', label: '렘피라', color: brand2027.block8, tint: '#EEF0F9' },
   { key: 'CARD', label: '신용카드', color: brand2027.block2, tint: '#FDECEA' },
 ]
 const groupOf = (b: AccountBalance): GroupKey =>
@@ -169,30 +170,37 @@ export default function AssetsView({
         )}
       </section>
 
-      {/* 통화 그룹 — 띠 색의 연한 면 + 머리줄(색 사각형 · 이름 · 비중 · 소계) + 행 */}
+      {/* 통화 그룹 — 타이틀 알약(연한 면: 색 사각형 · 이름 · 비중) + 소계 → 행 목록(왼쪽 옆줄 3px = 통화 색) */}
       {assetGroups.map((g) => (
-        <section key={g.key} className="rounded-2xl px-3 pb-1 pt-2.5" style={{ background: g.tint }}>
-          <div className="flex items-baseline justify-between font-num text-[12px] text-b27-muted">
-            <span className="flex items-center gap-1.5">
+        <section key={g.key} className="px-1">
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-num text-[12px] text-b27-ink" style={{ background: g.tint }}>
               <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: g.color }} aria-hidden="true" />
               {g.label}
-              {barTotal > 0 && <span className="font-medium text-b27-ink">{Math.round((Math.max(0, g.usd) / barTotal) * 100)}%</span>}
+              {barTotal > 0 && <span className="font-medium text-b27-muted">{Math.round((Math.max(0, g.usd) / barTotal) * 100)}%</span>}
             </span>
-            <span>{fmt(toShowUsd(g.usd))}</span>
+            <span className="font-num text-[12px] text-b27-muted">{fmt(toShowUsd(g.usd))}</span>
           </div>
-          <ul className="[&>li:last-child]:border-b-0">{g.rows.map(renderRow)}</ul>
+          <ul className="mt-1.5 border-l-[3px] pl-2.5 [&>li:last-child]:border-b-0" style={{ borderLeftColor: g.color }}>
+            {g.rows.map(renderRow)}
+          </ul>
         </section>
       ))}
 
-      {/* 신용카드 — 연한 빨강 면(달력 카드대금과 동일) · 미상환 합계 · 행 · 상환 버튼 */}
+      {/* 신용카드 — 타이틀 알약 연한 빨강 · 미상환 합계 빨강 · 행(옆줄 살몬) · 상환 버튼 */}
       {card && (
-        <section className="rounded-2xl px-3 pb-3 pt-2.5" style={{ background: card.tint }}>
-          <div className="flex items-baseline justify-between font-num text-[12px] text-b27-muted">
-            <span>신용카드 · 미상환</span>
-            <span className="text-b27-expense">{fmt(toShowUsd(card.usd))}</span>
+        <section className="px-1">
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-num text-[12px] text-b27-ink" style={{ background: card.tint }}>
+              <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: card.color }} aria-hidden="true" />
+              신용카드 · 미상환
+            </span>
+            <span className="font-num text-[12px] font-medium text-b27-expense">{fmt(toShowUsd(card.usd))}</span>
           </div>
-          <ul className="[&>li:last-child]:border-b-0">{card.rows.map(renderRow)}</ul>
-          <div className="pt-2">
+          <ul className="mt-1.5 border-l-[3px] pl-2.5 [&>li:last-child]:border-b-0" style={{ borderLeftColor: card.color }}>
+            {card.rows.map(renderRow)}
+          </ul>
+          <div className="pt-3">
             <CardRepayButton balances={balances} options={options ?? undefined} actionsOnly />
           </div>
         </section>
