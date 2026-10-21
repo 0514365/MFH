@@ -88,6 +88,8 @@ export type Brand2027Tokens = {
   income: string;
   expense: string;
   wait: string; // 승인 대기 · 경고
+  sun: string; // 달력 일요일 날짜 · 요일 머리글 (Rose 진한톤 — 지출 빨강과 구분)
+  sat: string; // 달력 토요일 (터키석 = plus 와 동일)
   block1: string;
   block2: string;
   block3: string;
@@ -116,6 +118,8 @@ export const brand2027: Brand2027Tokens = {
   income: "#2A5BC0",
   expense: "#C23A34",
   wait: "#B45309",
+  sun: "#D64A58", // 흰 바탕 대비 4.2
+  sat: "#2EC4B6", // 흰 바탕 대비 2.2 — 햇빛에서 약하면 #17A094(3.5)
   // 항목 블록 8색 — 대분류 안 항목 정렬 순서대로 순환 (lib/acct-display.ts, c 단계)
   block1: "#8ED0CE", // Lagoon
   block2: "#F9ADA4", // Salmon

@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V18 — 요일색(2027 토큰): 일요일 = b27-sun(Rose 진한톤) · 토요일 = b27-sat(터키석). 요일 머리글·날짜 칸 동일.
 // MFH-ACCOUNTING-CALENDAR-V17 — 카드대금: 제목 줄 = 「카드대금」 + [상환][잔액], 상환일은 카드사 행 아래 작은 글씨(매월 N일)
 // MFH-ACCOUNTING-CALENDAR-V16 — 카드대금 제목 줄 오른쪽 「상환」·「잔액 0」 버튼(CardRepayButton compact, 모든 폭) · 상환일 글자 작게, 한 줄 고정
 // MFH-ACCOUNTING-CALENDAR-V15 — 달력 아래 승인대기 배너(홈과 같은 모양) · 선택일 머리줄 「수입 n · 지출 n」 라벨형(위플)
@@ -289,7 +290,7 @@ export default function CalendarHome({
       <section className="rounded-2xl border border-line bg-surface px-2 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <div className="grid grid-cols-7 pb-2 text-center text-[12px] font-semibold">
           {WEEK.map((w, i) => (
-            <div key={w} className={i === 0 ? 'text-accent' : i === 6 ? 'text-blue-700' : 'text-faint'}>
+            <div key={w} className={i === 0 ? 'text-b27-sun' : i === 6 ? 'text-b27-sat' : 'text-faint'}>
               {w}
             </div>
           ))}
@@ -311,7 +312,7 @@ export default function CalendarHome({
               >
                 <span
                   className={`mb-0.5 flex h-6 min-w-[24px] items-center justify-center rounded-full px-1 font-display text-[14px] ${
-                    isToday ? 'bg-primary font-bold text-white' : dow === 0 ? 'text-accent' : dow === 6 ? 'text-blue-700' : 'text-ink'
+                    isToday ? 'bg-primary font-bold text-white' : dow === 0 ? 'text-b27-sun' : dow === 6 ? 'text-b27-sat' : 'text-ink'
                   }`}
                 >
                   {d}

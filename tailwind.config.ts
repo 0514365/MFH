@@ -39,6 +39,8 @@ const config: Config = {
         'b27-income': 'var(--b27-income)',
         'b27-expense': 'var(--b27-expense)',
         'b27-wait': 'var(--b27-wait)',
+        'b27-sun': 'var(--b27-sun)',
+        'b27-sat': 'var(--b27-sat)',
         'b27-block-1': 'var(--b27-block-1)',
         'b27-block-2': 'var(--b27-block-2)',
         'b27-block-3': 'var(--b27-block-3)',
