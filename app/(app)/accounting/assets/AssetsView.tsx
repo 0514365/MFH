@@ -1,36 +1,30 @@
 'use client'
+// MFH-ACCOUNTING-ASSETS-VIEW-V4 — 2027 Minimal Block(c-4b): 순자산 큰 숫자(남색) + 자산·부채 한 줄 + 공용 CurToggle → 통화 구성 띠 한 줄(블록 색)
+//   → 그룹은 작은 머리줄(이름 · 소계) + 이름/금액 행(아이콘·카드 테두리 없음, 보조 정보는 11px 회색 줄) → 신용카드 그룹(미상환 빨강, 상환 버튼)
+//   → 하단 환율·마감·평가손익·＋ 계좌 글자. 평가 로직(show·summarize·cycle 줄)은 V3 그대로.
 // MFH-ACCOUNTING-ASSETS-VIEW-V3 — 신용카드 상환일(N일 상환) · 청구 주기 카드 줄 「MM/DD 상환 … · MM/DD 예정 …」(patch117·118)
 // MFH-ACCOUNTING-ASSETS-VIEW-V2 — 계좌 행에 「예정」(오늘 이후 날짜 거래, 잔액 미포함) 표시
-// MFH-ACCOUNTING-ASSETS-VIEW-V1
-// 위플형 자산 탭(c단계) — 순자산 큰 숫자(자산·부채) · L/$ 토글(통계·달력과 공유) · 자산 구성 띠(달러·원화·렘피라)
-//   → 그룹 카드(계좌 행: 색 원 + 흰 아이콘 · 평가액 · 원통화 실보유 · 장부 차이, 탭 = 그 계좌 내역)
-//   → 신용카드 카드(미상환 + 상환 입력·잔액 0 맞춤) → 하단 적용 공시·마감 환율 · 평가손익 · + 계좌.
 // 금액 = 공시 환율 평가액(valueUsd, 없으면 장부가). L 표시 = 렘피라 계좌는 실보유 그대로, 그 외는 평가 USD × HNL 공시.
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Banknote, CreditCard, Landmark, PiggyBank, type LucideIcon } from 'lucide-react'
 import type { AccountBalance, AcctOptions, FxInfo } from '@/lib/accounting-types'
 import { hnlRateOf, useShowCur, type ShowCur } from '@/lib/acct-display'
+import { brand2027 } from '@/lib/palette'
+import { CurToggle } from '../AccountingTitle'
 import AccountAddForm from '../AccountAddForm'
 import CardRepayButton from '../CardRepayButton'
 import { fmtLocal, shownUsd, summarize } from '../BalanceGroups'
 
 type GroupKey = 'USD' | 'KRW' | 'HNL' | 'CARD'
+// 통화 그룹 색 = 블록 토큰(달러 5 Lavender · 원화 7 Blush · 렘피라 1 Lagoon · 카드 2 Salmon)
 const GROUPS: { key: GroupKey; label: string; color: string }[] = [
-  { key: 'USD', label: '달러', color: '#7FA6DE' },
-  { key: 'KRW', label: '원화', color: '#9C8AD8' },
-  { key: 'HNL', label: '렘피라', color: '#6FBF98' },
-  { key: 'CARD', label: '신용카드', color: '#E5847A' },
+  { key: 'USD', label: '달러', color: brand2027.block5 },
+  { key: 'KRW', label: '원화', color: brand2027.block7 },
+  { key: 'HNL', label: '렘피라', color: brand2027.block1 },
+  { key: 'CARD', label: '신용카드', color: brand2027.block2 },
 ]
 const groupOf = (b: AccountBalance): GroupKey =>
   b.kind === '신용카드' ? 'CARD' : b.currency === 'KRW' ? 'KRW' : b.currency === 'HNL' ? 'HNL' : 'USD'
-
-function iconOf(b: AccountBalance): LucideIcon {
-  if (b.kind === '신용카드') return CreditCard
-  if (b.name.includes('현금')) return Banknote
-  if (b.name.includes('예치') || b.name.includes('청약') || b.name.includes('임시')) return PiggyBank
-  return Landmark
-}
 const shortName = (b: AccountBalance) => (b.kind === '신용카드' ? b.name.replace(' 신용카드 ', ' ') : b.name)
 
 const MD = (ymd: string) => `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}`
@@ -50,7 +44,7 @@ export default function AssetsView({
   options: AcctOptions | null
 }) {
   const router = useRouter()
-  const [cur, setCur] = useShowCur()
+  const [cur] = useShowCur()
   const hnlRate = useMemo(() => hnlRateOf(fx, balances), [fx, balances])
   const showCur: ShowCur = hnlRate ? cur : 'USD'
   const [adding, setAdding] = useState(false)
@@ -92,8 +86,8 @@ export default function AssetsView({
 
   const goAccount = (id: string) => router.push(`/accounting/ledger?account=${id}`)
 
-  const renderRow = (b: AccountBalance, color: string) => {
-    const Icon = iconOf(b)
+  // 계좌 행 — 이름(+카드 사용자·상환일) · 보조 줄(원통화 실보유 · 장부 차이 · 예정) · 청구 주기 줄 · 금액
+  const renderRow = (b: AccountBalance) => {
     const v = show(b)
     const usdDiff = b.valueUsd != null ? b.valueUsd - b.balanceUsd : 0
     const localLine =
@@ -117,75 +111,55 @@ export default function AssetsView({
       : null
     const subs = [localLine, Math.abs(usdDiff) >= 0.01 ? `장부 $${b.balanceUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null, upLine].filter(Boolean)
     return (
-      <li key={b.id}>
-        <button type="button" onClick={() => goAccount(b.id)} className="flex w-full items-center gap-3 py-2.5 text-left">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: color }} aria-hidden="true">
-            <Icon size={18} strokeWidth={2.3} color="#fff" />
-          </span>
+      <li key={b.id} className="border-b border-b27-line">
+        <button type="button" onClick={() => goAccount(b.id)} className="flex w-full items-center gap-3 py-3 text-left">
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium text-ink">
+            <span className="block truncate text-[15px] text-b27-ink">
               {shortName(b)}
               {b.kind === '신용카드' && (b.info || b.dueDay) && (
-                <span className="ml-1.5 text-[11px] text-faint">{[b.info, b.dueDay ? `${b.dueDay}일 상환` : null].filter(Boolean).join(' · ')}</span>
+                <span className="ml-1.5 text-[11px] text-b27-muted">{[b.info, b.dueDay ? `${b.dueDay}일 상환` : null].filter(Boolean).join(' · ')}</span>
               )}
             </span>
-            {subs.length > 0 && <span className="block truncate text-[11px] text-faint">{subs.join(' · ')}</span>}
-            {cycleLine && <span className={`block truncate text-[11px] ${cy?.overdue ? 'font-medium text-red-700' : 'text-muted'}`}>{cycleLine}</span>}
+            {subs.length > 0 && <span className="block truncate font-num text-[11px] text-b27-muted">{subs.join(' · ')}</span>}
+            {cycleLine && <span className={`block truncate font-num text-[11px] ${cy?.overdue ? 'font-medium text-b27-expense' : 'text-b27-muted'}`}>{cycleLine}</span>}
           </span>
-          <span className={`shrink-0 font-display text-[15px] font-bold ${v < 0 ? 'text-red-700' : 'text-ink'}`}>
-            {fmt(v)} <span className="text-[12px] font-normal text-faint">›</span>
-          </span>
+          <span className={`shrink-0 font-num text-[15px] font-medium ${v < 0 ? 'text-b27-expense' : 'text-b27-ink'}`}>{fmt(v)}</span>
         </button>
       </li>
     )
   }
 
-  if (balances.length === 0) return <p className="py-10 text-center text-sm text-faint">계좌 정보 없음</p>
+  if (balances.length === 0) return <p className="py-10 text-center text-[13px] text-b27-muted">계좌 정보 없음</p>
 
   return (
-    <div className="space-y-4">
-      {/* 순자산 */}
-      <section className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="space-y-6 font-sans text-b27-ink">
+      {/* 순자산 — 큰 숫자 · 자산/부채 한 줄 · L/$ */}
+      <section className="px-1">
         <div className="flex items-center justify-between">
-          <span className="text-[13px] text-muted">순자산</span>
-          {hnlRate && (
-            <div className="flex rounded-full bg-surface-subtle p-0.5 text-[12px] font-semibold">
-              {(['HNL', 'USD'] as ShowCur[]).map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCur(c)}
-                  className={`rounded-full px-2.5 py-1 transition ${showCur === c ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
-                >
-                  {c === 'HNL' ? 'L' : '$'}
-                </button>
-              ))}
-            </div>
-          )}
+          <span className="font-num text-[12px] text-b27-muted">순자산</span>
+          {hnlRate && <CurToggle />}
         </div>
-        <div className={`mt-0.5 font-display text-[28px] font-bold ${net < 0 ? 'text-red-700' : 'text-ink'}`}>{fmt(toShowUsd(net))}</div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="rounded-xl bg-surface-subtle px-3 py-2">
-            <div className="text-[11px] text-faint">자산</div>
-            <div className="font-display text-[15px] font-bold text-blue-700">{fmt(toShowUsd(assets))}</div>
-          </div>
-          <div className="rounded-xl bg-surface-subtle px-3 py-2">
-            <div className="text-[11px] text-faint">부채</div>
-            <div className="font-display text-[15px] font-bold text-red-700">{fmt(toShowUsd(debt))}</div>
-          </div>
+        <div className={`mt-1 font-num text-[36px] font-medium leading-none tracking-[-0.02em] ${net < 0 ? 'text-b27-expense' : 'text-b27-ink'}`}>{fmt(toShowUsd(net))}</div>
+        <div className="mt-2 flex gap-4 font-num text-[12px] text-b27-muted">
+          <span>
+            자산 <b className="font-medium text-b27-income">{fmt(toShowUsd(assets))}</b>
+          </span>
+          <span>
+            부채 <b className="font-medium text-b27-expense">{fmt(toShowUsd(debt))}</b>
+          </span>
         </div>
 
-        {/* 자산 구성 띠 */}
+        {/* 통화 구성 띠 — 한 줄 */}
         {barTotal > 0 && (
           <>
-            <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-surface-subtle">
+            <div className="mt-4 flex h-1.5 gap-[3px] overflow-hidden rounded-full">
               {assetGroups.map((g) => (g.usd > 0 ? <div key={g.key} style={{ width: `${(g.usd / barTotal) * 100}%`, background: g.color }} /> : null))}
             </div>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-num text-[11px] text-b27-muted">
               {assetGroups.map((g) => (
-                <span key={g.key} className="flex items-center gap-1 text-[11px] text-muted">
-                  <span className="inline-block h-2 w-2 rounded-full" style={{ background: g.color }} />
-                  {g.label} {barTotal > 0 ? Math.round((Math.max(0, g.usd) / barTotal) * 100) : 0}%
+                <span key={g.key} className="flex items-center gap-1">
+                  <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: g.color }} />
+                  {g.label} {Math.round((Math.max(0, g.usd) / barTotal) * 100)}%
                 </span>
               ))}
             </div>
@@ -193,37 +167,33 @@ export default function AssetsView({
         )}
       </section>
 
-      {/* 그룹 카드 */}
+      {/* 통화 그룹 — 머리줄 + 행 */}
       {assetGroups.map((g) => (
-        <section key={g.key} className="rounded-2xl border border-line bg-surface px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[13px] font-bold text-ink">{g.label}</span>
-            <span className="font-display text-[13px] font-bold text-muted">{fmt(toShowUsd(g.usd))}</span>
+        <section key={g.key} className="px-1">
+          <div className="flex items-baseline justify-between font-num text-[12px] text-b27-muted">
+            <span>{g.label}</span>
+            <span>{fmt(toShowUsd(g.usd))}</span>
           </div>
-          <ul className="mt-1 divide-y divide-line">
-            {g.rows.map((b) => renderRow(b, g.color))}
-          </ul>
+          <ul>{g.rows.map(renderRow)}</ul>
         </section>
       ))}
 
-      {/* 신용카드 */}
+      {/* 신용카드 — 미상환 합계 빨강 · 행 · 상환 버튼 */}
       {card && (
-        <section className="rounded-2xl border border-line bg-surface px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[13px] font-bold text-ink">신용카드 · 미상환</span>
-            <span className="font-display text-[13px] font-bold text-red-700">{fmt(toShowUsd(card.usd))}</span>
+        <section className="px-1">
+          <div className="flex items-baseline justify-between font-num text-[12px] text-b27-muted">
+            <span>신용카드 · 미상환</span>
+            <span className="text-b27-expense">{fmt(toShowUsd(card.usd))}</span>
           </div>
-          <ul className="mt-1 divide-y divide-line">
-            {card.rows.map((b) => renderRow(b, card.color))}
-          </ul>
-          <div className="mt-2 border-t border-line pt-3">
+          <ul>{card.rows.map(renderRow)}</ul>
+          <div className="pt-3">
             <CardRepayButton balances={balances} options={options ?? undefined} actionsOnly />
           </div>
         </section>
       )}
 
-      {/* 환율 · 평가손익 · + 계좌 */}
-      <section className="space-y-1 px-1 text-[11px] leading-relaxed text-faint">
+      {/* 환율 · 마감 · 평가손익 · ＋ 계좌 */}
+      <section className="space-y-1 px-1 font-num text-[11px] leading-relaxed text-b27-muted">
         {fx.length > 0 && (
           <div>
             공시 환율{' '}
@@ -242,7 +212,7 @@ export default function AssetsView({
         {Math.abs(fxDiff) >= 0.01 && (
           <div>
             평가손익(장부 대비){' '}
-            <b className={fxDiff >= 0 ? 'text-blue-700' : 'text-red-700'}>
+            <b className={`font-medium ${fxDiff >= 0 ? 'text-b27-income' : 'text-b27-expense'}`}>
               {fxDiff > 0 ? '+' : '−'}${Math.abs(fxDiff).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </b>{' '}
             — 미실현, 장부는 그대로
@@ -252,12 +222,8 @@ export default function AssetsView({
           {adding ? (
             <AccountAddForm onClose={() => setAdding(false)} />
           ) : (
-            <button
-              type="button"
-              onClick={() => setAdding(true)}
-              className="rounded-full border border-line px-3 py-1 text-[12px] font-medium text-muted transition hover:border-primary hover:text-primary"
-            >
-              + 계좌
+            <button type="button" onClick={() => setAdding(true)} className="rounded-full bg-b27-card px-3 py-1.5 text-[12px] text-b27-muted transition hover:text-b27-ink">
+              ＋ 계좌
             </button>
           )}
         </div>
