@@ -1,7 +1,7 @@
 'use client'
-// MFH-ACCOUNTING-NAV-V8 — 2027 Minimal Block(b 단계): 하단 탭 = 글자 5개(달력·통계·홈·자산·내역) · 활성 남색/비활성 회색 · 아이콘·돌출 원형 없음
-//   · 승인대기 배지는 내역 탭 옆 남색 숫자(탭 → /accounting/inbox) · EntryFab = 터키석 원 + 흰 ＋, 하단 중앙(배지 없음).
-//   md 이상 세그먼트는 아이콘 유지, 색만 2027 토큰(b27-*).
+// MFH-ACCOUNTING-NAV-V9 — 실기 피드백: 하단 탭 = 아이콘 26px + 라벨 11px(높이 64) · 홈 = 중앙 돌출 남색 원 56px(V6 구조 복원)
+//   · ＋ 기록 = 오른쪽 아래(V7 위치 복원, 터키석) · 승인대기 배지 = 내역 아이콘 우상단 남색 숫자(탭 → /accounting/inbox).
+// MFH-ACCOUNTING-NAV-V8 — 2027 Minimal Block(b 단계): 하단 탭 글자 5개 · 활성 남색/비활성 회색 · 터키석 ＋ 하단 중앙. md 이상 세그먼트는 색만 2027 토큰(b27-*).
 // MFH-ACCOUNTING-NAV-V7 — EntryFab 는 달력(/accounting)·내역(/accounting/ledger)에서만 표시
 // MFH-ACCOUNTING-NAV-V6 — 중앙 = 메인홈(집) · 기록 ＋ 는 EntryFab(화면 오른쪽 아래 플로팅, 승인대기 배지 포함, 기록·승인대기 화면에선 숨김)
 // MFH-ACCOUNTING-NAV-V5 — 위플형 재구성: [달력][통계] [＋(중앙·돌출)] [자산][내역]. 기록 탭 제거 → ＋ = /accounting/entry
@@ -134,7 +134,8 @@ function CountBadge({ n, className = '' }: { n: number; className?: string }) {
   )
 }
 
-// 글자 탭 — 활성 남색 500 / 비활성 회색. 내역 탭은 승인대기 배지(배지 탭 → 승인대기 화면; <a> 중첩 금지라 span + router).
+// 아이콘 탭 — 아이콘 26px + 라벨 11px. 활성 남색 500 / 비활성 회색. 내역 탭은 아이콘 우상단 승인대기 배지
+// (배지 탭 → 승인대기 화면; <a> 중첩 금지라 span + router).
 function TabLink({ tab, pathname, badge = 0 }: { tab: Tab; pathname: string; badge?: number }) {
   const active = isActive(pathname, tab.href)
   const router = useRouter()
@@ -143,36 +144,40 @@ function TabLink({ tab, pathname, badge = 0 }: { tab: Tab; pathname: string; bad
       <Link
         href={tab.href}
         aria-current={active ? 'page' : undefined}
-        className={`flex items-center justify-center gap-1 py-3 text-[12px] transition ${
+        className={`flex flex-col items-center gap-0.5 py-1.5 text-[11px] transition ${
           active ? 'font-medium text-b27-ink' : 'text-b27-muted'
         }`}
       >
-        {tab.label}
-        {badge > 0 && (
-          <span
-            role="link"
-            tabIndex={0}
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              router.push('/accounting/inbox')
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+        <span className="relative [&>svg]:h-[26px] [&>svg]:w-[26px] [&>svg]:stroke-[1.8]">
+          {tab.icon}
+          {badge > 0 && (
+            <span
+              role="link"
+              tabIndex={0}
+              className="absolute -right-2.5 -top-1.5"
+              onClick={(e) => {
                 e.preventDefault()
+                e.stopPropagation()
                 router.push('/accounting/inbox')
-              }
-            }}
-          >
-            <CountBadge n={badge} />
-          </span>
-        )}
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  router.push('/accounting/inbox')
+                }
+              }}
+            >
+              <CountBadge n={badge} />
+            </span>
+          )}
+        </span>
+        {tab.label}
       </Link>
     </li>
   )
 }
 
-// 기록 ＋ 플로팅(모바일) — 하단 중앙, 탭바 위. 터키석 원 + 흰 ＋(화면에서 유일한 터키석). 달력·내역 화면에서만 표시.
+// 기록 ＋ 플로팅(모바일) — 오른쪽 아래, 탭바 위 16px. 터키석 원 + 흰 ＋(화면에서 유일한 터키석). 달력·내역 화면에서만 표시.
 const FAB_PATHS = ['/accounting', '/accounting/ledger']
 export function EntryFab() {
   const pathname = usePathname() ?? '/accounting'
@@ -180,8 +185,8 @@ export function EntryFab() {
   if (!FAB_PATHS.includes(pathname)) return null
   return (
     <div
-      className="fixed left-1/2 z-40 -translate-x-1/2 md:hidden"
-      style={{ bottom: 'calc(64px + env(safe-area-inset-bottom))' }}
+      className="fixed right-4 z-40 md:hidden"
+      style={{ bottom: 'calc(80px + env(safe-area-inset-bottom))' }}
     >
       <button
         type="button"
@@ -199,25 +204,32 @@ export default function AccountingNav({ pending = 0 }: { pending?: number }) {
   const pathname = usePathname() ?? '/accounting'
   return (
     <>
-      {/* fixed 탭바 높이만큼 스페이서(safe-area 포함) */}
+      {/* fixed 탭바 높이만큼 스페이서(safe-area 포함). 돌출 원형도 이 영역에 수용. */}
       <div
-        className="h-[56px] md:hidden"
-        style={{ height: 'calc(56px + env(safe-area-inset-bottom))' }}
+        className="h-[64px] md:hidden"
+        style={{ height: 'calc(64px + env(safe-area-inset-bottom))' }}
         aria-hidden="true"
       />
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 bg-b27-paper md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-b27-line bg-b27-paper md:hidden"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 6px)' }}
       >
-        <ul className="mx-auto flex max-w-md items-center justify-around px-2">
+        <ul className="mx-auto flex max-w-md items-end justify-around px-2 pt-1.5">
           {LEFT_TABS.map((tab) => (
             <TabLink key={tab.href} tab={tab} pathname={pathname} />
           ))}
 
-          {/* 중앙 = 메인홈 — 글자 "홈" (돌출 원형 없음) */}
+          {/* 중앙 = 메인홈 — 남색 원 56px, 탭바 위로 돌출. 기록 ＋ 는 EntryFab(오른쪽 아래). */}
           <li className="flex-1">
-            <Link href="/" aria-label="메인홈" className="flex items-center justify-center py-3 text-[12px] text-b27-muted">
-              홈
+            <Link
+              href="/"
+              aria-label="메인홈"
+              className="mx-auto flex h-14 w-14 -translate-y-4 items-center justify-center rounded-full bg-b27-ink text-white shadow-[0_8px_18px_-8px_rgba(43,49,96,0.5)] transition active:scale-95"
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <path d="M9 22V12h6v10" />
+              </svg>
             </Link>
           </li>
 

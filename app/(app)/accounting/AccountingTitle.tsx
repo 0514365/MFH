@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TITLE-V8 — 실기 피드백: L/$ 토글 = 알약 세그먼트 15px(활성 남색 채움·흰 글자 / 비활성 회색), 구분감·크기 확대
 // MFH-ACCOUNTING-TITLE-V7 — 2027 Minimal Block(b 단계): 제목·월 라벨 Manrope(font-num) 500 남색 · L/$ 토글 = 알약 없이 글자(활성 남색·비활성 회색) · 🔍 도 b27 토큰
 // MFH-ACCOUNTING-TITLE-V6 — 달력 헤더 왼쪽 🔍(HeaderSearchLink → /accounting/search) · 「검색」 타이틀
 // MFH-ACCOUNTING-TITLE-V5 — 달력 월 이동도 모든 폭에서 헤더 중앙(절대 배치)
@@ -86,23 +87,21 @@ export function HeaderMonthNav({
 }
 
 // L/$ 표시 통화 토글(기기별 저장 · 화면 간 동기화) — 모바일 달력은 헤더 오른쪽, 그 외는 요약 카드 라벨 줄.
-// 2027: 알약·배경 없이 "L · $" 글자. 활성 남색 500 · 비활성 회색.
+// 2027: 알약 세그먼트 15px — 활성 남색 채움·흰 글자, 비활성 회색. 지출/수입 등 다른 토글과 같은 모양.
 export function CurToggle({ className = '' }: { className?: string }) {
   const [cur, setCur] = useShowCur()
   return (
-    <span className={`flex shrink-0 items-center font-num text-[13px] ${className}`}>
-      {(['HNL', 'USD'] as ShowCur[]).map((c, i) => (
-        <span key={c} className="flex items-center">
-          {i > 0 && <span className="px-1 text-b27-muted" aria-hidden="true">·</span>}
-          <button
-            type="button"
-            onClick={() => setCur(c)}
-            aria-pressed={cur === c}
-            className={`px-1 py-1 leading-none transition ${cur === c ? 'font-medium text-b27-ink' : 'text-b27-muted'}`}
-          >
-            {c === 'HNL' ? 'L' : '$'}
-          </button>
-        </span>
+    <span className={`flex shrink-0 rounded-full bg-b27-card p-[3px] font-num text-[15px] font-medium ${className}`}>
+      {(['HNL', 'USD'] as ShowCur[]).map((c) => (
+        <button
+          key={c}
+          type="button"
+          onClick={() => setCur(c)}
+          aria-pressed={cur === c}
+          className={`rounded-full px-3.5 py-1.5 leading-none transition ${cur === c ? 'bg-b27-ink text-white' : 'text-b27-muted'}`}
+        >
+          {c === 'HNL' ? 'L' : '$'}
+        </button>
       ))}
     </span>
   )
