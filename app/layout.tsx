@@ -1,3 +1,4 @@
+// MFH-LAYOUT-V4 — 2027 토큰 승격: --b27-* 변수를 :root 로(전 앱에서 b27-* 클래스 사용 가능). 공용 토큰 브릿지는 여전히 .theme-2027 스코프.
 // MFH-LAYOUT-V3 — 2027 토큰(.theme-2027 스코프 변수 · Manrope 변수) 선언. 적용은 회계 layout 부터(b 단계).
 // MFH-LAYOUT-V2 — 하단 탭바는 app/(app)/layout.tsx 의 AppShell 로 이동(셸 밖 /login /p 는 탭바 없음).
 import type { Metadata, Viewport } from 'next'
@@ -26,7 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <style
           dangerouslySetInnerHTML={{
-            __html: `:root{${tokensToCssVars(light)}} .theme-2027{${brand2027ToCssVars()}}`,
+            __html: `:root{${tokensToCssVars(light)} ${brand2027ToCssVars()}}`,
           }}
         />
         <link

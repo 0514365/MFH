@@ -35,9 +35,9 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-/* MFH 2027 "Minimal Block" 테마 스코프 — 색 변수(--b27-*)는 app/layout.tsx 가 lib/palette.ts brand2027 에서 주입.
+/* MFH 2027 "Minimal Block" 테마 스코프 — 색 변수(--b27-*)는 app/layout.tsx 가 lib/palette.ts brand2027 에서 :root 에 주입(전 앱 공통).
    여기서는 스코프 안에서 기존 공용 토큰(--paper 등)을 2027 값으로 덮어 공용 컴포넌트가 함께 전환되도록 브릿지만 둔다.
-   b 단계에서 회계 <main> 에 .theme-2027 을 붙이면 켜진다(현재는 어디에도 안 붙음 → 화면 변화 0). */
+   현재 회계 <main> 에만 붙어 있고, 전체 개정 때 모듈별로 붙여 나간 뒤 마지막에 :root 로 승격한다(docs/MFH-DESIGN-2027.md §9). */
 .theme-2027 {
   --paper: var(--b27-paper);
   --surface: var(--b27-paper);

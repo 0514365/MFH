@@ -1,4 +1,5 @@
 'use client'
+// MFH-QUICK-ENTRY-V10 — 2027 토큰 승격: 지출/수입 면 리터럴 → b27-expense-soft / b27-income-soft
 // MFH-QUICK-ENTRY-V9 — 2027 실기 피드백: ③ 블록 탭 = 선택(남색 안쪽 테두리) · 내역+구매처 2행 오른쪽 「저장」 버튼(통합 높이)으로 저장(즉시 저장 폐지 — 내역 못 쓰고 넘어가는 실수 방지)
 //   · ① 이체/조정/상세 입력 글자 15px·500·남색
 // MFH-QUICK-ENTRY-V8 — 2027 Minimal Block(c-3): 흰 바탕·남색 글자·Manrope. ① 통화 알약(남색)·큰 숫자 남색·[지출][수입] 연한 면 버튼·이체/조정/상세는 글자 링크·키패드 연회색(연산 = 연한 터키석, = 남색)
@@ -290,10 +291,10 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
 
           {/* 구분 — 탭 = 다음(계좌). 지출 = 연한 빨강 면 · 수입 = 연한 파랑 면 */}
           <div className="grid grid-cols-2 gap-[3px] overflow-hidden rounded-2xl px-6 pt-6">
-            <button type="button" onClick={() => pickGubun('지출')} className="h-14 rounded-l-2xl bg-[#FBE1DF] font-num text-[17px] font-medium text-b27-expense active:opacity-80">
+            <button type="button" onClick={() => pickGubun('지출')} className="h-14 rounded-l-2xl bg-b27-expense-soft font-num text-[17px] font-medium text-b27-expense active:opacity-80">
               지출
             </button>
-            <button type="button" onClick={() => pickGubun('수입')} className="h-14 rounded-r-2xl bg-[#E1EAFB] font-num text-[17px] font-medium text-b27-income active:opacity-80">
+            <button type="button" onClick={() => pickGubun('수입')} className="h-14 rounded-r-2xl bg-b27-income-soft font-num text-[17px] font-medium text-b27-income active:opacity-80">
               수입
             </button>
           </div>

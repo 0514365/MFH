@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V19 — 2027 토큰 승격: 종류 칩·월 머리줄 면 리터럴 → b27-income-soft / b27-expense-soft
 // MFH-ACCOUNTING-TXLIST-V18 — 항목·계좌 = 바텀시트 다중선택(SearchFilters) · 더 보기(분류·통화·사용자·금액 원금 범위) — 드롭다운 4개 제거
 // MFH-ACCOUNTING-TXLIST-V17 — 검색 UI 차용(SearchFilters): 둥근 검색창·최근 검색어 · 기간 칩(전체·이번 주·이번 달·지정) · 구분 칩 · 금액순/날짜순 글자 토글 · 검색어에 항목명·금액 숫자
 // MFH-ACCOUNTING-TXLIST-V16 — 영수증 📎(행 내용 옆) → ReceiptViewer(보기·교체·삭제)
@@ -755,9 +756,9 @@ export default function TransactionList({
                             <span
                               className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
                                 r.gubun === '수입'
-                                  ? 'bg-[#E1EAFB] text-b27-income'
+                                  ? 'bg-b27-income-soft text-b27-income'
                                   : r.gubun === '지출'
-                                    ? 'bg-[#FBE1DF] text-b27-expense'
+                                    ? 'bg-b27-expense-soft text-b27-expense'
                                     : r.gubun === '이체'
                                       ? 'bg-b27-card text-b27-muted'
                                       : 'bg-b27-card text-b27-muted'
@@ -876,7 +877,7 @@ export default function TransactionList({
                     type="button"
                     onClick={() => toggleCollapse(g.key)}
                     className="mb-1 flex w-full items-center justify-between rounded-xl px-3 py-2"
-                    style={{ background: g.inUsd - g.outUsd >= 0 ? '#E1EAFB' : '#FBE1DF' }}
+                    style={{ background: g.inUsd - g.outUsd >= 0 ? 'var(--b27-income-soft)' : 'var(--b27-expense-soft)' }}
                   >
                     <span className="flex items-center gap-1.5 text-[13px] font-medium text-b27-ink">
                       <span className="text-b27-muted">{isCollapsed ? '▸' : '▾'}</span>

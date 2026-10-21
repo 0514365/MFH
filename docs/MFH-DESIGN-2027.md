@@ -59,7 +59,7 @@
 | 결제수단 현금 / 납부 | 3 Apricot / 5 Lavender | `#FEF6E7` / `#F1EFFA` |
 | 지출 / 수입 (면) | — | `#FBE1DF` / `#E1EAFB` |
 
-> **다음 세션 과제:** 위 틴트 값들이 지금은 컴포넌트에 리터럴로 들어가 있다(`AssetsView` GROUPS.tint, `ReportView` band.tint, `CalendarHome` 카드대금 `#FDECEA`, `TransactionList` 월 머리줄). 전체 개정 때 `brand2027` 에 `tint1~8`(블록별 연한 면)과 `incomeSoft`/`expenseSoft`/`waitSoft` 토큰으로 승격하고 리터럴을 치환한다.
+> **토큰 승격 완료(2026-10-21):** `brand2027` 에 `tint1~8`(블록별 연한 면) · `incomeSoft`/`expenseSoft`/`waitSoft` · `incomeBar`(`#8FB8EE`) 추가, Tailwind `b27-tint-n` · `b27-income-soft` 등. 새 틴트 4 `#EBF8F4` · 6 `#FCE7E9` · 7 `#FBF0F1`. 회계 리터럴 전부 치환. `--b27-*` 변수는 `:root` 에 선언(전 앱 사용 가능), 공용 토큰 브릿지는 `.theme-2027` 스코프 유지 → 모듈 개정 때마다 붙이고 마지막에 `:root` 승격.
 
 ## 4. 글자
 - 숫자·제목·라벨: **Manrope** 400/500/600 (`font-num`, `--font-manrope`). 고정폭 숫자(`tabular-nums` 기본).

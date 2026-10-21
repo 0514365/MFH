@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V25 — 2027 토큰 승격: 카드대금 면 리터럴 → b27-tint-2
 // MFH-ACCOUNTING-CALENDAR-V24 — 당김 안내를 고정 묶음(달력) 아래 경계로: 달력은 고정, 그 아래 틈이 벌어지며 80px 에 닿으면 「놓으면 기록 화면으로」
 // MFH-ACCOUNTING-CALENDAR-V23 — 실기 피드백: 모바일 상단(제목 줄·승인대기·달력) sticky 고정, 카드대금·선택일 내역만 스크롤 · 기록 = 맨 위에서 아래로 당기기(기존 페이지 끝 밀어올리기 폐지)
 // MFH-ACCOUNTING-CALENDAR-V22 — 실기 피드백 2차: 카드대금 = 연한 빨강 알약 한 줄(총액 · 다음 상환일 · ▾) → 탭하면 흰 바탕 세부 행 + [상환][잔액 0][자산 →]. 접힘 기기별 기억, 상환 3일 전 자동 펼침
@@ -350,7 +351,7 @@ export default function CalendarHome({
             type="button"
             onClick={toggleCard}
             aria-expanded={cardExpanded}
-            className="flex w-full items-center justify-between rounded-full bg-[#FDECEA] px-4 py-2 font-num text-[13px] text-b27-expense transition active:opacity-80"
+            className="flex w-full items-center justify-between rounded-full bg-b27-tint-2 px-4 py-2 font-num text-[13px] text-b27-expense transition active:opacity-80"
           >
             <span>
               카드대금 <span className="ml-1 font-medium">{cardTotal}</span>

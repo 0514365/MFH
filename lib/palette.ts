@@ -75,7 +75,7 @@ export function tokensToCssVars(tokens: PaletteTokens): string {
 // ---------------------------------------------------------------------------
 // MFH 2027 리브랜딩 — "Minimal Block" 토큰 (회계 먼저 적용, 2027 전체 확장).
 // 흰 바탕 · 파스텔 블록 8색 + 같은 색 할로(흰 글자 가장자리 대비) · 남색 앵커 · 터키석 ＋ 하나.
-// CSS 변수 접두 --b27-* 로 주입(app/globals.css 의 .theme-2027 스코프). 기존 `light` 세트와 독립.
+// CSS 변수 접두 --b27-* 로 :root 에 주입(app/layout.tsx). 공용 토큰(--paper 등)을 2027 값으로 덮는 브릿지는 app/globals.css 의 .theme-2027 스코프. 기존 `light` 세트와 독립.
 // 대비(흰 바탕): ink 12.6 · income 6.3 · expense 5.3 · wait 5.0. 블록 위 흰 글자는 할로 50%(3·4번 65%) 기준 3.3~5.8.
 
 export type Brand2027Tokens = {
@@ -106,6 +106,20 @@ export type Brand2027Tokens = {
   halo6: string;
   halo7: string;
   halo8: string;
+  // 틴트 — 블록 n 의 연한 면(타이틀 알약 · 그룹 면 · 통화/결제수단 묶음)
+  tint1: string;
+  tint2: string;
+  tint3: string;
+  tint4: string;
+  tint5: string;
+  tint6: string;
+  tint7: string;
+  tint8: string;
+  // 소프트 — 의미색의 연한 면 / 막대 진한 톤
+  incomeSoft: string;
+  expenseSoft: string;
+  waitSoft: string;
+  incomeBar: string; // 수입 현재 막대 · 범례 (지출 쪽은 block6)
 };
 
 export const brand2027: Brand2027Tokens = {
@@ -138,6 +152,18 @@ export const brand2027: Brand2027Tokens = {
   halo6: "rgba(101,6,15,0.5)",
   halo7: "rgba(169,30,48,0.5)",
   halo8: "rgba(48,60,141,0.5)",
+  tint1: "#EAF6F5", // 달러
+  tint2: "#FDECEA", // 신용카드 · 카드대금 · 결제수단 카드
+  tint3: "#FEF6E7", // 원화 · 결제수단 현금
+  tint4: "#EBF8F4",
+  tint5: "#F1EFFA", // 결제수단 납부
+  tint6: "#FCE7E9",
+  tint7: "#FBF0F1",
+  tint8: "#EEF0F9", // 렘피라
+  incomeSoft: "#E1EAFB",
+  expenseSoft: "#FBE1DF",
+  waitSoft: "#FFF4E3",
+  incomeBar: "#8FB8EE",
 };
 
 export const BLOCK_COUNT = 8;
@@ -156,7 +182,7 @@ export function blockHalo(n: number): string {
   return `0 0 2px ${halo}, 0 0 6px ${halo}, 0 1px 10px ${halo}`;
 }
 
-// brand2027 → "--b27-kebab: value;" 선언 문자열 (.theme-2027 스코프용)
+// brand2027 → "--b27-kebab: value;" 선언 문자열 (:root 주입용 — tint1 → --b27-tint-1, incomeSoft → --b27-income-soft)
 export function brand2027ToCssVars(): string {
   return (Object.keys(brand2027) as (keyof Brand2027Tokens)[])
     .map((k) => `--b27-${(k as string).replace(/[A-Z]/g, (m) => "-" + m.toLowerCase()).replace(/(\D)(\d)$/, "$1-$2")}: ${brand2027[k]};`)

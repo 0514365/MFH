@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-REPORT-V15 — 2027 토큰 승격: 결제수단·종류·후원자 틴트 리터럴 → brand2027 tint·soft·incomeBar
 // MFH-ACCOUNTING-REPORT-V14 — 실기 피드백(밋밋함, A안): 요약 = 연회색 면 · 추이 막대 종류 색 · 구성/결제수단/후원자 = 알약 제목 · 범례 옆줄 · 결제수단 3칸 · L/$ 는 모바일 헤더 행(HeaderCurToggle)
 // MFH-ACCOUNTING-REPORT-V13 — 실기 피드백 2차(블록 → 원형): 블록 지도·연간 12개월 격자 제거 → 도넛(PastelDonut 2027) + 범례(이름 · 금액 · %, 탭 = 드릴다운/내역)
 //   · 추이 막대는 월·연간 공통 12개월(연간은 그해 1~12월, 탭 = 그달 월 모드). 집계 로직은 그대로.
@@ -312,9 +313,9 @@ export default function ReportView({
   const barCur = mode === 'year' ? thisMonthKey : key
 
   const band = [
-    { label: '현금', sum: cash, fill: brand2027.block3, tint: '#FEF6E7' },
-    { label: '카드', sum: card, fill: brand2027.block2, tint: '#FDECEA' },
-    { label: '납부', sum: repay, fill: brand2027.block5, tint: '#F1EFFA' },
+    { label: '현금', sum: cash, fill: brand2027.block3, tint: brand2027.tint3 },
+    { label: '카드', sum: card, fill: brand2027.block2, tint: brand2027.tint2 },
+    { label: '납부', sum: repay, fill: brand2027.block5, tint: brand2027.tint5 },
   ]
   const bandTotal = band.reduce((s, b) => s + Math.max(0, b.sum), 0)
 
@@ -389,7 +390,7 @@ export default function ReportView({
                   aria-label={`${b.label}월 ${fmt(b.v)}`}
                   className="flex flex-1 flex-col items-center justify-end gap-1"
                 >
-                  <span className="block w-full rounded-[2px]" style={{ height: h, background: kind === '지출' ? (isCur ? '#F07F8A' : '#FBE1DF') : isCur ? '#8FB8EE' : '#E1EAFB' }} />
+                  <span className="block w-full rounded-[2px]" style={{ height: h, background: kind === '지출' ? (isCur ? brand2027.block6 : brand2027.expenseSoft) : isCur ? brand2027.incomeBar : brand2027.incomeSoft }} />
                   <span className={`font-num text-[9px] leading-none ${isCur ? 'font-medium text-b27-ink' : 'text-b27-muted'}`}>{b.label}</span>
                 </button>
               )
@@ -406,8 +407,8 @@ export default function ReportView({
       ) : (
         <section className="px-1">
           <div className="mb-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-num text-[12px] text-b27-ink" style={{ background: kind === '지출' ? '#FBE1DF' : '#E1EAFB' }}>
-              <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: kind === '지출' ? '#F07F8A' : '#8FB8EE' }} aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-num text-[12px] text-b27-ink" style={{ background: kind === '지출' ? brand2027.expenseSoft : brand2027.incomeSoft }}>
+              <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: kind === '지출' ? brand2027.block6 : brand2027.incomeBar }} aria-hidden="true" />
               {dg ? `${dg.cat} 중` : kind === '지출' ? '어디에 썼나' : '어디서 들어왔나'}
             </span>
           </div>
@@ -454,7 +455,7 @@ export default function ReportView({
       {!dg && kind === '수입' && supporterRows.length > 0 && (
         <section className="px-1">
           <div className="flex items-center justify-between font-num text-[12px] text-b27-muted">
-            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-b27-ink" style={{ background: '#EAF6F5' }}>
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-b27-ink" style={{ background: brand2027.tint1 }}>
               <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: brand2027.block1 }} aria-hidden="true" />
               후원자별
             </span>

@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-ASSETS-VIEW-V7 — 2027 토큰 승격: 통화 그룹 틴트 리터럴 → brand2027.tint1·3·8·2
 // MFH-ACCOUNTING-ASSETS-VIEW-V6 — 실기 피드백(B안): 통화 색 = 지폐 연상(달러 라군 · 원화 살구 · 렘피라 페리윙클 · 카드 살몬) · 타이틀 = 연한 면 알약 · 목록 = 왼쪽 옆줄 · 총액 연회색 면 유지
 // MFH-ACCOUNTING-ASSETS-VIEW-V5 — 실기 피드백(단조로움): 순자산 연회색 면 · 통화 그룹 = 띠 색의 연한 면(라벤더·블러시·라군) + 색 사각형·비중 · 카드 그룹 연한 빨강
 // MFH-ACCOUNTING-ASSETS-VIEW-V4 — 2027 Minimal Block(c-4b): 순자산 큰 숫자(남색) + 자산·부채 한 줄 + 공용 CurToggle → 통화 구성 띠 한 줄(블록 색)
@@ -21,10 +22,10 @@ type GroupKey = 'USD' | 'KRW' | 'HNL' | 'CARD'
 // 통화 그룹 색 = 블록 토큰(달러 5 Lavender · 원화 7 Blush · 렘피라 1 Lagoon · 카드 2 Salmon)
 // 통화 색 = 지폐 연상(B안): 달러 1 Lagoon(녹색 지폐) · 원화 3 Apricot(황금) · 렘피라 8 Periwinkle(파란 지폐) · 카드 2 Salmon. tint = 타이틀 알약 면, color = 띠·옆줄
 const GROUPS: { key: GroupKey; label: string; color: string; tint: string }[] = [
-  { key: 'USD', label: '달러', color: brand2027.block1, tint: '#EAF6F5' },
-  { key: 'KRW', label: '원화', color: brand2027.block3, tint: '#FEF6E7' },
-  { key: 'HNL', label: '렘피라', color: brand2027.block8, tint: '#EEF0F9' },
-  { key: 'CARD', label: '신용카드', color: brand2027.block2, tint: '#FDECEA' },
+  { key: 'USD', label: '달러', color: brand2027.block1, tint: brand2027.tint1 },
+  { key: 'KRW', label: '원화', color: brand2027.block3, tint: brand2027.tint3 },
+  { key: 'HNL', label: '렘피라', color: brand2027.block8, tint: brand2027.tint8 },
+  { key: 'CARD', label: '신용카드', color: brand2027.block2, tint: brand2027.tint2 },
 ]
 const groupOf = (b: AccountBalance): GroupKey =>
   b.kind === '신용카드' ? 'CARD' : b.currency === 'KRW' ? 'KRW' : b.currency === 'HNL' ? 'HNL' : 'USD'

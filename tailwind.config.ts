@@ -29,7 +29,7 @@ const config: Config = {
         'on-status-progress': 'var(--on-status-progress)',
         'status-done': 'var(--status-done)',
         'on-status-done': 'var(--on-status-done)',
-        // MFH 2027 (Minimal Block) — .theme-2027 스코프 안에서만 값이 있음(lib/palette.ts brand2027 · app/globals.css)
+        // MFH 2027 (Minimal Block) — --b27-* 는 :root 에 선언(app/layout.tsx ← lib/palette.ts brand2027). 공용 토큰 브릿지는 .theme-2027 스코프(app/globals.css)
         'b27-ink': 'var(--b27-ink)',
         'b27-plus': 'var(--b27-plus)',
         'b27-paper': 'var(--b27-paper)',
@@ -49,6 +49,18 @@ const config: Config = {
         'b27-block-6': 'var(--b27-block-6)',
         'b27-block-7': 'var(--b27-block-7)',
         'b27-block-8': 'var(--b27-block-8)',
+        'b27-tint-1': 'var(--b27-tint-1)',
+        'b27-tint-2': 'var(--b27-tint-2)',
+        'b27-tint-3': 'var(--b27-tint-3)',
+        'b27-tint-4': 'var(--b27-tint-4)',
+        'b27-tint-5': 'var(--b27-tint-5)',
+        'b27-tint-6': 'var(--b27-tint-6)',
+        'b27-tint-7': 'var(--b27-tint-7)',
+        'b27-tint-8': 'var(--b27-tint-8)',
+        'b27-income-soft': 'var(--b27-income-soft)',
+        'b27-expense-soft': 'var(--b27-expense-soft)',
+        'b27-wait-soft': 'var(--b27-wait-soft)',
+        'b27-income-bar': 'var(--b27-income-bar)',
       },
       fontFamily: {
         sans: ['Pretendard', 'var(--font-montserrat)', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],

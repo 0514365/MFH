@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-INBOX-VIEW-V11 — 2027 토큰 승격: 「새 상점」 면 리터럴 → b27-wait-soft
 // MFH-CARD-INBOX-VIEW-V10 — 실기 피드백(접힌 행): 1건 = 1행(구매처 · 시각/카드 · 추천 항목 칩(블록 색) · 금액), 행 탭 = 그 행만 펼쳐 항목·계좌·구매처·내용 수정 + 승인/무시
 //   · 제목 줄 「승인 N」 + 「모두 승인」(터키석, 항목 지정된 건) + ⋯ 도구(필터·정렬·전체 선택·일괄 입력). 상태·승인·일괄 로직은 V9 그대로.
 // MFH-CARD-INBOX-VIEW-V9 — 2027 Minimal Block(c-4d): 색·글꼴 토큰만 교체(남색 버튼·선택, 대기 호박색 b27-wait, 금액 b27-expense, Manrope). 행 구조·승인/무시 버튼은 유지(밀기 제스처는 미도입)
@@ -438,7 +439,7 @@ export default function InboxView({
                         {showSms && ` · 문자 ${r.merchant}`}
                       </span>
                       {!r.suggestedItemId && (
-                        <span className="mt-1 inline-block rounded-full bg-[#FFF4E3] px-1.5 py-0.5 text-[10px] font-medium text-b27-wait">새 상점</span>
+                        <span className="mt-1 inline-block rounded-full bg-b27-wait-soft px-1.5 py-0.5 text-[10px] font-medium text-b27-wait">새 상점</span>
                       )}
                     </span>
                     <span className="shrink-0 text-right">
