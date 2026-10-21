@@ -1,3 +1,4 @@
+// MFH-HOME-V3 — 실기 피드백(C안): 블록 격자 전폭(self-start 버그 수정)·주제 바로 아래 · 목표 옆줄 제거 · 라벨 앞 8px 색 사각형 · 블록 이름 13.5/600.
 // MFH-HOME-V2 — 2027 Minimal Block(3단계): theme-2027 스코프 · 승인대기 상태 알약 · 연 주제 요약 면 + 블록색 옆줄 목표 · QT/동향 요약 면
 //   · 모듈 = 블록 격자(3열·직각·틈 3px, 파스텔 + 흰 글자 할로, 숫자 또는 아이콘 · 한글 이름 · 신호 한 줄) · 푸터 Manrope 회색.
 import type { ReactNode } from 'react'
@@ -99,7 +100,7 @@ function ModuleBlock({
         <span style={{ filter: `drop-shadow(0 0 2px ${halo}) drop-shadow(0 0 5px ${halo})` }}>{icon}</span>
       )}
       <span className="min-w-0">
-        <span className="block truncate text-[13px] font-medium leading-tight">{label}</span>
+        <span className="block truncate text-[13.5px] font-semibold leading-tight">{label}</span>
         {note && <span className="mt-0.5 block truncate font-num text-[11px] leading-tight opacity-95">{note}</span>}
       </span>
     </Link>
@@ -253,7 +254,6 @@ export default async function Home() {
     : null
 
   const finance = canManageFinance(user.id)
-  const goalColors = [1, 5, 3]
 
   return (
     <SplashGate>
@@ -282,88 +282,41 @@ export default async function Home() {
           </Link>
         )}
 
-        {/* 와이드 레이아웃(셸 본문 열 기준 컨테이너 쿼리): 모바일=세로 스택, @xl=좌측 그룹 2열, @4xl=좌 5(오늘·sticky) : 우 7(모듈 블록 6열). */}
+        {/* 와이드 레이아웃(셸 본문 열 기준 컨테이너 쿼리): 모바일=주제 → 모듈 블록 → 오늘의 정보 세로 스택, @xl=오늘의 정보 2열,
+            @4xl=좌 5(주제 위 · 오늘의 정보 아래) : 우 7(모듈 블록 6열, 두 줄에 걸침). */}
         <div className="flex flex-col gap-3 @4xl:grid @4xl:grid-cols-12 @4xl:gap-5">
-          {/* 좌: 오늘의 정보 — 주제·QT·통독·동향. 뷰포트 lg 이상(보조 패널 표시)은 QT·동향이 패널로 가고 주제·통독만 남는다. */}
-          <div className="flex flex-col gap-3 @xl:grid @xl:grid-cols-2 @4xl:sticky @4xl:top-4 @4xl:col-span-5 @4xl:flex @4xl:flex-col @4xl:self-start">
-            {/* 연 주제 — 요약 면(큰 남색 면 금지). 목표 = 블록색 옆줄. */}
-            <section className="flex flex-col rounded-2xl bg-b27-card p-5 @xl:order-1 @xl:col-span-2 @4xl:order-none">
-              <div className="font-num text-[12px] font-medium tracking-[0.08em] text-b27-muted">{year} THEME</div>
-              {theme?.theme ? (
-                <h1 className="mt-1.5 text-[20px] font-semibold leading-snug text-b27-ink">{theme.theme}</h1>
-              ) : (
-                <Link href="/theme" className="mt-1.5 inline-block text-[15px] font-medium text-b27-ink underline">
-                  올해의 주제·목표 설정하기
-                </Link>
-              )}
-              {goals.length > 0 && (
-                <ul className="mt-3 flex flex-col gap-1.5">
-                  {goals.map((g, i) => (
-                    <li
-                      key={i}
-                      className="border-l-[3px] pl-2.5 text-[13px] leading-snug text-b27-ink"
-                      style={{ borderColor: blockColor(goalColors[i % goalColors.length]).bg }}
-                    >
-                      {g}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {theme?.theme && (
-                <Link href="/theme" className="mt-3 self-start text-[12px] text-b27-muted">
-                  수정
-                </Link>
-              )}
-            </section>
+          {/* 연 주제 — 요약 면(큰 남색 면 금지). 목표 = 옆줄 없는 줄글 목록. */}
+          <section className="flex flex-col rounded-2xl bg-b27-card p-5 @4xl:col-span-5 @4xl:row-start-1">
+            <div className="font-num text-[12px] font-medium tracking-[0.08em] text-b27-muted">{year} THEME</div>
+            {theme?.theme ? (
+              <h1 className="mt-1.5 text-[20px] font-semibold leading-snug text-b27-ink">{theme.theme}</h1>
+            ) : (
+              <Link href="/theme" className="mt-1.5 inline-block text-[15px] font-medium text-b27-ink underline">
+                올해의 주제·목표 설정하기
+              </Link>
+            )}
+            {goals.length > 0 && (
+              <ul className="mt-3 flex flex-col gap-1.5">
+                {goals.map((g, i) => (
+                  <li key={i} className="text-[13.5px] leading-snug text-b27-ink">
+                    {g}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {theme?.theme && (
+              <Link href="/theme" className="mt-3 self-start text-[12px] text-b27-muted">
+                수정
+              </Link>
+            )}
+          </section>
 
-            {/* 오늘의 QT — 요약 면. lg 이상은 우측 보조 패널(AsidePanel)이 담당 → 숨김 */}
-            <Link
-              href="/qt"
-              className="flex flex-col rounded-2xl bg-b27-card p-4 transition active:opacity-80 @xl:order-3 lg:hidden"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-num text-[12px] font-medium text-b27-muted">오늘의 QT</span>
-                {qtTime ? (
-                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 font-num text-[11px] tabular-nums text-b27-muted">{qtTime}</span>
-                ) : (
-                  <span className="text-b27-muted" aria-hidden="true">→</span>
-                )}
-              </div>
-              <div className="mt-1.5 flex items-baseline justify-between gap-3">
-                <div className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-tight text-b27-ink">{qtMain}</div>
-                {qtRefRight && <div className="shrink-0 text-[12px] text-b27-muted">{qtRefRight}</div>}
-              </div>
-            </Link>
-
-            {/* 성경통독 — 오늘 분량·진행률·바로 체크. @xl 2열에서는 주제 바로 아래 wide. */}
-            <div className="@xl:order-2 @xl:col-span-2 @4xl:order-none @4xl:col-auto">
-              <BibleHomeCard plan={biblePlan} days={bibleDays} today={today} />
-            </div>
-
-            {/* 온두라스 동향 — 요약 면. lg 이상은 우측 보조 패널이 담당 → 숨김 */}
-            <Link
-              href="/honduras"
-              className="flex flex-col rounded-2xl bg-b27-card p-4 transition active:opacity-80 @xl:order-4 lg:hidden"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-num text-[12px] font-medium text-b27-muted">온두라스 동향</span>
-                {newsTime ? (
-                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 font-num text-[11px] tabular-nums text-b27-muted">{newsTime}</span>
-                ) : (
-                  <span className="text-b27-muted" aria-hidden="true">→</span>
-                )}
-              </div>
-              <div className="mt-1.5 text-[15px] font-semibold leading-tight text-b27-ink">{newsTitle}</div>
-              <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-b27-muted">{newsBody}</p>
-            </Link>
-          </div>
-
-          {/* 우: 모듈 블록 격자 — 모바일 3열×4줄 · @xl 4열 · @4xl 6열×2줄. 직각 블록 · 틈 3px(흰) · 묶음 바깥만 둥글게.
+          {/* 모듈 블록 격자 — 모바일 3열×4줄 · @xl 4열 · @4xl 6열×2줄. 직각 블록 · 틈 3px(흰) · 묶음 바깥만 둥글게.
               색 = 모듈 고정색(일지1 프로젝트5 할일3 인사이트8 달력4 중보6 성경7 회계2 / 보조: 사진1 Facebook8 포트폴리오5 후원자3) — 이웃 칸 같은 색 없음.
               재정 권한 없으면 10칸 → 포트폴리오가 마지막 줄을 채운다(3칸). */}
           <nav
             aria-label="모듈"
-            className="grid grid-cols-3 gap-[3px] self-start overflow-hidden rounded-2xl bg-b27-paper @xl:grid-cols-4 @4xl:col-span-7 @4xl:grid-cols-6"
+            className="grid grid-cols-3 gap-[3px] overflow-hidden rounded-2xl bg-b27-paper @xl:grid-cols-4 @4xl:col-span-7 @4xl:col-start-6 @4xl:row-span-2 @4xl:row-start-1 @4xl:grid-cols-6 @4xl:self-start"
           >
             <ModuleBlock href="/journal" n={1} label="일지" value={journalCount} icon={<ModuleIcon name="log" size={22} />} note={`${tm}월`} />
             <ModuleBlock href="/projects" n={5} label="프로젝트" value={projActive} icon={<ModuleIcon name="projects" size={22} />} note={signalLine(projSignals) ?? '진행 중'} />
@@ -401,6 +354,57 @@ export default async function Home() {
               />
             )}
           </nav>
+
+
+          {/* 오늘의 정보 — QT·통독·동향. 뷰포트 lg 이상(보조 패널 표시)은 QT·동향이 패널로 가고 통독만 남는다. 라벨 앞 8px 색 사각형. */}
+          <div className="flex flex-col gap-3 @xl:grid @xl:grid-cols-2 @4xl:col-span-5 @4xl:row-start-2 @4xl:flex @4xl:flex-col @4xl:self-start">
+            {/* 오늘의 QT — 요약 면. lg 이상은 우측 보조 패널(AsidePanel)이 담당 → 숨김 */}
+            <Link
+              href="/qt"
+              className="flex flex-col rounded-2xl bg-b27-card p-4 transition active:opacity-80 @xl:order-3 lg:hidden"
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">
+                  <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: blockColor(7).bg }} aria-hidden="true" />
+                  오늘의 QT
+                </span>
+                {qtTime ? (
+                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 font-num text-[11px] tabular-nums text-b27-muted">{qtTime}</span>
+                ) : (
+                  <span className="text-b27-muted" aria-hidden="true">→</span>
+                )}
+              </div>
+              <div className="mt-1.5 flex items-baseline justify-between gap-3">
+                <div className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-tight text-b27-ink">{qtMain}</div>
+                {qtRefRight && <div className="shrink-0 text-[12px] text-b27-muted">{qtRefRight}</div>}
+              </div>
+            </Link>
+
+            {/* 성경통독 — 오늘 분량·진행률·바로 체크. @xl 2열에서는 주제 바로 아래 wide. */}
+            <div className="@xl:order-2 @xl:col-span-2 @4xl:order-none @4xl:col-auto">
+              <BibleHomeCard plan={biblePlan} days={bibleDays} today={today} />
+            </div>
+
+            {/* 온두라스 동향 — 요약 면. lg 이상은 우측 보조 패널이 담당 → 숨김 */}
+            <Link
+              href="/honduras"
+              className="flex flex-col rounded-2xl bg-b27-card p-4 transition active:opacity-80 @xl:order-4 lg:hidden"
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">
+                  <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: blockColor(8).bg }} aria-hidden="true" />
+                  온두라스 동향
+                </span>
+                {newsTime ? (
+                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 font-num text-[11px] tabular-nums text-b27-muted">{newsTime}</span>
+                ) : (
+                  <span className="text-b27-muted" aria-hidden="true">→</span>
+                )}
+              </div>
+              <div className="mt-1.5 text-[15px] font-semibold leading-tight text-b27-ink">{newsTitle}</div>
+              <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-b27-muted">{newsBody}</p>
+            </Link>
+          </div>
         </div>
 
         {/* 마일스톤 (자매앱 WorshipFlow·Brew Journal 형식).

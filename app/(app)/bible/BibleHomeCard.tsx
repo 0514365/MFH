@@ -1,3 +1,4 @@
+// MFH-BIBLE-HOME-CARD-V4 — 라벨 앞 8px 색 사각형(블록 5 라벤더).
 // MFH-BIBLE-HOME-CARD-V3 — 2027(홈 3단계): 연회색 요약 면 · 라벨 Manrope 회색 · 제목 17/600 남색 · 진행 막대 남색 · 상태 배지 2027(완료/정상 흰 알약 · 밀림 waitSoft·호박).
 // MFH-BIBLE-HOME-CARD-V2
 // 홈 좌측(오늘의 정보) 통독 카드 — 서버 컴포넌트. 활성 계획의 오늘(또는 다음) 분량·진행률·상태 배지 + 바로 읽음 체크(DayCheck).
@@ -6,6 +7,7 @@ import Link from 'next/link'
 import { estimateMinutes, longDate, planProgress, progressBadge, shortDate } from '@/lib/bible/plan'
 import type { ReadingPlan, ReadingPlanDay } from '@/lib/types'
 import DayCheck from './DayCheck'
+import { blockColor } from '@/lib/palette'
 
 export type HomeDay = Pick<ReadingPlanDay, 'id' | 'day_no' | 'read_date' | 'done' | 'chapters' | 'chars' | 'range_label' | 'read_method' | 'read_on' | 'read_time' | 'read_minutes'>
 
@@ -16,7 +18,10 @@ const BADGE_CLS = {
 } as const
 
 const Eyebrow = () => (
-  <div className="font-num text-[12px] font-medium text-b27-muted">성경통독</div>
+  <div className="flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">
+    <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: blockColor(5).bg }} aria-hidden="true" />
+    성경통독
+  </div>
 )
 
 export default function BibleHomeCard({ plan, days, today }: { plan: ReadingPlan | null; days: HomeDay[]; today: string }) {

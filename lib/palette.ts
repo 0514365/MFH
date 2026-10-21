@@ -127,7 +127,7 @@ export const brand2027: Brand2027Tokens = {
   plus: "#2EC4B6",
   paper: "#FFFFFF",
   card: "#F6F8FA",
-  muted: "#8A90A0",
+  muted: "#7A8093", // 실기 피드백(홈 C안): #8A90A0 → 한 단계 진하게(연회색 면 위 가독성)
   line: "#EEF0F3",
   income: "#2A5BC0",
   expense: "#C23A34",
