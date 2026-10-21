@@ -1,4 +1,6 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V20 — 2027 실기 피드백: 블록 지도 제거(효용 없음 → 통계·검색에 재활용 예정) · 제목 줄 토글 = 전체/지출/수입 3상태(기본 전체 = 두 금액, 선택일 내역도 필터)
+//   · 달력 아래 「카드대금」 글자 행(카드사별 + 합계 + [상환][잔액 0], 탭 = 자산 탭) · 제목 줄 아래 「승인대기 N건」 한 줄(대기색, 탭 = 승인함)
 // MFH-ACCOUNTING-CALENDAR-V19 — 2027 Minimal Block(c-2): 한 화면에 한 가지.
 //   제목 줄(지출/수입 글자 토글 + 그달 금액 + 오늘) → 달력(숫자만: 거래 있는 날 남색·없는 날 회색, 오늘 남색 원, 주말 sun/sat)
 //   → 그달 항목별 블록 지도(3열 · 금액 비례 정렬 · 상위 7 + 기타 · 우하단 남색 합계, 흰 글자 + 할로, 탭 = 그 항목 내역)
@@ -12,20 +14,18 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { AccountBalance, AcctOptions, FxInfo, InoutRow } from '@/lib/accounting-types'
-import { PASTEL_NEUTRAL, fmtShow, hnlRateOf, itemPastels, toShow, useShowCur, type Pastel, type ShowCur } from '@/lib/acct-display'
-import { blockHalo } from '@/lib/palette'
+import { PASTEL_NEUTRAL, fmtShow, hnlRateOf, itemPastels, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
 import { CurToggle, HeaderMonthNav, HeaderPortal } from './AccountingTitle'
+import CardRepayButton from './CardRepayButton'
 
-type Mode = '지출' | '수입'
+type Mode = '전체' | '지출' | '수입'
+const MODES: Mode[] = ['전체', '지출', '수입']
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
-const BLOCK_MAX = 8 // 항목 블록 최대(상위 7 + 기타) — 9번째 칸은 합계
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 const isYmd = (s: string | null | undefined): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s)
 const fmtFull = fmtShow
-// 블록 금액 — 정수, 백만 이상만 M. (3열 블록에 6자리까지 들어간다)
-const fmtBlock = (n: number) => (Math.abs(n) >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : Math.round(n).toLocaleString('en-US'))
 
 export default function CalendarHome({
   recent,
@@ -33,17 +33,21 @@ export default function CalendarHome({
   balances,
   fx,
   initialDate,
+  cardPending = 0,
+  recPending = 0,
 }: {
   recent: InoutRow[]
   options: AcctOptions
   balances: AccountBalance[]
   fx: FxInfo[]
   initialDate?: string
+  cardPending?: number
+  recPending?: number
 }) {
   const router = useRouter()
   const [today, setToday] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
-  const [mode, setMode] = useState<Mode>('지출')
+  const [mode, setMode] = useState<Mode>('전체')
   const [cur] = useShowCur()
   const hnlRate = useMemo(() => hnlRateOf(fx, balances), [fx, balances])
   const showCur: ShowCur = hnlRate ? cur : 'USD'
@@ -116,12 +120,11 @@ export default function CalendarHome({
   const ym = selected?.slice(0, 7) ?? ''
   const [year, month] = ym ? ym.split('-').map(Number) : [0, 0]
 
-  // 그달 집계 — 수입·지출 합, 일별 합, 항목별 합(모드별)
-  const { income, expense, byDay, byItem } = useMemo(() => {
+  // 그달 집계 — 수입·지출 합, 일별 합
+  const { income, expense, byDay } = useMemo(() => {
     let income = 0
     let expense = 0
     const byDay = new Map<string, { inc: number; exp: number }>()
-    const byItem = { 수입: new Map<string, number>(), 지출: new Map<string, number>() }
     for (const r of recent) {
       const d = r.date ?? ''
       if (d.slice(0, 7) !== ym) continue
@@ -136,28 +139,41 @@ export default function CalendarHome({
         day.exp += a
       }
       byDay.set(d, day)
-      const key = r.itemId ?? ''
-      const m = byItem[r.gubun]
-      m.set(key, (m.get(key) ?? 0) + a)
     }
-    return { income, expense, byDay, byItem }
+    return { income, expense, byDay }
     // amt 는 showCur·hnlRate 에 의존
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recent, ym, showCur, hnlRate])
 
-  // 블록 지도 — 모드의 항목별 합을 큰 순서로, 상위 7 + 「기타」(나머지 합). 색은 항목 고정색(기타는 중립).
-  const blocks = useMemo(() => {
-    const rows = [...byItem[mode].entries()]
-      .map(([id, sum]) => ({ id, sum, label: itemOf.get(id)?.name ?? '미분류', color: itemColor.get(id) ?? PASTEL_NEUTRAL }))
-      .filter((b) => b.sum > 0)
-      .sort((a, b) => b.sum - a.sum)
-    if (rows.length <= BLOCK_MAX) return rows
-    const head = rows.slice(0, BLOCK_MAX - 1)
-    const rest = rows.slice(BLOCK_MAX - 1).reduce((t, b) => t + b.sum, 0)
-    return [...head, { id: '', sum: rest, label: '기타', color: PASTEL_NEUTRAL as Pastel }]
-  }, [byItem, mode, itemOf, itemColor])
+  // 카드대금(전체 미상환) — 카드사별(계좌 이름 첫 단어) 합계. $ 표시면 평가액, L 표시면 렘피라 카드는 원금(+ $분 × 공시), 그 외 평가액 × 공시.
+  const cardDue = useMemo(() => {
+    const groups = new Map<string, { brand: string; owners: string[]; count: number; dueDay: number | null; usd: number; hnl: number }>()
+    for (const b of balances) {
+      if (b.kind !== '신용카드') continue
+      const brand = b.name.split(' ')[0]
+      const g = groups.get(brand) ?? { brand, owners: [], count: 0, dueDay: null, usd: 0, hnl: 0 }
+      g.count += 1
+      if (b.info && !g.owners.includes(b.info)) g.owners.push(b.info)
+      g.dueDay = g.dueDay ?? b.dueDay
+      g.usd += -(b.valueUsd ?? b.balanceUsd)
+      if (b.currency === 'HNL') {
+        const own = -(b.holdings.find((h) => h.currency === 'HNL')?.amount ?? 0)
+        const usdPart = -(b.holdings.find((h) => h.currency === 'USD')?.amount ?? 0)
+        g.hnl += own + usdPart * (hnlRate ?? 0)
+      } else g.hnl += -(b.valueUsd ?? b.balanceUsd) * (hnlRate ?? 0)
+      groups.set(brand, g)
+    }
+    return [...groups.values()]
+  }, [balances, hnlRate])
+  const useHnl = showCur === 'HNL' && !!hnlRate
+  const fmtGroup = (g: (typeof cardDue)[number]) => (useHnl ? fmtFull(g.hnl, 'HNL') : fmtFull(g.usd, 'USD'))
+  const cardTotal = useHnl ? fmtFull(cardDue.reduce((t, g) => t + g.hnl, 0), 'HNL') : fmtFull(cardDue.reduce((t, g) => t + g.usd, 0), 'USD')
 
-  const dayRows = useMemo(() => recent.filter((r) => r.date === selected), [recent, selected])
+  // 선택일 내역 — 전체는 이체·조정 포함, 지출/수입은 그 구분만
+  const dayRows = useMemo(
+    () => recent.filter((r) => r.date === selected && (mode === '전체' || r.gubun === mode)),
+    [recent, selected, mode],
+  )
 
   if (!selected || !today) return <div className="min-h-[60vh]" aria-hidden="true" />
 
@@ -169,8 +185,6 @@ export default function CalendarHome({
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ]
   while (cells.length % 7) cells.push(null)
-  const monthFrom = `${ym}-01`
-  const monthTo = `${ym}-${pad(daysInMonth)}`
 
   function moveMonth(delta: number) {
     const d = new Date(year, month - 1 + delta, 1)
@@ -178,17 +192,10 @@ export default function CalendarHome({
     setSelected(ymd(d).slice(0, 7) === t.slice(0, 7) ? t : ymd(d))
   }
 
-  // 블록 탭 → 그 항목의 이번 달 내역(기타는 모드 전체)
-  function openLedger(itemId: string) {
-    const q = new URLSearchParams({ gubun: mode, from: monthFrom, to: monthTo })
-    if (itemId) q.set('item', itemId)
-    router.push(`/accounting/ledger?${q.toString()}`)
-  }
-
   const sel = new Date(`${selected}T00:00:00`)
   const selDay = byDay.get(selected)
-  const total = mode === '지출' ? expense : income
   const notThisMonth = ym !== today.slice(0, 7)
+  const pending = cardPending + recPending
 
   return (
     <div className="space-y-5 font-sans text-b27-ink">
@@ -203,14 +210,14 @@ export default function CalendarHome({
         />
       </HeaderPortal>
 
-      {/* 제목 줄 — 지출/수입 글자 토글 · 오늘 · (md 이상 L/$) · 그달 금액 */}
+      {/* 제목 줄 — 전체/지출/수입 글자 토글(선택 글자 다시 탭 = 전체) · 오늘 · (md 이상 L/$) · 그달 금액(전체는 수입·지출 둘 다) */}
       <div className="flex items-center justify-between gap-3 px-1">
         <div className="flex items-center gap-4 font-num text-[15px]">
-          {(['지출', '수입'] as Mode[]).map((m) => (
+          {MODES.map((m) => (
             <button
               key={m}
               type="button"
-              onClick={() => setMode(m)}
+              onClick={() => setMode(mode === m ? '전체' : m)}
               aria-pressed={mode === m}
               className={`border-b-2 pb-0.5 leading-none transition ${mode === m ? 'border-b27-ink font-medium text-b27-ink' : 'border-transparent text-b27-muted'}`}
             >
@@ -225,9 +232,26 @@ export default function CalendarHome({
         </div>
         <div className="flex items-center gap-3">
           {hnlRate && <CurToggle className="max-md:hidden" />}
-          <span className={`font-num text-[17px] font-medium ${mode === '지출' ? 'text-b27-expense' : 'text-b27-income'}`}>{fmtFull(total, showCur)}</span>
+          {mode !== '수입' && <span className="font-num text-[17px] font-medium text-b27-expense">{fmtFull(expense, showCur)}</span>}
+          {mode !== '지출' && <span className="font-num text-[17px] font-medium text-b27-income">{fmtFull(income, showCur)}</span>}
         </div>
       </div>
+
+      {/* 승인대기 — 있을 때만 한 줄(대기색 글자 · 연회색 알약 · 탭 = 승인함) */}
+      {pending > 0 && (
+        <Link
+          href="/accounting/inbox"
+          className="-mt-2 flex items-center justify-between rounded-full bg-b27-card px-4 py-2 font-num text-[13px] transition active:opacity-80"
+        >
+          <span className="text-b27-wait">
+            승인대기 <span className="font-medium">{pending}</span>건
+            <span className="ml-2 text-b27-muted">
+              {[cardPending > 0 ? `카드 ${cardPending}` : '', recPending > 0 ? `반복 ${recPending}` : ''].filter(Boolean).join(' · ')}
+            </span>
+          </span>
+          <span className="text-b27-muted">→</span>
+        </Link>
+      )}
 
       {/* 월 달력 — 숫자만. 거래 있는 날 남색 · 없는 날 회색 · 오늘 남색 원 · 선택일 연회색 */}
       <section className="px-1">
@@ -268,34 +292,33 @@ export default function CalendarHome({
         </div>
       </section>
 
-      {/* 블록 지도 — 그달 항목별(모드) 3열, 흰 글자 + 할로, 우하단 남색 합계. 모바일은 화면 폭 꽉 채움 */}
-      {blocks.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-b27-line px-4 py-8 text-center text-[13px] text-b27-muted">
-          이번 달 {mode}이 아직 없어요
-          <span className="mt-1 block text-[12px]">＋ 버튼으로 첫 기록을 남기면 여기에 블록이 생깁니다</span>
-        </p>
-      ) : (
-        <section className="grid grid-cols-3 gap-[3px] bg-b27-paper max-md:-mx-4 md:overflow-hidden md:rounded-2xl" style={{ gridAutoRows: '84px' }}>
-          {blocks.map((b) => (
-            <button
-              key={b.id || '기타'}
-              type="button"
-              onClick={() => openLedger(b.id)}
-              className="flex min-w-0 flex-col items-center justify-center overflow-hidden text-white transition active:scale-[0.97]"
-              style={{ background: b.color.bg, textShadow: b.color.n ? blockHalo(b.color.n) : undefined, color: b.color.n ? '#fff' : undefined }}
-            >
-              <span className={`font-num text-[20px] font-medium leading-none ${b.color.n ? '' : 'text-b27-ink'}`}>{fmtBlock(b.sum)}</span>
-              <span className={`mt-1 max-w-full truncate px-2 text-[11px] font-medium ${b.color.n ? '' : 'text-b27-muted'}`}>{b.label}</span>
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => openLedger('')}
-            className="flex min-w-0 flex-col items-center justify-center bg-b27-ink text-white transition active:scale-[0.97]"
-          >
-            <span className="font-num text-[20px] font-medium leading-none">{fmtBlock(total)}</span>
-            <span className="mt-1 text-[11px] font-medium opacity-80">합계</span>
-          </button>
+      {/* 카드대금 — 머리줄(제목 · [상환][잔액 0]) + 카드사별 행(이름 · 매월 N일 · 금액 적색) + 합계. 행 탭 = 자산 탭 */}
+      {cardDue.length > 0 && (
+        <section className="px-1">
+          <div className="flex items-center justify-between font-num text-[12px] text-b27-muted">
+            <span>카드대금 · 미상환</span>
+            <CardRepayButton balances={balances} options={options} compact />
+          </div>
+          <Link href="/accounting/assets" className="mt-1 block">
+            {cardDue.map((g) => (
+              <span key={g.brand} className="flex items-center justify-between gap-3 border-b border-b27-line py-2.5">
+                <span className="min-w-0">
+                  <span className="block truncate text-[14px] text-b27-ink">
+                    {g.brand}
+                    {g.count > 1 && g.owners.length ? `(${g.owners.join(',')})` : ''}
+                  </span>
+                  {g.dueDay && <span className="block font-num text-[11px] text-b27-muted">매월 {g.dueDay}일</span>}
+                </span>
+                <span className="shrink-0 font-num text-[14px] font-medium text-b27-expense">{fmtGroup(g)}</span>
+              </span>
+            ))}
+            {cardDue.length > 1 && (
+              <span className="flex items-center justify-between py-2.5 font-num text-[14px]">
+                <span className="text-b27-muted">합계</span>
+                <span className="font-medium text-b27-expense">{cardTotal}</span>
+              </span>
+            )}
+          </Link>
         </section>
       )}
 

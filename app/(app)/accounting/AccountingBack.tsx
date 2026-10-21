@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-BACK-V3 — 2027 실기 피드백: 화살표 적색(b27-expense) · 연회색 원(b27-card)
 // MFH-ACCOUNTING-BACK-V2 — 뒤로 없을 때 모바일(<md)은 자리도 비움(달력 헤더 월 이동이 왼쪽으로)
 // MFH-ACCOUNTING-BACK-V1
 // 회계 셸 왼쪽 뒤로 — 회계 안에서만 뒤로(직전 회계 화면). 메인홈은 오른쪽 홈 버튼이 담당하므로 회계 밖으로 나가지 않는다.
@@ -57,7 +58,7 @@ export default function AccountingBack() {
       type="button"
       onClick={goBack}
       aria-label="회계 안에서 뒤로"
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-full bg-accent-soft text-accent transition hover:opacity-80 ${canBack ? '' : 'invisible max-md:hidden'}`}
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-full bg-b27-card text-b27-expense transition hover:opacity-80 ${canBack ? '' : 'invisible max-md:hidden'}`}
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <polyline points="15 18 9 12 15 6" />

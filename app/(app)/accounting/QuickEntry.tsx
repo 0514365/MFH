@@ -1,4 +1,6 @@
 'use client'
+// MFH-QUICK-ENTRY-V9 — 2027 실기 피드백: ③ 블록 탭 = 선택(남색 안쪽 테두리) · 내역+구매처 2행 오른쪽 「저장」 버튼(통합 높이)으로 저장(즉시 저장 폐지 — 내역 못 쓰고 넘어가는 실수 방지)
+//   · ① 이체/조정/상세 입력 글자 15px·500·남색
 // MFH-QUICK-ENTRY-V8 — 2027 Minimal Block(c-3): 흰 바탕·남색 글자·Manrope. ① 통화 알약(남색)·큰 숫자 남색·[지출][수입] 연한 면 버튼·이체/조정/상세는 글자 링크·키패드 연회색(연산 = 연한 터키석, = 남색)
 //   ② 계좌 = 이름 행 목록(통화 기호 오른쪽, 입력 통화 먼저) ③ 항목 = 블록 3열(이름만, 흰 글자 + 할로, 탭 = 즉시 저장) · 대분류 알약 · 추가 블록. 로직(계산기·저장·2026-09 가드)은 V7 그대로.
 // MFH-QUICK-ENTRY-V7 — 상단 통화 선택은 기호만(L · $ · ₩), 선택 = 마룬 배경 흰 글자, 날짜 글자 축소(겹침 방지)
@@ -84,6 +86,7 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
   const [name, setName] = useState('')
   const [vendor, setVendor] = useState('')
   const [catTab, setCatTab] = useState<string | null>(null)
+  const [itemId, setItemId] = useState('') // ③ 선택한 항목(블록 탭 = 선택, 저장 버튼 = 저장)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
 
@@ -153,6 +156,7 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
   }
   function pickAccount(id: string) {
     setAccountId(id)
+    setItemId('')
     setStep(3)
   }
   function goBack() {
@@ -185,8 +189,9 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
   const categories = groups.map(([c]) => c).filter((c) => c !== '기타')
 
   // ---- 저장 ----
-  async function save(itemId: string) {
+  async function save() {
     if (saving) return
+    if (!itemId) return setErr('항목을 선택하세요')
     const rate = cur === 'USD' ? 1 : (fx.find((f) => f.currency === cur)?.rate ?? DEFAULT_RATE[cur])
     const payload: InoutInput = {
       gubun,
@@ -292,14 +297,14 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
               수입
             </button>
           </div>
-          <div className="flex justify-center gap-6 px-6 pt-3 text-[13px] text-b27-muted">
-            <Link href={`/accounting/entry?full=1&date=${date}&gubun=이체`} className="py-1 active:text-b27-ink">
+          <div className="flex justify-center gap-7 px-6 pt-3 text-[15px] font-medium text-b27-ink">
+            <Link href={`/accounting/entry?full=1&date=${date}&gubun=이체`} className="py-1 active:opacity-60">
               이체
             </Link>
-            <Link href={`/accounting/entry?full=1&date=${date}&gubun=조정`} className="py-1 active:text-b27-ink">
+            <Link href={`/accounting/entry?full=1&date=${date}&gubun=조정`} className="py-1 active:opacity-60">
               조정
             </Link>
-            <Link href={`/accounting/entry?full=1&date=${date}`} className="py-1 active:text-b27-ink">
+            <Link href={`/accounting/entry?full=1&date=${date}`} className="py-1 active:opacity-60">
               상세 입력
             </Link>
           </div>
@@ -380,23 +385,37 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
       {step === 3 && (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-6">
           <p className="px-6 font-num text-[12px] text-b27-muted">{accountName}</p>
-          <div className="mx-6 mt-1 border-b border-b27-line">
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="내역"
-              className="h-12 w-full bg-transparent font-num text-[20px] text-b27-ink outline-none placeholder:text-b27-muted/60"
-            />
-          </div>
-          <div className="mx-6 border-b border-b27-line">
-            <input
-              type="text"
-              value={vendor}
-              onChange={(e) => setVendor(e.target.value)}
-              placeholder="구매처"
-              className="h-12 w-full bg-transparent font-num text-[20px] text-b27-ink outline-none placeholder:text-b27-muted/60"
-            />
+          {/* 내역 · 구매처 2행 + 오른쪽 저장 버튼(2행 높이 통합, 항목 선택 전엔 흐림) */}
+          <div className="mx-6 mt-1 flex items-stretch gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="border-b border-b27-line">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="내역"
+                  className="h-12 w-full bg-transparent font-num text-[20px] text-b27-ink outline-none placeholder:text-b27-muted/60"
+                />
+              </div>
+              <div className="border-b border-b27-line">
+                <input
+                  type="text"
+                  value={vendor}
+                  onChange={(e) => setVendor(e.target.value)}
+                  placeholder="구매처"
+                  className="h-12 w-full bg-transparent font-num text-[20px] text-b27-ink outline-none placeholder:text-b27-muted/60"
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              aria-disabled={!itemId}
+              className={`h-24 w-20 shrink-0 rounded-2xl bg-b27-ink font-num text-[16px] font-medium text-white transition active:opacity-80 ${itemId ? '' : 'opacity-30'}`}
+            >
+              {saving ? '…' : '저장'}
+            </button>
           </div>
 
           {useTabs && (
@@ -415,17 +434,22 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
             </div>
           )}
 
-          {/* 항목 블록 — 3열, 흰 틈 3px, 이름만. 탭 = 즉시 저장 */}
+          {/* 항목 블록 — 3열, 흰 틈 3px, 이름만. 탭 = 선택(남색 안쪽 테두리), 저장은 위 버튼 */}
           <div className="mt-4 grid grid-cols-3 gap-[3px] bg-b27-paper" style={{ gridAutoRows: '76px' }}>
             {gridItems.map((it) => {
               const c = itemColor.get(it.id)
+              const on = it.id === itemId
               return (
                 <button
                   key={it.id}
                   type="button"
-                  onClick={() => save(it.id)}
+                  onClick={() => {
+                    setErr('')
+                    setItemId(it.id)
+                  }}
                   disabled={saving}
-                  className="flex min-w-0 items-center justify-center px-2 text-[14px] font-medium text-white transition active:scale-[0.97] disabled:opacity-50"
+                  aria-pressed={on}
+                  className={`flex min-w-0 items-center justify-center px-2 text-[14px] font-medium text-white transition active:scale-[0.97] disabled:opacity-50 ${on ? 'shadow-[inset_0_0_0_3px_var(--b27-ink)]' : ''}`}
                   style={{ background: c?.bg ?? '#E4E7EC', textShadow: c?.n ? blockHalo(c.n) : undefined }}
                 >
                   <span className="truncate">{it.name}</span>
@@ -433,10 +457,10 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
               )
             })}
             <div className="flex items-center justify-center bg-b27-card text-b27-muted [&>button]:flex [&>button]:h-full [&>button]:w-full [&>button]:items-center [&>button]:justify-center [&>button]:rounded-none [&>button]:border-0 [&>button]:font-num [&>button]:text-[24px] [&>button]:font-normal [&>button]:text-b27-muted">
-              <ItemAddButton gubun={gubun} categories={categories} onCreated={(id) => save(id)} />
+              <ItemAddButton gubun={gubun} categories={categories} onCreated={(id) => setItemId(id)} />
             </div>
           </div>
-          <p className="mt-3 text-center text-[11px] text-b27-muted">블록을 누르면 바로 저장됩니다</p>
+          <p className="mt-3 text-center text-[11px] text-b27-muted">항목 블록을 고르고 저장을 누르세요</p>
 
           {err && <p className="mt-3 text-center text-[13px] text-b27-expense">{err}</p>}
           {saving && <p className="mt-3 text-center text-[13px] text-b27-muted">저장 중…</p>}
