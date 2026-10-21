@@ -71,3 +71,90 @@ export function tokensToCssVars(tokens: PaletteTokens): string {
     .map((k) => `${toCssVar(k as string)}: ${tokens[k]};`)
     .join(" ");
 }
+
+// ---------------------------------------------------------------------------
+// MFH 2027 리브랜딩 — "Minimal Block" 토큰 (회계 먼저 적용, 2027 전체 확장).
+// 흰 바탕 · 파스텔 블록 8색 + 같은 색 할로(흰 글자 가장자리 대비) · 남색 앵커 · 터키석 ＋ 하나.
+// CSS 변수 접두 --b27-* 로 주입(app/globals.css 의 .theme-2027 스코프). 기존 `light` 세트와 독립.
+// 대비(흰 바탕): ink 12.6 · income 6.3 · expense 5.3 · wait 5.0. 블록 위 흰 글자는 할로 50%(3·4번 65%) 기준 3.3~5.8.
+
+export type Brand2027Tokens = {
+  ink: string; // 글자 · 선택 · 오늘 · 탭 활성 · 앵커 블록 · = 키
+  plus: string; // ＋ 기록 버튼 · "모두 승인" 글자 (유일한 터키석)
+  paper: string; // 바탕
+  card: string; // 키패드 · 비활성 면
+  muted: string; // 보조 글자
+  line: string; // 행 구분선
+  income: string;
+  expense: string;
+  wait: string; // 승인 대기 · 경고
+  block1: string;
+  block2: string;
+  block3: string;
+  block4: string;
+  block5: string;
+  block6: string;
+  block7: string;
+  block8: string;
+  halo1: string;
+  halo2: string;
+  halo3: string;
+  halo4: string;
+  halo5: string;
+  halo6: string;
+  halo7: string;
+  halo8: string;
+};
+
+export const brand2027: Brand2027Tokens = {
+  ink: "#2B3160",
+  plus: "#2EC4B6",
+  paper: "#FFFFFF",
+  card: "#F6F8FA",
+  muted: "#8A90A0",
+  line: "#EEF0F3",
+  income: "#2A5BC0",
+  expense: "#C23A34",
+  wait: "#B45309",
+  // 항목 블록 8색 — 대분류 안 항목 정렬 순서대로 순환 (lib/acct-display.ts, c 단계)
+  block1: "#8ED0CE", // Lagoon
+  block2: "#F9ADA4", // Salmon
+  block3: "#FCD79B", // Apricot
+  block4: "#C6EBE1", // Mint
+  block5: "#CFCAED", // Lavender
+  block6: "#F07F8A", // Rose
+  block7: "#F4CBD0", // Blush
+  block8: "#B3B9E2", // Periwinkle
+  // 할로 — 같은 색 진한 톤 50% (Apricot·Mint 는 밝아서 65%)
+  halo1: "rgba(32,80,79,0.5)",
+  halo2: "rgba(148,20,5,0.5)",
+  halo3: "rgba(133,80,0,0.65)",
+  halo4: "rgba(34,108,90,0.65)",
+  halo5: "rgba(78,57,198,0.5)",
+  halo6: "rgba(101,6,15,0.5)",
+  halo7: "rgba(169,30,48,0.5)",
+  halo8: "rgba(48,60,141,0.5)",
+};
+
+export const BLOCK_COUNT = 8;
+
+// 블록 번호(1~8, 범위 밖은 순환) → { bg, halo } 토큰 값
+export function blockColor(n: number): { bg: string; halo: string } {
+  const i = (((n - 1) % BLOCK_COUNT) + BLOCK_COUNT) % BLOCK_COUNT + 1;
+  const bg = brand2027[`block${i}` as keyof Brand2027Tokens];
+  const halo = brand2027[`halo${i}` as keyof Brand2027Tokens];
+  return { bg, halo };
+}
+
+// 블록 위 흰 글자용 text-shadow 3겹(2·6·10px). 인라인 style 로 사용: style={{ textShadow: blockHalo(n) }}
+export function blockHalo(n: number): string {
+  const { halo } = blockColor(n);
+  return `0 0 2px ${halo}, 0 0 6px ${halo}, 0 1px 10px ${halo}`;
+}
+
+// brand2027 → "--b27-kebab: value;" 선언 문자열 (.theme-2027 스코프용)
+export function brand2027ToCssVars(): string {
+  return (Object.keys(brand2027) as (keyof Brand2027Tokens)[])
+    .map((k) => `--b27-${(k as string).replace(/[A-Z]/g, (m) => "-" + m.toLowerCase()).replace(/(\D)(\d)$/, "$1-$2")}: ${brand2027[k]};`)
+    .join(" ");
+}

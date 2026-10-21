@@ -35,6 +35,38 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
+/* MFH 2027 "Minimal Block" 테마 스코프 — 색 변수(--b27-*)는 app/layout.tsx 가 lib/palette.ts brand2027 에서 주입.
+   여기서는 스코프 안에서 기존 공용 토큰(--paper 등)을 2027 값으로 덮어 공용 컴포넌트가 함께 전환되도록 브릿지만 둔다.
+   b 단계에서 회계 <main> 에 .theme-2027 을 붙이면 켜진다(현재는 어디에도 안 붙음 → 화면 변화 0). */
+.theme-2027 {
+  --paper: var(--b27-paper);
+  --surface: var(--b27-paper);
+  --surface-subtle: var(--b27-card);
+  --line: var(--b27-line);
+  --text: var(--b27-ink);
+  --text-muted: var(--b27-muted);
+  --text-faint: var(--b27-muted);
+  --primary: var(--b27-ink);
+  --primary-hover: var(--b27-ink);
+  --primary-soft: var(--b27-card);
+  --on-primary-soft: var(--b27-ink);
+  --accent: var(--b27-plus);
+  --accent-hover: var(--b27-plus);
+  --accent-soft: var(--b27-card);
+  --on-accent-soft: var(--b27-ink);
+  --danger: var(--b27-expense);
+  --font-num: var(--font-manrope), 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--b27-paper);
+  color: var(--b27-ink);
+}
+/* 2027 스코프에서는 종이 노이즈 오버레이 없음(흰 바탕) */
+body:has(.theme-2027)::before {
+  display: none;
+}
+body:has(.theme-2027) {
+  background: #ffffff;
+}
+
 /* Opening splash (임시 — 추후 sweep_logo_intro 자산으로 교체) */
 .splash-overlay {
   position: fixed;

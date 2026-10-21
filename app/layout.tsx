@@ -1,8 +1,9 @@
+// MFH-LAYOUT-V3 — 2027 토큰(.theme-2027 스코프 변수 · Manrope 변수) 선언. 적용은 회계 layout 부터(b 단계).
 // MFH-LAYOUT-V2 — 하단 탭바는 app/(app)/layout.tsx 의 AppShell 로 이동(셸 밖 /login /p 는 탭바 없음).
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
-import { montserrat } from '@/lib/fonts'
-import { light, tokensToCssVars } from '@/lib/palette'
+import { montserrat, manrope } from '@/lib/fonts'
+import { light, tokensToCssVars, brand2027ToCssVars } from '@/lib/palette'
 import BadgeSync from '@/components/BadgeSync'
 import './globals.css'
 
@@ -21,9 +22,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ko" className={montserrat.variable}>
+    <html lang="ko" className={`${montserrat.variable} ${manrope.variable}`}>
       <head>
-        <style dangerouslySetInnerHTML={{ __html: `:root{${tokensToCssVars(light)}}` }} />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `:root{${tokensToCssVars(light)}} .theme-2027{${brand2027ToCssVars()}}`,
+          }}
+        />
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"
