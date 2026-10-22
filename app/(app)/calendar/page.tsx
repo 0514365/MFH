@@ -3,9 +3,10 @@ import { createClient } from '@/lib/supabase-server'
 import { normalizeStatus } from '@/lib/constants'
 import CalendarView, { type CalItem } from './CalendarView'
 import CalendarSubscribe from './CalendarSubscribe'
-import '@/app/p/portfolio-theme.css'
+import PageHeader from '@/components/PageHeader'
 
 export const dynamic = 'force-dynamic'
+// MFH-CAL-PAGE-2027 — 4-4: theme-2027 · 페이지 헤더 「캘린더」 · 범례는 CalendarView 안(한글) · 넓은 화면 폭 6xl.
 // MFH-CAL-FILTER-V1
 // MFH-CAL-STATUS-V1
 
@@ -91,26 +92,9 @@ export default async function CalendarPage() {
   ]
 
   return (
-    <main className="app-theme mx-auto w-full max-w-4xl px-5 pb-8 pt-4">
+    <main className="theme-2027 mx-auto w-full max-w-md px-5 pb-8 @xl:max-w-3xl @4xl:max-w-6xl">
+      <PageHeader title="캘린더" current="calendar" />
       <CalendarView items={items} />
-
-      <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-status-upcoming" /> Upcoming
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-status-progress" /> In Progress
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-status-done" /> Done
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-3 w-4 rounded-sm border-l-2 border-muted bg-surface-subtle" /> 프로젝트(기간)
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-surface-subtle" /> 할 일(하루)
-        </span>
-      </div>
 
       <CalendarSubscribe />
     </main>

@@ -1,4 +1,6 @@
 'use client'
+// MFH-CAL-IOS-V2 — 2027(4-4): 회계 달력 문법(칸 테두리 없음 · 숫자 · 오늘 남색 원 · 선택 민트 원 · 일 빨강/토 터키석) · 점 = 할 일 살구/지남 빨강/완료 민트 ·
+//   이번 주 프로젝트 = 로즈 틴트 막대(연회색 면) · 선택일 = 2줄 행(+ 그날 걸친 프로젝트) · 범례 한글 · 넓은 화면 2단(달력 · 목록).
 // MFH-CAL-IOS-V1
 // iOS 목록형 캘린더: 월 그리드(할 일=점만) + 주간 프로젝트 막대 띠 + 선택 날짜 목록.
 // 프로젝트는 그리드에 표시하지 않고, 선택 주(일~토) 막대 구역에만 표기. 드래그 없음(보기 전용).
@@ -11,7 +13,6 @@ import {
   PRIORITIES,
   JOURNAL_CATEGORIES,
   IMPORTANCE_MAX,
-  type StatusValue,
 } from '@/lib/constants'
 import { statusChipCls, toggle } from '@/lib/statusChip'
 import {
@@ -49,25 +50,14 @@ export type CalItem = {
 const BAR_H = 22
 const MAX_DOTS = 3
 
-// 점·도트 = 진한 on-status 색(파스텔 배경 위에서도 잘 보이게).
-function dotCls(status: string): string {
-  const s = normalizeStatus(status)
-  if (s === 'in_progress') return 'bg-on-status-progress'
-  if (s === 'done') return 'bg-on-status-done'
-  return 'bg-on-status-upcoming'
+// 점 종류 — 할 일 = 살구 · 지남(미완료 · 오늘 이전) = 빨강 · 완료 = 민트.
+type DotKind = 'todo' | 'overdue' | 'done'
+const DOT_CLS: Record<DotKind, string> = {
+  todo: 'bg-b27-block-3',
+  overdue: 'bg-b27-expense',
+  done: 'bg-b27-block-4',
 }
-function statusBarCls(status: string): string {
-  const s = normalizeStatus(status)
-  if (s === 'in_progress') return 'bg-status-progress border-on-status-progress text-on-status-progress'
-  if (s === 'done') return 'bg-status-done border-on-status-done text-on-status-done'
-  return 'bg-status-upcoming border-on-status-upcoming text-on-status-upcoming'
-}
-function statusBadgeCls(status: string): string {
-  const s = normalizeStatus(status)
-  if (s === 'in_progress') return 'bg-status-progress text-on-status-progress'
-  if (s === 'done') return 'bg-status-done text-on-status-done'
-  return 'bg-status-upcoming text-on-status-upcoming'
-}
+const DOT_ORDER: DotKind[] = ['overdue', 'todo', 'done']
 function priRank(priority: string): number {
   return priority === 'high' ? 0 : priority === 'low' ? 2 : 1
 }
@@ -78,7 +68,6 @@ function fmtRange(start: DateKey, end: DateKey): string {
   if (start === end) return `${s.m}.${s.d}`
   return `${s.m}.${s.d} – ${e.m}.${e.d}`
 }
-const STATUS_ORDER: StatusValue[] = ['in_progress', 'upcoming', 'done']
 
 type Filters = {
   hideDone: boolean
@@ -117,17 +106,17 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
     })
   }, [allItems, filters])
 
-  // 그리드 점: 할 일만. 날짜별 상태 집합(중복 제거, 표시 순서 고정).
+  // 그리드 점: 할 일만. 할 일 1건 = 점 1개(지남 → 할 일 → 완료 순, 최대 MAX_DOTS).
   const dayDots = useMemo(() => {
-    const m: Record<DateKey, Set<StatusValue>> = {}
+    const m: Record<DateKey, DotKind[]> = {}
     for (const it of items) {
       if (it.type !== 'task') continue
-      ;(m[it.start] ||= new Set()).add(normalizeStatus(it.status))
+      const kind: DotKind = it.done ? 'done' : it.start < today ? 'overdue' : 'todo'
+      ;(m[it.start] ||= []).push(kind)
     }
-    const out: Record<DateKey, StatusValue[]> = {}
-    for (const k of Object.keys(m)) out[k] = STATUS_ORDER.filter((s) => m[k].has(s))
-    return out
-  }, [items])
+    for (const k of Object.keys(m)) m[k].sort((a, b) => DOT_ORDER.indexOf(a) - DOT_ORDER.indexOf(b))
+    return m
+  }, [items, today])
 
   // 프로젝트 막대(주간 띠용)
   const bars: BarItem[] = useMemo(() => {
@@ -148,7 +137,13 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
   const selWeekSegs = useMemo(() => layoutWeekBars(selWeek, bars), [selWeek, bars])
   const selWeekMaxLane = selWeekSegs.reduce((mx, s) => Math.max(mx, s.lane), -1)
 
-  // 선택 날짜 목록 = 할 일만(프로젝트는 위 주간 막대에 표기)
+  // 선택 날짜에 걸친 프로젝트(기간 안) — 목록 아래 로즈 행.
+  const selProjects = useMemo(
+    () => items.filter((it) => it.type === 'project' && it.start <= selected && selected <= it.end),
+    [items, selected],
+  )
+
+  // 선택 날짜 목록 = 그날 할 일(시간 → 우선순위 순)
   const selItems = useMemo(() => {
     return items
       .filter((it) => it.type === 'task' && it.start === selected)
@@ -185,269 +180,288 @@ export default function CalendarView({ items: allItems }: { items: CalItem[] }) 
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
-        active ? 'border-primary bg-primary text-white' : 'border-line bg-surface text-muted hover:border-primary'
+      className={`shrink-0 rounded-full px-3 py-1 text-[12px] transition active:opacity-70 ${
+        active ? 'bg-b27-ink font-medium text-white' : 'bg-b27-paper text-b27-muted'
       }`}
     >
       {children}
     </button>
   )
 
-  return (
-    <div>
-      {/* 헤더: 중앙 월 네비(‹ 년월 ›) + 좌 오늘 · 우 필터 */}
-      <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <div className="justify-self-start">
-          <button
-            type="button"
-            onClick={goToday}
-            className="rounded-full border border-line px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-ink hover:text-ink"
-          >
-            오늘
-          </button>
-        </div>
-        <div className="flex items-center justify-self-center gap-2.5">
-          <button type="button" onClick={prevMonth} aria-label="이전 달" className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted transition hover:border-ink hover:text-ink">
-            ‹
-          </button>
-          <h2 className="whitespace-nowrap font-display text-2xl font-bold text-ink">{title}</h2>
-          <button type="button" onClick={nextMonth} aria-label="다음 달" className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted transition hover:border-ink hover:text-ink">
-            ›
-          </button>
-        </div>
-        <div className="justify-self-end">
-          <button
-            type="button"
-            onClick={() => setFilterOpen((v) => !v)}
-            aria-label="필터"
-            className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border transition ${
-              filterOpen || filterActiveAny ? 'border-ink text-ink' : 'border-line bg-surface text-muted hover:border-ink hover:text-ink'
-            }`}
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 5h18M6 12h12M10 19h4" strokeLinecap="round" />
-            </svg>
-            {filterActiveAny && <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent" />}
-          </button>
-        </div>
-      </div>
+  const sepCls = 'mx-0.5 h-4 w-px shrink-0 bg-b27-paper'
+  const pillHead = 'inline-flex items-center gap-2 self-start rounded-full px-3 py-1 text-[13px] font-semibold'
 
-      {filterOpen && (
-        <div className="mb-3 rounded-xl border border-line bg-surface-subtle p-2.5">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <FilterChip active={filters.hideDone} onClick={() => setFilters((f) => ({ ...f, hideDone: !f.hideDone }))}>
-              완료 숨김
-            </FilterChip>
-            <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
-            {STATUSES.map((s) => {
-              const active = filters.status.includes(s.value)
-              return (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => setFilters((f) => ({ ...f, status: toggle(f.status, s.value) }))}
-                  className={`shrink-0 ${statusChipCls(s.value, active)}`}
-                >
-                  {s.label}
-                </button>
-              )
-            })}
-            <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
-            {PRIORITIES.map((p) => (
-              <FilterChip
-                key={p.value}
-                active={filters.priority.includes(p.value)}
-                onClick={() => setFilters((f) => ({ ...f, priority: toggle(f.priority, p.value) }))}
-              >
-                {p.label}
-              </FilterChip>
-            ))}
-            <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
-            {Array.from({ length: IMPORTANCE_MAX }, (_, i) => i + 1).map((n) => (
-              <FilterChip
-                key={n}
-                active={filters.importance.includes(n)}
-                onClick={() => setFilters((f) => ({ ...f, importance: toggle(f.importance, n) }))}
-              >
-                {'★'.repeat(n)}
-              </FilterChip>
-            ))}
-            {usedCategories.length > 0 && <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />}
-            {usedCategories.map((c) => (
-              <FilterChip
-                key={c}
-                active={filters.category.includes(c)}
-                onClick={() => setFilters((f) => ({ ...f, category: toggle(f.category, c) }))}
-              >
-                {c}
-              </FilterChip>
-            ))}
-            {filterActiveAny && (
-              <button
-                type="button"
-                onClick={() => setFilters(EMPTY_FILTERS)}
-                className="ml-auto shrink-0 rounded-full border border-accent px-2.5 py-1 text-[11px] font-semibold text-accent transition hover:bg-accent-soft"
-              >
-                초기화
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 text-center text-[11px] font-semibold @2xl:text-xs">
-        {DOW_LABELS.map((d, i) => (
-          <div key={d} className={`py-1.5 ${i === 0 ? 'text-accent' : 'text-faint'}`}>
-            {d}
-          </div>
-        ))}
-      </div>
-
-      {/* 월 그리드 — 할 일 점만 */}
-      <div className="overflow-hidden rounded-2xl border border-line">
-        {weeks.map((week, wi) => (
-          <div key={wi} className={`grid grid-cols-7 ${wi > 0 ? 'border-t border-line' : ''}`}>
-            {week.map((c, ci) => {
-              const isToday = c.key === today
+  // 이번 주 프로젝트(로즈 막대, 연회색 면)
+  const weekBlock = (
+    <section className="flex flex-col gap-2">
+      <h3 className={pillHead} style={{ background: 'var(--b27-tint-6)', color: 'var(--b27-deep-6)' }}>
+        <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-6" aria-hidden="true" />
+        이번 주 프로젝트
+        <span className="font-num font-medium text-b27-muted">{weekRangeLabel(selWeek)}</span>
+      </h3>
+      {selWeekSegs.length === 0 ? (
+        <p className="rounded-2xl bg-b27-card px-4 py-3 text-center text-[12px] text-b27-muted">이 주에 진행 중인 프로젝트가 없습니다.</p>
+      ) : (
+        <div className="rounded-2xl bg-b27-card p-2.5">
+          {/* 요일 칸 헤더(선택일 · 오늘 강조) */}
+          <div className="grid grid-cols-7 text-center">
+            {selWeek.map((c) => {
               const isSel = c.key === selected
-              const dots = dayDots[c.key] ?? []
-              const dow = ci
-              const numColor = isToday
-                ? 'text-white'
-                : !c.inMonth
-                  ? 'text-faint/60'
-                  : dow === 0
-                    ? 'text-accent'
-                    : 'text-ink'
+              const isToday = c.key === today
               return (
                 <button
                   type="button"
                   key={c.key}
                   onClick={() => setSelected(c.key)}
-                  className={`flex min-h-[60px] flex-col items-center gap-1 py-1.5 transition @2xl:min-h-[72px] ${
-                    ci > 0 ? 'border-l border-line' : ''
-                  } ${isSel && !isToday ? 'bg-primary-soft' : ''} ${!c.inMonth ? 'bg-surface-subtle/40' : ''}`}
+                  className={`mx-auto flex h-6 w-6 items-center justify-center rounded-full font-num text-[11px] transition ${
+                    isToday ? 'bg-b27-ink font-semibold text-white' : isSel ? 'font-semibold text-[#226C5A]' : 'text-b27-muted'
+                  }`}
                 >
-                  <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold @2xl:text-sm ${numColor} ${
-                      isToday ? 'bg-accent' : isSel ? 'ring-1 ring-ink' : ''
-                    }`}
-                  >
-                    {c.day}
-                  </span>
-                  <span className="flex h-1.5 items-center gap-0.5">
-                    {dots.slice(0, MAX_DOTS).map((s) => (
-                      <span key={s} className={`h-1.5 w-1.5 rounded-full ${dotCls(s)}`} />
-                    ))}
-                  </span>
+                  {c.day}
                 </button>
               )
             })}
           </div>
-        ))}
-      </div>
-
-      {/* 주간 프로젝트 막대 띠 — 선택 주(일~토) */}
-      <div className="mt-4">
-        <div className="mb-1.5 flex items-baseline justify-between">
-          <h3 className="text-xs font-semibold text-muted">이번 주 프로젝트</h3>
-          <span className="text-[10px] text-faint">{weekRangeLabel(selWeek)}</span>
+          {/* 막대 레인 */}
+          <div className="relative mt-1.5" style={{ height: `${(selWeekMaxLane + 1) * BAR_H}px` }}>
+            {selWeekSegs.map((sg) => {
+              const it = byId[sg.id]
+              if (!it) return null
+              const left = `${(sg.startCol / 7) * 100}%`
+              const width = `${((sg.endCol - sg.startCol + 1) / 7) * 100}%`
+              const top = `${sg.lane * BAR_H}px`
+              const round = sg.isStart && sg.isEnd ? 'rounded-md' : sg.isStart ? 'rounded-l-md' : sg.isEnd ? 'rounded-r-md' : ''
+              return (
+                <Link
+                  key={`${sg.id}-${sg.startCol}`}
+                  href={it.href}
+                  style={{ left, width, top, height: `${BAR_H - 4}px`, color: 'var(--b27-deep-6)', boxShadow: 'inset 0 0 0 1px rgba(240,127,138,0.35)' }}
+                  className={`absolute flex items-center overflow-hidden bg-b27-tint-6 px-2 ${round} ${it.done ? 'opacity-50' : ''}`}
+                >
+                  <span className={`truncate text-[11.5px] font-medium ${it.done ? 'line-through' : ''}`}>
+                    {it.title} <span className="font-num font-normal opacity-70">{fmtRange(it.start, it.end)}</span>
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
         </div>
-        {selWeekSegs.length === 0 ? (
-          <p className="rounded-xl border border-line bg-surface px-4 py-4 text-center text-[11px] text-faint">
-            이 주에 진행 중인 프로젝트가 없습니다.
-          </p>
-        ) : (
-          <div className="rounded-xl border border-line bg-surface p-2">
-            {/* 요일 칸 헤더(선택일 강조) */}
-            <div className="grid grid-cols-7 text-center">
-              {selWeek.map((c, ci) => {
-                const isSel = c.key === selected
+      )}
+    </section>
+  )
+
+  // 선택 날짜 목록(2줄 행) — 할 일(살구) + 그날 걸친 프로젝트(로즈)
+  const dayBlock = (
+    <section className="flex flex-col gap-1">
+      <h3 className={pillHead} style={{ background: 'var(--b27-tint-4)', color: 'var(--b27-deep-4)' }}>
+        <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-4" aria-hidden="true" />
+        {fmtKey(selected)}
+        <span className="font-num font-medium text-b27-muted">{selItems.length + selProjects.length}</span>
+      </h3>
+      {selItems.length + selProjects.length === 0 ? (
+        <p className="mt-1 rounded-2xl bg-b27-card px-4 py-4 text-center text-[12px] text-b27-muted">이 날짜에 일정이 없습니다.</p>
+      ) : (
+        <ul>
+          {selItems.map((it) => {
+            const overdue = !it.done && it.start < today
+            const st = normalizeStatus(it.status)
+            const sub = [it.time ? fmtTime(it.time) : null, st === 'in_progress' ? STATUS_META[st].label : null, it.category].filter(Boolean).join(' · ')
+            return (
+              <li key={it.id} className="border-b border-b27-line last:border-b-0">
+                <Link href={it.href} className="flex items-start gap-3 px-1 py-[11px] transition active:opacity-70">
+                  <span className={`mt-[6px] inline-block h-[9px] w-[9px] shrink-0 rounded-[3px] bg-b27-block-3 ${it.done ? 'opacity-40' : ''}`} aria-hidden="true" />
+                  <span className="min-w-0 flex-1">
+                    <span className={`block truncate text-[15px] font-medium ${it.done ? 'text-b27-muted line-through' : 'text-b27-ink'}`}>{it.title}</span>
+                    {(overdue || sub) && (
+                      <span className="mt-0.5 block truncate font-num text-[12px] text-b27-muted">
+                        {overdue && <span className="font-semibold text-b27-expense">지남{sub ? ' · ' : ''}</span>}
+                        {sub}
+                      </span>
+                    )}
+                  </span>
+                </Link>
+              </li>
+            )
+          })}
+          {selProjects.map((it) => (
+            <li key={it.id} className="border-b border-b27-line last:border-b-0">
+              <Link href={it.href} className="flex items-start gap-3 px-1 py-[11px] transition active:opacity-70">
+                <span className="mt-[6px] inline-block h-[9px] w-[9px] shrink-0 rounded-[3px] bg-b27-block-6" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className={`block truncate text-[15px] font-medium ${it.done ? 'text-b27-muted line-through' : 'text-b27-ink'}`}>{it.title}</span>
+                  <span className="mt-0.5 block truncate font-num text-[12px] text-b27-muted">프로젝트 · {fmtRange(it.start, it.end)}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+
+  return (
+    <div className="flex flex-col gap-4 @4xl:grid @4xl:grid-cols-[1.4fr_1fr] @4xl:items-start @4xl:gap-8">
+      <div className="flex min-w-0 flex-col gap-3">
+        {/* 머리: 오늘 · ‹ 년월 › · 필터 */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <button
+            type="button"
+            onClick={goToday}
+            className="justify-self-start rounded-full bg-b27-card px-3.5 py-1.5 text-xs font-medium text-b27-ink transition active:opacity-70"
+          >
+            오늘
+          </button>
+          <div className="flex items-center justify-self-center gap-1">
+            <button type="button" onClick={prevMonth} aria-label="이전 달" className="flex h-9 w-9 items-center justify-center text-xl leading-none text-b27-muted transition active:opacity-60">
+              ‹
+            </button>
+            <h2 className="whitespace-nowrap font-num text-[19px] font-semibold text-b27-ink">{title}</h2>
+            <button type="button" onClick={nextMonth} aria-label="다음 달" className="flex h-9 w-9 items-center justify-center text-xl leading-none text-b27-muted transition active:opacity-60">
+              ›
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFilterOpen((v) => !v)}
+            aria-expanded={filterOpen}
+            className={`justify-self-end rounded-full px-3.5 py-1.5 text-xs font-medium transition active:opacity-70 ${
+              filterOpen || filterActiveAny ? 'bg-b27-ink text-white' : 'bg-b27-card text-b27-muted'
+            }`}
+          >
+            필터
+          </button>
+        </div>
+
+        {filterOpen && (
+          <div className="rounded-2xl bg-b27-card p-2.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <FilterChip active={filters.hideDone} onClick={() => setFilters((f) => ({ ...f, hideDone: !f.hideDone }))}>
+                완료 숨김
+              </FilterChip>
+              <span className={sepCls} />
+              {STATUSES.map((s) => {
+                const active = filters.status.includes(s.value)
+                return (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => setFilters((f) => ({ ...f, status: toggle(f.status, s.value) }))}
+                    className={`shrink-0 ${statusChipCls(s.value, active)}`}
+                  >
+                    {s.label}
+                  </button>
+                )
+              })}
+              <span className={sepCls} />
+              {PRIORITIES.map((p) => (
+                <FilterChip
+                  key={p.value}
+                  active={filters.priority.includes(p.value)}
+                  onClick={() => setFilters((f) => ({ ...f, priority: toggle(f.priority, p.value) }))}
+                >
+                  {p.label}
+                </FilterChip>
+              ))}
+              <span className={sepCls} />
+              {Array.from({ length: IMPORTANCE_MAX }, (_, i) => i + 1).map((n) => (
+                <FilterChip
+                  key={n}
+                  active={filters.importance.includes(n)}
+                  onClick={() => setFilters((f) => ({ ...f, importance: toggle(f.importance, n) }))}
+                >
+                  {'★'.repeat(n)}
+                </FilterChip>
+              ))}
+              {usedCategories.length > 0 && <span className={sepCls} />}
+              {usedCategories.map((c) => (
+                <FilterChip
+                  key={c}
+                  active={filters.category.includes(c)}
+                  onClick={() => setFilters((f) => ({ ...f, category: toggle(f.category, c) }))}
+                >
+                  {c}
+                </FilterChip>
+              ))}
+              {filterActiveAny && (
+                <button
+                  type="button"
+                  onClick={() => setFilters(EMPTY_FILTERS)}
+                  className="ml-auto shrink-0 px-2 py-1 text-[11px] text-b27-muted"
+                >
+                  초기화
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 달력 — 칸 테두리 없음 · 숫자만 · 오늘 남색 원 · 선택 민트 원 · 일요일 빨강 · 토요일 터키석 · 점 = 할 일 */}
+        <div>
+          <div className="grid grid-cols-7 text-center">
+            {DOW_LABELS.map((d, i) => (
+              <div key={d} className={`py-1 font-num text-[11px] ${i === 0 ? 'text-b27-sun' : i === 6 ? 'text-b27-sat' : 'text-b27-muted'}`}>
+                {d}
+              </div>
+            ))}
+          </div>
+          {weeks.map((week, wi) => (
+            <div key={wi} className="grid grid-cols-7">
+              {week.map((c, ci) => {
                 const isToday = c.key === today
+                const isSel = c.key === selected
+                const dots = dayDots[c.key] ?? []
+                const numColor = isToday
+                  ? 'text-white'
+                  : isSel
+                    ? 'text-[#226C5A]'
+                    : !c.inMonth
+                      ? 'text-[#C9CDD8]'
+                      : ci === 0
+                        ? 'text-b27-sun'
+                        : ci === 6
+                          ? 'text-b27-sat'
+                          : 'text-b27-ink'
                 return (
                   <button
                     type="button"
                     key={c.key}
                     onClick={() => setSelected(c.key)}
-                    className={`mx-auto flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold transition ${
-                      isToday ? 'bg-accent text-white' : isSel ? 'ring-1 ring-ink text-ink' : ci === 0 ? 'text-accent' : 'text-muted'
-                    }`}
+                    aria-label={fmtKey(c.key)}
+                    aria-pressed={isSel}
+                    className="flex h-[46px] flex-col items-center gap-[3px] pt-1 transition active:opacity-70 @4xl:h-[68px]"
                   >
-                    {c.day}
+                    <span
+                      className={`flex h-[30px] w-[30px] items-center justify-center rounded-full font-num text-[14px] font-medium ${numColor} ${
+                        isToday ? 'bg-b27-ink' : isSel ? 'bg-b27-tint-4' : ''
+                      }`}
+                    >
+                      {c.day}
+                    </span>
+                    <span className="flex h-[5px] items-center gap-[3px]">
+                      {dots.slice(0, MAX_DOTS).map((k, i) => (
+                        <span key={i} className={`h-[5px] w-[5px] rounded-full ${DOT_CLS[k]}`} />
+                      ))}
+                    </span>
                   </button>
                 )
               })}
             </div>
-            {/* 막대 레인 */}
-            <div className="relative mt-1.5" style={{ height: `${(selWeekMaxLane + 1) * BAR_H}px` }}>
-              {selWeekSegs.map((sg) => {
-                const it = byId[sg.id]
-                if (!it) return null
-                const left = `${(sg.startCol / 7) * 100}%`
-                const width = `${((sg.endCol - sg.startCol + 1) / 7) * 100}%`
-                const top = `${sg.lane * BAR_H}px`
-                const round =
-                  sg.isStart && sg.isEnd ? 'rounded' : sg.isStart ? 'rounded-l' : sg.isEnd ? 'rounded-r' : ''
-                return (
-                  <Link
-                    key={`${sg.id}-${sg.startCol}`}
-                    href={it.href}
-                    style={{ left, width, top, height: `${BAR_H - 4}px` }}
-                    className={`absolute mx-0.5 flex items-center overflow-hidden border-l-[3px] px-1.5 ${round} ${statusBarCls(
-                      it.status,
-                    )} ${it.done ? 'opacity-50' : ''}`}
-                  >
-                    <span className={`truncate text-[11px] font-semibold ${it.done ? 'line-through' : ''}`}>
-                      {it.title} <span className="font-normal opacity-70">({fmtRange(it.start, it.end)})</span>
-                    </span>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
+
+        {/* 범례 */}
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[11px] text-b27-muted">
+          <span className="inline-flex items-center gap-1.5"><span className="h-[5px] w-[5px] rounded-full bg-b27-block-3" />할 일</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-[5px] w-[5px] rounded-full bg-b27-expense" />지남</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-[5px] w-[5px] rounded-full bg-b27-block-4" />완료</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-4 rounded-[3px] bg-b27-tint-6" />프로젝트 기간</span>
+        </div>
       </div>
 
-      {/* 선택 날짜 목록 */}
-      <div className="mt-5">
-        <div className="mb-2 text-xs font-semibold text-muted">{fmtKey(selected)}</div>
-        {selItems.length === 0 ? (
-          <p className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-xs text-faint">
-            이 날짜에 일정이 없습니다.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {selItems.map((it) => (
-              <li key={it.id}>
-                <Link
-                  href={it.href}
-                  className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2.5 transition hover:border-primary"
-                >
-                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotCls(it.status)} ${it.done ? 'opacity-30' : ''}`} />
-                  <span className="min-w-0 flex-1">
-                    <span className={`block truncate text-sm font-semibold ${it.done ? 'text-faint line-through' : 'text-ink'}`}>
-                      {it.title}
-                    </span>
-                    {it.time && <span className="mt-0.5 block text-[11px] text-muted">{fmtTime(it.time)}</span>}
-                  </span>
-                  <span
-                    className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold @xl:inline ${statusBadgeCls(
-                      it.status,
-                    )}`}
-                  >
-                    {STATUS_META[normalizeStatus(it.status)].label}
-                  </span>
-                  {it.category && (
-                    <span className="hidden shrink-0 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] text-muted @xl:inline">
-                      {it.category}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+      {/* 모바일: 이번 주 → 선택일 / 넓은 화면(우): 선택일 → 이번 주 */}
+      <div className="flex min-w-0 flex-col gap-4 @4xl:sticky @4xl:top-[64px]">
+        <div className="order-2 @4xl:order-1">{dayBlock}</div>
+        <div className="order-1 @4xl:order-2">{weekBlock}</div>
       </div>
     </div>
   )
