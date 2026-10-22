@@ -1,5 +1,7 @@
 'use client'
 
+// MFH-JOURNAL-LIST-V5 — 실기 피드백: 모바일 = 흰 카드(M1: 분류 틴트 알약 · 날짜 · 제목 17/600 · 발췌 2줄 · 사진 콜라주 · 메타 칩 · 켜진 플래그만) /
+//   넓은 화면 = 2줄 행 + 사진 1장 유지 · 플래그 배지 전체 이름(켜진 것만) · 월 머리줄 = 월 · 건수 + 분류 비중 띠.
 // MFH-JOURNAL-LIST-V4 — 2027(4-1, 목록 A): 2줄 행(분류 색 사각형 · 제목+플래그 배지 / MM/DD·장소·분류) + 오른쪽 사진 썸네일 · 월 머리줄 ·
 //   필터 = 연회색 면(흰 검색 알약 · 흰 칩 · 선택 남색) · 넓은 화면 요약 = 2027 섹션(기도제목 일지 틴트). 행별 플래그 토글은 상세로.
 // MFH-JOURNAL-LIST-V3
@@ -9,9 +11,9 @@ import { useEffect, useMemo, useState } from 'react'
 import type { JournalEntry, Project, Task } from '@/lib/types'
 import { canEditEntry, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
 import { JOURNAL_CATEGORY_BLOCK } from '@/lib/constants'
-import { blockColor, brand2027 } from '@/lib/palette'
+import { blockColor, blockTint, brand2027 } from '@/lib/palette'
 import AuthorBadge from '@/components/AuthorBadge'
-import MarkdownText from '@/components/MarkdownText'
+import MarkdownText, { stripMarkdown } from '@/components/MarkdownText'
 import { chip, chipOn, toggle } from '@/lib/statusChip'
 import {
   JOURNAL_CATEGORY_NONE,
@@ -33,23 +35,64 @@ import {
   type JournalBulkPatch,
 } from '@/lib/bulkUpdate'
 
-// 기도후보·비공개·비밀글 배지 — 플래그 틴트 면 + 진한 톤 글자(작은 알약). 비밀글은 RLS 로 작성자·마스터에게만 행이 온다.
-function PrivacyBadges({ e }: { e: JournalEntry }) {
+// 기도후보·비공개·비밀글 배지 — 켜진 것만, 플래그 틴트 면 + 진한 톤 글자. size md = 모바일 카드(✓ 포함), sm = 행 제목 옆.
+// 비밀글은 RLS 로 작성자·마스터에게만 행이 온다.
+function PrivacyBadges({ e, size = 'sm' }: { e: JournalEntry; size?: 'sm' | 'md' }) {
   if (!e.is_secret && !e.is_private && !e.prayer_candidate) return null
+  const cls =
+    size === 'md'
+      ? 'inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11.5px] font-medium leading-tight'
+      : 'inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[10.5px] font-medium leading-tight'
   const Badge = ({ kind, label }: { kind: keyof typeof FLAG_COLOR; label: string }) => (
-    <span
-      className="inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[10.5px] font-medium leading-tight"
-      style={{ color: FLAG_COLOR[kind], background: FLAG_SOFT[kind] }}
-    >
+    <span className={cls} style={{ color: FLAG_COLOR[kind], background: FLAG_SOFT[kind] }}>
+      {size === 'md' && '✓ '}
       {label}
     </span>
   )
   return (
     <>
-      {e.prayer_candidate && <Badge kind="prayer" label="기도" />}
-      {e.is_secret && <Badge kind="secret" label="비밀" />}
+      {e.prayer_candidate && <Badge kind="prayer" label="기도후보" />}
       {e.is_private && <Badge kind="private" label="비공개" />}
+      {e.is_secret && <Badge kind="secret" label="비밀글" />}
     </>
+  )
+}
+
+const DOW = ['일', '월', '화', '수', '목', '금', '토']
+// 'YYYY-MM-DD' → '10/20 (월)'
+function mdDow(d: string | null): string {
+  if (!d) return ''
+  const [y, m, day] = d.split('-').map(Number)
+  if (!y || !m || !day) return d
+  return `${m}/${day} (${DOW[new Date(Date.UTC(y, m - 1, day)).getUTCDay()]})`
+}
+
+// 분류 틴트 알약 — 분류 색 면 + 진한 톤 글자 + 8px 색 사각형. 분류 없으면 그리지 않는다.
+function CategoryPill({ category }: { category: string | null }) {
+  if (!category) return null
+  const n = JOURNAL_CATEGORY_BLOCK[category]
+  const { tint, deep } = n ? blockTint(n) : { tint: brand2027.card, deep: brand2027.muted }
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium" style={{ background: tint, color: deep }}>
+      <span className="inline-block h-2 w-2 rounded-[2px]" style={{ background: n ? blockColor(n).bg : brand2027.line }} aria-hidden="true" />
+      {category}
+    </span>
+  )
+}
+
+// 모바일 카드 본문(분류 · 날짜 / 제목 / 발췌). 콜라주·메타·플래그는 renderItem 에서.
+function EntryCardBody({ e }: { e: JournalEntry }) {
+  return (
+    <span className="flex flex-col gap-2">
+      <span className="flex items-center justify-between gap-2">
+        <CategoryPill category={e.category} />
+        <span className="ml-auto shrink-0 font-num text-[12px] text-b27-muted">{mdDow(e.entry_date)}</span>
+      </span>
+      <span className="text-[17px] font-semibold leading-snug text-b27-ink">{e.headline || '(제목 없음)'}</span>
+      {e.today && (
+        <span className="line-clamp-2 text-[13.5px] leading-relaxed text-[#4A5072]">{stripMarkdown(e.today)}</span>
+      )}
+    </span>
   )
 }
 
@@ -100,6 +143,27 @@ function RowThumb({ photos }: { photos: CollagePhoto[] }) {
   )
 }
 
+// 월 머리줄 — 월(Manrope 15/600) · 건수 + 그달 분류 비중 띠(분류 색 막대, 건수 비례). 분류 없음은 연회색.
+function MonthHead({ label, items }: { label: string; items: JournalEntry[] }) {
+  const counts = new Map<string, number>()
+  for (const e of items) counts.set(e.category ?? '', (counts.get(e.category ?? '') ?? 0) + 1)
+  const parts = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
+  return (
+    <div className="flex flex-col gap-1.5 px-1 pb-2 pt-2.5">
+      <div className="flex items-baseline justify-between">
+        <span className="font-num text-[15px] font-semibold text-b27-ink">{label}</span>
+        <span className="font-num text-[12px] tabular-nums text-b27-muted">{items.length}건</span>
+      </div>
+      <div className="flex h-1.5 gap-[2px] overflow-hidden rounded-full" role="img" aria-label={parts.map(([c, n]) => `${c || '분류 없음'} ${n}`).join(', ')}>
+        {parts.map(([c, n]) => {
+          const b = c ? JOURNAL_CATEGORY_BLOCK[c] : undefined
+          return <span key={c || '_'} style={{ flex: n, background: b ? blockColor(b).bg : brand2027.line }} />
+        })}
+      </div>
+    </div>
+  )
+}
+
 // 요약 패널(읽기전용). 넓은 화면 우측. '상세' → /journal/[id], '편집' → /journal/[id]/edit.
 function EntrySummary({
   e,
@@ -114,7 +178,6 @@ function EntrySummary({
   canEdit: boolean
   photos: CollagePhoto[]
 }) {
-  const n = e.category ? JOURNAL_CATEGORY_BLOCK[e.category] : undefined
   const Section = ({ label, text, tint }: { label: string; text: string | null; tint?: boolean }) =>
     text ? (
       <div className={tint ? 'rounded-2xl bg-b27-tint-1 px-4 py-3' : 'py-1'}>
@@ -126,9 +189,9 @@ function EntrySummary({
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 font-num text-[12px] text-b27-muted">
-            <span className="inline-block h-2 w-2 rounded-[2px]" style={{ background: n ? blockColor(n).bg : brand2027.line }} aria-hidden="true" />
-            {[e.category, e.entry_date].filter(Boolean).join(' · ')}
+          <div className="flex items-center gap-2">
+            <CategoryPill category={e.category} />
+            <span className="font-num text-[12px] text-b27-muted">{mdDow(e.entry_date)}</span>
           </div>
           <h2 className="mt-1 text-lg font-semibold leading-snug text-b27-ink">{e.headline || '(제목 없음)'}</h2>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -374,9 +437,74 @@ export default function JournalList({
     const checked = sel.isSelected(e.id)
     const inSelectMode = sel.selectMode
     const photos = photoMap[e.id] ?? []
-    // 작성자는 다른 사람 글일 때만 보조 줄에 붙인다(본인 글은 생략).
+    // 작성자는 다른 사람 글일 때만 표시(본인 글은 생략).
     const authorName = e.user_id !== currentUserId ? membersMap[e.user_id] : undefined
     const emphasized = (inSelectMode && checked) || isSel
+
+    // ── 모바일: 흰 카드(M1) ──
+    if (!wide) {
+      const projTitle = e.project_id ? (projMap[e.project_id] ?? null) : null
+      const taskTitle = e.task_id ? (taskMap[e.task_id] ?? null) : null
+      const hasFlags = e.prayer_candidate || e.is_private || e.is_secret
+      const hasMeta = !!(e.place_name || projTitle || taskTitle || authorName)
+      const metaCls = 'flex max-w-[180px] items-center gap-1.5 rounded-full bg-b27-card px-2.5 py-1 text-[11.5px] text-b27-ink'
+      return (
+        <li
+          key={e.id}
+          className={`relative flex flex-col gap-2.5 rounded-[20px] bg-b27-paper p-4 ${
+            emphasized ? 'ring-2 ring-b27-ink' : 'ring-1 ring-b27-line'
+          }`}
+        >
+          {inSelectMode ? (
+            <button type="button" onClick={() => sel.toggleId(e.id)} className="flex w-full gap-3 text-left">
+              <span className="mt-1 shrink-0">
+                <SelectionCheckbox checked={checked} />
+              </span>
+              <EntryCardBody e={e} />
+            </button>
+          ) : (
+            <Link href={`/journal/${e.id}${detailSuffix}`} className="block active:opacity-80">
+              <EntryCardBody e={e} />
+            </Link>
+          )}
+          {/* 사진 콜라주 — 라이트박스 포함, 본문 링크와 분리 */}
+          {photos.length > 0 && <PhotoCollage photos={photos} />}
+          {hasMeta && (
+            <div className="flex flex-wrap gap-1.5">
+              {e.place_name && (
+                <span className={metaCls}>
+                  <span className="truncate">{e.place_name}</span>
+                </span>
+              )}
+              {projTitle && (
+                <span className={metaCls}>
+                  <span className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ background: blockColor(5).bg }} aria-hidden="true" />
+                  <span className="truncate">{projTitle}</span>
+                </span>
+              )}
+              {taskTitle && (
+                <span className={metaCls}>
+                  <span className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ background: blockColor(3).bg }} aria-hidden="true" />
+                  <span className="truncate">{taskTitle}</span>
+                </span>
+              )}
+              {authorName && (
+                <span className={metaCls}>
+                  <span className="truncate">{authorName}</span>
+                </span>
+              )}
+            </div>
+          )}
+          {hasFlags && (
+            <div className="flex flex-wrap gap-1.5">
+              <PrivacyBadges e={e} size="md" />
+            </div>
+          )}
+        </li>
+      )
+    }
+
+    // ── 넓은 화면: 2줄 행 + 사진 1장 ──
     const inner = (
       <>
         {inSelectMode && (
@@ -388,25 +516,21 @@ export default function JournalList({
         <RowThumb photos={photos} />
       </>
     )
-    const rowCls = `flex w-full items-start gap-3 px-1 py-[11px] text-left transition active:opacity-70 ${
-      emphasized ? '-mx-1 rounded-xl bg-b27-card px-2' : ''
+    const rowCls = `flex w-full items-start gap-3 rounded-xl px-2 py-[11px] text-left transition active:opacity-70 ${
+      emphasized ? 'bg-b27-card' : ''
     }`
 
-    // selectMode=토글 / 넓은화면=요약선택 / 좁은화면=상세 Link.
+    // selectMode=토글 / 넓은화면=요약선택.
     return (
       <li key={e.id} className="border-b border-b27-line last:border-b-0">
         {inSelectMode ? (
           <button type="button" onClick={() => sel.toggleId(e.id)} className={rowCls}>
             {inner}
           </button>
-        ) : wide ? (
+        ) : (
           <button type="button" onClick={() => setSelectedId(e.id)} className={rowCls}>
             {inner}
           </button>
-        ) : (
-          <Link href={`/journal/${e.id}${detailSuffix}`} className={rowCls}>
-            {inner}
-          </Link>
         )}
       </li>
     )
@@ -576,14 +700,11 @@ export default function JournalList({
     else groups.push({ ym, items: [e] })
   }
   const list = (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {groups.map((g) => (
         <section key={g.ym}>
-          <div className="flex items-center justify-between px-1 pb-0.5 pt-1.5 font-num text-[12px] text-b27-muted">
-            <span>{g.ym ? monthLabel(g.ym) : '날짜 없음'}</span>
-            <span className="tabular-nums">{g.items.length}건</span>
-          </div>
-          <ul>{g.items.map(renderItem)}</ul>
+          <MonthHead label={g.ym ? monthLabel(g.ym) : '날짜 없음'} items={g.items} />
+          <ul className={wide ? '' : 'flex flex-col gap-2.5'}>{g.items.map(renderItem)}</ul>
         </section>
       ))}
     </div>
