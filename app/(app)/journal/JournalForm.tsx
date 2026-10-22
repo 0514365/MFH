@@ -662,10 +662,10 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
             ))}
           </div>
 
-          {/* 기도제목: 기본 펼침 — 일지 틴트 면(1) + 흰 입력칸 */}
-          <div className="mt-4 rounded-2xl bg-b27-tint-1 p-4">
+          {/* 기도제목: 기본 펼침 — 일지 틴트 면(2 살몬) + 흰 입력칸 */}
+          <div className="mt-4 rounded-2xl bg-b27-tint-2 p-4">
             <label className="mb-1.5 flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">
-              <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-1" aria-hidden="true" />
+              <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-2" aria-hidden="true" />
               기도제목
             </label>
             <textarea

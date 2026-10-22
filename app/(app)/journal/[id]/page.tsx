@@ -32,9 +32,9 @@ function fmtDateKo(d: string): string {
 function Section({ label, text, tint }: { label: string; text: string | null; tint?: boolean }) {
   if (!text) return null
   return (
-    <section className={tint ? 'rounded-2xl bg-b27-tint-1 px-4 py-3.5' : ''}>
+    <section className={tint ? 'rounded-2xl bg-b27-tint-2 px-4 py-3.5' : ''}>
       <div className="mb-1.5 flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">
-        {tint && <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-1" aria-hidden="true" />}
+        {tint && <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-2" aria-hidden="true" />}
         {label}
       </div>
       <MarkdownText text={text} className="break-keep text-[15px] leading-[1.75] text-b27-ink" />
@@ -189,7 +189,7 @@ export default async function JournalDetail(props: {
         <div className="flex flex-wrap items-center gap-1.5">
           {membersMap[entry.user_id] && <Meta>{membersMap[entry.user_id]}</Meta>}
           {entry.place_name && <Meta>{entry.place_name}</Meta>}
-          {projectTitle && <Meta color={blockColor(5).bg}>{projectTitle}</Meta>}
+          {projectTitle && <Meta color={blockColor(6).bg}>{projectTitle}</Meta>}
           {taskTitle && <Meta color={blockColor(3).bg}>{taskTitle}</Meta>}
           {supporterName && (
             <Link href={`/supporters/${entry.supporter_id}`} className="transition active:opacity-70">

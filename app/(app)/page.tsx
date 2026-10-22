@@ -1,3 +1,4 @@
+// MFH-HOME-V7 — 색 조합 「노을」: 주제 카드 살구 중간 톤 #FDE6C1 + 진한 살구 라벨 · 일지 2 살몬 · 프로젝트 6 로즈 · 할 일 3 살구.
 // MFH-HOME-V6 — 실기 피드백(정정): 강조 대상은 주제 카드 배경 → 라군 중간 톤 #C6E8E6 · 라벨·수정 진한 라군 · 제목은 20/600 남색으로 원복.
 // MFH-HOME-V4 — 브랜드 색 변주(D3): 카드 = 브랜드 틴트 면(주제 1 · QT 7 · 통독 5 · 동향 8) · 블록 투톤(숫자 = 진한 파스텔 + 흰 할로 / 아이콘 = 틴트 면 + 진한 톤).
 // MFH-HOME-V3 — 실기 피드백(C안): 블록 격자 전폭(self-start 버그 수정)·주제 바로 아래 · 목표 옆줄 제거 · 라벨 앞 8px 색 사각형 · 블록 이름 13.5/600.
@@ -17,8 +18,8 @@ import BibleHomeCard, { type HomeDay } from './bible/BibleHomeCard'
 import { projectSignals, taskSignals, type Signal } from '@/lib/signals'
 import { blockColor, blockHalo, blockTint, brand2027 } from '@/lib/palette'
 
-// 연 주제 카드 면 — 라군 중간 톤(틴트 1 과 블록 1 사이). 실기 피드백: 틴트가 너무 연해 주제가 묻힘.
-const THEME_FACE = '#C6E8E6'
+// 연 주제 카드 면 — 살구 중간 톤(틴트 3 과 블록 3 사이, 「노을」 조합). 실기 피드백: 틴트가 너무 연해 주제가 묻힘.
+const THEME_FACE = '#FDE6C1'
 import pkg from '@/package.json'
 import { getInboxPendingCount } from '@/lib/card-inbox-db'
 import { getRecurringDueCount } from '@/lib/recurring-db'
@@ -290,8 +291,8 @@ export default async function Home() {
         <div className="flex flex-col gap-3 @4xl:grid @4xl:grid-cols-12 @4xl:gap-5">
           {/* 연 주제 — 요약 면(큰 남색 면 금지). 목표 = 옆줄 없는 줄글 목록. */}
           <section className="flex flex-col rounded-2xl p-5 @4xl:col-span-5 @4xl:row-start-1" style={{ background: THEME_FACE }}>
-            <div className="flex items-center gap-1.5 font-num text-[12px] font-medium tracking-[0.08em]" style={{ color: brand2027.deep1 }}>
-              <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: brand2027.deep1 }} aria-hidden="true" />
+            <div className="flex items-center gap-1.5 font-num text-[12px] font-medium tracking-[0.08em]" style={{ color: brand2027.deep3 }}>
+              <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: brand2027.deep3 }} aria-hidden="true" />
               {year} THEME
             </div>
             {theme?.theme ? (
@@ -311,21 +312,21 @@ export default async function Home() {
               </ul>
             )}
             {theme?.theme && (
-              <Link href="/theme" className="mt-3 self-start text-[12px]" style={{ color: brand2027.deep1 }}>
+              <Link href="/theme" className="mt-3 self-start text-[12px]" style={{ color: brand2027.deep3 }}>
                 수정
               </Link>
             )}
           </section>
 
           {/* 모듈 블록 격자 — 모바일 3열×4줄 · @xl 4열 · @4xl 6열×2줄. 직각 블록 · 틈 3px(흰) · 묶음 바깥만 둥글게.
-              색 = 모듈 고정색(일지1 프로젝트5 할일3 인사이트8 달력4 중보6 성경7 회계2 / 보조: 사진1 Facebook8 포트폴리오5 후원자3) — 이웃 칸 같은 색 없음.
+              색 = 모듈 고정색(일지2 프로젝트6 할일3 인사이트8 달력4 중보6 성경7 회계2 / 보조: 사진1 Facebook8 포트폴리오5 후원자3) — 이웃 칸 같은 색 없음.
               재정 권한 없으면 10칸 → 포트폴리오가 마지막 줄을 채운다(3칸). */}
           <nav
             aria-label="모듈"
             className="grid grid-cols-3 gap-[3px] overflow-hidden rounded-2xl bg-b27-paper @xl:grid-cols-4 @4xl:col-span-7 @4xl:col-start-6 @4xl:row-span-2 @4xl:row-start-1 @4xl:grid-cols-6 @4xl:self-start"
           >
-            <ModuleBlock href="/journal" n={1} label="일지" value={journalCount} icon={<ModuleIcon name="log" size={22} />} note={`${tm}월`} />
-            <ModuleBlock href="/projects" n={5} label="프로젝트" value={projActive} icon={<ModuleIcon name="projects" size={22} />} note={signalLine(projSignals) ?? '진행 중'} />
+            <ModuleBlock href="/journal" n={2} label="일지" value={journalCount} icon={<ModuleIcon name="log" size={22} />} note={`${tm}월`} />
+            <ModuleBlock href="/projects" n={6} label="프로젝트" value={projActive} icon={<ModuleIcon name="projects" size={22} />} note={signalLine(projSignals) ?? '진행 중'} />
             <ModuleBlock href="/tasks" n={3} label="할 일" value={taskDue} icon={<ModuleIcon name="todo" size={22} />} note={signalLine(tSignals) ?? '오늘까지'} />
             <ModuleBlock href="/insights" n={8} label="인사이트" icon={<ModuleIcon name="insights" size={22} />} note={insightTime} />
             <ModuleBlock href="/calendar" n={4} label="캘린더" icon={<ModuleIcon name="calendar" size={22} />} />

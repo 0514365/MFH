@@ -180,7 +180,7 @@ function EntrySummary({
 }) {
   const Section = ({ label, text, tint }: { label: string; text: string | null; tint?: boolean }) =>
     text ? (
-      <div className={tint ? 'rounded-2xl bg-b27-tint-1 px-4 py-3' : 'py-1'}>
+      <div className={tint ? 'rounded-2xl bg-b27-tint-2 px-4 py-3' : 'py-1'}>
         <div className="mb-1 font-num text-[12px] font-medium text-b27-muted">{label}</div>
         <MarkdownText text={text} className="text-sm leading-relaxed text-b27-ink" />
       </div>
@@ -478,7 +478,7 @@ export default function JournalList({
               )}
               {projTitle && (
                 <span className={metaCls}>
-                  <span className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ background: blockColor(5).bg }} aria-hidden="true" />
+                  <span className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ background: blockColor(6).bg }} aria-hidden="true" />
                   <span className="truncate">{projTitle}</span>
                 </span>
               )}
