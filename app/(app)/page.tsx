@@ -1,3 +1,4 @@
+// MFH-HOME-V5 — 실기 피드백: 연 주제 제목 강조(24/700 · 남색보다 한 단계 진한 #1C2150).
 // MFH-HOME-V4 — 브랜드 색 변주(D3): 카드 = 브랜드 틴트 면(주제 1 · QT 7 · 통독 5 · 동향 8) · 블록 투톤(숫자 = 진한 파스텔 + 흰 할로 / 아이콘 = 틴트 면 + 진한 톤).
 // MFH-HOME-V3 — 실기 피드백(C안): 블록 격자 전폭(self-start 버그 수정)·주제 바로 아래 · 목표 옆줄 제거 · 라벨 앞 8px 색 사각형 · 블록 이름 13.5/600.
 // MFH-HOME-V2 — 2027 Minimal Block(3단계): theme-2027 스코프 · 승인대기 상태 알약 · 연 주제 요약 면 + 블록색 옆줄 목표 · QT/동향 요약 면
@@ -291,7 +292,7 @@ export default async function Home() {
               {year} THEME
             </div>
             {theme?.theme ? (
-              <h1 className="mt-1.5 text-[20px] font-semibold leading-snug text-b27-ink">{theme.theme}</h1>
+              <h1 className="mt-1.5 text-[24px] font-bold leading-snug text-[#1C2150]">{theme.theme}</h1>
             ) : (
               <Link href="/theme" className="mt-1.5 inline-block text-[15px] font-medium text-b27-ink underline">
                 올해의 주제·목표 설정하기
