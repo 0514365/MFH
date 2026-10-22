@@ -1,3 +1,4 @@
+// MFH-BIBLE-HOME-CARD-V5 — 브랜드 색 변주(D3): 면 = 틴트 5(라벤더).
 // MFH-BIBLE-HOME-CARD-V4 — 라벨 앞 8px 색 사각형(블록 5 라벤더).
 // MFH-BIBLE-HOME-CARD-V3 — 2027(홈 3단계): 연회색 요약 면 · 라벨 Manrope 회색 · 제목 17/600 남색 · 진행 막대 남색 · 상태 배지 2027(완료/정상 흰 알약 · 밀림 waitSoft·호박).
 // MFH-BIBLE-HOME-CARD-V2
@@ -27,7 +28,7 @@ const Eyebrow = () => (
 export default function BibleHomeCard({ plan, days, today }: { plan: ReadingPlan | null; days: HomeDay[]; today: string }) {
   if (!plan) {
     return (
-      <Link href="/bible/new" className="flex flex-col overflow-hidden rounded-2xl bg-b27-card p-4 transition active:opacity-80">
+      <Link href="/bible/new" className="flex flex-col overflow-hidden rounded-2xl bg-b27-tint-5 p-4 transition active:opacity-80">
         <div className="flex items-center justify-between">
           <Eyebrow />
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-b27-muted" aria-hidden="true">
@@ -48,7 +49,7 @@ export default function BibleHomeCard({ plan, days, today }: { plan: ReadingPlan
   const lastDate = days.length ? days[days.length - 1].read_date : plan.end_date
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl bg-b27-card p-4">
+    <div className="flex flex-col overflow-hidden rounded-2xl bg-b27-tint-5 p-4">
       <Link href="/bible" className="flex items-center justify-between">
         <Eyebrow />
         <span className="shrink-0 rounded-full bg-white px-2 py-0.5 font-num text-[11px] tabular-nums text-b27-muted">

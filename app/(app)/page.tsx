@@ -1,3 +1,4 @@
+// MFH-HOME-V4 — 브랜드 색 변주(D3): 카드 = 브랜드 틴트 면(주제 1 · QT 7 · 통독 5 · 동향 8) · 블록 투톤(숫자 = 진한 파스텔 + 흰 할로 / 아이콘 = 틴트 면 + 진한 톤).
 // MFH-HOME-V3 — 실기 피드백(C안): 블록 격자 전폭(self-start 버그 수정)·주제 바로 아래 · 목표 옆줄 제거 · 라벨 앞 8px 색 사각형 · 블록 이름 13.5/600.
 // MFH-HOME-V2 — 2027 Minimal Block(3단계): theme-2027 스코프 · 승인대기 상태 알약 · 연 주제 요약 면 + 블록색 옆줄 목표 · QT/동향 요약 면
 //   · 모듈 = 블록 격자(3열·직각·틈 3px, 파스텔 + 흰 글자 할로, 숫자 또는 아이콘 · 한글 이름 · 신호 한 줄) · 푸터 Manrope 회색.
@@ -13,7 +14,7 @@ import type { ReadingPlan, YearTheme } from '@/lib/types'
 import type { Highlight } from './honduras/BriefingView'
 import BibleHomeCard, { type HomeDay } from './bible/BibleHomeCard'
 import { projectSignals, taskSignals, type Signal } from '@/lib/signals'
-import { blockColor, blockHalo } from '@/lib/palette'
+import { blockColor, blockHalo, blockTint } from '@/lib/palette'
 import pkg from '@/package.json'
 import { getInboxPendingCount } from '@/lib/card-inbox-db'
 import { getRecurringDueCount } from '@/lib/recurring-db'
@@ -68,8 +69,8 @@ function signalLine(signals: Signal[]): string | null {
     .join(' · ')
 }
 
-// 모듈 블록 — 파스텔 면(blockColor n) + 흰 글자 할로(blockHalo n). 위 = 큰 숫자(value) 또는 흰 아이콘 / 아래 = 한글 이름 + 보조 한 줄(note).
-// 아이콘은 같은 할로 색 drop-shadow 로 가장자리 대비 확보(원칙 6).
+// 모듈 블록(투톤) — 숫자(value)가 있으면 진한 파스텔 면(blockColor n) + 흰 글자 할로(blockHalo n),
+// 숫자가 없으면 같은 색 틴트 면(blockTint n) + 진한 톤 아이콘·이름. 진한 면은 숫자 블록에만 → 화면이 가볍고 숫자가 먼저 보인다.
 function ModuleBlock({
   href,
   n,
@@ -87,18 +88,16 @@ function ModuleBlock({
   note?: string | null
   className?: string
 }) {
-  const { bg, halo } = blockColor(n)
+  const strong = value != null
+  const { bg } = blockColor(n)
+  const { tint, deep } = blockTint(n)
   return (
     <Link
       href={href}
-      className={`flex h-24 min-w-0 flex-col justify-between p-3 text-white transition active:opacity-80 ${className}`}
-      style={{ background: bg, textShadow: blockHalo(n) }}
+      className={`flex h-24 min-w-0 flex-col justify-between p-3 transition active:opacity-80 ${className}`}
+      style={strong ? { background: bg, color: '#fff', textShadow: blockHalo(n) } : { background: tint, color: deep }}
     >
-      {value != null ? (
-        <span className="font-num text-[26px] font-semibold leading-none tabular-nums">{value}</span>
-      ) : (
-        <span style={{ filter: `drop-shadow(0 0 2px ${halo}) drop-shadow(0 0 5px ${halo})` }}>{icon}</span>
-      )}
+      {strong ? <span className="font-num text-[26px] font-semibold leading-none tabular-nums">{value}</span> : icon}
       <span className="min-w-0">
         <span className="block truncate text-[13.5px] font-semibold leading-tight">{label}</span>
         {note && <span className="mt-0.5 block truncate font-num text-[11px] leading-tight opacity-95">{note}</span>}
@@ -286,8 +285,11 @@ export default async function Home() {
             @4xl=좌 5(주제 위 · 오늘의 정보 아래) : 우 7(모듈 블록 6열, 두 줄에 걸침). */}
         <div className="flex flex-col gap-3 @4xl:grid @4xl:grid-cols-12 @4xl:gap-5">
           {/* 연 주제 — 요약 면(큰 남색 면 금지). 목표 = 옆줄 없는 줄글 목록. */}
-          <section className="flex flex-col rounded-2xl bg-b27-card p-5 @4xl:col-span-5 @4xl:row-start-1">
-            <div className="font-num text-[12px] font-medium tracking-[0.08em] text-b27-muted">{year} THEME</div>
+          <section className="flex flex-col rounded-2xl bg-b27-tint-1 p-5 @4xl:col-span-5 @4xl:row-start-1">
+            <div className="flex items-center gap-1.5 font-num text-[12px] font-medium tracking-[0.08em] text-b27-muted">
+              <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: blockColor(1).bg }} aria-hidden="true" />
+              {year} THEME
+            </div>
             {theme?.theme ? (
               <h1 className="mt-1.5 text-[20px] font-semibold leading-snug text-b27-ink">{theme.theme}</h1>
             ) : (
@@ -361,7 +363,7 @@ export default async function Home() {
             {/* 오늘의 QT — 요약 면. lg 이상은 우측 보조 패널(AsidePanel)이 담당 → 숨김 */}
             <Link
               href="/qt"
-              className="flex flex-col rounded-2xl bg-b27-card p-4 transition active:opacity-80 @xl:order-3 lg:hidden"
+              className="flex flex-col rounded-2xl bg-b27-tint-7 p-4 transition active:opacity-80 @xl:order-3 lg:hidden"
             >
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">
@@ -388,7 +390,7 @@ export default async function Home() {
             {/* 온두라스 동향 — 요약 면. lg 이상은 우측 보조 패널이 담당 → 숨김 */}
             <Link
               href="/honduras"
-              className="flex flex-col rounded-2xl bg-b27-card p-4 transition active:opacity-80 @xl:order-4 lg:hidden"
+              className="flex flex-col rounded-2xl bg-b27-tint-8 p-4 transition active:opacity-80 @xl:order-4 lg:hidden"
             >
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">

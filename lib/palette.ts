@@ -120,6 +120,15 @@ export type Brand2027Tokens = {
   expenseSoft: string;
   waitSoft: string;
   incomeBar: string; // 수입 현재 막대 · 범례 (지출 쪽은 block6)
+  // 진한 톤 — 블록 n 의 틴트 면 위 글자·아이콘(할로와 같은 색, 불투명). 틴트 대비 6 이상.
+  deep1: string;
+  deep2: string;
+  deep3: string;
+  deep4: string;
+  deep5: string;
+  deep6: string;
+  deep7: string;
+  deep8: string;
 };
 
 export const brand2027: Brand2027Tokens = {
@@ -164,6 +173,14 @@ export const brand2027: Brand2027Tokens = {
   expenseSoft: "#FBE1DF",
   waitSoft: "#FFF4E3",
   incomeBar: "#8FB8EE",
+  deep1: "#20504F",
+  deep2: "#941405",
+  deep3: "#855000",
+  deep4: "#226C5A",
+  deep5: "#4E39C6",
+  deep6: "#65060F",
+  deep7: "#A91E30",
+  deep8: "#303C8D",
 };
 
 export const BLOCK_COUNT = 8;
@@ -174,6 +191,14 @@ export function blockColor(n: number): { bg: string; halo: string } {
   const bg = brand2027[`block${i}` as keyof Brand2027Tokens];
   const halo = brand2027[`halo${i}` as keyof Brand2027Tokens];
   return { bg, halo };
+}
+
+// 블록 n 의 연한 면 세트 → { tint, deep } (투톤 블록 · 틴트 카드용)
+export function blockTint(n: number): { tint: string; deep: string } {
+  const i = (((n - 1) % BLOCK_COUNT) + BLOCK_COUNT) % BLOCK_COUNT + 1;
+  const tint = brand2027[`tint${i}` as keyof Brand2027Tokens];
+  const deep = brand2027[`deep${i}` as keyof Brand2027Tokens];
+  return { tint, deep };
 }
 
 // 블록 위 흰 글자용 text-shadow 3겹(2·6·10px). 인라인 style 로 사용: style={{ textShadow: blockHalo(n) }}
