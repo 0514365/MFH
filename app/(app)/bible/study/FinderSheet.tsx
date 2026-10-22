@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-STUDY-FINDER-V2 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-STUDY-FINDER-V1 — LOGOS 식 찾기 시트(모바일 하단 시트 · lg 중앙 모달). 탭 4개:
 //   구절: 입력창("요 3:16") + 66권 색상 그리드 → 장 그리드 → 절 그리드 → 실행
@@ -32,29 +33,29 @@ const TABS: { key: FinderTab; label: string }[] = [
   { key: 'fav', label: '즐겨찾기' },
 ]
 const CELL = 'flex h-11 items-center justify-center rounded-lg text-[14px] font-semibold transition active:scale-95'
-const GRID_BTN = `${CELL} border border-line bg-surface text-ink hover:border-primary`
-const PRIMARY_BTN = 'rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold text-on-primary transition active:scale-95 disabled:opacity-40'
+const GRID_BTN = `${CELL} border border-b27-line bg-b27-paper text-b27-ink hover:border-b27-muted`
+const PRIMARY_BTN = 'rounded-full bg-b27-ink px-4 py-1.5 text-[13px] font-semibold text-on-primary transition active:scale-95 disabled:opacity-40'
 
 export default function FinderSheet({ open, tab, ver, current, onTab, onClose, onGo }: Props) {
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 @xl:items-center" onClick={onClose} role="dialog" aria-modal="true">
       <div
-        className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-paper shadow-2xl @xl:max-h-[85vh] @xl:rounded-3xl"
+        className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-b27-paper shadow-2xl @xl:max-h-[85vh] @xl:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 상단: 닫기 + 탭 */}
         <div className="flex shrink-0 items-center gap-2 px-3 pt-3">
-          <button type="button" onClick={onClose} aria-label="닫기" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line text-muted">
+          <button type="button" onClick={onClose} aria-label="닫기" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-b27-line text-b27-muted">
             ✕
           </button>
-          <div className="flex flex-1 rounded-full bg-surface-subtle p-1">
+          <div className="flex flex-1 rounded-full bg-b27-card p-1">
             {TABS.map((t) => (
               <button
                 key={t.key}
                 type="button"
                 onClick={() => onTab(t.key)}
-                className={`flex-1 rounded-full py-1.5 text-[12px] font-semibold transition ${tab === t.key ? 'bg-surface text-primary shadow-soft' : 'text-muted'}`}
+                className={`flex-1 rounded-full py-1.5 text-[12px] font-semibold transition ${tab === t.key ? 'bg-b27-paper text-b27-ink shadow-soft' : 'text-b27-muted'}`}
               >
                 {t.label}
               </button>
@@ -113,7 +114,7 @@ function RefTab({ ver, current, onGo }: { ver: BibleVersion; current: Loc; onGo:
             e.preventDefault()
             if (parsed) onGo(parsed)
           }}
-          className="mb-3 flex items-center gap-2 rounded-xl border border-line bg-surface px-3"
+          className="mb-3 flex items-center gap-2 rounded-xl border border-b27-line bg-b27-paper px-3"
         >
           <input
             ref={inputRef}
@@ -121,7 +122,7 @@ function RefTab({ ver, current, onGo }: { ver: BibleVersion; current: Loc; onGo:
             onChange={(e) => setInput(e.target.value)}
             placeholder={`성경 구절을 입력합니다. 예: "요한복음 1:1"`}
             enterKeyHint="go"
-            className="h-11 min-w-0 flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-faint"
+            className="h-11 min-w-0 flex-1 bg-transparent text-[14px] text-b27-ink outline-none placeholder:text-b27-muted"
           />
           <button type="submit" disabled={!parsed} className={PRIMARY_BTN}>
             {parsed ? locLabel(parsed) : '실행'}
@@ -136,11 +137,11 @@ function RefTab({ ver, current, onGo }: { ver: BibleVersion; current: Loc; onGo:
             type="button"
             onClick={() => (chapter ? (setChapter(null), setVerseCount(null)) : setBook(null))}
             aria-label="뒤로"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-b27-line text-b27-muted"
           >
             ‹
           </button>
-          <div className="text-[17px] font-bold text-ink">{title}</div>
+          <div className="text-[17px] font-semibold text-b27-ink">{title}</div>
           <button type="button" onClick={() => run()} className={PRIMARY_BTN}>
             실행
           </button>
@@ -182,7 +183,7 @@ function RefTab({ ver, current, onGo }: { ver: BibleVersion; current: Loc; onGo:
       {book && chapter && (
         <div className="grid grid-cols-5 gap-1.5">
           {verseCount == null ? (
-            <p className="col-span-5 py-6 text-center text-sm text-muted">절 목록 불러오는 중…</p>
+            <p className="col-span-5 py-6 text-center text-sm text-b27-muted">절 목록 불러오는 중…</p>
           ) : (
             Array.from({ length: verseCount }, (_, i) => i + 1).map((v) => (
               <button key={v} type="button" onClick={() => run(v)} className={GRID_BTN}>
@@ -238,28 +239,28 @@ function SearchTab({ ver: initialVer, current, onGo }: { ver: BibleVersion; curr
           e.preventDefault()
           search(0)
         }}
-        className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3"
+        className="flex items-center gap-2 rounded-xl border border-b27-line bg-b27-paper px-3"
       >
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="단어 검색 (띄어쓰기 = 모두 포함)"
           enterKeyHint="search"
-          className="h-11 min-w-0 flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-faint"
+          className="h-11 min-w-0 flex-1 bg-transparent text-[14px] text-b27-ink outline-none placeholder:text-b27-muted"
         />
         <button type="submit" disabled={state.status === 'loading'} className={PRIMARY_BTN}>
           검색
         </button>
       </form>
       <div className="mt-2 flex gap-1.5">
-        <select value={ver} onChange={(e) => setVer(e.target.value as BibleVersion)} aria-label="검색 버전" className="h-8 rounded-lg border border-line bg-surface px-1.5 text-[12px] font-semibold text-primary">
+        <select value={ver} onChange={(e) => setVer(e.target.value as BibleVersion)} aria-label="검색 버전" className="h-8 rounded-lg border border-b27-line bg-b27-paper px-1.5 text-[12px] font-semibold text-b27-ink">
           {BIBLE_VERSIONS.map((v) => (
             <option key={v} value={v}>
               {BIBLE_VERSION_LABEL[v]}
             </option>
           ))}
         </select>
-        <select value={scope} onChange={(e) => setScope(e.target.value as SearchScope)} aria-label="검색 범위" className="h-8 rounded-lg border border-line bg-surface px-1.5 text-[12px] font-semibold text-primary">
+        <select value={scope} onChange={(e) => setScope(e.target.value as SearchScope)} aria-label="검색 범위" className="h-8 rounded-lg border border-b27-line bg-b27-paper px-1.5 text-[12px] font-semibold text-b27-ink">
           <option value="all">전체</option>
           <option value="ot">구약</option>
           <option value="nt">신약</option>
@@ -267,29 +268,29 @@ function SearchTab({ ver: initialVer, current, onGo }: { ver: BibleVersion; curr
         </select>
       </div>
 
-      {state.status === 'error' && <p className="mt-3 text-sm text-danger">{state.error}</p>}
-      {state.status === 'loading' && !res && <p className="mt-6 text-center text-sm text-muted">검색 중…</p>}
+      {state.status === 'error' && <p className="mt-3 text-sm text-b27-expense">{state.error}</p>}
+      {state.status === 'loading' && !res && <p className="mt-6 text-center text-sm text-b27-muted">검색 중…</p>}
       {res && (
         <div className="mt-3">
-          <p className="mb-2 text-[12px] text-muted">
+          <p className="mb-2 text-[12px] text-b27-muted">
             {res.total.toLocaleString()}건 · {BIBLE_VERSION_LABEL[ver]}
           </p>
-          <ul className="divide-y divide-line">
+          <ul className="divide-y divide-b27-line">
             {res.rows.map((r) => {
               const loc = { seq: r.chap_seq, verse: r.verse }
               return (
                 <li key={`${r.chap_seq}:${r.verse}`}>
-                  <button type="button" onClick={() => onGo(loc, state.words)} className="w-full py-2.5 text-left transition active:bg-surface-subtle">
-                    <div className="font-display text-[11px] font-bold text-accent">{locLabel(loc, true)}</div>
-                    <p className="mt-0.5 line-clamp-3 text-[14px] leading-relaxed text-ink">{markText(stripHeadings(r.body), state.words)}</p>
+                  <button type="button" onClick={() => onGo(loc, state.words)} className="w-full py-2.5 text-left transition active:bg-b27-card">
+                    <div className="font-num text-[11px] font-semibold text-[#A91E30]">{locLabel(loc, true)}</div>
+                    <p className="mt-0.5 line-clamp-3 text-[14px] leading-relaxed text-b27-ink">{markText(stripHeadings(r.body), state.words)}</p>
                   </button>
                 </li>
               )
             })}
           </ul>
-          {res.rows.length === 0 && <p className="py-6 text-center text-sm text-muted">일치하는 구절이 없습니다.</p>}
+          {res.rows.length === 0 && <p className="py-6 text-center text-sm text-b27-muted">일치하는 구절이 없습니다.</p>}
           {hasMore && (
-            <button type="button" onClick={() => search(res.offset + res.limit, true)} disabled={state.status === 'loading'} className="mt-3 w-full rounded-xl border border-line py-2 text-[13px] font-semibold text-muted">
+            <button type="button" onClick={() => search(res.offset + res.limit, true)} disabled={state.status === 'loading'} className="mt-3 w-full rounded-xl border border-b27-line py-2 text-[13px] font-semibold text-b27-muted">
               {state.status === 'loading' ? '불러오는 중…' : `더 보기 (${res.rows.length}/${res.total})`}
             </button>
           )}
@@ -305,18 +306,18 @@ function ListTab({ kind, onGo }: { kind: 'recent' | 'fav'; onGo: (l: Loc) => voi
   useEffect(() => setItems(kind === 'recent' ? loadRecent() : loadFav()), [kind])
 
   if (items.length === 0)
-    return <p className="py-10 text-center text-sm text-muted">{kind === 'recent' ? '최근 이동한 구절이 없습니다.' : '패널 헤더의 ☆ 로 즐겨찾기를 추가하세요.'}</p>
+    return <p className="py-10 text-center text-sm text-b27-muted">{kind === 'recent' ? '최근 이동한 구절이 없습니다.' : '패널 헤더의 ☆ 로 즐겨찾기를 추가하세요.'}</p>
 
   return (
-    <ul className="divide-y divide-line">
+    <ul className="divide-y divide-b27-line">
       {items.map((it) => (
         <li key={`${it.seq}:${it.verse}:${it.t}`} className="flex items-center gap-2">
           <button type="button" onClick={() => onGo({ seq: it.seq, verse: it.verse })} className="min-w-0 flex-1 py-3 text-left">
-            <div className="text-[15px] font-bold text-ink">{it.label}</div>
-            <div className="text-[11px] text-faint">{new Date(it.t).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+            <div className="text-[15px] font-semibold text-b27-ink">{it.label}</div>
+            <div className="text-[11px] text-b27-muted">{new Date(it.t).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })}</div>
           </button>
           {kind === 'fav' && (
-            <button type="button" onClick={() => setItems(removeFav(it.seq, it.verse))} aria-label="삭제" className="h-8 w-8 rounded-lg border border-line text-[12px] text-muted">
+            <button type="button" onClick={() => setItems(removeFav(it.seq, it.verse))} aria-label="삭제" className="h-8 w-8 rounded-lg border border-b27-line text-[12px] text-b27-muted">
               ✕
             </button>
           )}

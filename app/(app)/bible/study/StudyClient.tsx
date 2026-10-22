@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-STUDY-CLIENT-V3 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-STUDY-CLIENT-V2 — 높이 = 100svh(작은 뷰포트: 브라우저 UI 가 보일 때 기준) − 탭바(76px+safe-area).
 //   dvh 는 모바일에서 주소창 상태에 따라 탭바 뒤까지 늘어나 패널 하단(이전 장·다음 장)이 가려졌음. 규칙은 globals.css .bible-study-main(svh 미지원 시 vh).
@@ -18,7 +19,7 @@ import { loadFav, loadPrefs, pushRecent, savePrefs, toggleFav, type PaneState, t
 type Jump = { verse: number; n: number }
 type Finder = { open: boolean; tab: FinderTab; target: 0 | 1 }
 
-const TOOL_BTN = 'flex h-9 items-center justify-center gap-1 rounded-xl border border-line px-2.5 text-[12px] font-semibold text-muted transition hover:border-primary'
+const TOOL_BTN = 'flex h-9 items-center justify-center gap-1 rounded-xl border border-b27-line px-2.5 text-[12px] font-semibold text-b27-muted transition hover:border-b27-muted'
 
 export default function StudyClient({ initialVer, initialLoc }: { initialVer: BibleVersion; initialLoc: Loc | null }) {
   const [panes, setPanes] = useState<[PaneState, PaneState]>([
@@ -102,7 +103,7 @@ export default function StudyClient({ initialVer, initialLoc }: { initialVer: Bi
   )
 
   return (
-    <main className="app-theme mx-auto flex max-w-md flex-col px-5 @xl:max-w-3xl @4xl:max-w-6xl bible-study-main">
+    <main className="theme-2027 mx-auto flex max-w-md flex-col px-5 @xl:max-w-3xl @4xl:max-w-6xl bible-study-main">
       <PageHeader
         title="Bible"
         action={
@@ -113,7 +114,7 @@ export default function StudyClient({ initialVer, initialLoc }: { initialVer: Bi
                 <path d="M20 20l-3.5-3.5" />
               </svg>
             </button>
-            <button type="button" onClick={() => setLinked((v) => !v)} aria-pressed={linked} aria-label="패널 연결" className={`${TOOL_BTN} ${linked ? 'border-primary bg-primary text-on-primary' : ''}`}>
+            <button type="button" onClick={() => setLinked((v) => !v)} aria-pressed={linked} aria-label="패널 연결" className={`${TOOL_BTN} ${linked ? 'border-b27-ink bg-b27-ink text-on-primary' : ''}`}>
               {linkIcon}
               연결
             </button>

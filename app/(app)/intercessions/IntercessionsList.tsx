@@ -1,4 +1,5 @@
 'use client'
+// MFH-INTERCESSIONS-LIST-V2 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-INTERCESSIONS-LIST-V1
 // 멤버 전용 메시지함 — 받은 중보기도 목록 + 읽음 토글 · 삭제.
 import { useState } from 'react'
@@ -66,7 +67,7 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
 
   if (items.length === 0) {
     return (
-      <p className="mt-16 text-center text-sm leading-relaxed text-faint">
+      <p className="mt-16 text-center text-sm leading-relaxed text-b27-muted">
         아직 받은 메시지가 없습니다.
         <br />
         공개 페이지에서 방문자가 남긴 기도·응원이 여기에 모입니다.
@@ -76,27 +77,27 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
 
   return (
     <>
-      <p className="mb-3 text-xs text-muted">
-        전체 {items.length}개{unread > 0 && <span className="ml-1 font-semibold text-accent">· 안 읽음 {unread}</span>}
+      <p className="mb-3 text-xs text-b27-muted">
+        전체 {items.length}개{unread > 0 && <span className="ml-1.5 rounded-full bg-b27-tint-6 px-2 py-0.5 font-medium" style={{ color: 'var(--b27-deep-6)' }}>안 읽음 {unread}</span>}
       </p>
       <ul className="space-y-3">
         {items.map((it) => (
           <li
             key={it.id}
-            className="rounded-2xl border border-line bg-surface p-4 shadow-[0_4px_18px_-6px_rgba(34,34,34,0.16)]"
+            className="rounded-[18px] bg-b27-paper p-4 ring-1 ring-b27-line"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                {!it.is_read && <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />}
-                <span className="font-bold text-ink">{it.visitor_name}</span>
+                {!it.is_read && <span className="h-2 w-2 shrink-0 rounded-full bg-b27-block-6" />}
+                <span className="font-semibold text-b27-ink">{it.visitor_name}</span>
               </div>
-              <span className="shrink-0 text-[11px] text-faint">{fmtDateTime(it.created_at)}</span>
+              <span className="shrink-0 text-[11px] text-b27-muted">{fmtDateTime(it.created_at)}</span>
             </div>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{it.message}</p>
-            <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-b27-ink">{it.message}</p>
+            <div className="mt-3 flex items-center gap-2 border-t border-b27-line pt-3">
               <Link
                 href={`/journal/new?intercession=${it.id}`}
-                className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-ink transition hover:border-ink"
+                className="rounded-full bg-b27-ink px-3 py-1.5 text-xs font-medium text-white transition active:opacity-80"
               >
                 일지 쓰기
               </Link>
@@ -104,7 +105,7 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
                 type="button"
                 onClick={() => toggleRead(it)}
                 disabled={busy === it.id}
-                className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-muted transition hover:border-ink hover:text-ink disabled:opacity-50"
+                className="rounded-full bg-b27-card px-3 py-1.5 text-xs font-medium text-b27-ink transition active:opacity-70 disabled:opacity-50"
               >
                 {it.is_read ? '안 읽음으로' : '읽음으로'}
               </button>
@@ -112,7 +113,7 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
                 type="button"
                 onClick={() => remove(it)}
                 disabled={busy === it.id}
-                className="ml-auto rounded-full border border-accent px-3 py-1 text-xs font-semibold text-accent transition hover:bg-accent-soft disabled:opacity-50"
+                className="ml-auto rounded-full bg-b27-expense-soft px-3 py-1.5 text-xs font-medium text-b27-expense transition active:opacity-70 disabled:opacity-50"
               >
                 삭제
               </button>

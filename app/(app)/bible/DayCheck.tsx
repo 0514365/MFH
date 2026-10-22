@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-DAY-CHECK-V4 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-DAY-CHECK-V3
 // 읽음 체크 버튼(즉시 update 패턴, TaskCheck 와 동일 UX). size: lg=오늘 카드/홈, sm=일정 목록.
@@ -38,7 +39,7 @@ export default function DayCheck({
     router.refresh()
   }
 
-  const dim = size === 'lg' ? 'h-11 w-11 rounded-2xl text-xl' : 'h-6 w-6 rounded-md text-sm'
+  const dim = size === 'lg' ? 'h-11 w-11 text-lg' : 'h-[26px] w-[26px] text-sm'
   return (
     <button
       type="button"
@@ -46,8 +47,8 @@ export default function DayCheck({
       disabled={busy}
       aria-label={checked ? '읽음 취소' : '읽음 체크'}
       aria-pressed={checked}
-      className={`flex shrink-0 items-center justify-center border font-extrabold transition-colors ${dim} ${
-        checked ? 'border-accent bg-accent text-white' : 'border-[#e6c9cb] bg-transparent text-transparent hover:border-accent'
+      className={`flex shrink-0 items-center justify-center rounded-full border-2 font-semibold transition-colors active:scale-95 ${dim} ${
+        checked ? 'border-[#226C5A] bg-[#226C5A] text-white' : 'border-[#C9CDD8] bg-b27-paper text-transparent'
       }`}
     >
       ✓

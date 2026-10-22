@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-DAY-CARD-V5 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-DAY-CARD-V4 — 머리 메타 줄에 「본문 읽기 →」(/bible/read?day=N) 링크 추가(live·record 공통).
 // MFH-BIBLE-DAY-CARD-V3
@@ -99,7 +100,7 @@ const PrayerIcon = () => (
 
 const compactField =
   '[&>div>div]:!rounded-lg [&>div>div]:!px-2 [&>div>div]:!py-1.5 [&>div>div]:!text-[12px] [&_input]:!rounded-lg [&_input]:!px-2 [&_input]:!py-1.5 [&_input]:!text-[12px]'
-const chipInput = 'w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-[12px] outline-none focus:border-primary'
+const chipInput = 'w-full rounded-lg bg-b27-card px-2 py-1.5 text-[12px] text-b27-ink outline-none'
 
 export default function DayCard({ day, heading, mode = 'live' }: Props) {
   const router = useRouter()
@@ -267,19 +268,19 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
   const minutesEst = estimateByMethod(day.chars, view.method)
 
   return (
-    <section className={`rounded-3xl border bg-surface p-5 ${isRecord ? 'border-line' : done ? 'border-accent' : 'border-line'}`}>
+    <section className={`rounded-[20px] bg-b27-paper p-4 ${done && !isRecord ? 'ring-2 ring-[#226C5A]' : 'ring-1 ring-b27-line'}`}>
       {/* 머리 — 범위·분량 (+ live: 큰 체크 / record: 수정 버튼) */}
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-semibold text-muted">
+          <div className="text-[11px] font-semibold text-b27-muted">
             {heading} · {shortDate(day.read_date)} · {day.day_no}일차
           </div>
-          <div className="mt-0.5 text-[20px] font-bold leading-tight text-ink">{day.range_label}</div>
-          <div className="mt-1 flex items-center justify-between gap-2 text-[12px] text-muted">
+          <div className="mt-0.5 text-[20px] font-semibold leading-tight text-b27-ink">{day.range_label}</div>
+          <div className="mt-1 flex items-center justify-between gap-2 text-[12px] text-b27-muted">
             <span>
               {day.chapters}장 · {day.chars.toLocaleString()}자 · 약 {minutesEst}분
             </span>
-            <Link href={`/bible/read?day=${day.day_no}`} className="shrink-0 font-semibold text-accent">
+            <Link href={`/bible/read?day=${day.day_no}`} className="shrink-0 font-semibold text-[#A91E30]">
               본문 읽기 →
             </Link>
           </div>
@@ -291,8 +292,8 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
             disabled={busy}
             aria-pressed={done}
             aria-label={done ? '읽음 취소' : '읽음 체크'}
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border text-2xl font-extrabold transition-colors ${
-              done ? 'border-accent bg-accent text-white' : 'border-[#e6c9cb] text-transparent hover:border-accent'
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border text-2xl font-semibold transition-colors ${
+              done ? 'border-b27-ink bg-b27-ink text-white' : 'border-[#e6c9cb] text-transparent hover:border-b27-muted'
             }`}
           >
             ✓
@@ -302,7 +303,7 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
           <button
             type="button"
             onClick={startEdit}
-            className="shrink-0 rounded-xl border border-line px-3 py-2 text-[12px] font-semibold text-primary transition hover:border-primary"
+            className="shrink-0 rounded-full bg-b27-card px-3.5 py-2 text-[12px] font-medium text-b27-ink transition active:opacity-70"
           >
             수정
           </button>
@@ -313,27 +314,27 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
       {isRecord && !editing && (
         <div className="mt-3 space-y-2 text-[13px]">
           <div className="flex flex-wrap gap-1.5">
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${done ? 'bg-status-done text-on-status-done' : 'bg-surface-subtle text-muted'}`}>
+            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${done ? 'bg-b27-tint-4 text-[#226C5A]' : 'bg-b27-card text-b27-muted'}`}>
               {done ? '읽음' : '미완료'}
             </span>
             {saved.readOn && (
-              <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
+              <span className="rounded-full bg-b27-card px-2 py-0.5 text-[11px] text-b27-muted">
                 {longDate(saved.readOn)}
                 {saved.readTime ? ` ${timeKo(saved.readTime)}` : ''}
               </span>
             )}
-            {saved.minutes && <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">{saved.minutes}분</span>}
-            {saved.method && <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">{methodLabel(saved.method)}</span>}
+            {saved.minutes && <span className="rounded-full bg-b27-card px-2 py-0.5 text-[11px] text-b27-muted">{saved.minutes}분</span>}
+            {saved.method && <span className="rounded-full bg-b27-card px-2 py-0.5 text-[11px] text-b27-muted">{methodLabel(saved.method)}</span>}
           </div>
-          <div className="text-ink">
+          <div className="text-b27-ink">
             {saved.grace ? (
               <p className="leading-snug">{saved.grace}</p>
             ) : (
-              <p className="text-faint">한 줄 은혜 없음</p>
+              <p className="text-b27-muted">한 줄 은혜 없음</p>
             )}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-faint">
-            <span className={`inline-flex items-center gap-1 ${saved.prayer ? 'text-accent' : ''}`}>
+          <div className="flex items-center justify-between text-[11px] text-b27-muted">
+            <span className={`inline-flex items-center gap-1 ${saved.prayer ? 'text-[#A91E30]' : ''}`}>
               <PrayerIcon /> {saved.prayer ? '기도제목 포함' : '기도제목 미포함'}
             </span>
             {note ?? (journalId && (
@@ -350,7 +351,7 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
         <>
           {/* 통독 방법 */}
           <div className="mt-3 flex items-center gap-1.5">
-            <span className="shrink-0 text-[10px] text-faint">방법</span>
+            <span className="shrink-0 text-[10px] text-b27-muted">방법</span>
             {READ_METHODS.map((m) => {
               const on = view.method === m.value
               return (
@@ -360,7 +361,7 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
                   onClick={() => (isRecord ? set('method', on ? null : m.value) : liveMethod(m.value))}
                   aria-pressed={on}
                   className={`flex-1 rounded-full border px-2 py-1.5 text-[11px] font-semibold transition ${
-                    on ? 'border-primary bg-primary text-white' : 'border-line bg-surface text-muted hover:border-primary'
+                    on ? 'border-b27-ink bg-b27-ink text-white' : 'border-b27-line bg-b27-paper text-b27-muted hover:border-b27-muted'
                   }`}
                 >
                   {m.label}
@@ -373,7 +374,7 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
           {(isRecord || done) && (
             <div className="mt-3 grid grid-cols-[1.4fr_1.2fr_0.8fr] gap-2">
               <div>
-                <div className="mb-1 text-[10px] text-faint">읽은 날</div>
+                <div className="mb-1 text-[10px] text-b27-muted">읽은 날</div>
                 <div className={compactField}>
                   <DateField
                     value={view.readOn}
@@ -386,7 +387,7 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
                 </div>
               </div>
               <div>
-                <div className="mb-1 text-[10px] text-faint">시각</div>
+                <div className="mb-1 text-[10px] text-b27-muted">시각</div>
                 <div className={compactField}>
                   <TimeField
                     value={view.readTime}
@@ -399,7 +400,7 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
                 </div>
               </div>
               <div>
-                <div className="mb-1 text-[10px] text-faint">소요(분)</div>
+                <div className="mb-1 text-[10px] text-b27-muted">소요(분)</div>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -418,8 +419,8 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
 
           {/* 한 줄 은혜 + 기도제목 */}
           <div className="mt-4">
-            <label className="mb-1 block text-[12px] font-semibold text-muted">
-              오늘의 한 줄 은혜 <span className="font-normal text-faint">(선택)</span>
+            <label className="mb-1 block text-[12px] font-semibold text-b27-muted">
+              오늘의 한 줄 은혜 <span className="font-normal text-b27-muted">(선택)</span>
             </label>
             <input
               value={view.grace}
@@ -432,7 +433,7 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
               }}
               maxLength={200}
               placeholder="읽으며 마음에 남은 한 구절·한 생각"
-              className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary"
+              className="w-full rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink outline-none placeholder:text-b27-muted"
             />
             <div className="mt-2 flex items-center justify-between gap-2">
               <button
@@ -449,13 +450,13 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
                 disabled={busy}
                 aria-pressed={view.prayer}
                 className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition disabled:opacity-50 ${
-                  view.prayer ? 'border-accent bg-accent-soft text-accent' : 'border-line text-muted hover:border-primary'
+                  view.prayer ? 'border-b27-ink bg-b27-tint-7 text-[#A91E30]' : 'border-b27-line text-b27-muted hover:border-b27-muted'
                 }`}
               >
                 <PrayerIcon />
                 기도제목에 포함
               </button>
-              <span className="truncate text-[11px] text-faint">
+              <span className="truncate text-[11px] text-b27-muted">
                 {note ??
                   (journalId && !isRecord ? (
                     <Link href={`/journal/${journalId}`} className="underline">
@@ -475,11 +476,11 @@ export default function DayCard({ day, heading, mode = 'live' }: Props) {
                 type="button"
                 onClick={commitEdit}
                 disabled={busy}
-                className="flex-1 rounded-xl bg-accent py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                className="flex-1 rounded-xl bg-b27-ink py-2.5 text-sm font-semibold text-white disabled:opacity-50"
               >
                 {busy ? '저장 중…' : '수정 완료'}
               </button>
-              <button type="button" onClick={cancelEdit} disabled={busy} className="rounded-xl border border-line px-4 py-2.5 text-sm text-muted">
+              <button type="button" onClick={cancelEdit} disabled={busy} className="rounded-xl bg-b27-card px-4 py-2.5 text-sm text-b27-muted">
                 취소
               </button>
             </div>

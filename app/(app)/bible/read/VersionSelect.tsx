@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-VERSION-SELECT-V3 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-VERSION-SELECT-V2 — 본문 버전 4단(개역개정·새한글·ESV·RVR1960). 쿠키(bible_ver) 저장 후 서버 재렌더.
 // Manna VersionSelect V1 이식(SegmentedTabs → 인라인 세그먼트, DayCard 방법 칩과 같은 스타일). QT 접이식과 쿠키 공유.
@@ -28,7 +29,7 @@ export default function VersionSelect({ initial }: { initial: BibleVersion }) {
               startTransition(() => router.refresh())
             }}
             className={`flex-1 rounded-full border px-2 py-1.5 text-[11px] font-semibold transition disabled:opacity-70 ${
-              on ? 'border-primary bg-primary text-on-primary' : 'border-line bg-surface text-muted hover:border-primary'
+              on ? 'border-b27-ink bg-b27-ink text-on-primary' : 'border-b27-line bg-b27-paper text-b27-muted hover:border-b27-muted'
             }`}
           >
             {BIBLE_VERSION_LABEL[v]}

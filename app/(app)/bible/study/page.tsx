@@ -1,3 +1,4 @@
+// MFH-BIBLE-STUDY-PAGE-V2 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-BIBLE-STUDY-PAGE-V1 — /bible/study?ref=요 3:16 — 성경 읽기·단어 검색·번역 비교(LOGOS 식 2패널). 서버 껍데기.
 // 로그인 필수. 초기 버전 = 쿠키 bible_ver(통독·QT 와 공유). ?ref 가 있으면 그 구절로 시작(없으면 기기 저장 상태 → 요한복음 1장).
 // 본문·검색은 클라이언트가 /api/bible/chapter · /api/bible/search 로 조회(멤버 RLS).
@@ -7,7 +8,6 @@ import { createClient } from '@/lib/supabase-server'
 import { BIBLE_VERSION_COOKIE, parseBibleVersion } from '@/lib/bible/texts'
 import { parseRefInput } from '@/lib/bible/ref'
 import StudyClient from './StudyClient'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 

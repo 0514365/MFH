@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-PLAN-FORM-V3 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-PLAN-FORM-V2
 // 통독 계획 수립 폼 — 타이틀·기간·제외 요일·통독 범위(전체/구약만/신약만)·읽기 순서·배분 방식 + 실시간 미리보기(buildSchedule).
@@ -23,8 +24,8 @@ import {
   type SplitMode,
 } from '@/lib/bible/plan'
 
-const input = 'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
-const label = 'mb-1 mt-4 block text-xs font-semibold text-muted'
+const input = 'w-full rounded-xl border border-b27-line bg-b27-paper px-4 py-3 text-sm outline-none focus:border-b27-ink'
+const label = 'mb-1 mt-4 block text-xs font-semibold text-b27-muted'
 
 // 요일 칩 표시 순서(월~일). 값은 JS getDay(0=일).
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
@@ -48,7 +49,7 @@ function Segmented<T extends string>({
             type="button"
             onClick={() => onChange(o.value)}
             className={`flex-1 rounded-full border py-2 text-[13px] transition ${
-              on ? 'border-accent bg-accent font-semibold text-white' : 'border-line bg-surface text-muted hover:border-primary'
+              on ? 'border-b27-ink bg-b27-ink font-semibold text-white' : 'border-b27-line bg-b27-paper text-b27-muted hover:border-b27-muted'
             }`}
           >
             {o.label}
@@ -188,12 +189,12 @@ export default function PlanForm({ today }: { today: string }) {
       <label className={label}>기간 (시작일 ~ 완료 목표일)</label>
       <div className="flex items-center gap-2">
         <DateField value={start} onChange={setStart} placeholder="시작일" />
-        <span className="shrink-0 text-faint">~</span>
+        <span className="shrink-0 text-b27-muted">~</span>
         <DateField value={end} onChange={setEnd} placeholder="완료 목표일" />
       </div>
 
       <label className={label}>
-        읽기 제외 요일 <span className="font-normal text-faint">(탭해서 끄기)</span>
+        읽기 제외 요일 <span className="font-normal text-b27-muted">(탭해서 끄기)</span>
       </label>
       <div className="flex gap-1.5">
         {WEEKDAY_ORDER.map((d) => {
@@ -206,8 +207,8 @@ export default function PlanForm({ today }: { today: string }) {
               aria-pressed={off}
               className={`flex-1 rounded-xl border py-2 text-[13px] transition ${
                 off
-                  ? 'border-line bg-surface-subtle text-faint line-through'
-                  : `border-line bg-surface hover:border-primary ${d === 0 ? 'text-accent' : 'text-ink'}`
+                  ? 'border-b27-line bg-b27-card text-b27-muted line-through'
+                  : `border-b27-line bg-b27-paper hover:border-b27-muted ${d === 0 ? 'text-[#A91E30]' : 'text-b27-ink'}`
               }`}
             >
               {WEEKDAY_KR[d]}
@@ -222,7 +223,7 @@ export default function PlanForm({ today }: { today: string }) {
         onChange={changeScope}
         options={(Object.keys(READ_SCOPE_LABEL) as ReadScope[]).map((v) => ({ value: v, label: READ_SCOPE_LABEL[v] }))}
       />
-      <p className="mt-1.5 text-[11px] leading-snug text-faint">
+      <p className="mt-1.5 text-[11px] leading-snug text-b27-muted">
         {READ_SCOPE_LABEL[scope]} {totals.chapters.toLocaleString()}장 · {totals.chars.toLocaleString()}자
         {scope !== 'all' && ' — 정경 순으로 읽습니다.'}
       </p>
@@ -247,80 +248,80 @@ export default function PlanForm({ today }: { today: string }) {
           { value: 'chars' as SplitMode, label: `${SPLIT_MODE_LABEL.chars} (권장)` },
         ]}
       />
-      <p className="mt-1.5 text-[11px] leading-snug text-faint">
+      <p className="mt-1.5 text-[11px] leading-snug text-b27-muted">
         장 균등은 하루 글자수 편차가 최대 5배(시편 117편 70자 ~ 119편 5,198자). 글자 균등은 장 단위를 유지하며 하루 분량을 고르게 맞춥니다.
       </p>
 
       {/* 미리보기 */}
-      <section className="mt-5 rounded-3xl bg-primary-soft p-5">
-        <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-accent">미리보기</div>
+      <section className="mt-5 rounded-3xl bg-b27-tint-7 p-5">
+        <div className="font-num text-[10px] font-semibold  text-[#A91E30]">미리보기</div>
         {preview.ok ? (
           <>
             <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-[13px]">
               <div>
-                <dt className="text-[11px] text-muted">읽는 날</dt>
-                <dd className="font-bold text-primary">
-                  {preview.stats.readingDays}일 <span className="font-normal text-muted">/ {preview.stats.calendarDays}일</span>
+                <dt className="text-[11px] text-b27-muted">읽는 날</dt>
+                <dd className="font-semibold text-b27-ink">
+                  {preview.stats.readingDays}일 <span className="font-normal text-b27-muted">/ {preview.stats.calendarDays}일</span>
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] text-muted">완독일</dt>
-                <dd className="font-bold text-primary">
+                <dt className="text-[11px] text-b27-muted">완독일</dt>
+                <dd className="font-semibold text-b27-ink">
                   {longDate(preview.stats.lastDate)} ({WEEKDAY_KR[weekdayOf(preview.stats.lastDate)]})
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] text-muted">하루 평균</dt>
-                <dd className="font-bold text-primary">
+                <dt className="text-[11px] text-b27-muted">하루 평균</dt>
+                <dd className="font-semibold text-b27-ink">
                   {preview.stats.avgChapters}장 · {preview.stats.avgChars.toLocaleString()}자
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] text-muted">예상 시간</dt>
-                <dd className="font-bold text-primary">
-                  약 {preview.stats.avgMinutes}분 <span className="font-normal text-muted">(500자/분)</span>
+                <dt className="text-[11px] text-b27-muted">예상 시간</dt>
+                <dd className="font-semibold text-b27-ink">
+                  약 {preview.stats.avgMinutes}분 <span className="font-normal text-b27-muted">(500자/분)</span>
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] text-muted">하루 장수</dt>
-                <dd className="font-bold text-primary">
+                <dt className="text-[11px] text-b27-muted">하루 장수</dt>
+                <dd className="font-semibold text-b27-ink">
                   {preview.stats.minChapters}~{preview.stats.maxChapters}장
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] text-muted">하루 글자수</dt>
-                <dd className="font-bold text-primary">
+                <dt className="text-[11px] text-b27-muted">하루 글자수</dt>
+                <dd className="font-semibold text-b27-ink">
                   {preview.stats.minChars.toLocaleString()}~{preview.stats.maxChars.toLocaleString()}자
                 </dd>
               </div>
             </dl>
-            <p className="mt-3 text-[12px] text-muted">
+            <p className="mt-3 text-[12px] text-b27-muted">
               첫날 {preview.stats.firstLabel} · 마지막날 {preview.stats.lastLabel}
               {excludedLabel.length > 0 && ` · ${excludedLabel.join('·')} 제외`}
             </p>
           </>
         ) : (
-          <p className="mt-2 text-sm text-danger">{preview.error}</p>
+          <p className="mt-2 text-sm text-b27-expense">{preview.error}</p>
         )}
       </section>
 
-      {msg && <p className="mt-4 text-sm text-danger">{msg}</p>}
+      {msg && <p className="mt-4 text-sm text-b27-expense">{msg}</p>}
 
       <div className="mt-5 flex gap-2">
         <button
           type="button"
           onClick={save}
           disabled={saving || !preview.ok}
-          className="flex-1 rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
+          className="flex-1 rounded-xl bg-b27-ink py-3 text-sm font-semibold text-white disabled:opacity-50"
         >
           {saving ? '일정 생성 중…' : '계획 저장 · 일정 생성'}
         </button>
-        <button type="button" onClick={() => router.back()} className="rounded-xl border border-line px-5 py-3 text-sm text-muted">
+        <button type="button" onClick={() => router.back()} className="rounded-xl border border-b27-line px-5 py-3 text-sm text-b27-muted">
           취소
         </button>
       </div>
       {preview.ok && (
-        <p className="mt-3 text-[11px] text-faint">
+        <p className="mt-3 text-[11px] text-b27-muted">
           저장하면 {preview.stats.readingDays}일치 일정이 생성되고 활성 계획으로 지정됩니다. 기존 활성 계획은 보관(대기)됩니다.
         </p>
       )}

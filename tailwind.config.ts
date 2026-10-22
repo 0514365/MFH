@@ -67,6 +67,8 @@ const config: Config = {
         display: ['var(--font-montserrat)', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         // 2027 숫자·제목 — Manrope(lib/fonts.ts), 한글은 Pretendard 폴백
         num: ['var(--font-manrope)', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        // 2027 성경 본문 명조 — Noto Serif KR(lib/fonts.ts)
+        serif: ['var(--font-serif)', 'Noto Serif KR', 'serif'],
       },
       boxShadow: {
         soft: '0 2px 12px -4px rgba(34, 28, 28, 0.06)',

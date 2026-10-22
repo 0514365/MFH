@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-STUDY-PANE-V3 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-STUDY-PANE-V2 (본문 하단 여백 pb-5 — 이전 장·다음 장 행이 끝에 붙지 않게)
 // MFH-BIBLE-STUDY-PANE-V1 — /bible/study 본문 패널 1개(LOGOS 타일 대응).
@@ -31,7 +32,7 @@ type Props = {
   onToggleFav: () => void
 }
 
-const HDR_BTN = 'flex h-8 items-center justify-center rounded-lg border border-line px-2 text-[12px] font-semibold text-muted transition hover:border-primary disabled:opacity-40'
+const HDR_BTN = 'flex h-8 items-center justify-center rounded-lg border border-b27-line px-2 text-[12px] font-semibold text-b27-muted transition hover:border-b27-muted disabled:opacity-40'
 
 const Pane = forwardRef<PaneHandle, Props>(function Pane(
   { index, ver, seq, jump, highlight, isFav, onChangeVer, onStep, onOpenFinder, onTopVerse, onToggleFav },
@@ -135,14 +136,14 @@ const Pane = forwardRef<PaneHandle, Props>(function Pane(
   const fallback = chapter && chapter.served !== ver
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-surface" aria-label={`패널 ${index === 0 ? 'A' : 'B'}`}>
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-b27-line bg-b27-paper" aria-label={`패널 ${index === 0 ? 'A' : 'B'}`}>
       {/* 헤더 */}
-      <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-2 py-1.5">
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-b27-line px-2 py-1.5">
         <select
           value={ver}
           onChange={(e) => onChangeVer(e.target.value as BibleVersion)}
           aria-label="번역 버전"
-          className="h-8 max-w-[96px] rounded-lg border border-line bg-surface px-1.5 text-[12px] font-semibold text-primary"
+          className="h-8 max-w-[96px] rounded-lg border border-b27-line bg-b27-paper px-1.5 text-[12px] font-semibold text-b27-ink"
         >
           {BIBLE_VERSIONS.map((v) => (
             <option key={v} value={v}>
@@ -150,10 +151,10 @@ const Pane = forwardRef<PaneHandle, Props>(function Pane(
             </option>
           ))}
         </select>
-        <button type="button" onClick={onOpenFinder} className="min-w-0 flex-1 truncate rounded-lg px-2 text-left text-[15px] font-bold text-ink transition hover:bg-surface-subtle">
+        <button type="button" onClick={onOpenFinder} className="min-w-0 flex-1 truncate rounded-lg px-2 text-left text-[15px] font-semibold text-b27-ink transition hover:bg-b27-card">
           {book.name} {chapNo}
         </button>
-        <button type="button" onClick={onToggleFav} aria-label={isFav ? '즐겨찾기 해제' : '즐겨찾기 추가'} aria-pressed={isFav} className={`${HDR_BTN} w-8 px-0 ${isFav ? 'border-accent text-accent' : ''}`}>
+        <button type="button" onClick={onToggleFav} aria-label={isFav ? '즐겨찾기 해제' : '즐겨찾기 추가'} aria-pressed={isFav} className={`${HDR_BTN} w-8 px-0 ${isFav ? 'border-b27-ink text-[#A91E30]' : ''}`}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.4l-5.4 2.9 1.1-6.1L3.2 9.9l6.1-.8z" />
           </svg>
@@ -169,14 +170,14 @@ const Pane = forwardRef<PaneHandle, Props>(function Pane(
       {/* 본문 */}
       <div ref={boxRef} onScroll={onScroll} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-3 pb-5" style={{ WebkitOverflowScrolling: 'touch' }}>
         {fallback && (
-          <p className="mb-2 rounded-xl bg-accent-soft px-3 py-1.5 text-[11px] text-primary">
+          <p className="mb-2 rounded-xl bg-b27-tint-7 px-3 py-1.5 text-[11px] text-b27-ink">
             {BIBLE_VERSION_LABEL[ver]}은 이 장이 아직 준비 중이라 개역개정으로 표시합니다.
           </p>
         )}
-        {status === 'loading' && !chapter && <p className="py-8 text-center text-sm text-muted">불러오는 중…</p>}
-        {status === 'error' && <p className="py-8 text-center text-sm text-muted">본문을 불러오지 못했습니다.</p>}
+        {status === 'loading' && !chapter && <p className="py-8 text-center text-sm text-b27-muted">불러오는 중…</p>}
+        {status === 'error' && <p className="py-8 text-center text-sm text-b27-muted">본문을 불러오지 못했습니다.</p>}
         {chapter && chapter.verses.length === 0 && status === 'ok' && (
-          <p className="py-8 text-center text-sm text-muted">본문 데이터가 없습니다(patch105 시딩 필요).</p>
+          <p className="py-8 text-center text-sm text-b27-muted">본문 데이터가 없습니다(patch105 시딩 필요).</p>
         )}
         {chapter && (
           <div className={`space-y-2 ${status === 'loading' ? 'opacity-50' : ''}`}>
@@ -189,7 +190,7 @@ const Pane = forwardRef<PaneHandle, Props>(function Pane(
               <button type="button" onClick={() => onStep(-1)} disabled={seq <= 1} className={HDR_BTN}>
                 ‹ 이전 장
               </button>
-              <span className="text-[11px] text-faint">{BIBLE_VERSION_LABEL[chapter.served]} · 내부 열람용</span>
+              <span className="text-[11px] text-b27-muted">{BIBLE_VERSION_LABEL[chapter.served]} · 내부 열람용</span>
               <button type="button" onClick={() => onStep(1)} disabled={seq >= MAX_SEQ} className={HDR_BTN}>
                 다음 장 ›
               </button>

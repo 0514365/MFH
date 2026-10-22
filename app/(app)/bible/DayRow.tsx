@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-DAY-ROW-V3 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-DAY-ROW-V2
 // 일정·밀린 분량 공용 행 — [체크] 날짜 | 범위·은혜 | 방법·밀림·장수. 본문을 탭하면 아래에 DayCard(record 모드: 요약 → 「수정」 → 「수정 완료」)가 펼쳐진다.
@@ -24,8 +25,8 @@ export default function DayRow({ day: d, today, open, onToggle }: Props) {
   return (
     <li>
       <div
-        className={`flex items-center gap-2.5 rounded-xl border bg-surface px-3 py-2 text-[13px] transition ${
-          open ? 'border-primary' : isToday ? 'border-accent' : 'border-line'
+        className={`flex items-center gap-2.5 rounded-xl border bg-b27-paper px-3 py-2 text-[13px] transition ${
+          open ? 'border-b27-ink' : isToday ? 'border-b27-ink' : 'border-b27-line'
         } ${d.done && !open ? 'opacity-60' : ''}`}
       >
         <DayCheck target={d} done={d.done} />
@@ -36,13 +37,13 @@ export default function DayRow({ day: d, today, open, onToggle }: Props) {
           aria-label={`${shortDate(d.read_date)} ${d.range_label} 기록 ${open ? '닫기' : '수정'}`}
           className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
         >
-          <span className={`w-[54px] shrink-0 text-[12px] ${sun ? 'text-accent' : 'text-muted'}`}>{shortDate(d.read_date)}</span>
+          <span className={`w-[54px] shrink-0 text-[12px] ${sun ? 'text-[#A91E30]' : 'text-b27-muted'}`}>{shortDate(d.read_date)}</span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate font-semibold text-ink">{d.range_label}</span>
-            {d.grace && <span className="block truncate text-[11px] text-muted">{d.grace}</span>}
+            <span className="block truncate font-semibold text-b27-ink">{d.range_label}</span>
+            {d.grace && <span className="block truncate text-[11px] text-b27-muted">{d.grace}</span>}
           </span>
-          <span className="shrink-0 text-[11px] text-faint">
-            {d.done && d.read_method && <span className="mr-1 text-[10px] text-muted">{methodLabel(d.read_method, true)}</span>}
+          <span className="shrink-0 text-[11px] text-b27-muted">
+            {d.done && d.read_method && <span className="mr-1 text-[10px] text-b27-muted">{methodLabel(d.read_method, true)}</span>}
             {overdue && <span className="mr-1 rounded-full bg-[#FFF1E6] px-1.5 py-0.5 text-[10px] font-semibold text-[#B45309]">밀림</span>}
             {d.chapters}장
           </span>
@@ -56,7 +57,7 @@ export default function DayRow({ day: d, today, open, onToggle }: Props) {
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
-            className={`shrink-0 text-faint transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`shrink-0 text-b27-muted transition-transform ${open ? 'rotate-180' : ''}`}
           >
             <polyline points="6 9 12 15 18 9" />
           </svg>

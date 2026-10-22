@@ -1,3 +1,4 @@
+// MFH-BIBLE-READ-V4 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-BIBLE-READ-V3.1 (ChapterCheck key=일차+장 — 다음 장으로 이동 시 「기록 중…」 상태가 남지 않게 재마운트)
 // MFH-BIBLE-READ-V3 — 장 단위 읽기(?day=N&ch=K) + 「읽기표 체크 후 다음장」 + 장별 최근 읽은 날·총 횟수(patch108 bible_chapter_reads).
 // /bible/read?day=<day_no>&ch=<일차 내 순번 1-based> — 통독 하루치를 한 장씩 읽는다.
@@ -24,17 +25,16 @@ import {
 import type { ReadingPlan, ReadingPlanDay } from '@/lib/types'
 import VersionSelect from './VersionSelect'
 import ChapterCheck from './ChapterCheck'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
-const CARD = 'rounded-[24px] border border-line bg-surface p-5 shadow-soft'
-const NAV_BTN = 'rounded-xl border border-line px-3 py-2 text-[12px] font-medium text-muted transition hover:border-primary'
-const NAV_LINK = 'text-[14px] font-semibold text-primary transition hover:underline'
+const CARD = 'rounded-2xl bg-b27-paper py-1'
+const NAV_BTN = 'rounded-full bg-b27-card px-3.5 py-2 text-[12.5px] font-medium text-b27-ink transition active:opacity-70'
+const NAV_LINK = 'text-[14px] font-semibold text-b27-ink transition hover:underline'
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8 @xl:max-w-2xl @4xl:max-w-4xl">
+    <main className="theme-2027 mx-auto max-w-md px-5 pb-8 @xl:max-w-2xl @4xl:max-w-4xl">
       <PageHeader title="본문 읽기" />
       {children}
     </main>
@@ -62,8 +62,8 @@ export default async function BibleReadPage({ searchParams }: { searchParams: Pr
     return (
       <Shell>
         <div className={`${CARD} text-center`}>
-          <p className="text-base font-semibold text-primary">활성 통독 계획이 없습니다</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted">계획을 먼저 세우면 하루치 본문을 여기서 읽을 수 있습니다.</p>
+          <p className="text-base font-semibold text-b27-ink">활성 통독 계획이 없습니다</p>
+          <p className="mt-2 text-sm leading-relaxed text-b27-muted">계획을 먼저 세우면 하루치 본문을 여기서 읽을 수 있습니다.</p>
           <Link href="/bible" className={`${NAV_BTN} mt-4 inline-block`}>
             통독으로
           </Link>
@@ -90,7 +90,7 @@ export default async function BibleReadPage({ searchParams }: { searchParams: Pr
     return (
       <Shell>
         <div className={CARD}>
-          <p className="text-sm text-muted">읽을 일차가 없습니다.</p>
+          <p className="text-sm text-b27-muted">읽을 일차가 없습니다.</p>
         </div>
       </Shell>
     )
@@ -150,15 +150,15 @@ export default async function BibleReadPage({ searchParams }: { searchParams: Pr
       {/* 일차 머리 */}
       <div className="mb-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="font-display text-[11px] font-bold uppercase tracking-[0.15em] text-accent">Day {day.day_no}</div>
-          <Link href="/bible" className="text-[12px] font-medium text-muted hover:text-primary">
+          <div className="font-num text-[11px] font-semibold  text-[#A91E30]">Day {day.day_no}</div>
+          <Link href="/bible" className="text-[12px] font-medium text-b27-muted hover:text-b27-ink">
             통독 →
           </Link>
         </div>
-        <h2 className="mt-1 text-[22px] font-bold leading-tight text-ink">
+        <h2 className="mt-1 text-[22px] font-semibold leading-tight text-b27-ink">
           {ref.book.name} {ref.chapter}장
         </h2>
-        <p className="mt-1 text-[12px] text-muted">
+        <p className="mt-1 text-[12px] text-b27-muted">
           {day.range_label} · {longDate(day.read_date)} · {ch}/{total}장{day.done ? ' · 읽음' : ''}
         </p>
       </div>
@@ -175,7 +175,7 @@ export default async function BibleReadPage({ searchParams }: { searchParams: Pr
                 href={href(day.day_no, i + 1)}
                 aria-current={on ? 'page' : undefined}
                 className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
-                  on ? 'border-primary bg-primary text-on-primary' : checked ? 'border-line bg-surface-subtle text-muted' : 'border-line bg-surface text-ink hover:border-primary'
+                  on ? 'border-b27-ink bg-b27-ink text-on-primary' : checked ? 'border-b27-line bg-b27-card text-b27-muted' : 'border-b27-line bg-b27-paper text-b27-ink hover:border-b27-muted'
                 }`}
               >
                 {r.book.abbr} {r.chapter}
@@ -189,12 +189,12 @@ export default async function BibleReadPage({ searchParams }: { searchParams: Pr
       <div className="mb-4 max-w-[360px]">
         <VersionSelect initial={version} />
       </div>
-      {notice && <p className="mb-3 rounded-xl bg-accent-soft px-3 py-2 text-[12px] text-primary">{notice}</p>}
+      {notice && <p className="mb-3 rounded-xl bg-b27-tint-7 px-3 py-2 text-[12px] text-b27-ink">{notice}</p>}
 
       {!chapter ? (
         <div className={CARD}>
-          <p className="text-[15px] font-bold text-primary">본문을 불러오지 못했습니다</p>
-          <p className="mt-1 text-sm leading-relaxed text-muted">
+          <p className="text-[15px] font-semibold text-b27-ink">본문을 불러오지 못했습니다</p>
+          <p className="mt-1 text-sm leading-relaxed text-b27-muted">
             본문 데이터가 아직 준비되지 않았을 수 있습니다(patch105 실행 + bible-seed 시딩 필요).
           </p>
         </div>
@@ -205,7 +205,7 @@ export default async function BibleReadPage({ searchParams }: { searchParams: Pr
               <VerseText key={v.verse} label={`${v.verse}${v.verse_end ? `-${v.verse_end}` : ''}`} body={v.body} />
             ))}
           </div>
-          <p className="mt-4 text-center text-[11px] text-faint">{servedLabel} · 내부 열람용</p>
+          <p className="mt-4 text-center text-[11px] text-b27-muted">{servedLabel} · 내부 열람용</p>
         </section>
       )}
 

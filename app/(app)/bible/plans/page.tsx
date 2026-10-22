@@ -1,3 +1,4 @@
+// MFH-BIBLE-PLANS-PAGE-V2 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-BIBLE-PLANS-PAGE-V1
 // /bible/plans — 내 통독 계획 목록(활성·대기·완독). 활성 전환·삭제는 PlansList(client).
 import Link from 'next/link'
@@ -8,7 +9,6 @@ import BackButton from '@/components/BackButton'
 import { planProgress, type ProgressDay } from '@/lib/bible/plan'
 import type { ReadingPlan } from '@/lib/types'
 import PlansList, { type PlanCard } from './PlansList'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,19 +37,19 @@ export default async function BiblePlansPage() {
   }))
 
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8">
+    <main className="theme-2027 mx-auto max-w-md px-5 pb-8">
       <PageHeader
         title="계획 관리"
         action={
           <>
             <BackButton href="/bible" variant="chip" label="통독" />
-            <Link href="/bible/new" className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white">
+            <Link href="/bible/new" className="rounded-xl bg-b27-ink px-4 py-2 text-sm font-semibold text-white">
               + 새 계획
             </Link>
           </>
         }
       />
-      <p className="-mt-1 mb-4 text-xs text-muted">활성 계획은 1개만 홈과 통독 화면에 표시됩니다.</p>
+      <p className="-mt-1 mb-4 text-xs text-b27-muted">활성 계획은 1개만 홈과 통독 화면에 표시됩니다.</p>
       <PlansList initial={cards} />
     </main>
   )

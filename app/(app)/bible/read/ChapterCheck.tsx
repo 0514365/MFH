@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-CHAPTER-CHECK-V3 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-CHAPTER-CHECK-V2 (chapSeq 변경 시 busy 초기화)
 // 「읽기표 체크 후 다음장」 버튼(장 단위) + 이 장의 최근 읽은 날·총 읽은 횟수.
@@ -74,16 +75,16 @@ export default function ChapterCheck({ chapSeq, planId, day, dayComplete, nextHr
         type="button"
         onClick={check}
         disabled={busy}
-        className="inline-flex items-center justify-center rounded-full border-2 border-primary bg-surface px-7 py-3 text-[15px] font-bold text-primary transition hover:bg-primary hover:text-on-primary disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center rounded-2xl bg-b27-ink px-7 py-3.5 text-[15px] font-medium text-white transition active:opacity-80 disabled:opacity-60"
       >
         {busy ? '기록 중…' : nextHref ? '읽기표 체크 후 다음장' : '읽기표 체크'}
       </button>
-      <p className="mt-2.5 text-[12px] text-muted">
+      <p className="mt-2.5 text-[12px] text-b27-muted">
         {readCount > 0 && lastReadAt
           ? `${relativeKo(lastReadAt)}에 읽은 기록이 있음 (총 ${readCount}회)`
           : '아직 읽은 기록이 없습니다'}
       </p>
-      {msg && <p className="mt-1 text-[12px] text-danger">{msg}</p>}
+      {msg && <p className="mt-1 text-[12px] text-b27-expense">{msg}</p>}
     </div>
   )
 }

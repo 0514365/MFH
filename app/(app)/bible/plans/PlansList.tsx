@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-PLANS-LIST-V3 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-PLANS-LIST-V2 (조건 요약에 통독 범위 반영)
 // 통독 계획 카드 목록 — 상태(활성/대기/완독)·진행률·조건 요약. 활성 전환(다른 활성 해제 후 지정)·삭제(확인).
@@ -65,39 +66,39 @@ export default function PlansList({ initial }: { initial: PlanCard[] }) {
 
   if (initial.length === 0) {
     return (
-      <div className="rounded-2xl border border-line bg-surface p-6 text-center">
-        <p className="text-base font-semibold text-primary">아직 통독 계획이 없습니다</p>
-        <p className="mt-2 text-sm text-muted">「+ 새 계획」으로 첫 계획을 세워 보세요.</p>
+      <div className="rounded-2xl bg-b27-card p-6 text-center">
+        <p className="text-base font-semibold text-b27-ink">아직 통독 계획이 없습니다</p>
+        <p className="mt-2 text-sm text-b27-muted">「+ 새 계획」으로 첫 계획을 세워 보세요.</p>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col gap-3">
-      {msg && <p className="text-sm text-danger">{msg}</p>}
+      {msg && <p className="text-sm text-b27-expense">{msg}</p>}
       {initial.map((card) => {
         const { plan, progress } = card
         const completed = progress.completed || !!plan.completed_at
         const status = completed
-          ? { label: '완독', cls: 'bg-status-done text-on-status-done' }
+          ? { label: '완독', cls: 'bg-b27-tint-4 text-[#226C5A]' }
           : plan.is_active
-            ? { label: '활성', cls: 'bg-status-progress text-on-status-progress' }
-            : { label: '대기', cls: 'bg-surface-subtle text-muted' }
+            ? { label: '활성', cls: 'bg-b27-tint-8 text-[#303C8D]' }
+            : { label: '대기', cls: 'bg-b27-card text-b27-muted' }
         const isBusy = busy === plan.id
         return (
           <section
             key={plan.id}
-            className={`rounded-3xl border bg-surface p-4 ${plan.is_active ? 'border-accent' : 'border-line'} ${completed && !plan.is_active ? 'opacity-70' : ''}`}
+            className={`rounded-[20px] bg-b27-paper p-4 ${plan.is_active ? 'ring-2 ring-b27-ink' : 'ring-1 ring-b27-line'} ${completed && !plan.is_active ? 'opacity-70' : ''}`}
           >
             <div className="flex items-center justify-between gap-2">
-              <h2 className="truncate text-[15px] font-bold text-ink">{plan.title}</h2>
+              <h2 className="truncate text-[15px] font-semibold text-b27-ink">{plan.title}</h2>
               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.cls}`}>{status.label}</span>
             </div>
-            <p className="mt-1 text-[12px] text-muted">{planCondition(plan)}</p>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-subtle">
-              <div className="h-full rounded-full bg-accent" style={{ width: `${progress.pct}%` }} />
+            <p className="mt-1 text-[12px] text-b27-muted">{planCondition(plan)}</p>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-b27-card">
+              <div className="h-full rounded-full bg-b27-ink" style={{ width: `${progress.pct}%` }} />
             </div>
-            <div className="mt-2 flex items-center justify-between text-[12px] text-muted">
+            <div className="mt-2 flex items-center justify-between text-[12px] text-b27-muted">
               <span>
                 {progress.doneDays}/{progress.totalDays}일 · {progress.doneChapters.toLocaleString()}장 읽음 · {progress.pct}%
               </span>
@@ -107,7 +108,7 @@ export default function PlansList({ initial }: { initial: PlanCard[] }) {
                     type="button"
                     onClick={() => activate(plan.id)}
                     disabled={isBusy}
-                    className="rounded-full border border-line px-3 py-1 text-[11px] font-semibold text-primary transition hover:border-primary disabled:opacity-50"
+                    className="rounded-full border border-b27-line px-3 py-1 text-[11px] font-semibold text-b27-ink transition hover:border-b27-muted disabled:opacity-50"
                   >
                     {isBusy ? '전환 중…' : '활성으로 전환'}
                   </button>
@@ -116,7 +117,7 @@ export default function PlansList({ initial }: { initial: PlanCard[] }) {
                   type="button"
                   onClick={() => remove(card)}
                   disabled={isBusy}
-                  className="text-[11px] text-faint underline-offset-2 hover:text-danger hover:underline disabled:opacity-50"
+                  className="text-[11px] text-b27-muted underline-offset-2 hover:text-danger hover:underline disabled:opacity-50"
                 >
                   삭제
                 </button>

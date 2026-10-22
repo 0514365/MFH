@@ -1,3 +1,4 @@
+// MFH-QT-PASSAGE-ACCORDION-V4 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-QT-PASSAGE-ACCORDION-V3 (09-25 폰트: VerseText 기본 크기 공유 — 명시 textClassName 제거)
 // 본문 소스를 성서유니온 프록시(/api/qt/passage) → bible_texts(/api/bible/passage)로 교체. Manna PassageAccordion V2 이식.
 //   버전 3단(개역개정·새한글·ESV, 쿠키 bible_ver 를 통독 /bible/read 와 공유) · 소제목은 절 위 별도 블록(VerseText) ·
@@ -58,33 +59,33 @@ export default function PassageAccordion({ book, range, label }: { book: string;
 
   let prevChapter = -1
   return (
-    <div className="overflow-hidden rounded-[24px] border border-line bg-surface shadow-soft">
+    <div className="overflow-hidden rounded-2xl bg-b27-card">
       <button
         type="button"
         onClick={toggle}
         aria-expanded={open}
-        className="flex w-full items-center justify-between px-6 py-5 text-left transition-colors active:bg-paper"
+        className="flex w-full items-center justify-between px-4 py-3.5 text-left transition active:opacity-70"
       >
-        <span className="flex items-center gap-2 text-[16px] font-bold tracking-tight text-ink">
+        <span className="flex items-center gap-2 text-[14.5px] font-medium text-b27-ink">
           본문 읽기
           {label && (
             <>
-              <span className="text-[14px] font-normal text-faint">·</span>
-              <span className="font-semibold text-accent">{label}</span>
+              <span className="text-[14px] font-normal text-b27-muted">·</span>
+              <span className="font-semibold text-[#A91E30]">{label}</span>
             </>
           )}
         </span>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-surface-subtle bg-paper">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-b27-paper">
           <svg
             width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-            className={`text-muted transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+            className={`text-b27-muted transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
           >
             <path d="M6 9l6 6 6-6" />
           </svg>
         </span>
       </button>
       {open && (
-        <div className="border-t border-line px-6 pb-7 pt-4">
+        <div className="border-t-2 border-b27-paper bg-b27-paper px-4 pb-5 pt-4">
           <div className="mb-4 flex max-w-[300px] gap-1.5" role="group" aria-label="성경 버전">
             {BIBLE_VERSIONS.map((v) => {
               const on = v === ver
@@ -96,7 +97,7 @@ export default function PassageAccordion({ book, range, label }: { book: string;
                   disabled={state.status === 'loading'}
                   onClick={() => switchVer(v)}
                   className={`flex-1 rounded-full border px-2 py-1.5 text-[11px] font-semibold transition disabled:opacity-70 ${
-                    on ? 'border-primary bg-primary text-on-primary' : 'border-line bg-surface text-muted hover:border-primary'
+                    on ? 'border-b27-ink bg-b27-ink text-on-primary' : 'border-b27-line bg-b27-paper text-b27-muted hover:border-b27-muted'
                   }`}
                 >
                   {BIBLE_VERSION_LABEL[v]}
@@ -105,20 +106,20 @@ export default function PassageAccordion({ book, range, label }: { book: string;
             })}
           </div>
           {state.status === 'ok' && state.served !== ver && (
-            <p className="mb-3 rounded-xl bg-accent-soft px-3 py-2 text-[12px] text-primary">
+            <p className="mb-3 rounded-xl bg-b27-tint-7 px-3 py-2 text-[12px] text-b27-ink">
               {BIBLE_VERSION_LABEL[ver]}은 이 본문이 아직 준비 중이라 개역개정으로 표시합니다.
             </p>
           )}
-          {state.status === 'loading' && <p className="text-sm text-muted">본문을 불러오는 중…</p>}
+          {state.status === 'loading' && <p className="text-sm text-b27-muted">본문을 불러오는 중…</p>}
           {state.status === 'error' && (
-            <p className="text-sm text-muted">
+            <p className="text-sm text-b27-muted">
               본문을 불러오지 못했습니다.{' '}
-              <button type="button" onClick={() => load(ver)} className="font-semibold text-accent underline underline-offset-2">
+              <button type="button" onClick={() => load(ver)} className="font-semibold text-[#A91E30] underline underline-offset-2">
                 다시 시도
               </button>
             </p>
           )}
-          {state.status === 'empty' && <p className="text-sm text-muted">본문 데이터가 아직 준비되지 않았습니다.</p>}
+          {state.status === 'empty' && <p className="text-sm text-b27-muted">본문 데이터가 아직 준비되지 않았습니다.</p>}
           {state.status === 'ok' && (
             <>
               <div className="space-y-2">
@@ -135,7 +136,7 @@ export default function PassageAccordion({ book, range, label }: { book: string;
                   )
                 })}
               </div>
-              <p className="mt-4 text-center text-[11px] text-faint">{BIBLE_VERSION_LABEL[state.served]} · 내부 열람용</p>
+              <p className="mt-4 text-center text-[11px] text-b27-muted">{BIBLE_VERSION_LABEL[state.served]} · 내부 열람용</p>
             </>
           )}
         </div>

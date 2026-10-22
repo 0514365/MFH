@@ -1,3 +1,4 @@
+// MFH-BIBLE-PAGE-V5 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-BIBLE-PAGE-V4 (밀린 분량 「남은 기간 재분배」 버튼 — RebalanceButton/patch113)
 // MFH-BIBLE-PAGE-V3 (통독 범위 배지: 전체면 읽기 순서, 구약만/신약만이면 범위)
 // /bible — 성경통독 메인. 활성 계획의 진행 요약 + 오늘(또는 다음) 분량 카드 + 밀린 분량 + 월별 일정(행 탭 = 이전 기록 수정).
@@ -12,14 +13,13 @@ import DayCard from './DayCard'
 import OverdueList from './OverdueList'
 import RebalanceButton from './RebalanceButton'
 import ScheduleList from './ScheduleList'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
 const BADGE_CLS = {
-  done: 'bg-status-done text-on-status-done',
-  ok: 'bg-white/20 text-white',
-  warn: 'bg-[#FFF1E6] text-[#B45309]',
+  done: 'bg-b27-tint-4 text-[#226C5A]',
+  ok: 'bg-white text-b27-ink',
+  warn: 'bg-b27-wait-soft text-b27-wait',
 } as const
 
 export default async function BiblePage() {
@@ -35,23 +35,23 @@ export default async function BiblePage() {
   const plan = planRow as ReadingPlan | null
 
   const manageAction = (
-    <Link href="/bible/plans" className="rounded-xl border border-line px-3 py-2 text-[12px] font-medium text-muted transition hover:border-primary">
+    <Link href="/bible/plans" className="rounded-xl border border-b27-line px-3 py-2 text-[12px] font-medium text-b27-muted transition hover:border-b27-muted">
       계획 관리
     </Link>
   )
 
   if (!plan) {
     return (
-      <main className="app-theme mx-auto max-w-md px-5 pb-8">
+      <main className="theme-2027 mx-auto max-w-md px-5 pb-8">
         <PageHeader title="성경통독" action={manageAction} />
-        <div className="rounded-3xl border border-line bg-surface p-6 text-center">
-          <p className="text-base font-semibold text-primary">활성 통독 계획이 없습니다</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
+        <div className="rounded-3xl border border-b27-line bg-b27-paper p-6 text-center">
+          <p className="text-base font-semibold text-b27-ink">활성 통독 계획이 없습니다</p>
+          <p className="mt-2 text-sm leading-relaxed text-b27-muted">
             1년 1독을 기본으로 기간·제외 요일·읽기 순서·배분 방식을 정하면
             <br />
             하루 분량이 자동으로 계산됩니다.
           </p>
-          <Link href="/bible/new" className="mt-5 inline-block rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white">
+          <Link href="/bible/new" className="mt-5 inline-block rounded-xl bg-b27-ink px-5 py-3 text-sm font-semibold text-white">
             통독 계획 세우기
           </Link>
         </div>
@@ -79,32 +79,35 @@ export default async function BiblePage() {
   const lastDate = days.length ? days[days.length - 1].read_date : plan.end_date
 
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8 @xl:max-w-2xl">
+    <main className="theme-2027 mx-auto max-w-md px-5 pb-8 @xl:max-w-2xl">
       <PageHeader title="성경통독" action={manageAction} />
 
-      {/* 진행 요약 — 홈 주제 hero 와 같은 마룬 그라데이션 */}
-      <section className="rounded-3xl p-5 text-white" style={{ background: 'linear-gradient(150deg, #B61821 0%, #661F20 100%)' }}>
-        <div className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">{plan.title}</div>
+      {/* 진행 요약 — 통독 틴트 면(5 라벤더) */}
+      <section className="rounded-2xl bg-b27-tint-5 px-4 py-4 text-b27-ink">
+        <div className="flex items-center gap-1.5 font-num text-[12px] font-medium" style={{ color: 'var(--b27-deep-5)' }}>
+          <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-5" aria-hidden="true" />
+          {plan.title}
+        </div>
         <div className="mt-1.5 flex items-end justify-between gap-3">
           <div className="leading-none">
-            <span className="font-display text-[30px] font-extrabold">{progress.doneDays}</span>
-            <span className="text-[14px] text-white/70"> / {progress.totalDays}일</span>
+            <span className="font-num text-[34px] font-semibold tabular-nums">{progress.doneDays}</span>
+            <span className="font-num text-[15px] text-b27-muted"> / {progress.totalDays}일</span>
           </div>
-          <div className="text-right text-[12px] leading-snug text-white/85">
+          <div className="text-right font-num text-[12px] leading-snug text-b27-muted">
             읽은 장 <b>{progress.doneChapters.toLocaleString()}</b> / {plan.total_chapters.toLocaleString()} · {progress.pct}%
             <br />
             완독 예정 {longDate(lastDate)}
           </div>
         </div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/25">
-          <div className="h-full rounded-full bg-white" style={{ width: `${progress.pct}%` }} />
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-b27-paper">
+          <div className="h-full rounded-full bg-b27-block-5" style={{ width: `${progress.pct}%` }} />
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${BADGE_CLS[badge.tone]}`}>{badge.label}</span>
-          <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">
+          <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-medium ${BADGE_CLS[badge.tone]}`}>{badge.label}</span>
+          <span className="rounded-full bg-b27-paper px-2.5 py-0.5 text-[11.5px] text-b27-ink">
             {shortDate(plan.start_date)} 시작{excluded.length ? ` · ${excluded.join('·')} 제외` : ''}
           </span>
-          <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">
+          <span className="rounded-full bg-b27-paper px-2.5 py-0.5 text-[11.5px] text-b27-ink">
             {scopeOrderLabel(planScope(plan), plan.read_order)} · {SPLIT_MODE_LABEL[plan.split_mode]}
           </span>
         </div>
@@ -117,9 +120,9 @@ export default async function BiblePage() {
         </div>
       ) : (
         progress.completed && (
-          <div className="mt-5 rounded-3xl border border-line bg-surface p-5 text-center">
-            <p className="text-base font-semibold text-primary">완독을 축하합니다</p>
-            <p className="mt-1 text-sm text-muted">「계획 관리」에서 다음 계획을 세워 보세요.</p>
+          <div className="mt-5 rounded-2xl bg-b27-tint-4 p-5 text-center">
+            <p className="text-base font-semibold text-b27-ink">완독을 축하합니다</p>
+            <p className="mt-1 text-sm text-b27-muted">「계획 관리」에서 다음 계획을 세워 보세요.</p>
           </div>
         )
       )}
@@ -127,8 +130,8 @@ export default async function BiblePage() {
       {/* 밀린 분량 */}
       <div className="mt-6">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-[14px] font-bold text-primary">밀린 분량</h3>
-          <span className="flex items-center gap-2 text-[12px] text-faint">
+          <h3 className="flex items-center gap-1.5 font-num text-[13px] font-semibold text-b27-ink"><span className="inline-block h-2 w-2 rounded-[2px] bg-b27-wait" aria-hidden="true" />밀린 분량</h3>
+          <span className="flex items-center gap-2 text-[12px] text-b27-muted">
             {overdueDays.length > 0 && <RebalanceButton plan={plan} days={days} today={today} />}
             {overdueDays.length === 0 ? '없음' : `${overdueDays.length}일`}
           </span>
