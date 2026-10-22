@@ -1,3 +1,4 @@
+// MFH-MARKDOWN-TEXT-V2 — 2027 공용 부품(4-0): 남색 글자 · 연회색 면 · b27 선 · 굵기 600 이하 · 위험 = 지출 빨강.
 // MFH-MARKDOWN-TEXT-V1
 // 일지(Log) 본문용 Day One 스타일 마크다운 경량 렌더러 — 외부 의존성 없음(InsightContent 와 동일 접근).
 //  · 내용(저장 텍스트)은 바꾸지 않고 "표시만" 변환 → 기존 저장분에도 즉시 적용, 검색·편집은 원문 그대로.
@@ -31,7 +32,7 @@ function renderInline(text: string, keyBase: string, depth = 0): ReactNode[] {
     const k = `${keyBase}-${n++}`
     if (m[2] !== undefined) {
       nodes.push(
-        <code key={k} className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[0.88em] text-primary">
+        <code key={k} className="rounded bg-b27-card px-1 py-0.5 font-mono text-[0.88em] text-b27-ink">
           {m[2]}
         </code>,
       )
@@ -40,13 +41,13 @@ function renderInline(text: string, keyBase: string, depth = 0): ReactNode[] {
       nodes.push(<img key={k} src={m[4]} alt={m[3] ?? ''} loading="lazy" className="my-1.5 max-w-full rounded-xl" />)
     } else if (m[6] !== undefined) {
       nodes.push(
-        <a key={k} href={m[6]} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-primary underline underline-offset-2">
+        <a key={k} href={m[6]} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-b27-ink underline underline-offset-2">
           {renderInline(m[5], k, depth + 1)}
         </a>,
       )
     } else if (m[8] !== undefined) {
       nodes.push(
-        <strong key={k} className="font-semibold text-ink">
+        <strong key={k} className="font-semibold text-b27-ink">
           {renderInline(m[8], k, depth + 1)}
         </strong>,
       )
@@ -54,7 +55,7 @@ function renderInline(text: string, keyBase: string, depth = 0): ReactNode[] {
       nodes.push(<em key={k}>{renderInline(m[10], k, depth + 1)}</em>)
     } else if (m[11] !== undefined) {
       nodes.push(
-        <a key={k} href={m[11]} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-primary underline underline-offset-2">
+        <a key={k} href={m[11]} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-b27-ink underline underline-offset-2">
           {m[11]}
         </a>,
       )
@@ -85,12 +86,12 @@ function splitTableRow(line: string): string[] {
 //  · 3·4 는 동일 크기, 색만 검정/빨강(accent)으로 구분(DayOne 2·3 방식).
 //  · 5 는 볼드 아님 + 자간 벌림, 6 은 알약 글상자(DayOne 5·6 방식).
 const HEADER_CLASS: Record<number, string> = {
-  1: 'mt-4 text-[1.35em] font-bold leading-snug text-ink first:mt-0',
-  2: 'mt-4 text-[1.2em] font-bold leading-snug text-ink first:mt-0',
-  3: 'mt-3 text-[1.1em] font-bold leading-snug text-ink first:mt-0',
-  4: 'mt-3 text-[1.1em] font-bold leading-snug text-accent first:mt-0',
-  5: 'mt-2 text-[1em] font-normal uppercase leading-snug tracking-[0.14em] text-ink first:mt-0',
-  6: 'mt-2 inline-block rounded-full bg-surface-subtle px-3 py-1 text-[0.85em] font-medium uppercase leading-snug tracking-[0.08em] text-muted first:mt-0',
+  1: 'mt-4 text-[1.35em] font-semibold leading-snug text-b27-ink first:mt-0',
+  2: 'mt-4 text-[1.2em] font-semibold leading-snug text-b27-ink first:mt-0',
+  3: 'mt-3 text-[1.1em] font-semibold leading-snug text-b27-ink first:mt-0',
+  4: 'mt-3 text-[1.1em] font-semibold leading-snug text-b27-ink first:mt-0',
+  5: 'mt-2 text-[1em] font-normal uppercase leading-snug tracking-[0.14em] text-b27-ink first:mt-0',
+  6: 'mt-2 inline-block rounded-full bg-b27-card px-3 py-1 text-[0.85em] font-medium uppercase leading-snug tracking-[0.08em] text-b27-muted first:mt-0',
 }
 
 export default function MarkdownText({ text, className }: { text: string | null; className?: string }) {
@@ -109,7 +110,7 @@ export default function MarkdownText({ text, className }: { text: string | null;
       while (i < lines.length && !RE_FENCE.test(lines[i])) buf.push(lines[i++])
       if (i < lines.length) i++ // 닫는 ```
       blocks.push(
-        <pre key={key++} className="my-2 overflow-x-auto rounded-xl bg-surface-subtle px-3.5 py-3 font-mono text-[0.85em] leading-relaxed text-ink">
+        <pre key={key++} className="my-2 overflow-x-auto rounded-xl bg-b27-card px-3.5 py-3 font-mono text-[0.85em] leading-relaxed text-b27-ink">
           {buf.join('\n')}
         </pre>,
       )
@@ -124,7 +125,7 @@ export default function MarkdownText({ text, className }: { text: string | null;
         i++
       }
       blocks.push(
-        <pre key={key++} className="my-2 overflow-x-auto rounded-xl bg-surface-subtle px-3.5 py-3 font-mono text-[0.85em] leading-relaxed text-ink">
+        <pre key={key++} className="my-2 overflow-x-auto rounded-xl bg-b27-card px-3.5 py-3 font-mono text-[0.85em] leading-relaxed text-b27-ink">
           {buf.join('\n')}
         </pre>,
       )
@@ -142,7 +143,7 @@ export default function MarkdownText({ text, className }: { text: string | null;
 
     // 4) 구분선
     if (RE_HR.test(trimmed)) {
-      blocks.push(<hr key={key++} className="my-4 border-line" />)
+      blocks.push(<hr key={key++} className="my-4 border-b27-line" />)
       i++
       continue
     }
@@ -169,7 +170,7 @@ export default function MarkdownText({ text, className }: { text: string | null;
       }
       blocks.push(
         // DayOne 인용 색 RGB(152,164,166)=#98A4A6 — 세로바·글자 동일, 이탤릭 + 볼드
-        <blockquote key={key++} className="my-2 border-l-4 border-[#98A4A6] pl-3.5 font-semibold italic text-[#98A4A6]">
+        <blockquote key={key++} className="my-2 border-l-[3px] border-b27-block-8 pl-3.5 italic text-b27-muted">
           {buf.map((b, j) => (
             <p key={j}>{renderInline(b, `q${key}-${j}`)}</p>
           ))}
@@ -193,7 +194,7 @@ export default function MarkdownText({ text, className }: { text: string | null;
             <thead>
               <tr>
                 {head.map((c, j) => (
-                  <th key={j} className="border border-line bg-surface-subtle px-2.5 py-1.5 text-left font-semibold text-ink">
+                  <th key={j} className="border border-b27-line bg-b27-card px-2.5 py-1.5 text-left font-semibold text-b27-ink">
                     {renderInline(c, `th${key}-${j}`)}
                   </th>
                 ))}
@@ -203,7 +204,7 @@ export default function MarkdownText({ text, className }: { text: string | null;
               {rows.map((r, ri) => (
                 <tr key={ri}>
                   {r.map((c, j) => (
-                    <td key={j} className="border border-line px-2.5 py-1.5 align-top">
+                    <td key={j} className="border border-b27-line px-2.5 py-1.5 align-top">
                       {renderInline(c, `td${key}-${ri}-${j}`)}
                     </td>
                   ))}
@@ -224,7 +225,7 @@ export default function MarkdownText({ text, className }: { text: string | null;
         i++
       }
       blocks.push(
-        <ol key={key++} className="my-1.5 list-decimal space-y-1 pl-5 marker:text-faint">
+        <ol key={key++} className="my-1.5 list-decimal space-y-1 pl-5 marker:text-b27-muted">
           {items.map((it, j) => (
             <li key={j}>{renderInline(it, `ol${key}-${j}`)}</li>
           ))}
@@ -241,7 +242,7 @@ export default function MarkdownText({ text, className }: { text: string | null;
         i++
       }
       blocks.push(
-        <ul key={key++} className="my-1.5 list-disc space-y-1 pl-5 marker:text-faint">
+        <ul key={key++} className="my-1.5 list-disc space-y-1 pl-5 marker:text-b27-muted">
           {items.map((it, j) => (
             <li key={j}>{renderInline(it, `ul${key}-${j}`)}</li>
           ))}

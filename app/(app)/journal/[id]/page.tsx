@@ -1,7 +1,11 @@
+// MFH-JOURNAL-DETAIL-V2 — 2027(4-1): theme-2027 · 빨간 ‹ 일지 + ‹n/total› · 분류 색 사각형·날짜(한글) · 제목 22/600 · 메타 = 연회색 알약 ·
+//   플래그 알약(틴트) · 중보 틴트 6 · 사진 밴드 · 섹션 라벨(이모지·영문 제거) · 기도제목 일지 틴트 · 수정 남색 / 삭제 연한 빨강.
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import { getMembersMap, canEditEntry, isMaster, PORTFOLIO_OWNER_ID } from '@/lib/members'
+import { getMembersMap, canEditEntry, isMaster } from '@/lib/members'
+import { JOURNAL_CATEGORY_BLOCK } from '@/lib/constants'
+import { blockColor, brand2027 } from '@/lib/palette'
 import type { JournalEntry } from '@/lib/types'
 import { applyJournalFilter, parseJournalFilter } from '@/lib/journalFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
@@ -12,45 +16,39 @@ import PhotoCollage, { type CollagePhoto } from '../PhotoCollage'
 import JournalFlagsToggle from '../JournalFlagsToggle'
 import MarkdownText from '@/components/MarkdownText'
 import DeleteButton from './DeleteButton'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
-const MONTHS_EN = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER']
-// 'YYYY-MM-DD' → 'OCTOBER 15, 2026' (이미지형 영문 날짜). 잘못된 값이면 원문.
-function fmtDateEn(d: string): string {
+const DOW = ['일', '월', '화', '수', '목', '금', '토']
+// 'YYYY-MM-DD' → '2026. 10. 20 (월)'. 잘못된 값이면 원문.
+function fmtDateKo(d: string): string {
   const [y, m, day] = d.split('-').map(Number)
   if (!y || !m || !day) return d
-  return `${MONTHS_EN[m - 1]} ${day}, ${y}`
+  const dow = DOW[new Date(Date.UTC(y, m - 1, day)).getUTCDay()]
+  return `${y}. ${m}. ${day} (${dow})`
 }
 
-function Section({
-  emoji,
-  enLabel,
-  koLabel,
-  text,
-  alt,
-}: {
-  emoji: string
-  enLabel: string
-  koLabel: string
-  text: string | null
-  alt?: boolean
-}) {
+// 본문 섹션 — Manrope 회색 라벨 + 본문. tint = 일지 틴트 면(기도제목).
+function Section({ label, text, tint }: { label: string; text: string | null; tint?: boolean }) {
   if (!text) return null
   return (
-    <section className={`border-t border-line px-5 py-7 ${alt ? 'bg-white/50' : ''}`}>
-      <div className="mb-4 flex items-center gap-2">
-        <span className="text-[18px]">{emoji}</span>
-        <div className="flex flex-col">
-          <span className="mb-1 font-display text-[8px] font-bold uppercase leading-none tracking-[0.15em] text-primary opacity-50">
-            {enLabel}
-          </span>
-          <h3 className="text-[16px] font-bold leading-none text-ink">{koLabel}</h3>
-        </div>
+    <section className={tint ? 'rounded-2xl bg-b27-tint-1 px-4 py-3.5' : ''}>
+      <div className="mb-1.5 flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">
+        {tint && <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-1" aria-hidden="true" />}
+        {label}
       </div>
-      <MarkdownText text={text} className="break-keep text-[15px] font-light leading-[1.75] text-ink" />
+      <MarkdownText text={text} className="break-keep text-[15px] leading-[1.75] text-b27-ink" />
     </section>
+  )
+}
+
+// 메타 칩 — 연회색 알약 + 회색 아이콘. color 가 있으면 앞에 8px 색 사각형.
+function Meta({ children, color }: { children: React.ReactNode; color?: string }) {
+  return (
+    <span className="flex max-w-[180px] items-center gap-1.5 rounded-full bg-b27-card px-3 py-1.5 text-[12px] text-b27-ink">
+      {color && <span className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ background: color }} aria-hidden="true" />}
+      <span className="truncate">{children}</span>
+    </span>
   )
 }
 
@@ -153,16 +151,14 @@ export default async function JournalDetail(props: {
     ]
   })
 
+  const catN = entry.category ? JOURNAL_CATEGORY_BLOCK[entry.category] : undefined
+
   return (
-    <main className="app-theme mx-auto max-w-md pb-10 @xl:max-w-5xl">
-      {/* 상단바 (이미지) — 좌: ‹ Log / 우: ‹ n/total › */}
-      <header
-        className="sticky top-0 z-30 flex items-center justify-between border-b border-line px-4 py-3"
-        style={{ background: 'var(--paper)' }}
-      >
-        <BackButton href={navQuery ? `/journal?${navQuery}` : '/journal'} label="" variant="text" />
-        <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-display text-[16px] font-semibold uppercase tracking-[0.06em] text-muted">
-          {fmtDateEn(entry.entry_date)}
+    <main className="theme-2027 mx-auto max-w-md pb-10 @xl:max-w-3xl">
+      {/* 상단바 — 좌: 빨간 ‹ + 「일지」 / 우: ‹ n/total › */}
+      <header className="sticky top-0 z-30 flex h-[52px] items-center justify-between bg-b27-paper pl-3 pr-4">
+        <span className="flex items-center">
+          <BackButton href={navQuery ? `/journal?${navQuery}` : '/journal'} label="일지" variant="text" />
         </span>
         <DetailNav
           basePath="/journal"
@@ -175,66 +171,33 @@ export default async function JournalDetail(props: {
         />
       </header>
 
-      {/* 헤더: 제목 → 메타칩(로그목록과 동일 스타일). 날짜는 상단바 중앙으로 이동. */}
-      <section className="flex flex-col gap-3.5 px-5 pb-6 pt-5">
-        {/* 제목 */}
+      <div className="flex flex-col gap-4 px-5 pt-2">
+        {/* 분류 색 사각형 · 분류 · 날짜 → 제목 → 메타 칩 → 플래그 알약 */}
+        <div className="flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">
+          <span
+            className="inline-block h-2 w-2 rounded-[2px]"
+            style={{ background: catN ? blockColor(catN).bg : brand2027.line }}
+            aria-hidden="true"
+          />
+          {[entry.category, fmtDateKo(entry.entry_date)].filter(Boolean).join(' · ')}
+        </div>
         {entry.headline && (
-          <h1 className="break-keep text-[26px] font-bold leading-[1.3] tracking-tight text-ink @xl:text-[32px]">
+          <h1 className="-mt-2 break-keep text-[22px] font-semibold leading-[1.35] text-b27-ink @xl:text-[26px]">
             {entry.headline}
           </h1>
         )}
-        {/* 메타칩 — 사역구분(회색) → 작성자 → 장소 → 프로젝트 → 할일 → 기도후보 (목록과 동일 스타일) */}
-        <div className="flex flex-wrap items-center gap-2">
-          {entry.category && (
-            <span className="rounded-lg bg-surface-subtle px-2.5 py-1 text-[11px] font-bold tracking-wide text-primary">
-              {entry.category}
-            </span>
-          )}
-          {membersMap[entry.user_id] && (
-            <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
-              <span className="shrink-0" style={{ color: entry.user_id === PORTFOLIO_OWNER_ID ? '#5E82A6' : '#C56A7E' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-              </span>
-              <span className="max-w-[120px] truncate">{membersMap[entry.user_id]}</span>
-            </span>
-          )}
-          {entry.place_name && (
-            <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
-              <span className="shrink-0" style={{ color: '#9A9A98' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-              </span>
-              <span className="max-w-[160px] truncate">{entry.place_name}</span>
-            </span>
-          )}
-          {projectTitle && (
-            <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
-              <span className="shrink-0" style={{ color: '#B05744' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
-              </span>
-              <span className="max-w-[160px] truncate">{projectTitle}</span>
-            </span>
-          )}
-          {taskTitle && (
-            <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
-              <span className="shrink-0" style={{ color: '#B08A4A' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-              </span>
-              <span className="max-w-[140px] truncate">{taskTitle}</span>
-            </span>
-          )}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {membersMap[entry.user_id] && <Meta>{membersMap[entry.user_id]}</Meta>}
+          {entry.place_name && <Meta>{entry.place_name}</Meta>}
+          {projectTitle && <Meta color={blockColor(5).bg}>{projectTitle}</Meta>}
+          {taskTitle && <Meta color={blockColor(3).bg}>{taskTitle}</Meta>}
           {supporterName && (
-            <Link
-              href={`/supporters/${entry.supporter_id}`}
-              className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted transition hover:border-primary"
-            >
-              <span className="shrink-0" style={{ color: '#C2683A' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-              </span>
-              <span className="max-w-[140px] truncate">{supporterName}</span>
+            <Link href={`/supporters/${entry.supporter_id}`} className="transition active:opacity-70">
+              <Meta color={blockColor(3).bg}>{supporterName}</Meta>
             </Link>
           )}
         </div>
-        {/* 기도후보·비공개·비밀글 토글(목록 카드와 동일) — 편집 권한 없으면 비활성 표시만. */}
+        {/* 기도후보·비공개·비밀글 — 편집 권한 없으면 비활성 표시만. */}
         <JournalFlagsToggle
           id={entry.id}
           flags={{
@@ -246,49 +209,49 @@ export default async function JournalDetail(props: {
           showSecret={isMaster(user.id)}
           variant="pill"
         />
-      </section>
 
-      {/* 중보기도 연계 카드 */}
-      {linkedIntercession && (
-        <div className="relative mx-5 mb-8 flex flex-col gap-2 overflow-hidden rounded-[24px] bg-primary-soft p-4">
-          <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-primary">
-            Linked Prayer
-          </span>
-          <p className="break-keep pr-2 text-[15px] font-semibold leading-snug text-primary">
-            {linkedIntercession.visitor_name} · {linkedIntercession.message}
+        {/* 중보기도 연계 — 중보 틴트 면(6) */}
+        {linkedIntercession && (
+          <div className="flex flex-col gap-1 rounded-2xl bg-b27-tint-6 px-4 py-3.5">
+            <span className="flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">
+              <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-6" aria-hidden="true" />
+              연계된 중보기도
+            </span>
+            <p className="break-keep text-[15px] font-medium leading-snug text-b27-ink">
+              {linkedIntercession.visitor_name} · {linkedIntercession.message}
+            </p>
+          </div>
+        )}
+
+        {/* 사진 밴드 */}
+        {collage.length > 0 && (
+          <section className="-mx-5 @xl:mx-0">
+            <PhotoCollage photos={collage} wide />
+          </section>
+        )}
+
+        <Section label="오늘의 기록" text={entry.today} />
+        <Section label="감사·응답" text={entry.thanks} />
+        <Section label="묵상·깨달음" text={entry.meditation} />
+        <Section label="기도제목" text={entry.prayer} tint />
+
+        {/* 수정(남색) / 삭제(연한 빨강) */}
+        {canEdit ? (
+          <div className="mt-2 flex items-center gap-2">
+            <Link
+              href={`/journal/${entry.id}/edit`}
+              className="flex-1 rounded-2xl bg-b27-ink py-3.5 text-center text-[14px] font-medium text-white transition active:opacity-80"
+            >
+              수정
+            </Link>
+            <DeleteButton id={entry.id} paths={collectPhotoPaths(entry)} />
+          </div>
+        ) : (
+          <p className="mt-2 rounded-2xl bg-b27-card px-4 py-3 text-center text-xs text-b27-muted">
+            {membersMap[entry.user_id] ?? '다른 멤버'}님의 일지입니다. 보기만 가능합니다.
           </p>
-        </div>
-      )}
-
-      {/* 사진 + 4섹션 — 사진을 상단 전체폭 밴드로, 본문은 그 아래 세로 배치 */}
-      {collage.length > 0 && (
-        <section className="mb-8 px-5">
-          <PhotoCollage photos={collage} wide />
-        </section>
-      )}
-      <div>
-        <Section emoji="🌿" enLabel="Today" koLabel="오늘의 기록" text={entry.today} />
-        <Section emoji="🙏" enLabel="Thanks & Answers" koLabel="감사·응답" text={entry.thanks} alt />
-        <Section emoji="💭" enLabel="Meditation" koLabel="묵상·깨달음" text={entry.meditation} />
-        <Section emoji="📌" enLabel="Prayer Requests" koLabel="기도제목" text={entry.prayer} alt />
+        )}
       </div>
-
-      {/* 수정 / 삭제 */}
-      {canEdit ? (
-        <div className="flex items-center justify-center gap-3 border-t border-line px-5 pb-12 pt-8">
-          <Link
-            href={`/journal/${entry.id}/edit`}
-            className="rounded-full border border-line bg-surface-subtle px-5 py-2 text-[13px] font-medium text-muted transition hover:border-primary"
-          >
-            수정
-          </Link>
-          <DeleteButton id={entry.id} paths={collectPhotoPaths(entry)} />
-        </div>
-      ) : (
-        <p className="border-t border-line px-5 pb-12 pt-8 text-center text-xs text-faint">
-          {membersMap[entry.user_id] ?? '다른 멤버'}님의 일지입니다. 보기만 가능합니다.
-        </p>
-      )}
     </main>
   )
 }

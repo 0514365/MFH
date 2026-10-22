@@ -1,5 +1,6 @@
 'use client'
 
+// MFH-ATTACHMENT-UPLOAD-V2 — 2027 공용 부품(4-0): 남색 글자 · 연회색 면 · b27 선 · 굵기 600 이하 · 위험 = 지출 빨강.
 // MFH-ATTACHMENT-UPLOAD-V1
 // 할 일·프로젝트 첨부(이미지·PDF) 다중 업로드. 비공개 'attachments' 버킷.
 // 경로 {userId}/{ts}-{rand}.{ext}. 업로드 후 메타({path,name,mime,size}) 배열을 onChange 로 상위에 전달.
@@ -124,18 +125,18 @@ export default function AttachmentUpload({
           {value.map((a, i) => (
             <li
               key={a.path}
-              className="flex items-center gap-2 rounded-xl border border-line bg-surface-subtle px-3 py-2"
+              className="flex items-center gap-2 rounded-xl border border-b27-line bg-b27-card px-3 py-2"
             >
-              <span className="shrink-0 text-primary">{isPdfAttachment(a) ? <PdfIcon /> : <ImgIcon />}</span>
-              <span className="min-w-0 flex-1 truncate text-[12px] text-ink" title={a.name}>
+              <span className="shrink-0 text-b27-ink">{isPdfAttachment(a) ? <PdfIcon /> : <ImgIcon />}</span>
+              <span className="min-w-0 flex-1 truncate text-[12px] text-b27-ink" title={a.name}>
                 {a.name}
               </span>
-              <span className="shrink-0 text-[10px] text-faint">{fmtSize(a.size)}</span>
+              <span className="shrink-0 text-[10px] text-b27-muted">{fmtSize(a.size)}</span>
               <button
                 type="button"
                 onClick={() => remove(i)}
                 aria-label={`첨부 삭제: ${a.name}`}
-                className="shrink-0 text-muted transition hover:text-accent"
+                className="shrink-0 text-b27-muted transition hover:text-b27-expense"
               >
                 <XIcon />
               </button>
@@ -147,7 +148,7 @@ export default function AttachmentUpload({
         type="button"
         disabled={busy || value.length >= MAX_ATTACHMENTS}
         onClick={() => inputRef.current?.click()}
-        className="w-full rounded-xl border border-dashed border-line bg-surface px-3 py-2.5 text-[13px] font-medium text-primary transition hover:bg-primary-soft disabled:opacity-50"
+        className="w-full rounded-xl border border-dashed border-b27-line bg-b27-paper px-3 py-2.5 text-[13px] font-medium text-b27-ink transition hover:bg-b27-card disabled:opacity-50"
       >
         {busy
           ? '업로드 중…'
@@ -166,7 +167,7 @@ export default function AttachmentUpload({
           e.target.value = ''
         }}
       />
-      {error && <p className="mt-1 text-[11px] text-danger">{error}</p>}
+      {error && <p className="mt-1 text-[11px] text-b27-expense">{error}</p>}
     </div>
   )
 }

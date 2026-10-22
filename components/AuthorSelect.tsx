@@ -1,4 +1,5 @@
 'use client'
+// MFH-AUTHOR-SELECT-V2 — 2027 공용 부품(4-0): 남색 글자 · 연회색 면 · b27 선 · 굵기 600 이하 · 위험 = 지출 빨강.
 // MFH-AUTHOR-SELECT-V1
 // 마스터(김우진)에게만 보이는 '작성자' 드롭다운. 비마스터에겐 아무것도 렌더하지 않는다.
 //  · 멤버 목록(app_members)을 스스로 로드.
@@ -43,7 +44,7 @@ export default function AuthorSelect({
 
   return (
     <div className="mb-4">
-      <label className="mb-1 block text-xs text-muted">작성자</label>
+      <label className="mb-1 block text-xs text-b27-muted">작성자</label>
       <select value={value} onChange={(e) => onChange(e.target.value)} className={className}>
         {members.map((m) => (
           <option key={m.id} value={m.id}>

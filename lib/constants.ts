@@ -10,6 +10,17 @@ export const JOURNAL_CATEGORIES = [
 
 export type JournalCategory = (typeof JOURNAL_CATEGORIES)[number]
 
+// 사역 분류 → 2027 블록 번호(lib/palette.ts blockColor/blockTint). 목록 색 사각형 · 쓰기 블록 선택 · 상세 라벨. 없는 분류는 회색.
+export const JOURNAL_CATEGORY_BLOCK: Record<string, number> = {
+  교회사역: 1,
+  방과후학교: 3,
+  선교사가정: 7,
+  '훈련·행정': 8,
+  긴급구호: 6,
+  일상: 4,
+  묵상: 5,
+}
+
 export const PRIORITIES = [
   { value: 'high', label: '높음' },
   { value: 'med', label: '보통' },

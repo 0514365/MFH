@@ -1,5 +1,7 @@
 'use client'
 
+// MFH-JOURNAL-FLAGS-TOGGLE-V2 — 2027(4-1): 플래그 색 = 브랜드 진한 톤 + 틴트(기도후보 블러시 7 · 비공개 살구 3 · 비밀글 페리윙클 8).
+//   pill = ON 틴트 면 + 진한 톤 글자 / OFF 연회색 면 + 회색 글자(테두리 없음).
 // MFH-JOURNAL-FLAGS-TOGGLE-V1
 // 일지 카드·상세 공용 3-플래그 토글(기도후보·비공개·비밀글) — 즉시 update 패턴(구 PrayerCandidateToggle 확장).
 // 배타 규칙(폼과 동일): 비밀글 ON → 비공개·기도후보 해제+비활성 / 비공개 ON → 기도후보 해제+비활성.
@@ -7,14 +9,20 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
+import { brand2027 } from '@/lib/palette'
 
 type Flags = { prayer_candidate: boolean; is_private: boolean; is_secret: boolean }
 
-// 플래그별 컬러 — 메타칩 어스톤 컨셉(hex 직접)과 동일 방식. 배지(JournalList)와 공유.
+// 플래그별 컬러 — 브랜드 블록 진한 톤(글자) + 틴트(면). 배지(JournalList)와 공유.
 export const FLAG_COLOR = {
-  prayer: '#B61821', // 기도후보 — accent 레드
-  private: '#B08A4A', // 비공개 — 골드
-  secret: '#661F20', // 비밀글 — 딥 마룬(primary)
+  prayer: brand2027.deep7, // 기도후보 — 블러시
+  private: brand2027.deep3, // 비공개 — 살구
+  secret: brand2027.deep8, // 비밀글 — 페리윙클
+} as const
+export const FLAG_SOFT = {
+  prayer: brand2027.tint7,
+  private: brand2027.tint3,
+  secret: brand2027.tint8,
 } as const
 
 // 라인 아이콘(스트로크) — 앱 메타칩 아이콘 컨셉과 통일.
@@ -94,7 +102,7 @@ export default function JournalFlagsToggle({
   }
 
   // compact(목록): 라벨 + 컬러 체크박스 — 심플. ON 상태는 카드 상단 배지가 따로 보여준다.
-  // pill(상세): ON = 컬러 채움 필(흰 아이콘·흰 글자 + ✓) / OFF = 연한 외곽선 — 상태 대비 큼(모바일 가독).
+  // pill(상세): ON = 틴트 면 + 진한 톤 글자 + ✓ / OFF = 연회색 면 + 회색 글자.
   // 비활성(배타 규칙·권한 없음)인 항목은 흐리게(pill 은 ON 이면 읽기전용이어도 선명 유지).
   const Item = ({
     kind,
@@ -102,12 +110,14 @@ export default function JournalFlagsToggle({
     icon,
     disabled,
     color,
+    soft,
   }: {
     kind: keyof Flags
     label: string
     icon: React.ReactNode
     disabled: boolean
     color: string
+    soft: string
   }) => {
     const checked = cur[kind]
     const off = disabled || !canEdit
@@ -120,9 +130,9 @@ export default function JournalFlagsToggle({
           aria-pressed={checked}
           className={`flex items-center gap-1 ${off ? 'opacity-40' : ''}`}
         >
-          <span className={`text-[11px] font-semibold ${checked ? 'text-ink' : 'text-faint'}`}>{label}</span>
+          <span className={`text-[11px] font-medium ${checked ? 'text-b27-ink' : 'text-b27-muted'}`}>{label}</span>
           <span
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border bg-surface"
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border bg-b27-paper"
             style={{ borderColor: color, background: checked ? color : undefined, color: checked ? '#fff' : color }}
           >
             {icon}
@@ -135,14 +145,10 @@ export default function JournalFlagsToggle({
         onClick={() => toggle(kind)}
         disabled={busy || off}
         aria-pressed={checked}
-        className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold transition ${
-          off && !checked ? 'opacity-35' : ''
-        }`}
-        style={
-          checked
-            ? { background: color, borderColor: color, color: '#fff' }
-            : { borderColor: 'var(--line)', background: 'var(--surface)', color: 'var(--text-faint)' }
-        }
+        className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition active:opacity-70 ${
+          off && !checked ? 'opacity-40' : ''
+        } ${checked ? '' : 'bg-b27-card text-b27-muted'}`}
+        style={checked ? { background: soft, color } : undefined}
       >
         <span className="shrink-0" style={checked ? undefined : { color }}>
           {icon}
@@ -165,6 +171,7 @@ export default function JournalFlagsToggle({
         icon={flagIcon.prayer}
         disabled={cur.is_private || cur.is_secret}
         color={FLAG_COLOR.prayer}
+        soft={FLAG_SOFT.prayer}
       />
       <Item
         kind="is_private"
@@ -172,6 +179,7 @@ export default function JournalFlagsToggle({
         icon={flagIcon.lock}
         disabled={cur.is_secret}
         color={FLAG_COLOR.private}
+        soft={FLAG_SOFT.private}
       />
       {showSecret && (
         <Item
@@ -180,6 +188,7 @@ export default function JournalFlagsToggle({
           icon={flagIcon.eyeOff}
           disabled={false}
           color={FLAG_COLOR.secret}
+          soft={FLAG_SOFT.secret}
         />
       )}
     </span>

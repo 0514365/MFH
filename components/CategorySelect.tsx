@@ -1,3 +1,4 @@
+// MFH-CATEGORY-SELECT-V2 — 2027 공용 부품(4-0): 남색 글자 · 연회색 면 · b27 선 · 굵기 600 이하 · 위험 = 지출 빨강.
 // MFH-CATEGORY-SELECT-V1
 // 사역분류 공통 입력. select 에 "+ 새 분류 만들기" 옵션 → 인라인 입력창 →
 // categories 테이블에 즉시 insert → 선택값으로 반영(다른 폼에서도 다음부터 노출).
@@ -66,7 +67,7 @@ export default function CategorySelect({
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            className="w-full rounded-xl border border-primary bg-surface px-4 py-3 text-sm outline-none"
+            className="w-full rounded-xl border border-b27-ink bg-b27-paper px-4 py-3 text-sm outline-none"
             placeholder="새 분류 이름"
             autoFocus
           />
@@ -74,7 +75,7 @@ export default function CategorySelect({
             type="button"
             onClick={confirmAdd}
             disabled={busy}
-            className="shrink-0 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            className="shrink-0 rounded-xl bg-b27-ink px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             {busy ? '추가 중…' : '추가'}
           </button>
@@ -84,12 +85,12 @@ export default function CategorySelect({
               setAdding(false)
               setErr(null)
             }}
-            className="shrink-0 rounded-xl border border-line px-3 py-3 text-sm text-muted transition hover:border-primary"
+            className="shrink-0 rounded-xl border border-b27-line px-3 py-3 text-sm text-b27-muted transition hover:border-b27-muted"
           >
             취소
           </button>
         </div>
-        {err && <p className="mt-1 text-[11px] text-danger">{err}</p>}
+        {err && <p className="mt-1 text-[11px] text-b27-expense">{err}</p>}
       </div>
     )
   }

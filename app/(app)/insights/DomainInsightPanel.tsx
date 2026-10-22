@@ -1,10 +1,12 @@
 'use client'
 
+// MFH-DOMAIN-INSIGHT-PANEL-V4 — 2027(4-1): 인사이트 틴트 면(8 페리윙클) · 옆줄 제거 · 아이콘 = 진한 톤 · 남색 600 제목 · 보조 회색.
 // MFH-DOMAIN-INSIGHT-PANEL-V3
 // 분야 페이지(일지/프로젝트/할일) 상단의 접이식 인사이트.
 //  · 접이식 헤더는 항상 표시(인사이트가 없어도). 펼칠 때 그 분야 "최신 인사이트 1개"만 조회(lazy).
 //  · 읽기 전용 — 생성·내보내기·가져오기 없음(입력은 인사이트 홈의 "전체 분석"에서만).
 //  · 전체 히스토리는 인사이트 페이지의 분야별 메뉴에서 본다.
+import { brand2027 } from '@/lib/palette'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { DOMAIN_LABEL, type InsightDomain } from '@/lib/insightExport'
@@ -55,40 +57,40 @@ export default function DomainInsightPanel({ domain }: { domain: InsightDomain }
   }, [open, row, domain])
 
   return (
-    <div className="mb-5 overflow-hidden rounded-[20px] border-l-4 border-accent bg-primary-soft">
+    <div className="mb-4 overflow-hidden rounded-2xl bg-b27-tint-8">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-2 px-4 py-3.5 text-left"
       >
         <span className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-b27-paper" style={{ color: brand2027.deep8 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6z" />
             </svg>
           </span>
-          <span className="text-sm font-bold text-ink">{DOMAIN_LABEL[domain]}</span>
+          <span className="text-sm font-semibold text-b27-ink">{DOMAIN_LABEL[domain]}</span>
         </span>
-        <span className="text-xs text-faint">{open ? '▾' : '▸'}</span>
+        <span className="text-xs text-b27-muted">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
-        <div className="border-t border-white/50 px-4 py-4">
+        <div className="border-t border-b27-paper px-4 py-4">
           {row === undefined ? (
-            <p className="text-sm text-faint">불러오는 중…</p>
+            <p className="text-sm text-b27-muted">불러오는 중…</p>
           ) : row === null ? (
-            <p className="text-sm text-faint">
+            <p className="text-sm text-b27-muted">
               {isAssist
                 ? '아직 비서 제안이 없습니다. 데스크톱에서 갱신하면 표시됩니다.'
                 : '아직 인사이트가 없습니다. 인사이트의 “전체 분석”에서 생성하세요.'}
             </p>
           ) : (
             <>
-              <div className="text-[11px] text-faint">
+              <div className="text-[11px] text-b27-muted">
                 {row.period_start} ~ {row.period_end} · {row.model === 'manual' ? '수동' : 'AI'} · {fmtAt(row.created_at)}
               </div>
               <InsightContent
                 domain={domain}
                 content={row.content}
-                className="mt-2 text-sm leading-relaxed text-ink"
+                className="mt-2 text-sm leading-relaxed text-b27-ink"
               />
             </>
           )}

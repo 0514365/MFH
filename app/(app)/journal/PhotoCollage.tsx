@@ -1,4 +1,5 @@
 'use client'
+// MFH-JOURNAL-PHOTO-COLLAGE-V3 — 2027(4-1): 남색 글자 · 연회색 면 · b27 선 · 굵기 600 이하 · 삭제 = 지출 빨강.
 
 // MFH-JOURNAL-PHOTO-COLLAGE-V2
 // 일지 사진 콜라주(1~5장) + 클릭 확대 라이트박스(좌우 이동·키보드·스와이프).
@@ -31,7 +32,7 @@ function Cell({
     <button
       type="button"
       onClick={() => onOpen(i)}
-      className={`group relative ${aspect} w-full overflow-hidden rounded-lg border border-line bg-surface-subtle`}
+      className={`group relative ${aspect} w-full overflow-hidden rounded-lg border border-b27-line bg-b27-card`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img

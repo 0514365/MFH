@@ -1,3 +1,4 @@
+// MFH-JOURNAL-PAGE-V3 — 2027(4-1): theme-2027 스코프 · 제목 「일지」 · 새 일지 = 터키석 ＋ 플로팅(모바일) / 헤더 남색 알약(md+).
 // MFH-JOURNAL-PAGE-V2
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -11,7 +12,6 @@ import { resolveJournalPhotos } from '@/lib/journalPhotos'
 import type { CollagePhoto } from './PhotoCollage'
 import OfflineSync from '@/components/OfflineSync'
 import type { OfflineJournal } from '@/lib/offlineStore'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -98,16 +98,16 @@ export default async function JournalPage() {
   }
 
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
+    <main className="theme-2027 mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
       <PageHeader
-        title="Log"
+        title="일지"
         current="journal"
         action={
           <Link
             href="/journal/new"
-            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white"
+            className="hidden rounded-full bg-b27-ink px-4 py-2 text-[13px] font-medium text-white transition active:opacity-80 md:inline-flex"
           >
-            + Log
+            새 일지
           </Link>
         }
       />
@@ -124,6 +124,19 @@ export default async function JournalPage() {
       />
 
       <OfflineSync journals={offlineJournals} thumbUrls={offlineThumbUrls} />
+
+      {/* 새 일지 ＋ — 터키석 플로팅(모바일), 하단 탭바 위 16px */}
+      <Link
+        href="/journal/new"
+        aria-label="새 일지"
+        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-b27-plus text-white shadow-[0_8px_18px_-6px_rgba(46,196,182,0.6)] transition active:scale-95 md:hidden"
+        style={{ bottom: 'calc(92px + env(safe-area-inset-bottom))' }}
+      >
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+          <path d="M12 5v14" />
+          <path d="M5 12h14" />
+        </svg>
+      </Link>
     </main>
   )
 }

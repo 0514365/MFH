@@ -1,5 +1,6 @@
 'use client'
 
+// MFH-TIME-FIELD-V3 — 2027 공용 부품(4-0): 남색 글자 · 연회색 면 · b27 선 · 굵기 600 이하 · 위험 = 지출 빨강.
 // MFH-TIME-FIELD-V2
 // 마감 시간 입력.
 // - 모바일: native input 을 opacity-0 으로 덮고 보이는 div 가 값/placeholder 표시
@@ -26,7 +27,7 @@ function formatTime(v: string): string {
   return `${ampm} ${h12}:${mm}`
 }
 
-const box = 'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm'
+const box = 'w-full rounded-xl border border-b27-line bg-b27-paper px-4 py-3 text-sm'
 
 export default function TimeField({ value, onChange, placeholder, disabled }: Props) {
   const [desktop, setDesktop] = useState(false)
@@ -57,7 +58,7 @@ export default function TimeField({ value, onChange, placeholder, disabled }: Pr
   return (
     <div className={`relative w-full ${disabled ? 'opacity-50' : ''}`}>
       <div className={box}>
-        {value ? formatTime(value) : <span className="text-faint">{placeholder ?? '시간 선택'}</span>}
+        {value ? formatTime(value) : <span className="text-b27-muted">{placeholder ?? '시간 선택'}</span>}
       </div>
       <input
         type="time"

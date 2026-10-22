@@ -1,3 +1,5 @@
+// MFH-JOURNAL-REDESIGN-V4 — 2027(4-1): theme-2027 · 상단바 빨간 ‹ + 「새 일지/일지 수정」 · 카드 테두리·그림자 제거 · 입력칸 = 연회색 면 ·
+//   사역 분류 = 블록 선택(CategoryBlocks) · 라벨 Manrope 회색(이모지 제거) · 기도제목 일지 틴트 · 플래그 = 틴트 알약 · 저장 남색.
 // MFH-JOURNAL-REDESIGN-V3
 'use client'
 
@@ -5,7 +7,8 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { readPhotoMeta, uploadJournalPhoto, type PhotoMeta } from '@/lib/photo'
-import CategorySelect from '@/components/CategorySelect'
+import CategoryBlocks from './CategoryBlocks'
+import { FLAG_COLOR, FLAG_SOFT } from './JournalFlagsToggle'
 import LinkedPicker, { type PickerItem } from '@/components/LinkedPicker'
 import AuthorSelect from '@/components/AuthorSelect'
 import BackButton from '@/components/BackButton'
@@ -14,7 +17,6 @@ import { haversineMeters } from '@/lib/geo'
 import { MAX_JOURNAL_PHOTOS } from '@/lib/types'
 import type { JournalEntry, JournalPhoto, Project, Task } from '@/lib/types'
 import DateField from './DateField'
-import '@/app/p/portfolio-theme.css'
 
 function todayStr() {
   const d = new Date()
@@ -477,9 +479,12 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
   }
 
   const input =
-    'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
-  const small = 'mb-1 mt-4 block text-xs text-muted'
-  const sectionTitle = 'mb-1 block text-sm font-bold text-primary'
+    'w-full rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink outline-none placeholder:text-b27-muted focus:ring-2 focus:ring-b27-ink/15'
+  // 연회색 묶음(사진 정보) 안의 입력칸 = 흰 면
+  const inputW =
+    'w-full rounded-xl bg-b27-paper px-4 py-3 text-sm text-b27-ink outline-none placeholder:text-b27-muted focus:ring-2 focus:ring-b27-ink/15'
+  const small = 'mb-1 mt-4 block font-num text-[12px] text-b27-muted'
+  const sectionTitle = 'mb-1.5 block font-num text-[12px] font-medium text-b27-muted'
   const hasPhotoInfo = photos.length > 0
   const canAddPhoto = photos.length < MAX_JOURNAL_PHOTOS
   const placeMatches = placeNames
@@ -552,65 +557,64 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
     meditation: Boolean(meditation.trim()),
   }
   const subLabel: Record<SubKey, string> = {
-    thanks: '🙏 감사·응답',
-    meditation: '💭 묵상·깨달음',
+    thanks: '감사·응답',
+    meditation: '묵상·깨달음',
   }
   const subValue: Record<SubKey, string> = { thanks, meditation }
   const subSet: Record<SubKey, (v: string) => void> = { thanks: setThanks, meditation: setMeditation }
 
-  // 카드(기재구역): 흰 면 + 테두리 + 라운드(24px) + 옅은 그림자. paper 배경 위에서 또렷.
-  const card = 'rounded-3xl border border-line bg-surface p-5 shadow-sm'
-  // 카드 안의 하위 묶음(사진정보·기도제목): 한 단계 안쪽 톤(테두리 없이 채움).
-  const innerBox = 'rounded-2xl bg-surface-subtle p-4'
+  // 기재 구역 — 2027: 테두리·그림자 없는 흰 열(입력칸이 연회색 면으로 경계를 만든다).
+  const card = 'flex flex-col'
+  // 하위 묶음(사진 정보): 연회색 면 + 흰 입력칸.
+  const innerBox = 'rounded-2xl bg-b27-card p-4'
+  // 플래그 알약 — ON 틴트 면 + 진한 톤 / OFF 연회색 + 회색 / 비활성 흐리게.
+  const flagPill = (on: boolean, off: boolean) =>
+    `rounded-full px-3.5 py-2 text-[13px] transition active:opacity-70 ${on ? 'font-medium' : 'bg-b27-card text-b27-muted'} ${
+      off ? 'opacity-40' : ''
+    }`
 
   return (
-    <main className="app-theme mx-auto max-w-md px-4 pb-10 @xl:max-w-3xl @4xl:max-w-6xl">
-      {/* 상단바(미니멀): ‹ Log + 중앙 제목 */}
-      <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
+    <main className="theme-2027 mx-auto max-w-md px-4 pb-10 @xl:max-w-3xl @4xl:max-w-6xl">
+      {/* 상단바: 빨간 ‹ + 제목 */}
+      <header className="sticky top-0 z-30 -mx-4 mb-3 flex h-[52px] items-center bg-b27-paper pl-3 pr-4">
         <BackButton
           href={mode === 'edit' && initial ? `/journal/${initial.id}` : '/journal'}
-          label=""
+          label={mode === 'edit' ? '일지 수정' : '새 일지'}
           variant="text"
         />
-        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-lg font-extrabold uppercase tracking-[0.15em] text-primary">
-          {mode === 'edit' ? 'Edit Log' : 'New Log'}
-        </h1>
-        <span className="w-10" aria-hidden="true" />
       </header>
 
       {mode === 'edit' && (
         <AuthorSelect value={authorId} onChange={setAuthorId} className={input} />
       )}
 
-      {/* 헤더 줄: 날짜+오늘 / 사역분류 — 카드로 묶음 */}
-      <div className={`${card} mb-4`}>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <div className="mb-1 flex h-7 items-center gap-2">
-              <label className="text-sm font-bold text-primary">날짜</label>
-              <button
-                type="button"
-                onClick={() => setEntryDate(todayStr())}
-                className="rounded-md border border-accent px-2 py-0.5 text-[11px] font-semibold text-accent"
-              >
-                오늘
-              </button>
+      {/* 날짜 + 오늘 / 사역 분류 블록 */}
+      <div className="mb-5 flex flex-col gap-4">
+        <div>
+          <label className={sectionTitle}>날짜</label>
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <DateField value={entryDate} onChange={setEntryDate} placeholder="날짜 선택" />
             </div>
-            <DateField value={entryDate} onChange={setEntryDate} placeholder="날짜 선택" />
+            <button
+              type="button"
+              onClick={() => setEntryDate(todayStr())}
+              className="shrink-0 rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink transition active:opacity-70"
+            >
+              오늘
+            </button>
           </div>
-          <div>
-            <div className="mb-1 flex h-7 items-center">
-              <label className="text-sm font-bold text-primary">사역 분류</label>
-            </div>
-            <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="선택 안 함" />
-          </div>
+        </div>
+        <div>
+          <label className={sectionTitle}>사역 분류</label>
+          <CategoryBlocks value={category} onChange={setCategory} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 @xl:grid-cols-[1.5fr_1fr] @4xl:grid-cols-[1.8fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 @xl:grid-cols-[1.5fr_1fr] @xl:gap-8 @4xl:grid-cols-[1.8fr_1fr]">
         {/* ── 좌측 카드: 본문 ── */}
         <div className={`${card} min-w-0`}>
-          <label className={sectionTitle}>✏️ 제목</label>
+          <label className={sectionTitle}>제목</label>
           <input
             value={headline}
             onChange={(e) => setHeadline(e.target.value)}
@@ -618,7 +622,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
             placeholder="오늘의 핵심을 한 문장으로"
           />
 
-          <label className={`${sectionTitle} mt-5`}>🌿 오늘의 기록</label>
+          <label className={`${sectionTitle} mt-5`}>오늘의 기록</label>
           <textarea
             value={todayText}
             onChange={(e) => setTodayText(e.target.value)}
@@ -626,7 +630,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
             className={`${input} resize-y min-h-[110px] [field-sizing:content]`}
             placeholder="오늘 한 일·만난 사람·있었던 일을 사실대로 기록하세요"
           />
-          <p className="mt-1 text-[11px] leading-relaxed text-faint">
+          <p className="mt-1 text-[11px] leading-relaxed text-b27-muted">
             마크다운 지원 — **볼드** · *기울임* · # 제목 · - 목록 · 1. 번호 · &gt; 인용 · [링크](주소) · 표 · ---
           </p>
 
@@ -637,10 +641,8 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
                 <button
                   type="button"
                   onClick={() => toggleSub(k)}
-                  className={`flex w-full items-center justify-between rounded-xl border px-4 py-2.5 text-sm font-bold transition ${
-                    openSubs[k] || subFilled[k]
-                      ? 'border-primary bg-surface-subtle text-primary'
-                      : 'border-line bg-surface-subtle text-muted hover:border-primary'
+                  className={`flex w-full items-center justify-between rounded-xl bg-b27-card px-4 py-3 text-sm transition active:opacity-70 ${
+                    openSubs[k] || subFilled[k] ? 'font-medium text-b27-ink' : 'text-b27-muted'
                   }`}
                 >
                   <span>{subLabel[k]}</span>
@@ -660,55 +662,53 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
             ))}
           </div>
 
-          {/* 기도제목: 기본 펼침 + 편지후보 체크 — 마룬 틴트 강조 묶음 */}
-          <div className="mt-4 rounded-2xl bg-accent-soft p-4">
-            <label className="mb-1 block text-sm font-bold text-accent">📌 기도제목</label>
+          {/* 기도제목: 기본 펼침 — 일지 틴트 면(1) + 흰 입력칸 */}
+          <div className="mt-4 rounded-2xl bg-b27-tint-1 p-4">
+            <label className="mb-1.5 flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">
+              <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-1" aria-hidden="true" />
+              기도제목
+            </label>
             <textarea
               value={prayer}
               onChange={(e) => setPrayer(e.target.value)}
               rows={3}
-              className={`${input} min-h-[64px] [field-sizing:content]`}
+              className={`${inputW} min-h-[64px] [field-sizing:content]`}
               placeholder="예: 자포탈 교회 건축 / 가정 평강"
             />
           </div>
 
-          {/* 기도후보·비공개·비밀글 — 한 섹션, 명칭+체크박스만(배타 규칙은 changeSecret/changePrivate). */}
-          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl bg-surface-subtle p-4">
-            <label
-              className={`flex items-center gap-2 text-sm ${
-                isPrivate || isSecret ? 'text-faint opacity-50' : 'text-muted'
-              }`}
+          {/* 기도후보·비공개·비밀글 — 알약 토글(배타 규칙은 changeSecret/changePrivate). */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              aria-pressed={prayerCandidate}
+              disabled={isPrivate || isSecret}
+              onClick={() => setPrayerCandidate(!prayerCandidate)}
+              className={flagPill(prayerCandidate, isPrivate || isSecret)}
+              style={prayerCandidate ? { background: FLAG_SOFT.prayer, color: FLAG_COLOR.prayer } : undefined}
             >
-              <input
-                type="checkbox"
-                checked={prayerCandidate}
-                disabled={isPrivate || isSecret}
-                onChange={(e) => setPrayerCandidate(e.target.checked)}
-              />
-              기도후보
-            </label>
-            <label
-              className={`flex items-center gap-2 text-sm ${
-                isSecret ? 'text-faint opacity-50' : 'text-muted'
-              }`}
+              기도후보{prayerCandidate && ' ✓'}
+            </button>
+            <button
+              type="button"
+              aria-pressed={isPrivate}
+              disabled={isSecret}
+              onClick={() => changePrivate(!isPrivate)}
+              className={flagPill(isPrivate, isSecret)}
+              style={isPrivate ? { background: FLAG_SOFT.private, color: FLAG_COLOR.private } : undefined}
             >
-              <input
-                type="checkbox"
-                checked={isPrivate}
-                disabled={isSecret}
-                onChange={(e) => changePrivate(e.target.checked)}
-              />
-              비공개
-            </label>
+              비공개{isPrivate && ' ✓'}
+            </button>
             {isMaster(meId) && (
-              <label className="flex items-center gap-2 text-sm text-muted">
-                <input
-                  type="checkbox"
-                  checked={isSecret}
-                  onChange={(e) => changeSecret(e.target.checked)}
-                />
-                비밀글
-              </label>
+              <button
+                type="button"
+                aria-pressed={isSecret}
+                onClick={() => changeSecret(!isSecret)}
+                className={flagPill(isSecret, false)}
+                style={isSecret ? { background: FLAG_SOFT.secret, color: FLAG_COLOR.secret } : undefined}
+              >
+                비밀글{isSecret && ' ✓'}
+              </button>
             )}
           </div>
         </div>
@@ -716,19 +716,15 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
         {/* ── 우측 카드: 사진 + 연계 ── */}
         <div className={`${card} min-w-0`}>
           <div className="flex items-center justify-between gap-2">
-            <span className="shrink-0 whitespace-nowrap text-sm font-bold text-primary">
-              📷 사진{' '}
-              <span className="text-xs font-normal text-faint">
-                ({photos.length}/{MAX_JOURNAL_PHOTOS})
-              </span>
+            <span className="shrink-0 whitespace-nowrap font-num text-[12px] font-medium text-b27-muted">
+              사진 <span className="tabular-nums">{photos.length}/{MAX_JOURNAL_PHOTOS}</span>
             </span>
-            <label
-              className={`shrink-0 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-semibold ${
-                canAddPhoto
-                  ? 'cursor-pointer border-line text-muted hover:border-primary'
-                  : 'cursor-not-allowed border-line text-faint opacity-50'
-              }`}
-            >
+          </div>
+          <label
+            className={`mt-1.5 block w-full rounded-xl border-[1.5px] border-dashed border-[#D5D9E3] bg-b27-paper px-4 py-3 text-center text-sm ${
+              canAddPhoto ? 'cursor-pointer text-b27-ink active:opacity-70' : 'cursor-not-allowed text-b27-muted opacity-50'
+            }`}
+          >
               사진 추가
               <input
                 type="file"
@@ -738,40 +734,39 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
                 disabled={!canAddPhoto}
                 className="hidden"
               />
-            </label>
-          </div>
+          </label>
 
           {photos.length > 0 && (
             <ul className="mt-3 space-y-2">
               {photos.map((s, i) => (
                 <li
                   key={s.key}
-                  className="flex items-center gap-2 rounded-xl border border-line bg-surface p-2"
+                  className="flex items-center gap-2 rounded-xl bg-b27-card p-2"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={s.url}
                     alt=""
-                    className="h-16 w-16 shrink-0 rounded-lg border border-line object-cover"
+                    className="h-16 w-16 shrink-0 rounded-lg object-cover"
                   />
                   <div className="min-w-0 flex-1">
                     {i === 0 ? (
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="inline-block rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-primary">
+                        <span className="inline-block rounded-full bg-b27-paper px-2 py-0.5 text-[10px] font-medium text-b27-ink">
                           대표
                         </span>
-                        <span className="text-[11px] text-faint">장소는 아래 ‘대표 장소’ 적용</span>
+                        <span className="text-[11px] text-b27-muted">장소는 아래 ‘대표 장소’ 적용</span>
                       </div>
                     ) : (
                       <input
                         value={s.placeName}
                         onChange={(e) => setSlotPlace(s.key, e.target.value)}
-                        className="w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs outline-none focus:border-primary"
+                        className="w-full rounded-lg bg-b27-paper px-2.5 py-1.5 text-xs text-b27-ink outline-none placeholder:text-b27-muted"
                         placeholder={placeName ? `대표: ${placeName}` : '이 사진 장소 (선택)'}
                       />
                     )}
                     {(s.takenAt || s.lat != null) && (
-                      <p className="mt-1 text-[11px] text-faint">
+                      <p className="mt-1 text-[11px] text-b27-muted">
                         {s.takenAt && <span>📅 {s.takenAt}</span>}
                         {s.takenAt && s.lat != null && <span> · </span>}
                         {s.lat != null && <span>📍 위치 있음</span>}
@@ -781,7 +776,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
                   <button
                     type="button"
                     onClick={() => removeSlot(s.key)}
-                    className="shrink-0 rounded-lg border border-line px-2 py-1 text-xs text-danger hover:border-danger"
+                    className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs text-b27-expense active:opacity-70"
                     aria-label="사진 제거"
                   >
                     ✕
@@ -790,25 +785,25 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
               ))}
             </ul>
           )}
-          {photoNote && <p className="mt-2 text-xs text-faint">{photoNote}</p>}
+          {photoNote && <p className="mt-2 text-xs text-b27-muted">{photoNote}</p>}
 
           {/* 사진 정보 묶음 — 사진 있을 때만 펼침 */}
           {hasPhotoInfo ? (
             <div className={`mt-4 ${innerBox}`}>
-              <p className="mb-3 text-xs font-bold text-muted">사진 정보 (선택 시 자동 채움)</p>
+              <p className="mb-3 font-num text-[12px] font-medium text-b27-muted">사진 정보 (선택 시 자동 채움)</p>
 
-              <label className="mb-1 block text-xs text-muted">대표 장소 (목록·검색 표시)</label>
+              <label className="mb-1 block font-num text-[12px] text-b27-muted">대표 장소 (목록·검색 표시)</label>
               <input
                 value={placeName}
                 onChange={(e) => setPlaceName(e.target.value)}
-                className={input}
+                className={inputW}
                 placeholder="장소 — 예: 자포탈 더좋은교회"
               />
               {placeSuggestion && (
                 <button
                   type="button"
                   onClick={() => setPlaceName(placeSuggestion.name)}
-                  className="mt-2 block text-xs font-semibold text-accent underline"
+                  className="mt-2 block text-xs font-medium text-b27-ink underline"
                 >
                   📍 근처 기록 위치: ‘{placeSuggestion.name}’ 사용 (약 {Math.round(placeSuggestion.dist)}m)
                 </button>
@@ -820,7 +815,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
                       key={n}
                       type="button"
                       onClick={() => setPlaceName(n)}
-                      className="rounded-full bg-surface px-2.5 py-1 text-[11px] text-muted"
+                      className="rounded-full bg-b27-paper px-2.5 py-1 text-[11px] text-b27-ink"
                     >
                       {n}
                     </button>
@@ -828,7 +823,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
                 </div>
               )}
 
-              <label className="mb-1 mt-4 block text-xs text-muted">촬영일 (메타데이터 · 수정 가능)</label>
+              <label className="mb-1 mt-4 block font-num text-[12px] text-b27-muted">촬영일 (메타데이터 · 수정 가능)</label>
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <DateField value={photoTakenAt} onChange={changeTakenAt} placeholder="촬영일 없음" />
@@ -837,14 +832,14 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
                   type="button"
                   onClick={useCurrentLocation}
                   disabled={geoBusy}
-                  className="shrink-0 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-primary hover:border-primary disabled:opacity-50"
+                  className="shrink-0 rounded-xl bg-b27-paper px-3.5 py-3 text-xs font-medium text-b27-ink active:opacity-70 disabled:opacity-50"
                 >
                   {geoBusy ? '확인 중…' : '◎ 위치'}
                 </button>
               </div>
               <label
                 className={`mt-2 flex items-center gap-2 text-xs ${
-                  photoTakenAt ? 'text-muted' : 'text-faint'
+                  photoTakenAt ? 'text-b27-ink' : 'text-b27-muted'
                 }`}
               >
                 <input
@@ -857,16 +852,16 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
               </label>
 
               {(photoLat || photoLng) && (
-                <p className="mt-2 text-xs text-faint">
+                <p className="mt-2 text-xs text-b27-muted">
                   좌표: {photoLat || '—'}, {photoLng || '—'}
                 </p>
               )}
-              {geoMsg && <p className="mt-1 text-xs text-faint">{geoMsg}</p>}
+              {geoMsg && <p className="mt-1 text-xs text-b27-muted">{geoMsg}</p>}
 
               <button
                 type="button"
                 onClick={() => setShowManualCoord((v) => !v)}
-                className="mt-2 text-xs text-muted underline"
+                className="mt-2 text-xs text-b27-muted underline"
               >
                 {showManualCoord ? '직접 입력 닫기' : '좌표 직접 입력'}
               </button>
@@ -875,14 +870,14 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
                   <input
                     value={photoLat}
                     onChange={(e) => setPhotoLat(e.target.value)}
-                    className={input}
+                    className={inputW}
                     placeholder="위도"
                     inputMode="decimal"
                   />
                   <input
                     value={photoLng}
                     onChange={(e) => setPhotoLng(e.target.value)}
-                    className={input}
+                    className={inputW}
                     placeholder="경도"
                     inputMode="decimal"
                   />
@@ -890,33 +885,36 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
               )}
             </div>
           ) : (
-            <p className="mt-3 text-xs text-faint">
+            <p className="mt-2 text-xs text-b27-muted">
               사진을 선택하면 장소·촬영일·위치 정보를 입력할 수 있습니다.
             </p>
           )}
 
           {/* 연계된 중보기도 배너 */}
           {linkedIntercession && (
-            <div className="mt-5 rounded-2xl border border-primary bg-primary-soft p-3">
+            <div className="mt-5 rounded-2xl bg-b27-tint-6 p-4">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-primary">🙏 중보기도 연계</span>
+                <span className="flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted">
+                  <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-6" aria-hidden="true" />
+                  중보기도 연계
+                </span>
                 <button
                   type="button"
                   onClick={() => setIntercessionId(null)}
-                  className="text-[11px] font-semibold text-primary/70 underline"
+                  className="text-[11px] text-b27-muted underline"
                 >
                   연결 해제
                 </button>
               </div>
-              <p className="mt-1 text-xs font-semibold text-ink">{linkedIntercession.visitor_name}</p>
-              <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-muted">
+              <p className="mt-1 text-xs font-medium text-b27-ink">{linkedIntercession.visitor_name}</p>
+              <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-b27-muted">
                 {linkedIntercession.message}
               </p>
             </div>
           )}
 
           {/* 연계 한 줄 — 프로젝트↔할일 양방향 필터 + 완료 항목 접이식 */}
-          <label className={`${sectionTitle} mt-5`}>🔗 연계 (선택)</label>
+          <label className={`${sectionTitle} mt-5`}>연계 (선택)</label>
           <div className="grid grid-cols-1 gap-2 @xl:grid-cols-2">
             <LinkedPicker
               value={projectId}
@@ -940,14 +938,14 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
             />
           </div>
 
-          {msg && <p className="mt-4 text-sm text-danger">{msg}</p>}
+          {msg && <p className="mt-4 text-sm text-b27-expense">{msg}</p>}
 
           <button
             onClick={save}
             disabled={saving}
-            className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
+            className="mt-6 w-full rounded-2xl bg-b27-ink py-4 text-[15px] font-medium text-white transition active:opacity-80 disabled:opacity-50"
           >
-            {saving ? '저장 중…' : 'Save Log'}
+            {saving ? '저장 중…' : '저장'}
           </button>
         </div>
       </div>

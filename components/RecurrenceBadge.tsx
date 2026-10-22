@@ -1,3 +1,4 @@
+// MFH-RECURRENCE-BADGE-V2 — 2027 공용 부품(4-0): 남색 글자 · 연회색 면 · b27 선 · 굵기 600 이하 · 위험 = 지출 빨강.
 // MFH-RECURRENCE-BADGE-V1
 // 반복 시리즈 표시 칩(목록·상세·편집 공용). 반복 아이콘 + 주기(매일/매주/매월).
 import { recurrenceLabel } from '@/lib/recurrence'
@@ -11,7 +12,7 @@ export default function RecurrenceBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary ${className ?? ''}`}
+      className={`inline-flex items-center gap-1 rounded-full bg-b27-card px-2 py-0.5 text-[11px] font-semibold text-b27-ink ${className ?? ''}`}
     >
       <svg
         width="11"

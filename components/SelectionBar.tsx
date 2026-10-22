@@ -1,3 +1,4 @@
+// MFH-SELECTION-BAR-V2 — 2027 공용 부품(4-0): 남색 글자 · 연회색 면 · b27 선 · 굵기 600 이하 · 위험 = 지출 빨강.
 // MFH-SELECTION-BAR-V1
 // 다중선택 모드의 하단 sticky bar. 일지·프로젝트·할일 공용.
 // - 좁은 화면: 화면 하단 고정(BottomNav 위, bottom-16 = 64px).
@@ -24,19 +25,18 @@ export default function SelectionBar({
 }: Props) {
   return (
     <div
-      className="fixed inset-x-0 bottom-16 z-30 border-t border-line shadow-lg min-[740px]:bottom-0"
-      style={{ background: 'var(--paper)' }}
+      className="fixed inset-x-0 bottom-16 z-30 border-t border-b27-line bg-b27-paper shadow-lg min-[740px]:bottom-0"
       role="region"
       aria-label="다중선택 도구모음"
     >
       <div className="mx-auto flex max-w-md flex-wrap items-center gap-2 px-5 py-3 min-[740px]:max-w-5xl">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-primary">{count}개 선택</span>
+          <span className="text-sm font-semibold text-b27-ink">{count}개 선택</span>
           {onSelectAll && (
             <button
               type="button"
               onClick={onSelectAll}
-              className="rounded-lg border border-line px-2 py-1 text-[11px] font-semibold text-muted transition hover:border-primary"
+              className="rounded-lg border border-b27-line px-2 py-1 text-[11px] font-semibold text-b27-muted transition hover:border-b27-muted"
             >
               {allSelected ? '전체 해제' : '전체 선택'}
             </button>
@@ -48,7 +48,7 @@ export default function SelectionBar({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-primary"
+            className="rounded-lg border border-b27-line px-3 py-1.5 text-xs font-semibold text-b27-muted transition hover:border-b27-muted"
           >
             취소
           </button>

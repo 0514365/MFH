@@ -1,13 +1,17 @@
 'use client'
 
+// MFH-JOURNAL-LIST-V4 — 2027(4-1, 목록 A): 2줄 행(분류 색 사각형 · 제목+플래그 배지 / MM/DD·장소·분류) + 오른쪽 사진 썸네일 · 월 머리줄 ·
+//   필터 = 연회색 면(흰 검색 알약 · 흰 칩 · 선택 남색) · 넓은 화면 요약 = 2027 섹션(기도제목 일지 틴트). 행별 플래그 토글은 상세로.
 // MFH-JOURNAL-LIST-V3
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import type { JournalEntry, Project, Task } from '@/lib/types'
-import { canEditEntry, isMaster, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
+import { canEditEntry, PORTFOLIO_OWNER_ID, type MembersMap } from '@/lib/members'
+import { JOURNAL_CATEGORY_BLOCK } from '@/lib/constants'
+import { blockColor, brand2027 } from '@/lib/palette'
 import AuthorBadge from '@/components/AuthorBadge'
-import MarkdownText, { stripMarkdown } from '@/components/MarkdownText'
+import MarkdownText from '@/components/MarkdownText'
 import { chip, chipOn, toggle } from '@/lib/statusChip'
 import {
   JOURNAL_CATEGORY_NONE,
@@ -21,7 +25,7 @@ import { useSelectionMode } from '@/lib/useSelectionMode'
 import SelectionCheckbox from '@/components/SelectionCheckbox'
 import SelectionBar from '@/components/SelectionBar'
 import JournalBulkPanel from './JournalBulkPanel'
-import JournalFlagsToggle, { flagIcon, FLAG_COLOR } from './JournalFlagsToggle'
+import { FLAG_COLOR, FLAG_SOFT } from './JournalFlagsToggle'
 import PhotoCollage, { type CollagePhoto } from './PhotoCollage'
 import {
   bulkUpdateJournals,
@@ -29,93 +33,72 @@ import {
   type JournalBulkPatch,
 } from '@/lib/bulkUpdate'
 
-// 기도후보·비공개·비밀글 배지 — 토글과 동일 컬러·라인 아이콘. 비밀글은 RLS 로 작성자·마스터에게만 행이 온다.
+// 기도후보·비공개·비밀글 배지 — 플래그 틴트 면 + 진한 톤 글자(작은 알약). 비밀글은 RLS 로 작성자·마스터에게만 행이 온다.
 function PrivacyBadges({ e }: { e: JournalEntry }) {
   if (!e.is_secret && !e.is_private && !e.prayer_candidate) return null
+  const Badge = ({ kind, label }: { kind: keyof typeof FLAG_COLOR; label: string }) => (
+    <span
+      className="inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[10.5px] font-medium leading-tight"
+      style={{ color: FLAG_COLOR[kind], background: FLAG_SOFT[kind] }}
+    >
+      {label}
+    </span>
+  )
   return (
     <>
-      {e.prayer_candidate && (
-        <span
-          className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold tracking-wide"
-          style={{ color: FLAG_COLOR.prayer, background: 'rgba(182,24,33,0.08)' }}
-        >
-          {flagIcon.prayer} 기도후보
-        </span>
-      )}
-      {e.is_secret && (
-        <span
-          className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold tracking-wide"
-          style={{ color: FLAG_COLOR.secret, background: 'rgba(102,31,32,0.09)' }}
-        >
-          {flagIcon.eyeOff} 비밀글
-        </span>
-      )}
-      {e.is_private && (
-        <span
-          className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold tracking-wide"
-          style={{ color: FLAG_COLOR.private, background: 'rgba(176,138,74,0.13)' }}
-        >
-          {flagIcon.lock} 비공개
-        </span>
-      )}
+      {e.prayer_candidate && <Badge kind="prayer" label="기도" />}
+      {e.is_secret && <Badge kind="secret" label="비밀" />}
+      {e.is_private && <Badge kind="private" label="비공개" />}
     </>
   )
 }
 
-// 일지 카드 본문(날짜 + 카테고리 칩 + 제목 + 발췌). 사진·메타칩·기도후보는 renderItem 에서.
-function EntryBody({ e }: { e: JournalEntry }) {
+// 분류 색 사각형(9px) — 분류 없으면 연회색.
+function CategorySquare({ category }: { category: string | null }) {
+  const n = category ? JOURNAL_CATEGORY_BLOCK[category] : undefined
   return (
-    <>
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-display text-sm font-bold tracking-tight text-muted">{e.entry_date}</span>
-        <span className="flex shrink-0 items-center gap-1.5">
+    <span
+      className="mt-[7px] inline-block h-[9px] w-[9px] shrink-0 rounded-[3px]"
+      style={{ background: n ? blockColor(n).bg : brand2027.line }}
+      aria-hidden="true"
+    />
+  )
+}
+
+// 2줄 행 본문 — 제목(+플래그 배지) / MM/DD · 장소 · 분류 · 작성자(다른 사람 글만).
+function EntryRow({ e, authorName }: { e: JournalEntry; authorName?: string }) {
+  const md = e.entry_date ? `${Number(e.entry_date.slice(5, 7))}/${Number(e.entry_date.slice(8, 10))}` : ''
+  const sub = [md, e.place_name, e.category, authorName].filter(Boolean).join(' · ')
+  return (
+    <span className="flex min-w-0 flex-1 gap-3">
+      <CategorySquare category={e.category} />
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="min-w-0 truncate text-[15px] font-medium leading-snug text-b27-ink">{e.headline || '(제목 없음)'}</span>
           <PrivacyBadges e={e} />
-          {e.category && (
-            <span className="shrink-0 rounded-lg bg-surface-subtle px-2.5 py-1 text-[11px] font-bold tracking-wide text-primary">
-              {e.category}
-            </span>
-          )}
         </span>
-      </div>
-      <h2 className="mt-3 text-[19px] font-bold leading-[1.3] text-ink">{e.headline || '(제목 없음)'}</h2>
-      {e.today && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted">{stripMarkdown(e.today)}</p>}
-    </>
-  )
-}
-
-// 카드 하단 메타 칩(연계 프로젝트·할일·장소·작성자). 아이콘 + 라벨. iconColor 면 아이콘만 종류색(③ 절제 스타일).
-function MetaChip({ icon, label, iconColor }: { icon: React.ReactNode; label: string; iconColor?: string }) {
-  return (
-    <span className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-medium text-muted">
-      <span className={`shrink-0 ${iconColor ? '' : 'text-faint'}`} style={iconColor ? { color: iconColor } : undefined}>{icon}</span>
-      <span className="max-w-[140px] truncate">{label}</span>
+        <span className="mt-0.5 block truncate font-num text-[12px] text-b27-muted">{sub}</span>
+      </span>
     </span>
   )
 }
 
-const metaIcon = {
-  project: (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
-  ),
-  task: (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-  ),
-  place: (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-  ),
-  user: (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-  ),
+// 행 오른쪽 사진 썸네일(52px) + 장수.
+function RowThumb({ photos }: { photos: CollagePhoto[] }) {
+  if (photos.length === 0) return null
+  const p = photos[0]
+  return (
+    <span className="relative h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[10px] bg-b27-card">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={p.thumb_url || p.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+      {photos.length > 1 && (
+        <span className="absolute bottom-[3px] right-[3px] rounded-md bg-[rgba(43,49,96,0.55)] px-1 font-num text-[10px] font-semibold text-white">
+          {photos.length}
+        </span>
+      )}
+    </span>
+  )
 }
-
-// 메타칩 아이콘색(③ 절제 스타일) — 브랜드 어스톤 + 작성자만 청/로즈로 구별. 동적 클래스 회피 위해 hex 직접.
-const META_ICON_COLOR = {
-  project: '#B05744',
-  task: '#B08A4A',
-  place: '#9A9A98',
-  authorMaster: '#5E82A6',
-  authorOther: '#C56A7E',
-} as const
 
 // 요약 패널(읽기전용). 넓은 화면 우측. '상세' → /journal/[id], '편집' → /journal/[id]/edit.
 function EntrySummary({
@@ -123,51 +106,48 @@ function EntrySummary({
   detailSuffix,
   authorName,
   canEdit,
+  photos,
 }: {
   e: JournalEntry
   detailSuffix: string
   authorName?: string
   canEdit: boolean
+  photos: CollagePhoto[]
 }) {
-  const Section = ({ label, text }: { label: string; text: string | null }) =>
+  const n = e.category ? JOURNAL_CATEGORY_BLOCK[e.category] : undefined
+  const Section = ({ label, text, tint }: { label: string; text: string | null; tint?: boolean }) =>
     text ? (
-      <div className="py-2">
-        <div className="mb-1 text-xs font-semibold text-faint">{label}</div>
-        <MarkdownText text={text} className="text-sm leading-relaxed text-ink" />
+      <div className={tint ? 'rounded-2xl bg-b27-tint-1 px-4 py-3' : 'py-1'}>
+        <div className="mb-1 font-num text-[12px] font-medium text-b27-muted">{label}</div>
+        <MarkdownText text={text} className="text-sm leading-relaxed text-b27-ink" />
       </div>
     ) : null
   return (
-    <div>
+    <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-muted">{e.entry_date}</span>
+          <div className="flex items-center gap-1.5 font-num text-[12px] text-b27-muted">
+            <span className="inline-block h-2 w-2 rounded-[2px]" style={{ background: n ? blockColor(n).bg : brand2027.line }} aria-hidden="true" />
+            {[e.category, e.entry_date].filter(Boolean).join(' · ')}
+          </div>
+          <h2 className="mt-1 text-lg font-semibold leading-snug text-b27-ink">{e.headline || '(제목 없음)'}</h2>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <AuthorBadge name={authorName} />
-            {e.place_name && (
-              <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
-                📍 {e.place_name}
-              </span>
-            )}
-            {e.category && (
-              <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-muted">
-                {e.category}
-              </span>
-            )}
+            {e.place_name && <span className="rounded-full bg-b27-card px-2 py-0.5 text-[11px] text-b27-muted">{e.place_name}</span>}
             <PrivacyBadges e={e} />
           </div>
-          <h2 className="mt-1.5 text-lg font-bold text-ink">{e.headline || '(제목 없음)'}</h2>
         </div>
         <div className="flex shrink-0 gap-1.5">
           <Link
             href={`/journal/${e.id}${detailSuffix}`}
-            className="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-muted transition hover:border-primary"
+            className="rounded-full bg-b27-card px-3.5 py-2 text-xs font-medium text-b27-ink transition active:opacity-70"
           >
             상세
           </Link>
           {canEdit && (
             <Link
               href={`/journal/${e.id}/edit`}
-              className="rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+              className="rounded-full bg-b27-ink px-4 py-2 text-xs font-medium text-white transition active:opacity-80"
             >
               편집
             </Link>
@@ -175,12 +155,12 @@ function EntrySummary({
         </div>
       </div>
 
-      <div className="mt-3 divide-y divide-line border-t border-line">
-        <Section label="🌿 오늘의 기록" text={e.today} />
-        <Section label="🙏 감사·응답" text={e.thanks} />
-        <Section label="💭 묵상·깨달음" text={e.meditation} />
-        <Section label="📌 기도제목" text={e.prayer} />
-      </div>
+      {photos.length > 0 && <PhotoCollage photos={photos} />}
+
+      <Section label="오늘의 기록" text={e.today} />
+      <Section label="감사·응답" text={e.thanks} />
+      <Section label="묵상·깨달음" text={e.meditation} />
+      <Section label="기도제목" text={e.prayer} tint />
     </div>
   )
 }
@@ -382,7 +362,7 @@ export default function JournalList({
 
   if (entries.length === 0) {
     return (
-      <p className="mt-16 text-center text-sm leading-relaxed text-faint">
+      <p className="mt-16 text-center text-sm leading-relaxed text-b27-muted">
         아직 일지가 없습니다.
         <br />첫 일지를 기록해 보세요.
       </p>
@@ -394,87 +374,63 @@ export default function JournalList({
     const checked = sel.isSelected(e.id)
     const inSelectMode = sel.selectMode
     const photos = photoMap[e.id] ?? []
-    const projTitle = e.project_id ? (projMap[e.project_id] ?? null) : null
-    const taskTitle = e.task_id ? (taskMap[e.task_id] ?? null) : null
-    const authorName = membersMap[e.user_id]
+    // 작성자는 다른 사람 글일 때만 보조 줄에 붙인다(본인 글은 생략).
+    const authorName = e.user_id !== currentUserId ? membersMap[e.user_id] : undefined
     const emphasized = (inSelectMode && checked) || isSel
-
-    return (
-      <li
-        key={e.id}
-        className={`relative flex flex-col rounded-[24px] border bg-surface p-5 shadow-[0_4px_18px_-6px_rgba(34,34,34,0.16)] ${
-          emphasized ? 'border-primary border-2' : 'border-line'
-        }`}
-      >
-        {/* selectMode 체크박스 — 좌상단 겹침(본문은 pl-8 로 자리 확보). */}
+    const inner = (
+      <>
         {inSelectMode && (
-          <div className="absolute left-2.5 top-2.5 z-10">
+          <span className="mt-0.5 shrink-0">
             <SelectionCheckbox checked={checked} />
-          </div>
+          </span>
         )}
+        <EntryRow e={e} authorName={authorName} />
+        <RowThumb photos={photos} />
+      </>
+    )
+    const rowCls = `flex w-full items-start gap-3 px-1 py-[11px] text-left transition active:opacity-70 ${
+      emphasized ? '-mx-1 rounded-xl bg-b27-card px-2' : ''
+    }`
 
-        {/* 본문(날짜·카테고리·제목·발췌) = 클릭 영역. selectMode=토글 / 넓은화면=요약선택 / 좁은화면=상세 Link. */}
+    // selectMode=토글 / 넓은화면=요약선택 / 좁은화면=상세 Link.
+    return (
+      <li key={e.id} className="border-b border-b27-line last:border-b-0">
         {inSelectMode ? (
-          <button type="button" onClick={() => sel.toggleId(e.id)} className="block w-full pl-8 text-left">
-            <EntryBody e={e} />
+          <button type="button" onClick={() => sel.toggleId(e.id)} className={rowCls}>
+            {inner}
           </button>
         ) : wide ? (
-          <button type="button" onClick={() => setSelectedId(e.id)} className="block w-full text-left">
-            <EntryBody e={e} />
+          <button type="button" onClick={() => setSelectedId(e.id)} className={rowCls}>
+            {inner}
           </button>
         ) : (
-          <Link href={`/journal/${e.id}${detailSuffix}`} className="block">
-            <EntryBody e={e} />
+          <Link href={`/journal/${e.id}${detailSuffix}`} className={rowCls}>
+            {inner}
           </Link>
         )}
-
-        {/* 사진 콜라주(있을 때) — 라이트박스 포함, 본문 클릭 영역과 분리. */}
-        {photos.length > 0 && (
-          <div className="mt-3.5">
-            <PhotoCollage photos={photos} />
-          </div>
-        )}
-
-        {/* 하단: 메타 칩(연계 프로젝트·할일·장소·작성자) + 기도후보 토글. */}
-        <div className="mt-3.5 flex items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap gap-2">
-            {authorName && (
-              <MetaChip
-                icon={metaIcon.user}
-                label={authorName}
-                iconColor={e.user_id === PORTFOLIO_OWNER_ID ? META_ICON_COLOR.authorMaster : META_ICON_COLOR.authorOther}
-              />
-            )}
-            {e.place_name && <MetaChip icon={metaIcon.place} label={e.place_name} iconColor={META_ICON_COLOR.place} />}
-            {projTitle && <MetaChip icon={metaIcon.project} label={projTitle} iconColor={META_ICON_COLOR.project} />}
-            {taskTitle && <MetaChip icon={metaIcon.task} label={taskTitle} iconColor={META_ICON_COLOR.task} />}
-          </div>
-          <JournalFlagsToggle
-            id={e.id}
-            flags={{
-              prayer_candidate: e.prayer_candidate,
-              is_private: e.is_private,
-              is_secret: e.is_secret,
-            }}
-            canEdit={canEditEntry(e.user_id, currentUserId)}
-            showSecret={isMaster(currentUserId)}
-          />
-        </div>
       </li>
     )
   }
 
-  // 컨트롤 바: 검색창 + 필터 토글 + 정렬(날짜) 토글 + 선택 토글 (+ 전체선택/초기화) (sticky)
+  // 월 머리줄 — 정렬 순서대로 같은 달끼리 묶는다(YYYY-MM). 다른 해면 연도까지.
+  const thisYear = new Date().getFullYear()
+  function monthLabel(ym: string) {
+    const [y, m] = ym.split('-').map(Number)
+    return y === thisYear ? `${m}월` : `${y}년 ${m}월`
+  }
+
+  // 컨트롤 바: 연회색 필터 면 — 흰 검색 알약 + 필터·날짜·선택(·전체선택/초기화) 흰 알약 (sticky, 헤더 52px 아래).
+  const pillBtn = 'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition active:opacity-70'
+  const pillOff = 'bg-b27-paper text-b27-muted'
+  const pillOn = 'bg-b27-ink text-white'
+  const filterActive = filterOpen || fCategory.length > 0 || fAuthor.length > 0 || prayerOnly || !!dateFrom || !!dateTo
   const controls = (
-    <div
-      className="sticky top-[64px] z-20 -mx-5 mb-3 space-y-2 px-5 py-2"
-      style={{ background: 'var(--paper)' }}
-    >
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
+    <div className="sticky top-[52px] z-20 -mx-5 mb-2 bg-b27-paper px-5 pb-2 pt-1">
+      <div className="space-y-2.5 rounded-2xl bg-b27-card p-2.5">
+        <div className="relative">
           <svg
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
-            width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-b27-muted"
+            width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
           >
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -483,155 +439,120 @@ export default function JournalList({
             type="search"
             value={q}
             onChange={(ev) => setQ(ev.target.value)}
-            placeholder="일지 검색 (머리말·본문·기도제목·장소)"
-            className="w-full rounded-xl border border-line bg-surface py-1.5 pl-9 pr-3 text-sm text-ink placeholder:text-faint focus:border-primary focus:outline-none"
+            placeholder="제목·본문·기도제목·장소 검색"
+            className="w-full rounded-full bg-b27-paper py-2 pl-9 pr-3 text-sm text-b27-ink placeholder:text-b27-muted focus:outline-none"
           />
         </div>
-        <button
-          type="button"
-          onClick={() => setFilterOpen((v) => !v)}
-          className={`flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
-            filterOpen || fCategory.length > 0 || fAuthor.length > 0 || prayerOnly || dateFrom || dateTo
-              ? 'border-primary text-primary'
-              : 'border-line text-muted hover:border-primary'
-          }`}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-          </svg>
-          필터
-        </button>
-        <button
-          type="button"
-          onClick={() => setAsc((v) => !v)}
-          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-primary"
-        >
-          날짜 {asc ? '↑' : '↓'}
-        </button>
-        <button
-          type="button"
-          onClick={sel.toggleMode}
-          className={`flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
-            sel.selectMode
-              ? 'border-primary bg-primary text-white'
-              : 'border-line text-muted hover:border-primary'
-          }`}
-          aria-pressed={sel.selectMode}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 11 12 14 22 4" />
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-          </svg>
-          {sel.selectMode ? '선택 종료' : '선택'}
-        </button>
-        {sel.selectMode && (
-          <button
-            type="button"
-            onClick={toggleAll}
-            className="flex shrink-0 items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-primary"
-          >
-            {allSelected ? '전체 해제' : '전체 선택'}
-          </button>
-        )}
-        {canReset && !sel.selectMode && (
-          <button
-            type="button"
-            onClick={resetAll}
-            className="flex shrink-0 items-center gap-1 rounded-xl border border-accent px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent-soft"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-              <path d="M3 3v5h5" />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button type="button" onClick={() => setFilterOpen((v) => !v)} className={`${pillBtn} ${filterActive ? pillOn : pillOff}`} aria-expanded={filterOpen}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
             </svg>
-            초기화
+            필터{activeCount > (q ? 1 : 0) ? ` ${activeCount - (q ? 1 : 0)}` : ''}
           </button>
-        )}
-      </div>
-
-      {filterOpen && (
-        <div className="space-y-2 rounded-xl border border-line bg-surface-subtle p-3">
-          {/* MFH-JOURNAL-DATE-FILTER */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-1 text-[11px] font-semibold text-faint">날짜</span>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(ev) => setDateFrom(ev.target.value)}
-              className="rounded-lg border border-line bg-surface px-2 py-1 text-xs text-ink focus:border-primary focus:outline-none"
-              aria-label="시작 날짜"
-            />
-            <span className="text-[11px] text-faint">~</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(ev) => setDateTo(ev.target.value)}
-              className="rounded-lg border border-line bg-surface px-2 py-1 text-xs text-ink focus:border-primary focus:outline-none"
-              aria-label="종료 날짜"
-            />
-            {(dateFrom || dateTo) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDateFrom('')
-                  setDateTo('')
-                }}
-                className="rounded-lg border border-line px-2 py-1 text-[11px] font-semibold text-muted transition hover:border-primary"
-              >
-                지우기
-              </button>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-1 text-[11px] font-semibold text-faint">기도</span>
-            <button
-              type="button"
-              onClick={() => setPrayerOnly((v) => !v)}
-              className={`${chip} ${prayerOnly ? chipOn : ''}`}
-            >
-              기도후보만
+          <button type="button" onClick={() => setAsc((v) => !v)} className={`${pillBtn} ${pillOff}`}>
+            날짜 {asc ? '↑' : '↓'}
+          </button>
+          <button type="button" onClick={sel.toggleMode} className={`${pillBtn} ${sel.selectMode ? pillOn : pillOff}`} aria-pressed={sel.selectMode}>
+            {sel.selectMode ? '선택 종료' : '선택'}
+          </button>
+          {sel.selectMode && (
+            <button type="button" onClick={toggleAll} className={`${pillBtn} ${pillOff}`}>
+              {allSelected ? '전체 해제' : '전체 선택'}
             </button>
-          </div>
-          {authorOpts.length > 1 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11px] font-semibold text-faint">작성자</span>
-              {authorOpts.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => setFAuthor((arr) => toggle(arr, a.id))}
-                  className={`${chip} ${fAuthor.includes(a.id) ? chipOn : ''}`}
-                >
-                  {a.name}
-                </button>
-              ))}
-            </div>
           )}
-          {(categoryOpts.length > 0 || hasUncategorized) && (
+          {canReset && !sel.selectMode && (
+            <button type="button" onClick={resetAll} className={`${pillBtn} ml-auto bg-transparent text-b27-muted`}>
+              초기화
+            </button>
+          )}
+        </div>
+
+        {filterOpen && (
+          <div className="space-y-2.5 border-t-2 border-b27-paper pt-2.5">
+            {/* MFH-JOURNAL-DATE-FILTER */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11px] font-semibold text-faint">분류</span>
-              {categoryOpts.map((c) => (
+              <span className="mr-1 w-10 font-num text-[11px] font-medium text-b27-muted">날짜</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(ev) => setDateFrom(ev.target.value)}
+                className="rounded-full bg-b27-paper px-3 py-1 text-xs text-b27-ink focus:outline-none"
+                aria-label="시작 날짜"
+              />
+              <span className="text-[11px] text-b27-muted">~</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(ev) => setDateTo(ev.target.value)}
+                className="rounded-full bg-b27-paper px-3 py-1 text-xs text-b27-ink focus:outline-none"
+                aria-label="종료 날짜"
+              />
+              {(dateFrom || dateTo) && (
                 <button
-                  key={c}
                   type="button"
-                  onClick={() => setFCategory((a) => toggle(a, c))}
-                  className={`${chip} ${fCategory.includes(c) ? chipOn : ''}`}
+                  onClick={() => {
+                    setDateFrom('')
+                    setDateTo('')
+                  }}
+                  className="px-2 py-1 text-[11px] text-b27-muted"
                 >
-                  {c}
-                </button>
-              ))}
-              {hasUncategorized && (
-                <button
-                  type="button"
-                  onClick={() => setFCategory((a) => toggle(a, JOURNAL_CATEGORY_NONE))}
-                  className={`${chip} ${fCategory.includes(JOURNAL_CATEGORY_NONE) ? chipOn : ''}`}
-                >
-                  분류 없음
+                  지우기
                 </button>
               )}
             </div>
-          )}
-        </div>
-      )}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 w-10 font-num text-[11px] font-medium text-b27-muted">기도</span>
+              <button type="button" onClick={() => setPrayerOnly((v) => !v)} className={`${chip} ${prayerOnly ? chipOn : ''}`}>
+                기도후보만
+              </button>
+            </div>
+            {authorOpts.length > 1 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 w-10 font-num text-[11px] font-medium text-b27-muted">작성자</span>
+                {authorOpts.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => setFAuthor((arr) => toggle(arr, a.id))}
+                    className={`${chip} ${fAuthor.includes(a.id) ? chipOn : ''}`}
+                  >
+                    {a.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {(categoryOpts.length > 0 || hasUncategorized) && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 w-10 font-num text-[11px] font-medium text-b27-muted">분류</span>
+                {categoryOpts.map((c) => {
+                  const n = JOURNAL_CATEGORY_BLOCK[c]
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setFCategory((a) => toggle(a, c))}
+                      className={`${chip} ${fCategory.includes(c) ? chipOn : ''}`}
+                    >
+                      <span className="inline-block h-2 w-2 rounded-[2px]" style={{ background: n ? blockColor(n).bg : brand2027.line }} aria-hidden="true" />
+                      {c}
+                    </button>
+                  )
+                })}
+                {hasUncategorized && (
+                  <button
+                    type="button"
+                    onClick={() => setFCategory((a) => toggle(a, JOURNAL_CATEGORY_NONE))}
+                    className={`${chip} ${fCategory.includes(JOURNAL_CATEGORY_NONE) ? chipOn : ''}`}
+                  >
+                    분류 없음
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 
@@ -639,14 +560,34 @@ export default function JournalList({
     return (
       <>
         {controls}
-        <p className="mt-16 text-center text-sm leading-relaxed text-faint">
+        <p className="mt-16 text-center text-sm leading-relaxed text-b27-muted">
           조건에 맞는 일지가 없습니다.
         </p>
       </>
     )
   }
 
-  const list = <ul className="space-y-3">{filtered.map(renderItem)}</ul>
+  // 월 단위로 묶어 머리줄(그달 건수) + 행 목록.
+  const groups: { ym: string; items: JournalEntry[] }[] = []
+  for (const e of filtered) {
+    const ym = (e.entry_date ?? '').slice(0, 7)
+    const last = groups[groups.length - 1]
+    if (last && last.ym === ym) last.items.push(e)
+    else groups.push({ ym, items: [e] })
+  }
+  const list = (
+    <div className="flex flex-col gap-2">
+      {groups.map((g) => (
+        <section key={g.ym}>
+          <div className="flex items-center justify-between px-1 pb-0.5 pt-1.5 font-num text-[12px] text-b27-muted">
+            <span>{g.ym ? monthLabel(g.ym) : '날짜 없음'}</span>
+            <span className="tabular-nums">{g.items.length}건</span>
+          </div>
+          <ul>{g.items.map(renderItem)}</ul>
+        </section>
+      ))}
+    </div>
+  )
 
   // sticky bar 가림 방지용 하단 여백(selectMode 일 때만)
   const bottomPad = sel.selectMode && sel.count > 0 ? 'pb-32' : ''
@@ -688,8 +629,8 @@ export default function JournalList({
         <div className="min-w-0">{list}</div>
         <div className="min-w-0">
           <div
-            className="sticky top-[120px] rounded-2xl border border-line bg-surface p-5"
-            style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}
+            className="sticky top-[150px] rounded-2xl bg-b27-paper p-1"
+            style={{ maxHeight: 'calc(100vh - 170px)', overflowY: 'auto' }}
           >
             {sel.selectMode ? (
               sel.count > 0 ? (
@@ -706,13 +647,13 @@ export default function JournalList({
                   onDelete={runDelete}
                 />
               ) : (
-                <p className="py-10 text-center text-sm text-faint">
+                <p className="py-10 text-center text-sm text-b27-muted">
                   왼쪽에서 일지를 선택하세요.
                   <br />
                   <button
                     type="button"
                     onClick={toggleAll}
-                    className="mt-3 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-primary"
+                    className="mt-3 rounded-full bg-b27-card px-3.5 py-1.5 text-xs font-medium text-b27-ink transition active:opacity-70"
                   >
                     보이는 항목 전체 선택
                   </button>
@@ -724,9 +665,10 @@ export default function JournalList({
                 detailSuffix={detailSuffix}
                 authorName={membersMap[selectedEntry.user_id]}
                 canEdit={canEditEntry(selectedEntry.user_id, currentUserId)}
+                photos={photoMap[selectedEntry.id] ?? []}
               />
             ) : (
-              <p className="py-10 text-center text-sm text-faint">왼쪽에서 일지를 선택하세요.</p>
+              <p className="py-10 text-center text-sm text-b27-muted">왼쪽에서 일지를 선택하세요.</p>
             )}
           </div>
         </div>
@@ -771,10 +713,8 @@ function JournalBulkActionsRow({
       type="button"
       onClick={onClick}
       disabled={busy}
-      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition disabled:opacity-50 ${
-        on
-          ? 'border-primary bg-primary text-white'
-          : 'border-line text-muted hover:border-primary'
+      className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition active:opacity-70 disabled:opacity-50 ${
+        on ? 'bg-b27-ink text-white' : 'bg-b27-card text-b27-ink'
       }`}
     >
       {children}
@@ -814,7 +754,7 @@ function JournalBulkActionsRow({
         type="button"
         onClick={onDelete}
         disabled={busy}
-        className="rounded-lg border border-accent px-2.5 py-1.5 text-[11px] font-semibold text-accent transition hover:bg-accent-soft disabled:opacity-50"
+        className="rounded-full bg-b27-expense-soft px-3 py-1.5 text-[11px] font-medium text-b27-expense transition active:opacity-70 disabled:opacity-50"
       >
         삭제
       </button>
@@ -823,19 +763,18 @@ function JournalBulkActionsRow({
       {open && (
         <div className="absolute bottom-full left-0 right-0 mb-2">
           <div
-            className="max-h-72 overflow-y-auto rounded-xl border border-line p-3 shadow-lg"
-            style={{ background: 'var(--paper)' }}
+            className="max-h-72 overflow-y-auto rounded-2xl bg-b27-paper p-3 shadow-[0_8px_28px_-8px_rgba(43,49,96,0.25)]"
           >
             {open === 'prayer' && (
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-[11px] font-semibold text-faint">기도후보 변경</span>
+                <span className="mr-1 font-num text-[11px] font-medium text-b27-muted">기도후보 변경</span>
                 <Btn onClick={() => applyAndClose(onPrayerCandidate, true)}>ON</Btn>
                 <Btn onClick={() => applyAndClose(onPrayerCandidate, false)}>OFF</Btn>
               </div>
             )}
             {open === 'cat' && (
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-[11px] font-semibold text-faint">사역분류 변경</span>
+                <span className="mr-1 font-num text-[11px] font-medium text-b27-muted">사역분류 변경</span>
                 {categoryOpts.map((c) => (
                   <Btn key={c} onClick={() => applyAndClose(onCategory, c)}>
                     {c}
@@ -846,7 +785,7 @@ function JournalBulkActionsRow({
             )}
             {open === 'proj' && (
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-[11px] font-semibold text-faint">
+                <span className="mr-1 font-num text-[11px] font-medium text-b27-muted">
                   연계 프로젝트 (기존 덮어씀)
                 </span>
                 {projectOpts.map((p) => (
@@ -859,7 +798,7 @@ function JournalBulkActionsRow({
             )}
             {open === 'task' && (
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-[11px] font-semibold text-faint">
+                <span className="mr-1 font-num text-[11px] font-medium text-b27-muted">
                   연계 할일 (기존 덮어씀 · 미완료만)
                 </span>
                 {taskOpts.map((t) => (

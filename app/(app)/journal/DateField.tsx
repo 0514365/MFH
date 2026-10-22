@@ -1,4 +1,5 @@
 'use client'
+// MFH-JOURNAL-DATE-FIELD-V2 — 2027(4-1): 연회색 면 입력칸(테두리 없음).
 
 // MFH-DATE-FIELD-V2
 // 날짜 입력.
@@ -21,7 +22,7 @@ function formatYmd(v: string): string {
   return `${y}. ${m}. ${d}`
 }
 
-const box = 'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm'
+const box = 'w-full rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink'
 
 export default function DateField({ value, onChange, placeholder }: Props) {
   const [desktop, setDesktop] = useState(false)
@@ -51,7 +52,7 @@ export default function DateField({ value, onChange, placeholder }: Props) {
   return (
     <div className="relative w-full">
       <div className={box}>
-        {value ? formatYmd(value) : <span className="text-faint">{placeholder ?? '날짜 선택'}</span>}
+        {value ? formatYmd(value) : <span className="text-b27-muted">{placeholder ?? '날짜 선택'}</span>}
       </div>
       <input
         type="date"
