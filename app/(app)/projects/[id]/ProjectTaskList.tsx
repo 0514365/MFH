@@ -1,4 +1,5 @@
 'use client'
+// MFH-PROJECT-TASK-LIST-2027 — 4-3: 행(그립 · 원형 체크 · 제목 · 마감 색) + 구분선 · 그룹 머리 Manrope 회색 · 완료 그룹 흐리게.
 
 // MFH-PROJECT-TASK-LIST-V3
 // 프로젝트 상세 "진행 상황" 할 일 목록.
@@ -40,6 +41,20 @@ function fmtMD(d: string): string {
   return d.slice(5).replace('-', '.')
 }
 
+// 오늘(로컬) 'YYYY-MM-DD' · 마감 글자색(지남 빨강 · 2일 이내 호박 · 그 외 회색).
+function todayLocal(): string {
+  const now = new Date()
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+}
+function dueTone(d: string): string {
+  const today = todayLocal()
+  if (d < today) return 'font-semibold text-b27-expense'
+  const soon = new Date(today + 'T00:00:00')
+  soon.setDate(soon.getDate() + 2)
+  const soonMax = new Date(soon.getTime() - soon.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+  return d <= soonMax ? 'font-semibold text-b27-wait' : 'text-b27-muted'
+}
+
 // 드래그 그립(6점) 아이콘.
 function GripIcon() {
   return (
@@ -65,14 +80,14 @@ function SortableTask({ t, canReorder }: { t: ProjTaskItem; canReorder: boolean 
     opacity: isDragging ? 0.55 : 1,
   }
   return (
-    <li ref={setNodeRef} style={style} className="flex items-center gap-3">
+    <li ref={setNodeRef} style={style} className="flex items-center gap-3 border-b border-b27-line py-2.5 last:border-b-0">
       {canReorder && (
         <button
           type="button"
           {...attributes}
           {...listeners}
           aria-label="순서 변경 (드래그)"
-          className="flex h-8 w-6 shrink-0 cursor-grab touch-none items-center justify-center text-faint transition-colors hover:text-primary active:cursor-grabbing"
+          className="flex h-8 w-5 shrink-0 cursor-grab touch-none items-center justify-center text-[#C9CDD8] transition-colors hover:text-b27-ink active:cursor-grabbing"
         >
           <GripIcon />
         </button>
@@ -83,19 +98,18 @@ function SortableTask({ t, canReorder }: { t: ProjTaskItem; canReorder: boolean 
         className="flex min-w-0 flex-1 items-center justify-between gap-3"
       >
         <span
-          className={`min-w-0 truncate text-[15px] font-light tracking-tight ${
-            t.done ? 'text-faint line-through' : 'text-ink'
-          }`}
+          className={`min-w-0 truncate text-[15px] ${t.done ? 'text-b27-muted line-through' : 'text-b27-ink'}`}
         >
           {t.title}
         </span>
         {t.due_date && (
           <span
-            className={`shrink-0 whitespace-nowrap font-display text-[11px] font-medium tracking-wide ${
-              t.done ? 'text-faint' : 'text-muted'
+            className={`shrink-0 whitespace-nowrap font-num text-[12px] tabular-nums ${
+              t.done ? 'text-b27-muted' : dueTone(t.due_date)
             }`}
           >
             {fmtMD(t.due_date)}
+            {!t.done && t.due_date < todayLocal() ? ' 지남' : ''}
           </span>
         )}
       </Link>
@@ -159,7 +173,7 @@ export default function ProjectTaskList({
         onDragEnd={onDragEnd(group, setGroup)}
       >
         <SortableContext items={group.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-          <ul className="flex flex-col gap-3.5">
+          <ul className="flex flex-col">
             {group.map((t) => (
               <SortableTask key={t.id} t={t} canReorder={canReorder} />
             ))}
@@ -170,29 +184,19 @@ export default function ProjectTaskList({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {/* 미완료 그룹 */}
       {todo.length > 0 && (
         <div>
-          <div className="mb-3 flex items-center gap-2">
-            <span className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
-              To-do
-            </span>
-            <span className="text-[11px] text-muted">남은 {todo.length}</span>
-          </div>
+          <div className="mb-1 font-num text-[12px] font-medium text-b27-muted">남은 할 일 {todo.length}</div>
           {renderGroup(todo, setTodo)}
         </div>
       )}
 
       {/* 완료 그룹 */}
       {doneList.length > 0 && (
-        <div className={todo.length > 0 ? 'border-t border-line pt-5' : ''}>
-          <div className="mb-3 flex items-center gap-2">
-            <span className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-faint">
-              Done
-            </span>
-            <span className="text-[11px] text-faint">완료 {doneList.length}</span>
-          </div>
+        <div className="opacity-70">
+          <div className="mb-1 font-num text-[12px] font-medium text-b27-muted">완료 {doneList.length}</div>
           {renderGroup(doneList, setDoneList)}
         </div>
       )}

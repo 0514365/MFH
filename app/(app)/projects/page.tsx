@@ -5,10 +5,8 @@ import PageHeader from '@/components/PageHeader'
 import type { Project } from '@/lib/types'
 import ProjectsList from './ProjectsList'
 import DomainInsightPanel from '@/app/(app)/insights/DomainInsightPanel'
-import SignalChips from '@/components/SignalChips'
-import { projectSignals } from '@/lib/signals'
-import '@/app/p/portfolio-theme.css'
 
+// MFH-PROJECTS-PAGE-2027 — 4-3: theme-2027 · 제목 「프로젝트」 · 새 프로젝트 = 터키석 ＋(모바일) / 남색 알약(md+) · 신호 칩 → 목록 요약 3칸.
 export const dynamic = 'force-dynamic'
 
 export default async function ProjectsPage() {
@@ -35,30 +33,38 @@ export default async function ProjectsPage() {
     counts[t.project_id] = c
   }
 
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
-  const signals = projectSignals(projects, today)
-
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
+    <main className="theme-2027 mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
       <PageHeader
-        title="Projects"
+        title="프로젝트"
         current="projects"
         action={
           <Link
             href="/projects/new"
-            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white"
+            className="hidden rounded-full bg-b27-ink px-4 py-2 text-[13px] font-medium text-white transition active:opacity-80 md:inline-flex"
           >
-            + Project
+            새 프로젝트
           </Link>
         }
       />
-
-      <SignalChips signals={signals} />
 
       <DomainInsightPanel domain="project_assist" />
       <DomainInsightPanel domain="project" />
 
       <ProjectsList projects={projects} counts={counts} currentUserId={user.id} />
+
+      {/* 새 프로젝트 ＋ — 터키석 플로팅(모바일), 하단 탭바 위 16px */}
+      <Link
+        href="/projects/new"
+        aria-label="새 프로젝트"
+        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-b27-plus text-white shadow-[0_8px_18px_-6px_rgba(46,196,182,0.6)] transition active:scale-95 md:hidden"
+        style={{ bottom: 'calc(92px + env(safe-area-inset-bottom))' }}
+      >
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+          <path d="M12 5v14" />
+          <path d="M5 12h14" />
+        </svg>
+      </Link>
     </main>
   )
 }

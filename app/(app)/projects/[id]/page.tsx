@@ -1,3 +1,5 @@
+// MFH-PROJECT-DETAIL-2027 — 4-3: theme-2027 · 빨간 ‹ 프로젝트 · 메타 · 제목 22/600 · 진행 로즈 면(큰 % · 막대 · 기간 · D-day) ·
+//   설명 · 첨부 · 할 일 목록 + 터키석 「＋ 할 일 추가」 · 수정 남색 / 삭제 연한 빨강.
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
@@ -5,16 +7,14 @@ import { canEditEntry } from '@/lib/members'
 import type { Project, Attachment } from '@/lib/types'
 import { applyProjectFilter, parseProjectFilter } from '@/lib/projectFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
-import { normalizeStatus, statusV2Label } from '@/lib/constants'
-import { ImportanceStars } from '../badges'
-import { ProgressRing } from '../Progress'
+import { normalizeStatus } from '@/lib/constants'
+import { ImportanceStars, StatusBadge, CategoryBadge } from '../badges'
 import ProjectTaskList from './ProjectTaskList'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
 import AttachmentList, { type AttItem } from '@/components/AttachmentList'
 import MarkdownText from '@/components/MarkdownText'
 import DeleteButton from './DeleteButton'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,14 +76,6 @@ export default async function ProjectDetail(props: {
       ? `${toYYMMDD(project.start_date)} — ${toYYMMDD(project.due_date)}`
       : null
 
-  // 상태 칩 색 (목록 배지와 동일 토큰)
-  const st = normalizeStatus(project.status)
-  const stCls =
-    st === 'done'
-      ? 'bg-status-done text-on-status-done'
-      : st === 'in_progress'
-        ? 'bg-status-progress text-on-status-progress'
-        : 'bg-status-upcoming text-on-status-upcoming'
   // 첨부 signed URL(1시간) — 비공개 'attachments' 버킷.
   const atts = (project.attachments ?? []) as Attachment[]
   let attItems: AttItem[] = []
@@ -99,177 +91,128 @@ export default async function ProjectDetail(props: {
       .filter(Boolean) as AttItem[]
   }
 
+  // D-day(오늘 기준, 로컬). 완료 프로젝트는 표시 안 함.
+  const dday = (() => {
+    if (!project.due_date || normalizeStatus(project.status) === 'done') return null
+    const now = new Date()
+    const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+    const diff = Math.round((Date.parse(project.due_date) - Date.parse(today)) / 86400000)
+    return diff === 0 ? 'D-day' : diff > 0 ? `D-${diff}` : `${-diff}일 지남`
+  })()
+  const label = 'mb-1.5 flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted'
+
   return (
-    <main className="app-theme mx-auto max-w-md pb-10 @xl:max-w-5xl">
-      {/* 상단바 — 일지 상세와 통일 */}
-      <header
-        className="sticky top-0 z-30 border-b border-line px-3 py-3"
-        style={{ background: 'var(--paper)' }}
-      >
-        <div className="flex items-center gap-2">
-          <div className="shrink-0">
-            <BackButton href={navQuery ? `/projects?${navQuery}` : '/projects'} label="목록" variant="icon-accent" />
-          </div>
-          <div className="min-w-0 flex-1 text-center">
-            <h1 className="truncate text-[18px] font-bold leading-tight tracking-tight text-ink">
-              {project.title}
-            </h1>
-            {period && (
-              <div className="mt-0.5 font-display text-[12px] font-medium tracking-wide text-muted">
-                ( {period} )
-              </div>
-            )}
-          </div>
-          <div className="shrink-0">
-            <DetailNav
-              basePath="/projects"
-              prevId={nav.prevId}
-              nextId={nav.nextId}
-              index={nav.index}
-              total={nav.total}
-              query={navQuery}
-              variant="pad"
-            />
-          </div>
-        </div>
+    <main className="theme-2027 mx-auto max-w-md pb-10 @xl:max-w-5xl">
+      {/* 상단바 — 빨간 ‹ 프로젝트 / ‹ n/total › */}
+      <header className="sticky top-0 z-30 flex h-[52px] items-center justify-between bg-b27-paper pl-3 pr-4">
+        <BackButton href={navQuery ? `/projects?${navQuery}` : '/projects'} label="프로젝트" variant="text" />
+        <DetailNav
+          basePath="/projects"
+          prevId={nav.prevId}
+          nextId={nav.nextId}
+          index={nav.index}
+          total={nav.total}
+          query={navQuery}
+          variant="minimal"
+        />
       </header>
 
-      {/* 메타칩 */}
-      <section className="px-5 pb-6 pt-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <ImportanceStars value={project.importance} size="md" />
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${stCls}`}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-current opacity-50" />
-            {statusV2Label(project.status)}
-          </span>
-          {project.category && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] text-muted">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-              </svg>
-              {project.category}
-            </span>
-          )}
-        </div>
-      </section>
-
       {/* 본문 — 모바일 세로 스택, 데스크탑(900px↑) 개요·첨부(좌) + 진행 상황(우, 스크롤 고정) 2컬럼 */}
-      <div className="min-[900px]:grid min-[900px]:grid-cols-[minmax(0,1fr)_360px] min-[900px]:items-start min-[900px]:gap-9 min-[900px]:border-t min-[900px]:border-line min-[900px]:px-5">
-        <div className="min-w-0">
-          {/* 설명 — 일지 본문과 동일한 마크다운 렌더링 */}
+      <div className="flex flex-col gap-4 px-5 pt-2 min-[900px]:grid min-[900px]:grid-cols-[minmax(0,1fr)_380px] min-[900px]:items-start min-[900px]:gap-9">
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* 메타(분류 · 별 · 상태) → 제목 */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <CategoryBadge value={project.category} />
+            <ImportanceStars value={project.importance} size="md" />
+            <StatusBadge value={project.status} />
+          </div>
+          <h1 className="-mt-1 break-keep text-[22px] font-semibold leading-[1.35] text-b27-ink @xl:text-[26px]">{project.title}</h1>
+
+          {/* 진행 요약 — 프로젝트 틴트 면(6 로즈): 큰 % · 완료/전체 · 막대 · 기간 · D-day */}
+          <section className="rounded-2xl bg-b27-tint-6 px-4 py-4">
+            <div className={label}>
+              <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-6" aria-hidden="true" />
+              진행 상황
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-num text-[34px] font-semibold leading-none tabular-nums text-b27-ink">
+                {total > 0 ? (
+                  <>
+                    {pct}
+                    <span className="text-[17px]">%</span>
+                  </>
+                ) : (
+                  '—'
+                )}
+              </span>
+              <span className="font-num text-[13px] tabular-nums" style={{ color: 'var(--b27-deep-6)' }}>
+                {total > 0 ? `완료 ${done} · 전체 ${total}` : '연결된 할 일 없음'}
+              </span>
+            </div>
+            <span className="mt-2.5 block overflow-hidden rounded-full bg-b27-paper" aria-hidden="true">
+              <span className="block h-2 rounded-full bg-b27-block-6" style={{ width: `${pct}%` }} />
+            </span>
+            {(period || dday) && (
+              <div className="mt-2 font-num text-[12.5px] tabular-nums text-b27-muted">{[period, dday].filter(Boolean).join(' · ')}</div>
+            )}
+          </section>
+
+          {/* 설명 */}
           {project.description && (
-            <section className="border-t border-line bg-white/50 px-5 py-7 min-[900px]:border-t-0 min-[900px]:bg-transparent min-[900px]:px-0">
-              <div className="mb-3">
-                <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-                  Description
-                </div>
-                <h2 className="text-[17px] font-bold tracking-tight text-ink">프로젝트 개요</h2>
-              </div>
-              <MarkdownText
-                text={project.description}
-                className="break-keep text-[15px] font-light leading-[1.75] text-ink"
-              />
+            <section>
+              <div className={label}>설명</div>
+              <MarkdownText text={project.description} className="break-keep text-[15px] leading-[1.75] text-b27-ink" />
             </section>
           )}
 
-          {/* 첨부파일 — 이미지 썸네일 + PDF 미리보기 */}
+          {/* 첨부파일 */}
           {attItems.length > 0 && (
-            <section
-              className={`border-t border-line px-5 py-7 min-[900px]:px-0 ${project.description ? '' : 'min-[900px]:border-t-0'}`}
-            >
-              <div className="mb-3">
-                <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-muted">
-                  Files
-                </div>
-                <h2 className="text-[14px] font-bold tracking-tight text-ink">첨부파일</h2>
-              </div>
+            <section>
+              <div className={label}>첨부파일</div>
               <AttachmentList items={attItems} />
             </section>
           )}
         </div>
 
-        <div className="min-[900px]:sticky min-[900px]:top-[72px]">
-          {/* 진행 상황 */}
-          <section className="border-t border-line px-5 pb-7 pt-7 min-[900px]:border-t-0 min-[900px]:px-0">
-            <div className="mb-5 flex items-end justify-between">
-              <div>
-                <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-                  Progress
-                </div>
-                <h2 className="text-[19px] font-bold tracking-tight text-ink">진행 상황</h2>
-              </div>
+        <div className="min-[900px]:sticky min-[900px]:top-[64px]">
+          {/* 할 일 — 원형 체크 · 끌어서 순서 · 마감 색 + 할 일 추가(터키석 행동 버튼) */}
+          <section>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <span className="font-num text-[13px] font-semibold text-b27-ink">할 일</span>
               <Link
                 href={`/tasks/new?project=${project.id}`}
-                className="shrink-0 rounded-full bg-accent-soft px-3.5 py-1.5 text-[12.5px] font-medium text-accent transition hover:opacity-80"
+                className="shrink-0 rounded-full bg-b27-plus px-3.5 py-1.5 text-[12.5px] font-medium text-white transition active:opacity-80"
               >
-                + 할 일 추가
+                ＋ 할 일 추가
               </Link>
             </div>
-    
-            <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
-              <div className={`flex items-center gap-5 ${tlist.length > 0 ? 'border-b border-line pb-5' : ''}`}>
-                <ProgressRing done={done} total={total} size={60} />
-                <div className="min-w-0">
-                  <div className="text-[18px] font-bold tracking-tight text-ink">
-                    {total > 0 ? `${pct}% 완료` : '할 일 없음'}
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-[13px] text-muted">
-                    {total > 0 ? (
-                      <>
-                        <span>
-                          완료 <strong className="font-semibold text-ink">{done}</strong>
-                        </span>
-                        <span className="text-line">|</span>
-                        <span>
-                          전체 <strong className="font-semibold text-ink">{total}</strong>
-                        </span>
-                      </>
-                    ) : (
-                      '연결된 할 일이 아직 없습니다'
-                    )}
-                  </div>
-                </div>
-              </div>
-    
-              {tlist.length > 0 ? (
-                <div className="mt-5">
-                  <ProjectTaskList items={tlist} canReorder={canEdit} />
-                </div>
-              ) : (
-                <p className="mt-5 text-xs text-faint">‘+ 할 일 추가’로 이 프로젝트의 할 일을 만들어 보세요.</p>
-              )}
-            </div>
+            {tlist.length > 0 ? (
+              <ProjectTaskList items={tlist} canReorder={canEdit} />
+            ) : (
+              <p className="rounded-2xl bg-b27-card px-4 py-3 text-xs text-b27-muted">‘＋ 할 일 추가’로 이 프로젝트의 할 일을 만들어 보세요.</p>
+            )}
           </section>
         </div>
       </div>
 
-      {/* 수정 / 삭제 — 일지 상세와 통일 */}
-      {canEdit ? (
-        <div className="flex items-center justify-center gap-3 border-t border-line px-5 pb-12 pt-8">
-          <Link
-            href={`/projects/${project.id}/edit`}
-            className="rounded-full border border-line bg-surface-subtle px-5 py-2 text-[13px] font-medium text-muted transition hover:border-primary"
-          >
-            수정
-          </Link>
-          <DeleteButton id={project.id} />
-        </div>
-      ) : (
-        <p className="border-t border-line px-5 pb-12 pt-8 text-center text-xs text-faint">
-          다른 멤버님의 프로젝트입니다. 보기·할 일 추가만 가능합니다.
-        </p>
-      )}
+      {/* 수정(남색) / 삭제(연한 빨강) */}
+      <div className="px-5">
+        {canEdit ? (
+          <div className="mt-6 flex items-center gap-2">
+            <Link
+              href={`/projects/${project.id}/edit`}
+              className="flex-1 rounded-2xl bg-b27-ink py-3.5 text-center text-[14px] font-medium text-white transition active:opacity-80"
+            >
+              수정
+            </Link>
+            <DeleteButton id={project.id} />
+          </div>
+        ) : (
+          <p className="mt-6 rounded-2xl bg-b27-card px-4 py-3 text-center text-xs text-b27-muted">
+            다른 멤버님의 프로젝트입니다. 보기·할 일 추가만 가능합니다.
+          </p>
+        )}
+      </div>
     </main>
   )
 }

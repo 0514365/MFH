@@ -1,4 +1,5 @@
 'use client'
+// MFH-PROJECT-FORM-2027 — 4-3: theme-2027 · 빨간 ‹ · 연회색 입력칸 · Manrope 라벨 · 중요도 살구 블록 · 상태 알약 · 분류 블록 · 저장 남색.
 
 // MFH-PROJECT-FORM-V4
 // 프로젝트 입력 폼 — 1카드 단일 흐름. app-theme(Airbnb/Stayly) + 1차 시안(영문 캡스 라벨).
@@ -11,11 +12,11 @@ import { createClient } from '@/lib/supabase-browser'
 import { STATUSES, normalizeStatus, IMPORTANCE_MAX } from '@/lib/constants'
 import type { Project, Attachment } from '@/lib/types'
 import DateField from '../journal/DateField'
-import CategorySelect from '@/components/CategorySelect'
+import CategoryBlocks from '../journal/CategoryBlocks'
+import { blockHalo } from '@/lib/palette'
 import AttachmentUpload from '@/components/AttachmentUpload'
 import BackButton from '@/components/BackButton'
 import { resolveOwnerId } from '@/lib/members'
-import '@/app/p/portfolio-theme.css'
 
 type Props = {
   mode: 'new' | 'edit'
@@ -23,13 +24,8 @@ type Props = {
 }
 
 // 필드 라벨: 한글(잉크 medium) + 작은 영문 캡스(마룬, Stayly type-uppercase 톤)
-function FieldLabel({ ko, en }: { ko: string; en: string }) {
-  return (
-    <label className="mb-2 flex items-baseline gap-1.5">
-      <span className="text-[14px] font-medium text-ink">{ko}</span>
-      <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">{en}</span>
-    </label>
-  )
+function FieldLabel({ ko }: { ko: string; en?: string }) {
+  return <label className="mb-1.5 block font-num text-[12px] font-medium text-b27-muted">{ko}</label>
 }
 
 export default function ProjectForm({ mode, initial }: Props) {
@@ -103,25 +99,21 @@ export default function ProjectForm({ mode, initial }: Props) {
   }
 
   const input =
-    'w-full rounded-xl border border-line bg-surface px-4 py-3.5 text-sm text-ink outline-none focus:border-primary'
+    'w-full rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink outline-none placeholder:text-b27-muted focus:ring-2 focus:ring-b27-ink/15'
 
   return (
-    <main className="app-theme mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
-      {/* 상단바(미니멀) — ‹ + 중앙 제목 */}
-      <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
+    <main className="theme-2027 mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
+      {/* 상단바 — 빨간 ‹ + 제목 */}
+      <header className="sticky top-0 z-30 -mx-4 mb-3 flex h-[52px] items-center bg-b27-paper pl-3 pr-4">
         <BackButton
           href={mode === 'edit' && initial ? `/projects/${initial.id}` : '/projects'}
-          label=""
+          label={mode === 'edit' ? '프로젝트 수정' : '새 프로젝트'}
           variant="text"
         />
-        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-[15px] font-extrabold uppercase tracking-[0.2em] text-ink">
-          {mode === 'edit' ? 'Edit Project' : 'New Project'}
-        </h1>
-        <span className="w-10" aria-hidden="true" />
       </header>
 
-      {/* 단일 카드 — 제목 → 설명 → [시작·마감] → [중요도·상태] → 사역 분류 → 첨부 */}
-      <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
+      {/* 제목 → 설명 → [시작·마감] → 중요도 → 상태 → 사역 분류 → 첨부 */}
+      <div className="flex flex-col">
         {/* 제목 */}
         <div>
           <FieldLabel ko="제목" en="Title" />
@@ -146,7 +138,7 @@ export default function ProjectForm({ mode, initial }: Props) {
         </div>
 
         {/* 구분선 */}
-        <div className="my-5 h-px bg-line" />
+        <div className="my-5 h-px bg-b27-line" />
 
         {/* 시작일 · 마감일 */}
         <div className="grid grid-cols-2 gap-4">
@@ -160,65 +152,59 @@ export default function ProjectForm({ mode, initial }: Props) {
           </div>
         </div>
 
-        {/* 중요도 · 상태 */}
-        <div className="mt-5 grid grid-cols-2 gap-4">
-          <div className="min-w-0">
-            <FieldLabel ko="중요도" en="Stars" />
-            <div className="flex h-[46px] items-center gap-1.5">
-              {Array.from({ length: IMPORTANCE_MAX }).map((_, i) => {
-                const n = i + 1
-                const filled = n <= importance
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setImportance(importance === n ? n - 1 : n)}
-                    aria-label={`중요도 ${n}`}
-                    className={filled ? 'text-[#D4AF37]' : 'text-line transition-colors hover:text-[#D4AF37]'}
-                  >
-                    <svg
-                      width="28"
-                      height="28"
-                      viewBox="0 0 24 24"
-                      fill={filled ? 'currentColor' : 'none'}
-                      stroke={filled ? 'none' : 'currentColor'}
-                      strokeWidth="1.5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d={
-                          filled
-                            ? 'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'
-                            : 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z'
-                        }
-                      />
-                    </svg>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          <div className="min-w-0">
-            <FieldLabel ko="상태" en="Status" />
-            <select
-              value={status}
-              onChange={(e) => setStatus(normalizeStatus(e.target.value))}
-              className={input}
-            >
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+        {/* 중요도 — 살구 블록 4칸(할 일과 동일) */}
+        <div className="mt-5">
+          <FieldLabel ko="중요도" en="Stars" />
+          <div className="grid grid-cols-4 gap-[3px] overflow-hidden rounded-xl bg-b27-paper" role="radiogroup" aria-label="중요도">
+            {Array.from({ length: IMPORTANCE_MAX + 1 }).map((_, n) => {
+              const on = importance === n
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  aria-label={n === 0 ? '중요도 없음' : `중요도 ${n}`}
+                  onClick={() => setImportance(n)}
+                  className="flex h-11 items-center justify-center text-[13px] font-semibold tracking-[1px] transition active:opacity-80"
+                  style={
+                    on
+                      ? { background: 'var(--b27-block-3)', color: '#fff', textShadow: blockHalo(3), boxShadow: 'inset 0 0 0 3px var(--b27-ink)' }
+                      : { background: 'var(--b27-tint-3)', color: 'var(--b27-deep-3)' }
+                  }
+                >
+                  {n === 0 ? '없음' : '★'.repeat(n)}
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        {/* 사역 분류 */}
+        {/* 상태 — 알약 세그먼트 */}
+        <div className="mt-5">
+          <FieldLabel ko="상태" en="Status" />
+          <div className="flex gap-1 rounded-full bg-b27-card p-1" role="radiogroup" aria-label="상태">
+            {STATUSES.map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                role="radio"
+                aria-checked={status === s.value}
+                onClick={() => setStatus(normalizeStatus(s.value))}
+                className={`flex-1 rounded-full py-2 text-[13px] transition active:opacity-70 ${
+                  status === s.value ? 'bg-b27-ink font-medium text-white' : 'text-b27-muted'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 사역 분류 — 블록 선택 */}
         <div className="mt-5">
           <FieldLabel ko="사역 분류" en="Category" />
-          <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="선택 안 함" />
+          <CategoryBlocks value={category} onChange={setCategory} />
         </div>
 
         {/* 첨부파일 */}
@@ -228,14 +214,14 @@ export default function ProjectForm({ mode, initial }: Props) {
         </div>
       </div>
 
-      {msg && <p className="mt-4 text-center text-sm text-danger">{msg}</p>}
+      {msg && <p className="mt-4 text-center text-sm text-b27-expense">{msg}</p>}
 
       <button
         onClick={save}
         disabled={saving}
-        className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
+        className="mt-6 w-full rounded-2xl bg-b27-ink py-4 text-[15px] font-medium text-white transition active:opacity-80 disabled:opacity-50"
       >
-        {saving ? '저장 중…' : mode === 'edit' ? 'Update Project' : 'Save Project'}
+        {saving ? '저장 중…' : mode === 'edit' ? '수정 저장' : '저장'}
       </button>
     </main>
   )

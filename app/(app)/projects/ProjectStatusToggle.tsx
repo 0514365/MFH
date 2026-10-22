@@ -1,4 +1,5 @@
 'use client'
+// MFH-PROJECT-STATUS-TOGGLE-2027 — 4-3: 원형 완료 체크(할 일 TaskCheck 와 같은 모양 · 완료 = 진한 민트).
 
 // MFH-PROJECT-STATUS-TOGGLE-V1
 // 프로젝트 카드 우측 상단의 단건 완료 토글 (status 변경).
@@ -45,11 +46,10 @@ export default function ProjectStatusToggle({
       type="button"
       onClick={toggle}
       disabled={busy}
-      aria-label="완료 토글"
-      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm font-extrabold ${
-        checked
-          ? 'border-accent bg-accent text-white'
-          : 'border-[#e6c9cb] bg-surface text-transparent'
+      aria-label={checked ? '완료 취소' : '완료로 표시'}
+      aria-pressed={checked}
+      className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors active:scale-95 ${
+        checked ? 'border-[#226C5A] bg-[#226C5A] text-white' : 'border-[#C9CDD8] bg-b27-paper text-transparent'
       }`}
     >
       ✓

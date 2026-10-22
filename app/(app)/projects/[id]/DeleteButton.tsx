@@ -1,4 +1,5 @@
 'use client'
+// MFH-PROJECT-DELETE-BUTTON-2027 — 4-3: 연한 빨강 면 + 빨강 글자.
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -23,7 +24,7 @@ export default function DeleteButton({ id }: { id: string }) {
   }
 
   return (
-    <button onClick={del} disabled={busy} className="rounded-full border border-[#f0c4c4] bg-white px-5 py-2 text-[13px] font-medium text-danger transition hover:bg-accent-soft disabled:opacity-50">
+    <button onClick={del} disabled={busy} className="rounded-2xl bg-b27-expense-soft px-5 py-3.5 text-[14px] font-medium text-b27-expense transition active:opacity-70 disabled:opacity-50">
       {busy ? '삭제 중…' : '삭제'}
     </button>
   )
