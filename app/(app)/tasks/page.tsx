@@ -6,12 +6,10 @@ import type { TaskListRow } from './TasksListClient'
 import TasksListClient from './TasksListClient'
 import DomainInsightPanel from '@/app/(app)/insights/DomainInsightPanel'
 import BadgeOptIn from '@/components/BadgeOptIn'
-import SignalChips from '@/components/SignalChips'
-import { taskSignals } from '@/lib/signals'
 import OfflineSync from '@/components/OfflineSync'
 import type { OfflineTask } from '@/lib/offlineStore'
-import '@/app/p/portfolio-theme.css'
 
+// MFH-TASKS-PAGE-V3 — 2027(4-2): theme-2027 · 제목 「할 일」 · 새 할 일 = 터키석 ＋(모바일) / 남색 알약(md+) · 신호 칩 → 목록 요약 3칸으로 대체.
 // MFH-TASKS-PAGE-V2
 export const dynamic = 'force-dynamic'
 
@@ -32,8 +30,6 @@ export default async function TasksPage() {
     .order('due_time', { ascending: true, nullsFirst: true })
     .order('created_at', { ascending: false })
   const tasks = (data ?? []) as unknown as TaskListRow[]
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
-  const signals = taskSignals(tasks, today)
 
   // 오프라인 스냅샷: 미완료 할일. OfflineSync 가 온라인일 때 IndexedDB 에 적재.
   const offlineTasks: OfflineTask[] = tasks
@@ -48,20 +44,21 @@ export default async function TasksPage() {
     }))
 
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
+    <main className="theme-2027 mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
       <PageHeader
-        title="To-Do"
+        title="할 일"
         current="tasks"
         action={
-          <Link href="/tasks/new" className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white">
-            + To-Do
+          <Link
+            href="/tasks/new"
+            className="hidden rounded-full bg-b27-ink px-4 py-2 text-[13px] font-medium text-white transition active:opacity-80 md:inline-flex"
+          >
+            새 할 일
           </Link>
         }
       />
 
       <BadgeOptIn />
-
-      <SignalChips signals={signals} />
 
       <DomainInsightPanel domain="task_assist" />
       <DomainInsightPanel domain="task" />
@@ -69,6 +66,19 @@ export default async function TasksPage() {
       <TasksListClient tasks={tasks} currentUserId={user.id} />
 
       <OfflineSync tasks={offlineTasks} />
+
+      {/* 새 할 일 ＋ — 터키석 플로팅(모바일), 하단 탭바 위 16px */}
+      <Link
+        href="/tasks/new"
+        aria-label="새 할 일"
+        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-b27-plus text-white shadow-[0_8px_18px_-6px_rgba(46,196,182,0.6)] transition active:scale-95 md:hidden"
+        style={{ bottom: 'calc(92px + env(safe-area-inset-bottom))' }}
+      >
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+          <path d="M12 5v14" />
+          <path d="M5 12h14" />
+        </svg>
+      </Link>
     </main>
   )
 }

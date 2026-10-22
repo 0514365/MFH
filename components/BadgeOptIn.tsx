@@ -1,4 +1,5 @@
 'use client'
+// MFH-BADGE-OPTIN-V2 — 2027(4-2): 연회색 면 · 남색 글자.
 
 // MFH-BADGE-OPTIN-V1 — iOS 할 일 아이콘 뱃지 권한 옵트인 (Phase 5a 보완)
 // iOS는 알림 권한이 granted 여야 setAppBadge 가 홈화면 아이콘에 표시된다(WebKit).
@@ -41,22 +42,22 @@ export default function BadgeOptIn() {
   }
 
   return (
-    <div className="mb-5 rounded-2xl border border-line bg-surface px-4 py-3">
+    <div className="mb-5 rounded-2xl bg-b27-card px-4 py-3">
       {perm === 'denied' ? (
-        <p className="text-sm leading-relaxed text-ink">
+        <p className="text-sm leading-relaxed text-b27-ink">
           아이폰 <span className="font-semibold">설정 &gt; 알림 &gt; MFH</span>에서 알림을 허용하면 매일 아침 마감
           알림과 앱 아이콘 뱃지를 받습니다.
         </p>
       ) : (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm leading-relaxed text-ink">
+          <p className="text-sm leading-relaxed text-b27-ink">
             <span className="font-semibold">매일 아침 마감 알림</span>을 받고, 앱 아이콘에 마감 도래 할 일 수를 표시할까요?
           </p>
           <button
             type="button"
             onClick={enable}
             disabled={busy}
-            className="shrink-0 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="shrink-0 rounded-xl bg-b27-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
             뱃지 켜기
           </button>

@@ -1,4 +1,6 @@
 'use client'
+// MFH-TASK-FORM-2027-V1 — 2027(4-2): theme-2027 · 빨간 ‹ 새 할 일/할 일 수정 · 연회색 입력칸 · 라벨 Manrope 회색 · 반복 = 알약 ·
+//   중요도 = 살구 블록 4칸 · 상태 = 알약 세그먼트 · 사역 분류 = 블록 선택 · 선행/후속 = 로즈 틴트 면 · 저장 남색.
 
 // MFH-TASK-FORM-V6
 // 할 일 입력 폼 — 단일 카드(프로젝트 폼과 통일). app-theme + Airbnb 절제 + 영문캡스 마룬 라벨.
@@ -18,7 +20,8 @@ import {
 import type { Task, Attachment } from '@/lib/types'
 import DateField from '../journal/DateField'
 import TimeField from '@/components/TimeField'
-import CategorySelect from '@/components/CategorySelect'
+import CategoryBlocks from '../journal/CategoryBlocks'
+import { blockHalo } from '@/lib/palette'
 import AttachmentUpload from '@/components/AttachmentUpload'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
@@ -33,7 +36,6 @@ import {
 } from '@/lib/recurrence'
 import type { ListNav } from '@/lib/listNav'
 import { resolveOwnerId } from '@/lib/members'
-import '@/app/p/portfolio-theme.css'
 
 type Props = {
   mode: 'new' | 'edit'
@@ -87,15 +89,12 @@ async function nextSortOrder(supabase: ReturnType<typeof createClient>, projId: 
   return max + 10
 }
 
-// 필드 라벨: 한글(잉크 medium) + 작은 영문 캡스(마룬) — 프로젝트 폼과 동일
-function FieldLabel({ ko, en, required }: { ko: string; en: string; required?: boolean }) {
+// 필드 라벨: Manrope 회색 12 (영문 캡스 제거 · en 은 호출부 호환용으로만 남김). 필수 = 빨간 *.
+function FieldLabel({ ko, required }: { ko: string; en?: string; required?: boolean }) {
   return (
-    <label className="mb-2 flex items-baseline gap-1.5">
-      <span className="text-[14px] font-medium text-ink">
-        {ko}
-        {required && <span className="ml-0.5 text-accent">*</span>}
-      </span>
-      <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">{en}</span>
+    <label className="mb-1.5 flex items-baseline gap-1 font-num text-[12px] font-medium text-b27-muted">
+      {ko}
+      {required && <span className="text-b27-expense">*</span>}
     </label>
   )
 }
@@ -453,16 +452,15 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
   }
 
   const input =
-    'w-full rounded-xl border border-line bg-surface px-4 py-3.5 text-sm text-ink outline-none focus:border-primary'
+    'w-full rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink outline-none placeholder:text-b27-muted focus:ring-2 focus:ring-b27-ink/15'
+  const pill = (on: boolean) =>
+    `rounded-full px-3.5 py-2 text-[13px] transition active:opacity-70 ${on ? 'bg-b27-ink font-medium text-white' : 'bg-b27-card text-b27-muted'}`
 
   return (
-    <main className="app-theme mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
-      {/* 상단바(미니멀) — 프로젝트 폼과 통일: 캐럿 + 중앙 제목 + (편집)이전/다음 */}
-      <header className="relative -mx-4 mb-5 flex items-center justify-between border-b border-line px-4 py-3">
-        <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label="" variant="text" />
-        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-[15px] font-extrabold uppercase tracking-[0.2em] text-ink">
-          {mode === 'edit' ? 'Edit To-Do' : 'New To-Do'}
-        </h1>
+    <main className="theme-2027 mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
+      {/* 상단바 — 빨간 ‹ + 제목 + (편집)이전/다음 */}
+      <header className="sticky top-0 z-30 -mx-4 mb-3 flex h-[52px] items-center justify-between bg-b27-paper pl-3 pr-4">
+        <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label={mode === 'edit' ? '할 일 수정' : '새 할 일'} variant="text" />
         {mode === 'edit' && nav ? (
           <DetailNav
             basePath="/tasks"
@@ -481,16 +479,16 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
 
       {/* 반복 시리즈 배너(편집 + 반복 항목) */}
       {isRecurring && (
-        <div className="-mx-4 mb-5 flex flex-col items-center gap-1.5 border-b border-line bg-primary-soft px-4 py-3">
+        <div className="mb-4 flex flex-col items-center gap-1.5 rounded-2xl bg-b27-tint-8 px-4 py-3">
           <RecurrenceBadge freq={initial?.recurrence_freq} />
-          <p className="text-center text-[11px] font-medium text-primary">
+          <p className="text-center text-[11px] font-medium text-b27-ink">
             저장·삭제 시 “이 항목만” 또는 “이후 모두”를 묻습니다.
           </p>
         </div>
       )}
 
       {/* 단일 카드 — 제목→설명→[마감일·시간]→[반복·장소]→[중요도·상태]→[상위프로젝트·사역분류]→첨부→완료 */}
-      <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
+      <div className="flex flex-col">
         {/* 제목 */}
         <div>
           <FieldLabel ko="제목" en="Title" required />
@@ -515,7 +513,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
         </div>
 
         {/* 구분선 */}
-        <div className="my-5 h-px bg-line" />
+        <div className="my-5 h-px bg-b27-line" />
 
         {/* 마감일 · 마감 시간 */}
         <div className="grid grid-cols-2 gap-4">
@@ -529,24 +527,28 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
           </div>
         </div>
         {!dueDate && (
-          <p className="mt-1.5 text-[11px] text-faint">마감일을 먼저 정하면 시간을 추가할 수 있어요.</p>
+          <p className="mt-1.5 text-[11px] text-b27-muted">마감일을 먼저 정하면 시간을 추가할 수 있어요.</p>
         )}
 
         {/* 반복 · 장소 (반복은 새 할 일에서만 / 편집은 장소 단독) */}
         {mode === 'new' ? (
-          <div className="mt-5 grid grid-cols-2 gap-4">
+          <div className="mt-5 flex flex-col gap-5">
             <div className="min-w-0">
               <FieldLabel ko="반복" en="Repeat" />
-              <select
-                value={repeatFreq}
-                onChange={(e) => setRepeatFreq(e.target.value as RepeatFreq)}
-                className={input}
-              >
-                <option value="none">반복 안 함</option>
-                <option value="daily">매일</option>
-                <option value="weekly">매주</option>
-                <option value="monthly">매월</option>
-              </select>
+              <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="반복">
+                {(
+                  [
+                    ['none', '안 함'],
+                    ['daily', '매일'],
+                    ['weekly', '매주'],
+                    ['monthly', '매월'],
+                  ] as [RepeatFreq, string][]
+                ).map(([v, l]) => (
+                  <button key={v} type="button" role="radio" aria-checked={repeatFreq === v} onClick={() => setRepeatFreq(v)} className={pill(repeatFreq === v)}>
+                    {l}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="min-w-0">
               <FieldLabel ko="장소" en="Place" />
@@ -572,10 +574,10 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
 
         {/* 반복 종료일 — 주기 선택 시 펼침 */}
         {mode === 'new' && repeatFreq !== 'none' && (
-          <div className="mt-3 rounded-2xl bg-surface-subtle p-4">
+          <div className="mt-3 rounded-2xl bg-b27-tint-8 p-4">
             <FieldLabel ko="반복 종료일" en="Until" />
             <DateField value={repeatUntil} onChange={setRepeatUntil} placeholder="반복 종료일" />
-            <p className={`mt-2 text-[11px] ${!dueDate || !repeatUntil ? 'text-danger' : 'text-faint'}`}>
+            <p className={`mt-2 text-[11px] ${!dueDate || !repeatUntil ? 'text-b27-expense' : 'text-b27-muted'}`}>
               {!dueDate
                 ? '먼저 위에서 마감일(첫 날짜)을 정해 주세요.'
                 : !repeatUntil
@@ -587,85 +589,73 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
           </div>
         )}
 
-        {/* 중요도 · 상태 */}
-        <div className="mt-5 grid grid-cols-2 gap-4">
-          <div className="min-w-0">
-            <FieldLabel ko="중요도" en="Stars" />
-            <div className="flex h-[46px] items-center gap-1.5">
-              {Array.from({ length: IMPORTANCE_MAX }).map((_, i) => {
-                const n = i + 1
-                const filled = n <= importance
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setImportance(importance === n ? n - 1 : n)}
-                    aria-label={`중요도 ${n}`}
-                    className={filled ? 'text-[#D4AF37]' : 'text-line transition-colors hover:text-[#D4AF37]'}
-                  >
-                    <svg
-                      width="26"
-                      height="26"
-                      viewBox="0 0 24 24"
-                      fill={filled ? 'currentColor' : 'none'}
-                      stroke={filled ? 'none' : 'currentColor'}
-                      strokeWidth="1.5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d={
-                          filled
-                            ? 'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'
-                            : 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z'
-                        }
-                      />
-                    </svg>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          <div className="min-w-0">
-            <FieldLabel ko="상태" en="Status" />
-            <select
-              value={status}
-              onChange={(e) => onChangeStatus(e.target.value as StatusValue)}
-              className={input}
-            >
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+        {/* 중요도 — 살구 블록 4칸(없음 · ★ · ★★ · ★★★): 선택 = 진한 살구 + 흰 할로 + 남색 안쪽 테두리 */}
+        <div className="mt-5">
+          <FieldLabel ko="중요도" en="Stars" />
+          <div className="grid grid-cols-4 gap-[3px] overflow-hidden rounded-xl bg-b27-paper" role="radiogroup" aria-label="중요도">
+            {Array.from({ length: IMPORTANCE_MAX + 1 }).map((_, n) => {
+              const on = importance === n
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  aria-label={n === 0 ? '중요도 없음' : `중요도 ${n}`}
+                  onClick={() => setImportance(n)}
+                  className="flex h-11 items-center justify-center text-[13px] font-semibold tracking-[1px] transition active:opacity-80"
+                  style={
+                    on
+                      ? { background: 'var(--b27-block-3)', color: '#fff', textShadow: blockHalo(3), boxShadow: 'inset 0 0 0 3px var(--b27-ink)' }
+                      : { background: 'var(--b27-tint-3)', color: 'var(--b27-deep-3)' }
+                  }
+                >
+                  {n === 0 ? '없음' : '★'.repeat(n)}
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        {/* 상위 프로젝트 · 사역 분류 */}
-        <div className="mt-5 grid grid-cols-2 gap-4">
-          <div className="min-w-0">
-            <FieldLabel ko="상위 프로젝트" en="Project" />
-            <LinkedPicker
-              value={projectId}
-              onChange={setProjectId}
-              activeItems={projectItems.active}
-              doneItems={projectItems.done}
-              selectedLabel={projectLabel}
-              placeholder="없음 (단독 할 일)"
-              emptyLabel="없음 (단독 할 일)"
-              doneLabel="완료된 프로젝트"
-            />
+        {/* 상태 — 알약 세그먼트 */}
+        <div className="mt-5">
+          <FieldLabel ko="상태" en="Status" />
+          <div className="flex gap-1 rounded-full bg-b27-card p-1" role="radiogroup" aria-label="상태">
+            {STATUSES.map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                role="radio"
+                aria-checked={status === s.value}
+                onClick={() => onChangeStatus(s.value)}
+                className={`flex-1 rounded-full py-2 text-[13px] transition active:opacity-70 ${
+                  status === s.value ? 'bg-b27-ink font-medium text-white' : 'text-b27-muted'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
           </div>
-          <div className="min-w-0">
-            <FieldLabel ko="사역 분류" en="Category" />
-            <CategorySelect value={category} onChange={setCategory} className={input} emptyLabel="분류 없음" />
-          </div>
+        </div>
+
+        {/* 상위 프로젝트 */}
+        <div className="mt-5">
+          <FieldLabel ko="상위 프로젝트" en="Project" />
+          <LinkedPicker
+            value={projectId}
+            onChange={setProjectId}
+            activeItems={projectItems.active}
+            doneItems={projectItems.done}
+            selectedLabel={projectLabel}
+            placeholder="없음 (단독 할 일)"
+            emptyLabel="없음 (단독 할 일)"
+            doneLabel="완료된 프로젝트"
+          />
         </div>
 
         {/* 선행 · 후속 작업 — 상위 프로젝트 선택 시 펼침 */}
         {projectId && projectTasks.length > 0 && (
-          <div className="mt-3 rounded-2xl bg-surface-subtle p-4">
+          <div className="mt-3 rounded-2xl bg-b27-tint-6 p-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
                 <FieldLabel ko="선행 작업" en="Prev" />
@@ -697,6 +687,12 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
           </div>
         )}
 
+        {/* 사역 분류 — 블록 선택(일지와 같은 부품) */}
+        <div className="mt-5">
+          <FieldLabel ko="사역 분류" en="Category" />
+          <CategoryBlocks value={category} onChange={setCategory} />
+        </div>
+
         {/* 첨부파일 */}
         <div className="mt-5">
           <FieldLabel ko="첨부파일" en="Files" />
@@ -704,11 +700,8 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
         </div>
 
         {/* 완료됨 토글 */}
-        <div className="mt-5 flex items-center justify-between border-t border-line pt-5">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[14px] font-medium text-ink">완료됨</span>
-            <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-faint">Completed</span>
-          </div>
+        <div className="mt-5 flex items-center justify-between rounded-2xl bg-b27-card px-4 py-3">
+          <span className="text-[14px] text-b27-ink">완료됨</span>
           <button
             type="button"
             role="switch"
@@ -716,7 +709,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
             aria-label="완료됨"
             onClick={() => onToggleDone(!done)}
             className={`relative inline-flex h-[26px] w-[44px] shrink-0 items-center rounded-full transition-colors ${
-              done ? 'bg-[#0F6E56]' : 'bg-line'
+              done ? 'bg-[#226C5A]' : 'bg-[#D5D9E3]'
             }`}
           >
             <span
@@ -728,29 +721,29 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
         </div>
       </div>
 
-      {msg && <p className="mt-4 text-center text-sm text-danger">{msg}</p>}
+      {msg && <p className="mt-4 text-center text-sm text-b27-expense">{msg}</p>}
 
       {/* 저장 + (편집) 복제·삭제 */}
       <button
         onClick={save}
         disabled={saving}
-        className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
+        className="mt-6 w-full rounded-2xl bg-b27-ink py-4 text-[15px] font-medium text-white transition active:opacity-80 disabled:opacity-50"
       >
         {saving
           ? '저장 중…'
           : mode === 'edit'
-            ? 'Update To-Do'
+            ? '수정 저장'
             : repeatFreq !== 'none'
               ? '반복 만들기'
-              : 'Save To-Do'}
+              : '저장'}
       </button>
       {mode === 'edit' && initial && (
-        <div className="mt-6 flex items-center justify-center gap-8 text-[13px] font-medium text-muted">
+        <div className="mt-6 flex items-center justify-center gap-8 text-[13px] font-medium text-b27-muted">
           <button
             type="button"
             onClick={() => router.push(`/tasks/new?from=${initial.id}`)}
             disabled={saving}
-            className="transition hover:text-ink disabled:opacity-50"
+            className="transition hover:text-b27-ink disabled:opacity-50"
           >
             복제
           </button>
@@ -758,7 +751,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
             type="button"
             onClick={del}
             disabled={saving}
-            className="transition hover:text-accent disabled:opacity-50"
+            className="transition hover:text-b27-expense disabled:opacity-50"
           >
             삭제
           </button>

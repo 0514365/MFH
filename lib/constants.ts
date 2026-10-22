@@ -37,9 +37,9 @@ export const priorityLabel = (v: string): string =>
 export type StatusValue = 'upcoming' | 'in_progress' | 'done'
 
 export const STATUSES: { value: StatusValue; label: string; colorKey: 'statusUpcoming' | 'statusProgress' | 'statusDone' }[] = [
-  { value: 'upcoming', label: 'Upcoming', colorKey: 'statusUpcoming' },
-  { value: 'in_progress', label: 'In Progress', colorKey: 'statusProgress' },
-  { value: 'done', label: 'Done', colorKey: 'statusDone' },
+  { value: 'upcoming', label: '예정', colorKey: 'statusUpcoming' },
+  { value: 'in_progress', label: '진행', colorKey: 'statusProgress' },
+  { value: 'done', label: '완료', colorKey: 'statusDone' },
 ]
 
 // 할 일 신규 생성 기본값
@@ -62,9 +62,9 @@ export function normalizeStatus(v: string | null | undefined): StatusValue {
 }
 
 export const STATUS_META: Record<StatusValue, { label: string; colorKey: string }> = {
-  upcoming: { label: 'Upcoming', colorKey: 'statusUpcoming' },
-  in_progress: { label: 'In Progress', colorKey: 'statusProgress' },
-  done: { label: 'Done', colorKey: 'statusDone' },
+  upcoming: { label: '예정', colorKey: 'statusUpcoming' },
+  in_progress: { label: '진행', colorKey: 'statusProgress' },
+  done: { label: '완료', colorKey: 'statusDone' },
 }
 
 export const statusV2Label = (v: string): string => STATUS_META[normalizeStatus(v)].label

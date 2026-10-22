@@ -1,3 +1,4 @@
+// MFH-STATUS-CHIP-V3 — 2027(4-2): status 칩 = 상태 틴트(예정 흰 · 진행 페리윙클 · 완료 민트) / 선택 = 남색 채움.
 // MFH-STATUS-CHIP-V2 — 2027(4-1): chip = 흰 알약 · chipOn = 남색 채움(테두리·outline 없음). status 칩은 4-2/4-3 에서.
 // MFH-STATUS-CHIP-V1
 // 공통 필터 칩 헬퍼 — projects · tasks · calendar 에서 단일 import.
@@ -18,17 +19,17 @@ export function statusChipCls(v: StatusValue, active: boolean): string {
   switch (v) {
     case 'in_progress':
       return active
-        ? `${statusChipBase} border-2 border-on-status-progress bg-status-progress font-semibold text-on-status-progress`
-        : `${statusChipBase} border border-transparent bg-status-progress text-on-status-progress`
+        ? `${statusChipBase} bg-b27-ink font-medium text-white`
+        : `${statusChipBase} bg-b27-tint-8 text-[#303C8D]`
     case 'done':
       return active
-        ? `${statusChipBase} border-2 border-on-status-done bg-status-done font-semibold text-on-status-done`
-        : `${statusChipBase} border border-transparent bg-status-done text-on-status-done`
+        ? `${statusChipBase} bg-b27-ink font-medium text-white`
+        : `${statusChipBase} bg-b27-tint-4 text-[#226C5A]`
     case 'upcoming':
     default:
       return active
-        ? `${statusChipBase} border-2 border-on-status-upcoming bg-status-upcoming font-semibold text-on-status-upcoming`
-        : `${statusChipBase} border border-transparent bg-status-upcoming text-on-status-upcoming`
+        ? `${statusChipBase} bg-b27-ink font-medium text-white`
+        : `${statusChipBase} bg-b27-paper text-b27-muted`
   }
 }
 

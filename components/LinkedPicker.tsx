@@ -63,7 +63,7 @@ export default function LinkedPicker({
   }
 
   const trigger =
-    'flex w-full items-center justify-between gap-2 rounded-xl border border-b27-line bg-b27-paper px-4 py-3 text-sm outline-none focus:border-b27-ink'
+    'flex w-full items-center justify-between gap-2 rounded-xl bg-b27-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-b27-ink/15'
   const row =
     'flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm transition hover:bg-b27-card'
 

@@ -1,11 +1,12 @@
 'use client'
+// MFH-TASK-CHECK-V2 — 2027(4-2): 원형 체크(26 · 상세 lg 32) · 완료 = 진한 민트 채움 + 흰 ✓ / 미완료 = 회색 테두리.
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { requestBadgeRefresh } from '@/lib/badge'
 
-export default function TaskCheck({ id, done }: { id: string; done: boolean }) {
+export default function TaskCheck({ id, done, size = 'md' }: { id: string; done: boolean; size?: 'md' | 'lg' }) {
   const router = useRouter()
   const [checked, setChecked] = useState(done)
   const [busy, setBusy] = useState(false)
@@ -40,10 +41,11 @@ export default function TaskCheck({ id, done }: { id: string; done: boolean }) {
       type="button"
       onClick={toggle}
       disabled={busy}
-      aria-label="완료 토글"
-      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm font-extrabold transition-colors ${
-        checked ? 'border-accent bg-accent text-white' : 'border-[#e6c9cb] bg-transparent text-transparent hover:border-accent'
-      }`}
+      aria-label={checked ? '완료 취소' : '완료로 표시'}
+      aria-pressed={checked}
+      className={`flex shrink-0 items-center justify-center rounded-full border-2 font-semibold transition-colors active:scale-95 ${
+        size === 'lg' ? 'h-8 w-8 text-base' : 'h-[26px] w-[26px] text-sm'
+      } ${checked ? 'border-[#226C5A] bg-[#226C5A] text-white' : 'border-[#C9CDD8] bg-b27-paper text-transparent'}`}
     >
       ✓
     </button>

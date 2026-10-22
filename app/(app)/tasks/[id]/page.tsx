@@ -1,3 +1,5 @@
+// MFH-TASK-DETAIL-V2 — 2027(4-2): theme-2027 · 빨간 ‹ 할 일 + ‹n/total› · 메타(별·상태·분류 틴트·장소·반복) · 제목 22/600 ·
+//   완료 토글 면 · 마감 살구 면(큰 날짜 · 시간 · D-day) · 설명 · 상위 프로젝트 로즈 면 · 선행/후속 · 수정 남색/복제/삭제.
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
@@ -5,8 +7,7 @@ import { canEditEntry } from '@/lib/members'
 import type { Attachment } from '@/lib/types'
 import { parseTaskFilter, orderTaskIds } from '@/lib/taskFilter'
 import { computeListNav, searchParamsToQuery } from '@/lib/listNav'
-import { normalizeStatus, statusV2Label } from '@/lib/constants'
-import { fmtDate, ImportanceStars } from '../../projects/badges'
+import { fmtDate, ImportanceStars, StatusBadge, CategoryBadge } from '../../projects/badges'
 import { fmtTime } from '@/lib/calendar'
 import BackButton from '@/components/BackButton'
 import DetailNav from '@/components/DetailNav'
@@ -15,7 +16,6 @@ import MarkdownText from '@/components/MarkdownText'
 import TaskCheck from '../TaskCheck'
 import DeleteButton from './DeleteButton'
 import RecurrenceBadge from '@/components/RecurrenceBadge'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -122,239 +122,167 @@ export default async function TaskDetailPage(props: {
       .filter(Boolean) as AttItem[]
   }
 
-  // 상태 칩 색 (목록 배지와 동일 토큰)
-  const st = normalizeStatus(task.status ?? 'upcoming')
-  const stCls =
-    st === 'done'
-      ? 'bg-status-done text-on-status-done'
-      : st === 'in_progress'
-        ? 'bg-status-progress text-on-status-progress'
-        : 'bg-status-upcoming text-on-status-upcoming'
+  // 마감 D-day(오늘 기준, 로컬). 지남이면 음수.
+  const dday = (() => {
+    if (!task.due_date) return null
+    const now = new Date()
+    const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+    const diff = Math.round((Date.parse(task.due_date) - Date.parse(today)) / 86400000)
+    return diff === 0 ? 'D-day' : diff > 0 ? `D-${diff}` : `${-diff}일 지남`
+  })()
 
   const ChevronRight = (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-faint">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-b27-muted" aria-hidden="true">
       <path d="M9 5l7 7-7 7" />
     </svg>
   )
+  const label = 'mb-1.5 flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted'
 
   return (
-    <main className="app-theme mx-auto max-w-md pb-10">
-      {/* 상단바 — 프로젝트 상세와 통일 */}
-      <header
-        className="sticky top-0 z-30 border-b border-line px-3 py-3"
-        style={{ background: 'var(--paper)' }}
-      >
-        <div className="flex items-center gap-2">
-          <div className="shrink-0">
-            <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label="목록" variant="icon-accent" />
-          </div>
-          <div className="min-w-0 flex-1 text-center">
-            <h1
-              className={`truncate text-[18px] font-bold leading-tight tracking-tight ${
-                task.done ? 'text-muted line-through' : 'text-ink'
-              }`}
-            >
-              {task.title}
-            </h1>
-            {task.due_date && (
-              <div
-                className={`mt-0.5 font-display text-[12px] font-medium tracking-wide ${
-                  overdue ? 'text-danger' : 'text-muted'
-                }`}
-              >
-                ( 마감 {fmtDueShort(task.due_date)}
-                {task.due_time ? ` ${fmtTime(task.due_time)}` : ''}
-                {overdue ? ' · 연체' : ''} )
-              </div>
-            )}
-          </div>
-          <div className="shrink-0">
-            <DetailNav
-              basePath="/tasks"
-              prevId={nav.prevId}
-              nextId={nav.nextId}
-              index={nav.index}
-              total={nav.total}
-              query={navQuery}
-              variant="pad"
-            />
-          </div>
-        </div>
+    <main className="theme-2027 mx-auto max-w-md pb-10">
+      {/* 상단바 — 빨간 ‹ 할 일 / ‹ n/total › */}
+      <header className="sticky top-0 z-30 flex h-[52px] items-center justify-between bg-b27-paper pl-3 pr-4">
+        <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label="할 일" variant="text" />
+        <DetailNav
+          basePath="/tasks"
+          prevId={nav.prevId}
+          nextId={nav.nextId}
+          index={nav.index}
+          total={nav.total}
+          query={navQuery}
+          variant="minimal"
+        />
       </header>
 
-      {/* 메타칩(별점·상태·사역분류·장소·반복) + 완료 토글 우측 */}
-      <section className="px-5 pb-6 pt-5">
-        <div className="flex items-start gap-3">
-          <div className="flex flex-1 flex-wrap items-center gap-2">
-            <ImportanceStars value={task.importance} size="md" />
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${stCls}`}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-current opacity-50" />
-              {statusV2Label(task.status ?? 'upcoming')}
-            </span>
-            {task.category && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] text-muted">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-                </svg>
-                {task.category}
-              </span>
-            )}
-            {task.place_name && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] text-muted">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                {task.place_name}
-              </span>
-            )}
-            {task.recurrence_id && <RecurrenceBadge freq={task.recurrence_freq} />}
-          </div>
-          {canEdit && (
-            <div className="flex shrink-0 items-center gap-1.5 pt-1">
-              <span className="text-[12px] font-bold text-accent">완료</span>
-              <TaskCheck id={task.id} done={task.done} />
-            </div>
+      <div className="flex flex-col gap-4 px-5 pt-2">
+        {/* 메타(별점 · 상태 · 사역분류 · 장소 · 반복) → 제목 */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <ImportanceStars value={task.importance} size="md" />
+          <StatusBadge value={task.status ?? 'upcoming'} />
+          <CategoryBadge value={task.category} />
+          {task.place_name && (
+            <span className="inline-flex items-center rounded-full bg-b27-card px-2.5 py-0.5 text-[11.5px] text-b27-ink">{task.place_name}</span>
           )}
+          {task.recurrence_id && <RecurrenceBadge freq={task.recurrence_freq} />}
         </div>
-      </section>
+        <h1 className={`-mt-1 break-keep text-[22px] font-semibold leading-[1.35] ${task.done ? 'text-b27-muted line-through' : 'text-b27-ink'}`}>
+          {task.title}
+        </h1>
 
-      {/* 설명 — 프로젝트 상세 Description 과 동일 */}
-      {task.description && (
-        <section className="border-t border-line bg-white/50 px-5 py-7">
-          <div className="mb-3">
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-              Description
-            </div>
-            <h2 className="text-[17px] font-bold tracking-tight text-ink">설명</h2>
-          </div>
-          <MarkdownText
-            text={task.description}
-            className="break-keep text-[15px] font-light leading-[1.75] text-ink"
-          />
-        </section>
-      )}
-
-      {/* 상위 프로젝트 */}
-      {task.projects && (
-        <section className="border-t border-line px-5 py-7">
-          <div className="mb-3">
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-              Parent Project
-            </div>
-            <h2 className="text-[16px] font-bold tracking-tight text-ink">상위 프로젝트</h2>
-          </div>
-          <Link
-            href={`/projects/${task.projects.id}`}
-            className="flex items-center justify-between rounded-3xl border border-line bg-surface p-4 shadow-sm transition active:bg-surface-subtle"
-          >
-            <span className="flex min-w-0 items-center gap-3.5">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-soft">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                  <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
-              </span>
-              <span className="min-w-0 truncate text-[15px] font-medium leading-snug text-ink">{task.projects.title}</span>
+        {/* 완료 토글 면 */}
+        {canEdit && (
+          <div className="flex items-center justify-between rounded-2xl bg-b27-card px-4 py-3">
+            <span className="text-[14px] text-b27-ink">
+              {task.done ? `완료됨${task.completed_at ? ` · ${fmtDate(task.completed_at.slice(0, 10))}` : ''}` : '완료로 표시'}
             </span>
-            {ChevronRight}
-          </Link>
-        </section>
-      )}
-
-      {/* 선행 · 후속 업무 (같은 프로젝트 할 일 각 1개) */}
-      {(predTitle || sucTitle) && (
-        <section className="border-t border-line px-5 py-7">
-          <div className="mb-3">
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-              Linked Tasks
-            </div>
-            <h2 className="text-[16px] font-bold tracking-tight text-ink">선행 · 후속 업무</h2>
+            <TaskCheck id={task.id} done={task.done} size="lg" />
           </div>
-          <div className={`grid gap-2.5 ${predTitle && sucTitle ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {predTitle && predId && (
-              <Link
-                href={`/tasks/${predId}`}
-                className="block rounded-2xl border border-line bg-surface p-3 shadow-sm transition active:bg-surface-subtle"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="rounded-md bg-surface-subtle px-1.5 py-0.5 text-[10px] font-bold text-muted">
-                    선행
+        )}
+
+        {/* 마감 — 할 일 틴트 면(3 살구) · 큰 날짜 + 시간 · D-day */}
+        {task.due_date && (
+          <div className="rounded-2xl bg-b27-tint-3 px-4 py-3.5">
+            <div className={label} style={{ color: 'var(--b27-deep-3)' }}>
+              <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-3" aria-hidden="true" />
+              마감
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className={`font-num text-[26px] font-semibold tabular-nums ${overdue ? 'text-b27-expense' : 'text-b27-ink'}`}>
+                {fmtDueShort(task.due_date)}
+              </span>
+              <span className={`font-num text-[15px] tabular-nums ${overdue ? 'text-b27-expense' : ''}`} style={overdue ? undefined : { color: 'var(--b27-deep-3)' }}>
+                {[task.due_time ? fmtTime(task.due_time) : null, task.done ? null : dday].filter(Boolean).join(' · ')}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* 설명 */}
+        {task.description && (
+          <section>
+            <div className={label}>설명</div>
+            <MarkdownText text={task.description} className="break-keep text-[15px] leading-[1.75] text-b27-ink" />
+          </section>
+        )}
+
+        {/* 상위 프로젝트 — 프로젝트 틴트 면(6 로즈) */}
+        {task.projects && (
+          <Link href={`/projects/${task.projects.id}`} className="block rounded-2xl bg-b27-tint-6 px-4 py-3.5 transition active:opacity-80">
+            <div className={label}>
+              <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-6" aria-hidden="true" />
+              상위 프로젝트
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="min-w-0 truncate text-[15px] font-medium text-b27-ink">{task.projects.title}</span>
+              {ChevronRight}
+            </div>
+          </Link>
+        )}
+
+        {/* 선행 · 후속 업무 (같은 프로젝트 할 일 각 1개) */}
+        {(predTitle || sucTitle) && (
+          <section>
+            <div className={label}>선행 · 후속</div>
+            <div className="flex flex-col gap-1.5">
+              {predTitle && predId && (
+                <Link href={`/tasks/${predId}`} className="flex items-center justify-between gap-3 rounded-xl bg-b27-card px-3.5 py-2.5 transition active:opacity-70">
+                  <span className="min-w-0 truncate text-[14px] text-b27-ink">
+                    <span className="mr-2 text-b27-muted">선행</span>
+                    {predTitle}
                   </span>
                   {ChevronRight}
-                </div>
-                <div className="mt-2 truncate text-[14px] text-ink">{predTitle}</div>
-              </Link>
-            )}
-            {sucTitle && sucId && (
-              <Link
-                href={`/tasks/${sucId}`}
-                className="block rounded-2xl border border-line bg-surface p-3 shadow-sm transition active:bg-surface-subtle"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="rounded-md bg-surface-subtle px-1.5 py-0.5 text-[10px] font-bold text-muted">
-                    후속
+                </Link>
+              )}
+              {sucTitle && sucId && (
+                <Link href={`/tasks/${sucId}`} className="flex items-center justify-between gap-3 rounded-xl bg-b27-card px-3.5 py-2.5 transition active:opacity-70">
+                  <span className="min-w-0 truncate text-[14px] text-b27-ink">
+                    <span className="mr-2 text-b27-muted">후속</span>
+                    {sucTitle}
                   </span>
                   {ChevronRight}
-                </div>
-                <div className="mt-2 truncate text-[14px] text-ink">{sucTitle}</div>
-              </Link>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* 첨부파일 — 이미지 썸네일 + PDF 미리보기 */}
-      {attItems.length > 0 && (
-        <section className="border-t border-line px-5 py-7">
-          <div className="mb-3">
-            <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-muted">
-              Files
+                </Link>
+              )}
             </div>
-            <h2 className="text-[16px] font-bold tracking-tight text-ink">첨부파일</h2>
+          </section>
+        )}
+
+        {/* 첨부파일 */}
+        {attItems.length > 0 && (
+          <section>
+            <div className={label}>첨부파일</div>
+            <AttachmentList items={attItems} />
+          </section>
+        )}
+
+        {/* 수정(남색) / 복제(연회색) / 삭제(연한 빨강) */}
+        {canEdit ? (
+          <div className="mt-2 flex items-center gap-2">
+            <Link
+              href={`/tasks/${task.id}/edit${navQuery ? `?${navQuery}` : ''}`}
+              className="flex-1 rounded-2xl bg-b27-ink py-3.5 text-center text-[14px] font-medium text-white transition active:opacity-80"
+            >
+              수정
+            </Link>
+            <Link
+              href={`/tasks/new?from=${task.id}`}
+              className="flex-1 rounded-2xl bg-b27-card py-3.5 text-center text-[14px] font-medium text-b27-ink transition active:opacity-70"
+            >
+              복제
+            </Link>
+            <DeleteButton id={task.id} recurrenceId={task.recurrence_id} dueDate={task.due_date} />
           </div>
-          <AttachmentList items={attItems} />
-        </section>
-      )}
-
-      {/* 완료 시각 */}
-      {task.done && task.completed_at && (
-        <section className="border-t border-line px-5 py-6 text-center">
-          <span className="text-[13px] text-faint">완료 {fmtDate(task.completed_at.slice(0, 10))}</span>
-        </section>
-      )}
-
-      {/* 수정 / 복제 / 삭제 — 프로젝트 상세 톤(알약) */}
-      {canEdit ? (
-        <div className="flex items-center justify-center gap-3 border-t border-line px-5 pb-12 pt-8">
-          <Link
-            href={`/tasks/${task.id}/edit${navQuery ? `?${navQuery}` : ''}`}
-            className="rounded-full border border-line bg-surface-subtle px-5 py-2 text-[13px] font-medium text-muted transition hover:border-primary"
-          >
-            수정
-          </Link>
-          <Link
-            href={`/tasks/new?from=${task.id}`}
-            className="rounded-full border border-line bg-surface-subtle px-5 py-2 text-[13px] font-medium text-muted transition hover:border-primary"
-          >
-            복제
-          </Link>
-          <DeleteButton id={task.id} recurrenceId={task.recurrence_id} dueDate={task.due_date} />
-        </div>
-      ) : (
-        <div className="border-t border-line px-5 pb-10 pt-8 text-center">
-          <p className="mb-5 text-[13px] leading-relaxed text-muted">
-            다른 멤버님의 할 일입니다. 보기·복제만 가능합니다.
-          </p>
-          <Link
-            href={`/tasks/new?from=${task.id}`}
-            className="inline-block rounded-full border border-line bg-surface-subtle px-8 py-2.5 text-[14px] font-medium text-muted transition hover:border-primary"
-          >
-            복제
-          </Link>
-        </div>
-      )}
+        ) : (
+          <div className="mt-2 flex flex-col gap-2">
+            <p className="rounded-2xl bg-b27-card px-4 py-3 text-center text-xs text-b27-muted">다른 멤버님의 할 일입니다. 보기·복제만 가능합니다.</p>
+            <Link
+              href={`/tasks/new?from=${task.id}`}
+              className="rounded-2xl bg-b27-card py-3.5 text-center text-[14px] font-medium text-b27-ink transition active:opacity-70"
+            >
+              복제
+            </Link>
+          </div>
+        )}
+      </div>
     </main>
   )
 }

@@ -13,11 +13,11 @@ export type TaskGroupKey =
   | 'done'
 
 export const TASK_GROUP_LABEL: Record<TaskGroupKey, string> = {
-  overdue: '연체',
+  overdue: '지남',
   this_week: '이번 주',
   next_week: '다음 주',
   this_month: '이번 달',
-  later: '나머지',
+  later: '나중',
   unset: '미지정',
   done: '완료',
 }

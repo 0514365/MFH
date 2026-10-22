@@ -27,7 +27,7 @@ function formatTime(v: string): string {
   return `${ampm} ${h12}:${mm}`
 }
 
-const box = 'w-full rounded-xl border border-b27-line bg-b27-paper px-4 py-3 text-sm'
+const box = 'w-full rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink'
 
 export default function TimeField({ value, onChange, placeholder, disabled }: Props) {
   const [desktop, setDesktop] = useState(false)
