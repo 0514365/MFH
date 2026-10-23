@@ -1,3 +1,4 @@
+// MFH-LAYOUT-V6 — 2027 5단계: themeColor 마룬 → 흰색(흰 셸·상태바 한 면).
 // MFH-LAYOUT-V5 — 성경 본문 명조(Noto Serif KR, --font-serif) 변수 추가.
 // MFH-LAYOUT-V4 — 2027 토큰 승격: --b27-* 변수를 :root 로(전 앱에서 b27-* 클래스 사용 가능). 공용 토큰 브릿지는 여전히 .theme-2027 스코프.
 // MFH-LAYOUT-V3 — 2027 토큰(.theme-2027 스코프 변수 · Manrope 변수) 선언. 적용은 회계 layout 부터(b 단계).
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#661F20',
+  themeColor: '#FFFFFF',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
