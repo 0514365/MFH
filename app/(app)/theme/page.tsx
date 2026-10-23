@@ -110,7 +110,7 @@ export default function ThemePage() {
   const previewGoals = goals.map((g) => g.trim()).filter(Boolean)
 
   return (
-    <main className="theme-2027 mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
+    <main className="mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
       {/* 상단바 — 빨간 ‹ + 제목 */}
       <header className="sticky top-0 z-30 -mx-4 mb-2 flex h-[52px] items-center bg-b27-paper pl-3 pr-4">
         <BackButton href="/" label="주제·목표" variant="text" />

@@ -25,7 +25,7 @@ export default async function SupportersLayout({ children }: { children: React.R
   if (!canManageFinance(user.id)) redirect('/')
 
   return (
-    <main className="theme-2027 mx-auto max-w-md px-4 pb-4 pt-2 @2xl:max-w-5xl @2xl:px-6">
+    <main className="mx-auto max-w-md px-4 pb-4 pt-2 @2xl:max-w-5xl @2xl:px-6">
       <header className="sticky top-0 z-30 -mx-4 mb-3 flex h-[52px] items-center bg-b27-paper px-3 @2xl:-mx-6 @2xl:px-6">
         <div className="relative flex w-full items-center">
           {/* 좌: 뒤로(경로 맥락) */}

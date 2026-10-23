@@ -574,7 +574,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
     }`
 
   return (
-    <main className="theme-2027 mx-auto max-w-md px-4 pb-10 @xl:max-w-3xl @4xl:max-w-6xl">
+    <main className="mx-auto max-w-md px-4 pb-10 @xl:max-w-3xl @4xl:max-w-6xl">
       {/* 상단바: 빨간 ‹ + 제목 */}
       <header className="sticky top-0 z-30 -mx-4 mb-3 flex h-[52px] items-center bg-b27-paper pl-3 pr-4">
         <BackButton

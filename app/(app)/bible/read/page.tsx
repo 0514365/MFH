@@ -34,7 +34,7 @@ const NAV_LINK = 'text-[14px] font-semibold text-b27-ink transition hover:underl
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="theme-2027 mx-auto max-w-md px-5 pb-8 @xl:max-w-2xl @4xl:max-w-4xl">
+    <main className="mx-auto max-w-md px-5 pb-8 @xl:max-w-2xl @4xl:max-w-4xl">
       <PageHeader title="본문 읽기" />
       {children}
     </main>

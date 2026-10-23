@@ -102,7 +102,7 @@ export default async function ProjectDetail(props: {
   const label = 'mb-1.5 flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted'
 
   return (
-    <main className="theme-2027 mx-auto max-w-md pb-10 @xl:max-w-5xl">
+    <main className="mx-auto max-w-md pb-10 @xl:max-w-5xl">
       {/* 상단바 — 빨간 ‹ 프로젝트 / ‹ n/total › */}
       <header className="sticky top-0 z-30 flex h-[52px] items-center justify-between bg-b27-paper pl-3 pr-4">
         <BackButton href={navQuery ? `/projects?${navQuery}` : '/projects'} label="프로젝트" variant="text" />

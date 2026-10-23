@@ -117,8 +117,8 @@ export default async function Home() {
   if (!hasEnv) {
     return (
       <main className="mx-auto max-w-md px-6 py-16">
-        <h1 className="font-display text-3xl font-extrabold text-primary">MFH</h1>
-        <p className="mt-4 text-sm text-muted">
+        <h1 className="font-num text-3xl font-semibold text-b27-ink">MFH</h1>
+        <p className="mt-4 text-sm text-b27-muted">
           Supabase 환경변수가 설정되지 않았습니다. Vercel 환경변수를 등록한 뒤 다시 배포해 주세요.
         </p>
       </main>
@@ -261,7 +261,7 @@ export default async function Home() {
 
   return (
     <SplashGate>
-      <main className="theme-2027 mx-auto max-w-md px-4 pb-10 pt-2 @xl:max-w-3xl @4xl:max-w-6xl @4xl:px-6">
+      <main className="mx-auto max-w-md px-4 pb-10 pt-2 @xl:max-w-3xl @4xl:max-w-6xl @4xl:px-6">
         <header className="mb-4 flex items-center justify-between px-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-primary.svg" alt="MFH — Mission for Honduras" className="h-9 w-auto" />

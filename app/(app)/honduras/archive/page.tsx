@@ -62,7 +62,7 @@ export default async function HondurasArchivePage() {
     (countMap.get(r.news_date) ?? 1) > 1 ? `${r.news_date} (${seqMap.get(r.id) ?? 1})` : r.news_date
 
   return (
-    <main className="theme-2027 mx-auto max-w-2xl px-5 py-8">
+    <main className="mx-auto max-w-2xl px-5 py-8">
       <PageHeader title="지난 동향" />
 
       {/* 최신으로 */}

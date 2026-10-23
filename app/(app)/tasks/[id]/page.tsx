@@ -139,7 +139,7 @@ export default async function TaskDetailPage(props: {
   const label = 'mb-1.5 flex items-center gap-1.5 font-num text-[12px] font-medium text-b27-muted'
 
   return (
-    <main className="theme-2027 mx-auto max-w-md pb-10">
+    <main className="mx-auto max-w-md pb-10">
       {/* 상단바 — 빨간 ‹ 할 일 / ‹ n/total › */}
       <header className="sticky top-0 z-30 flex h-[52px] items-center justify-between bg-b27-paper pl-3 pr-4">
         <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label="할 일" variant="text" />

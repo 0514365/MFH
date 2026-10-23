@@ -154,7 +154,7 @@ export default async function JournalDetail(props: {
   const catN = entry.category ? JOURNAL_CATEGORY_BLOCK[entry.category] : undefined
 
   return (
-    <main className="theme-2027 mx-auto max-w-md pb-10 @xl:max-w-3xl">
+    <main className="mx-auto max-w-md pb-10 @xl:max-w-3xl">
       {/* 상단바 — 좌: 빨간 ‹ + 「일지」 / 우: ‹ n/total › */}
       <header className="sticky top-0 z-30 flex h-[52px] items-center justify-between bg-b27-paper pl-3 pr-4">
         <span className="flex items-center">

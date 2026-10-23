@@ -34,6 +34,8 @@ export type PaletteTokens = {
   onStatusDone: string;
 };
 
+// ⚠️ 2027(4-9): 마룬 `light` 세트는 셸 밖 화면(/p 공개 · /login · /letters · 스플래시) 전용. 앱 셸 안은 .theme-2027 브릿지가 2027 값으로 덮는다.
+//    로그인·스플래시를 2027 로 바꾸는 5단계에서 정리(/p 는 portfolio-theme.css 와 함께 별도 판단).
 export const light: PaletteTokens = {
   primary: "#661F20",
   primaryHover: "#531719",
@@ -75,7 +77,7 @@ export function tokensToCssVars(tokens: PaletteTokens): string {
 // ---------------------------------------------------------------------------
 // MFH 2027 리브랜딩 — "Minimal Block" 토큰 (회계 먼저 적용, 2027 전체 확장).
 // 흰 바탕 · 파스텔 블록 8색 + 같은 색 할로(흰 글자 가장자리 대비) · 남색 앵커 · 터키석 ＋ 하나.
-// CSS 변수 접두 --b27-* 로 :root 에 주입(app/layout.tsx). 공용 토큰(--paper 등)을 2027 값으로 덮는 브릿지는 app/globals.css 의 .theme-2027 스코프. 기존 `light` 세트와 독립.
+// CSS 변수 접두 --b27-* 로 :root 에 주입(app/layout.tsx). 공용 토큰(--paper 등)을 2027 값으로 덮는 브릿지는 app/globals.css 의 .theme-2027 스코프(앱 셸 맨 바깥에 부착). 기존 `light` 세트와 독립.
 // 대비(흰 바탕): ink 12.6 · income 6.3 · expense 5.3 · wait 5.0. 블록 위 흰 글자는 할로 50%(3·4번 65%) 기준 3.3~5.8.
 
 export type Brand2027Tokens = {

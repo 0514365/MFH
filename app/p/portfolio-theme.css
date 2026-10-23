@@ -4,8 +4,7 @@
    차후 전체 적용 시: 이 스코프를 :root 로 승격하거나 body 에 .portfolio-theme 부여.
 */
 
-.portfolio-theme,
-.app-theme {
+.portfolio-theme {
   /* ===== Stayly DS 원본 토큰 ===== */
 
   /* color — 강조색은 MFH 마룬레드로 커스터마이즈(원래 Stayly 레드핑크 #ff385c) */
@@ -116,12 +115,10 @@
 }
 
 /* 공개페이지에서는 전역 종이질감 노이즈 오버레이 제거 + body 배경 순백 (Airbnb 클린 룩) */
-body:has(.portfolio-theme),
-body:has(.app-theme) {
+body:has(.portfolio-theme) {
   background: #ffffff;
 }
-body:has(.portfolio-theme)::before,
-body:has(.app-theme)::before {
+body:has(.portfolio-theme)::before {
   display: none;
 }
 

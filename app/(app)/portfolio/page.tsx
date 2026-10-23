@@ -73,7 +73,7 @@ export default async function PortfolioEditPage() {
   const letters = (letterRows ?? []) as PortfolioLetter[];
 
   return (
-    <div className="theme-2027 mx-auto max-w-3xl px-4 pb-10">
+    <div className="mx-auto max-w-3xl px-4 pb-10">
       <PortfolioForm initial={portfolio} userId={user.id}>
         <AccordionSection title="선교 연혁" count={history.length}>
           <HistoryEditor initial={history} userId={user.id} />

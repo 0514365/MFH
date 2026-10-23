@@ -3,7 +3,7 @@
 //   중요도 = 살구 블록 4칸 · 상태 = 알약 세그먼트 · 사역 분류 = 블록 선택 · 선행/후속 = 로즈 틴트 면 · 저장 남색.
 
 // MFH-TASK-FORM-V6
-// 할 일 입력 폼 — 단일 카드(프로젝트 폼과 통일). app-theme + Airbnb 절제 + 영문캡스 마룬 라벨.
+// 할 일 입력 폼 — 단일 카드(프로젝트 폼과 통일). 2027 Minimal Block.
 // 순서: 제목 → 설명 → [마감일·시간] → [반복·장소] → [중요도·상태] → [상위프로젝트·사역분류] → 첨부 → 완료토글.
 // 선행/후속(프로젝트 선택 시)·반복 종료일(주기 선택 시)은 조건부 펼침.
 // 저장·검증·완료↔상태연동·반복 생성/편집(범위 모달)·복제·삭제·작성자·이전/다음 편집순회 로직은 V5 그대로 보존.
@@ -457,7 +457,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
     `rounded-full px-3.5 py-2 text-[13px] transition active:opacity-70 ${on ? 'bg-b27-ink font-medium text-white' : 'bg-b27-card text-b27-muted'}`
 
   return (
-    <main className="theme-2027 mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
+    <main className="mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
       {/* 상단바 — 빨간 ‹ + 제목 + (편집)이전/다음 */}
       <header className="sticky top-0 z-30 -mx-4 mb-3 flex h-[52px] items-center justify-between bg-b27-paper pl-3 pr-4">
         <BackButton href={navQuery ? `/tasks?${navQuery}` : '/tasks'} label={mode === 'edit' ? '할 일 수정' : '새 할 일'} variant="text" />

@@ -20,7 +20,7 @@ export default async function BibleNewPage() {
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' })
 
   return (
-    <main className="theme-2027 mx-auto max-w-md px-5 pb-8">
+    <main className="mx-auto max-w-md px-5 pb-8">
       <PageHeader title="통독 계획" action={<BackButton href="/bible" variant="chip" label="통독" />} />
       <p className="-mt-1 mb-4 text-xs text-b27-muted">1년 1독을 기본으로, 기간·요일·범위(전체/구약/신약)·순서·배분을 정하면 하루 분량을 자동 계산합니다.</p>
       <PlanForm today={today} />

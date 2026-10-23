@@ -44,7 +44,7 @@ export default async function TasksPage() {
     }))
 
   return (
-    <main className="theme-2027 mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
+    <main className="mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
       <PageHeader
         title="할 일"
         current="tasks"

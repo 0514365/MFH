@@ -34,7 +34,7 @@ export default async function InsightsPage() {
   )
 
   return (
-    <main className="theme-2027 mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
+    <main className="mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
       <PageHeader title="Insights" current="insights" />
       <InsightsClient
         initial={(rows ?? []) as InsightRow[]}

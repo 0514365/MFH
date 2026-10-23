@@ -28,7 +28,7 @@ export default async function QtPage() {
   const row = data as QtRow | null
 
   return (
-    <main className="theme-2027 mx-auto max-w-2xl px-5 pb-8 @4xl:max-w-4xl">
+    <main className="mx-auto max-w-2xl px-5 pb-8 @4xl:max-w-4xl">
       <PageHeader title="오늘의 QT" />
 
       {hasQtContent(row) ? (

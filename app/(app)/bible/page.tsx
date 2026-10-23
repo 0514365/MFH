@@ -42,7 +42,7 @@ export default async function BiblePage() {
 
   if (!plan) {
     return (
-      <main className="theme-2027 mx-auto max-w-md px-5 pb-8">
+      <main className="mx-auto max-w-md px-5 pb-8">
         <PageHeader title="성경통독" action={manageAction} />
         <div className="rounded-3xl border border-b27-line bg-b27-paper p-6 text-center">
           <p className="text-base font-semibold text-b27-ink">활성 통독 계획이 없습니다</p>
@@ -79,7 +79,7 @@ export default async function BiblePage() {
   const lastDate = days.length ? days[days.length - 1].read_date : plan.end_date
 
   return (
-    <main className="theme-2027 mx-auto max-w-md px-5 pb-8 @xl:max-w-2xl">
+    <main className="mx-auto max-w-md px-5 pb-8 @xl:max-w-2xl">
       <PageHeader title="성경통독" action={manageAction} />
 
       {/* 진행 요약 — 통독 틴트 면(5 라벤더) */}

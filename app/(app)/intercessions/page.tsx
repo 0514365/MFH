@@ -22,7 +22,7 @@ export default async function IntercessionsPage() {
   const items = (data ?? []) as Intercession[]
 
   return (
-    <main className="theme-2027 mx-auto max-w-md px-5 pb-8">
+    <main className="mx-auto max-w-md px-5 pb-8">
       <PageHeader title="중보기도" />
       <p className="-mt-1 mb-5 text-xs text-b27-muted">공개 페이지 방문자가 남긴 기도·응원</p>
       <IntercessionsList initial={items} />

@@ -36,7 +36,7 @@ export default async function AccountingLayout({ children }: { children: React.R
   const pending = cardPending + recPending
 
   return (
-    <main className="theme-2027 font-sans mx-auto max-w-md px-4 pb-4 pt-0 md:pt-2 @2xl:max-w-5xl @2xl:px-6">
+    <main className="font-sans mx-auto max-w-md px-4 pb-4 pt-0 md:pt-2 @2xl:max-w-5xl @2xl:px-6">
       {/* 헤더 — 흰 바탕, 구분선 없음(미니멀: 면이 곧 경계) */}
       <header className="sticky top-0 z-30 -mx-4 mb-3 bg-b27-paper px-4 py-1.5 md:mb-4 md:py-3 @2xl:-mx-6 @2xl:px-6">
         <div className="relative flex items-center">

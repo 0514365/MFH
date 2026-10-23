@@ -29,7 +29,7 @@ export default async function HondurasDetailPage(props: { params: Promise<{ id: 
   const dateSuffix = row ? await seqSuffix(supabase, row.news_date, row.id) : ''
 
   return (
-    <main className="theme-2027 mx-auto max-w-2xl px-5 py-8">
+    <main className="mx-auto max-w-2xl px-5 py-8">
       <PageHeader title="온두라스 동향" />
 
       {/* 네비: 목록 / 최신 */}

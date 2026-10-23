@@ -46,7 +46,7 @@ export default async function HondurasPage() {
   )
 
   return (
-    <main className="theme-2027 mx-auto max-w-2xl px-5 pb-8">
+    <main className="mx-auto max-w-2xl px-5 pb-8">
       <PageHeader title="온두라스 동향" />
 
       {hasBriefingContent(row) ? (

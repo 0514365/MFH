@@ -1,3 +1,4 @@
+// MFH-APPSHELL-V5 — 2027(4-9): 셸 맨 바깥에 .theme-2027 한 번(앱 안 전 화면 브릿지 · 페이지별 부착 제거). /p·/login·/letters 는 셸 밖이라 그대로.
 // MFH-APPSHELL-V4 — 2027 셸(2단계): 보조 패널 열 흰 바탕 · b27 선.
 // MFH-APPSHELL-V3 — 본문 열에 @container(페이지의 @xl/@4xl 컨테이너 쿼리 기준, d 단계).
 // MFH-APPSHELL-V2 — 보조 패널은 lg 이상에서만(본문 아래 중복 배치 제거 — 홈이 같은 정보를 담는다).
@@ -18,7 +19,7 @@ export default function AppShell({
   children: ReactNode
 }) {
   return (
-    <div className="min-h-screen md:flex">
+    <div className="theme-2027 min-h-screen md:flex">
       <SideNav finance={finance} />
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">

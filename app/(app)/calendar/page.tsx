@@ -92,7 +92,7 @@ export default async function CalendarPage() {
   ]
 
   return (
-    <main className="theme-2027 mx-auto w-full max-w-md px-5 pb-8 @xl:max-w-3xl @4xl:max-w-6xl">
+    <main className="mx-auto w-full max-w-md px-5 pb-8 @xl:max-w-3xl @4xl:max-w-6xl">
       <PageHeader title="캘린더" current="calendar" />
       <CalendarView items={items} />
 

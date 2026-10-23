@@ -26,7 +26,8 @@ body {
 
 /* MFH 2027 "Minimal Block" 테마 스코프 — 색 변수(--b27-*)는 app/layout.tsx 가 lib/palette.ts brand2027 에서 :root 에 주입(전 앱 공통).
    여기서는 스코프 안에서 기존 공용 토큰(--paper 등)을 2027 값으로 덮어 공용 컴포넌트가 함께 전환되도록 브릿지만 둔다.
-   현재 회계 <main> 에만 붙어 있고, 전체 개정 때 모듈별로 붙여 나간 뒤 마지막에 :root 로 승격한다(docs/MFH-DESIGN-2027.md §9). */
+   4-9(2026-10-23): 앱 셸(components/AppShell.tsx) 맨 바깥에 한 번 부착 → 셸 안 전 화면 적용. 셸 밖(/p 공개 · /login · /letters · 스플래시)은
+   :root 의 마룬 `light` 토큰 그대로 — 5단계(로고·스플래시·로그인)에서 정리. */
 .theme-2027 {
   --paper: var(--b27-paper);
   --surface: var(--b27-paper);
@@ -96,8 +97,7 @@ body:has(.theme-2027) {
   }
 }
 
-/* /bible/study 2패널 리더 높이 — 화면(작은 뷰포트) − 하단 탭바(76px + safe-area).
-   .app-theme 의 min-height:100vh 가 이 높이를 덮어써 패널이 탭바 뒤까지 늘어났으므로 main.bible-study-main 으로 특이도를 높여 min-height 를 푼다. */
+/* /bible/study 2패널 리더 높이 — 화면(작은 뷰포트) − 하단 탭바(76px + safe-area). main.bible-study-main 으로 특이도를 높여 min-height 를 푼다. */
 main.bible-study-main {
   min-height: 0;
   height: calc(100vh - 76px - env(safe-area-inset-bottom, 0px));

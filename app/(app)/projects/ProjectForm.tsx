@@ -2,7 +2,7 @@
 // MFH-PROJECT-FORM-2027 — 4-3: theme-2027 · 빨간 ‹ · 연회색 입력칸 · Manrope 라벨 · 중요도 살구 블록 · 상태 알약 · 분류 블록 · 저장 남색.
 
 // MFH-PROJECT-FORM-V4
-// 프로젝트 입력 폼 — 1카드 단일 흐름. app-theme(Airbnb/Stayly) + 1차 시안(영문 캡스 라벨).
+// 프로젝트 입력 폼 — 1카드 단일 흐름. 2027 Minimal Block.
 // 입력 순서: 제목 → 설명 → [시작일·마감일] → [중요도·상태] → 사역 분류 → 첨부파일.
 // 저장·검증·날짜·별점 로직은 보존, 비주얼(헤더·카드·라벨·필드·버튼)만 교체.
 
@@ -102,7 +102,7 @@ export default function ProjectForm({ mode, initial }: Props) {
     'w-full rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink outline-none placeholder:text-b27-muted focus:ring-2 focus:ring-b27-ink/15'
 
   return (
-    <main className="theme-2027 mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
+    <main className="mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
       {/* 상단바 — 빨간 ‹ + 제목 */}
       <header className="sticky top-0 z-30 -mx-4 mb-3 flex h-[52px] items-center bg-b27-paper pl-3 pr-4">
         <BackButton

@@ -103,7 +103,7 @@ export default function StudyClient({ initialVer, initialLoc }: { initialVer: Bi
   )
 
   return (
-    <main className="theme-2027 mx-auto flex max-w-md flex-col px-5 @xl:max-w-3xl @4xl:max-w-6xl bible-study-main">
+    <main className="mx-auto flex max-w-md flex-col px-5 @xl:max-w-3xl @4xl:max-w-6xl bible-study-main">
       <PageHeader
         title="Bible"
         action={

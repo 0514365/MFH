@@ -37,7 +37,7 @@ export default async function BiblePlansPage() {
   }))
 
   return (
-    <main className="theme-2027 mx-auto max-w-md px-5 pb-8">
+    <main className="mx-auto max-w-md px-5 pb-8">
       <PageHeader
         title="계획 관리"
         action={
