@@ -1,4 +1,5 @@
 'use client'
+// MFH-AUTO-APPROVED-SECTION-V3 — 2027(회계 잔여 b): 섹션 테두리·그림자 제거 · 머리 = 타이틀 알약(▸ + 건수 회색) · 되돌리기 확인 = 연한 빨강
 // MFH-AUTO-APPROVED-SECTION-V2 — 되돌리기 후 앱 아이콘 뱃지 갱신
 // MFH-AUTO-APPROVED-SECTION-V1
 // 승인대기 화면 "카드 자동 승인" — 최근 7일 자동 승인분(접힘) + 되돌리기(장부 삭제 + 대기 복귀, 선택: 그 상점 자동 끄기)
@@ -47,38 +48,38 @@ export default function AutoApprovedSection({
   }
 
   return (
-    <section className="mb-4 rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <section className="mb-4">
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           disabled={rows.length === 0}
-          className="text-left text-[13px] font-bold text-muted disabled:cursor-default"
+          className="inline-flex items-center gap-1 rounded-full bg-b27-card px-3 py-1 text-left text-[13px] font-medium text-b27-ink disabled:cursor-default"
         >
-          {rows.length > 0 && <span className="mr-1 text-faint">{open ? '▾' : '▸'}</span>}
-          카드 자동 승인 <span className="font-display text-primary">{rows.length}</span>건
-          <span className="ml-1.5 text-[11px] font-normal text-faint">
+          {rows.length > 0 && <span className="mr-1 text-b27-muted">{open ? '▾' : '▸'}</span>}
+          카드 자동 승인 <span className="font-num text-[12px] font-normal text-b27-muted">{rows.length}</span>
+          <span className="ml-1.5 text-[11px] font-normal text-b27-muted">
             · 최근 {days}일{rows.length > 0 && ` · ${fmtUsd(totalUsd)}`}
           </span>
         </button>
         <MerchantRulesButton rules={rules} options={options} />
       </div>
-      {err && <p className="mt-2 text-xs font-medium text-accent">{err}</p>}
+      {err && <p className="mt-2 text-xs font-medium text-b27-expense">{err}</p>}
 
       {open && rows.length > 0 && (
         <ul className="mt-2 divide-y divide-line">
           {rows.map((r) => (
             <li key={r.id} className="py-2">
               <div className="flex items-center gap-2">
-                <span className="w-11 shrink-0 font-display text-[11px] text-faint">{fmtDay(r.smsAt)}</span>
+                <span className="w-11 shrink-0 font-num text-[11px] text-b27-muted">{fmtDay(r.smsAt)}</span>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] text-ink">{r.vendor || r.merchant}</div>
-                  <div className="truncate text-[11px] text-faint">{(r.itemId && itemName.get(r.itemId)) || '항목 없음'}</div>
+                  <div className="truncate text-[13px] text-b27-ink">{r.vendor || r.merchant}</div>
+                  <div className="truncate text-[11px] text-b27-muted">{(r.itemId && itemName.get(r.itemId)) || '항목 없음'}</div>
                 </div>
                 <div className="shrink-0 text-right">
-                  <div className="font-display text-[13px] text-ink">{fmtLocal(r.currency, r.principal)}</div>
+                  <div className="font-num text-[13px] text-b27-ink">{fmtLocal(r.currency, r.principal)}</div>
                   {r.currency !== 'USD' && r.amountUsd != null && (
-                    <div className="font-display text-[10px] text-faint">{fmtUsd(r.amountUsd)}</div>
+                    <div className="font-num text-[10px] text-b27-muted">{fmtUsd(r.amountUsd)}</div>
                   )}
                 </div>
                 {asking !== r.id && (
@@ -86,20 +87,20 @@ export default function AutoApprovedSection({
                     type="button"
                     onClick={() => setAsking(r.id)}
                     disabled={!!busy}
-                    className="h-8 shrink-0 rounded-md border border-line px-2 text-[11px] text-muted transition hover:border-accent hover:text-accent disabled:opacity-30"
+                    className="h-8 shrink-0 rounded-full bg-b27-card px-2 text-[11px] text-b27-muted transition disabled:opacity-30"
                   >
                     되돌리기
                   </button>
                 )}
               </div>
               {asking === r.id && (
-                <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5 rounded-lg bg-primary-soft/40 p-2">
-                  <span className="mr-auto text-[11px] text-muted">장부에서 지우고 승인대기로 돌립니다.</span>
+                <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5 rounded-xl bg-b27-card p-2">
+                  <span className="mr-auto text-[11px] text-b27-muted">장부에서 지우고 승인대기로 돌립니다.</span>
                   <button
                     type="button"
                     onClick={() => onRevert(r.id, false)}
                     disabled={busy === r.id}
-                    className="h-8 rounded-md border border-line bg-surface px-2.5 text-[11px] font-medium text-ink disabled:opacity-40"
+                    className="h-8 rounded-full bg-b27-paper px-2.5 text-[11px] font-medium text-b27-ink disabled:opacity-40"
                   >
                     되돌리기만
                   </button>
@@ -107,11 +108,11 @@ export default function AutoApprovedSection({
                     type="button"
                     onClick={() => onRevert(r.id, true)}
                     disabled={busy === r.id}
-                    className="h-8 rounded-md bg-accent px-2.5 text-[11px] font-bold text-white disabled:opacity-40"
+                    className="h-8 rounded-full bg-b27-expense-soft px-2.5 text-[11px] font-medium text-b27-expense disabled:opacity-40"
                   >
                     {busy === r.id ? '…' : '되돌리고 자동 끄기'}
                   </button>
-                  <button type="button" onClick={() => setAsking(null)} className="h-8 px-1.5 text-[11px] text-faint hover:text-primary">
+                  <button type="button" onClick={() => setAsking(null)} className="h-8 px-1.5 text-[11px] text-b27-muted">
                     취소
                   </button>
                 </div>

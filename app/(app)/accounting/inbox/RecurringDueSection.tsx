@@ -1,4 +1,5 @@
 'use client'
+// MFH-RECURRING-DUE-SECTION-V5 — 2027(회계 잔여 b): 섹션 테두리·그림자 제거 · 머리 = 타이틀 알약(호박 건수) · 승인 = 터키석 · 규칙 모달 = 흰 시트 + 닫기 알약 · 입력 = 연회색 면
 // MFH-RECURRING-DUE-SECTION-V4 — 환율 입력 제거(공시·마감 자동, DB 트리거 patch116) — 승인 행은 잠정 환산만 표시, 규칙 폼 환율 칸 제거
 // MFH-RECURRING-DUE-SECTION-V3 — 승인·건너뜀 후 앱 아이콘 뱃지 갱신
 // MFH-RECURRING-DUE-SECTION-V2 — 규칙 항목 콤보에서 숨긴 항목 제외(현재 값은 유지)
@@ -12,8 +13,8 @@ import { activeOnly, type AcctOptions } from '@/lib/accounting-types'
 import type { RecurringDue, RecurringRule, RecurringRuleInput } from '@/lib/recurring-db'
 import { approveRecurring, skipRecurring, saveRecurring, toggleRecurring } from './recurring-actions'
 
-const inp = 'h-9 w-full rounded-lg border border-line bg-surface px-2 text-sm text-ink outline-none transition focus:border-primary'
-const lbl = 'mb-1 block text-[11px] font-medium text-faint'
+const inp = 'h-9 w-full rounded-xl bg-b27-card px-2 text-sm text-b27-ink outline-none transition focus:ring-2 focus:ring-b27-ink/15'
+const lbl = 'mb-1 block text-[11px] font-medium text-b27-muted'
 const SYM: Record<string, string> = { KRW: '₩', USD: '$', HNL: 'L' }
 const fmtLocal = (cur: string, n: number) => `${SYM[cur] ?? ''}${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
 const fmtUsd = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -67,18 +68,19 @@ export default function RecurringDueSection({
       : `${r.gubun} · ${r.itemId ? itemName.get(r.itemId) ?? '?' : '?'} · ${accName.get(r.accountId) ?? '?'}`
 
   return (
-    <section className="mb-4 rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <section className="mb-4">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-[13px] font-bold text-muted">
-          반복 기록 승인대기 <span className="font-display text-accent">{dues.length}</span>건
-          <span className="ml-1.5 text-[11px] font-normal text-faint">· 실제 이체·납부 확인 후 승인</span>
+        <h2 className="inline-flex items-center gap-1.5 rounded-full bg-b27-card px-3 py-1 text-[13px] font-medium text-b27-ink">
+          <i className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-5" aria-hidden="true" />
+          반복 기록 승인대기 <span className="font-num text-b27-wait">{dues.length}</span>
+          <span className="ml-1.5 text-[11px] font-normal text-b27-muted">· 실제 이체·납부 확인 후 승인</span>
         </h2>
-        <button type="button" onClick={() => setRulesOpen(true)} className="rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-muted transition hover:border-primary hover:text-primary">
+        <button type="button" onClick={() => setRulesOpen(true)} className="rounded-full bg-b27-card px-2.5 py-0.5 text-[11px] font-medium text-b27-muted transition">
           반복 규칙 {rules.filter((r) => r.isActive).length}
         </button>
       </div>
       {dues.length === 0 ? (
-        <p className="py-2 text-center text-xs text-faint">대기 중인 반복 기록이 없습니다.</p>
+        <p className="py-2 text-center text-xs text-b27-muted">대기 중인 반복 기록이 없습니다.</p>
       ) : (
         <ul className="divide-y divide-line">
           {dues.map((d) => {
@@ -88,10 +90,10 @@ export default function RecurringDueSection({
             return (
               <li key={d.id} className="flex flex-col gap-2 py-2.5 @xl:flex-row @xl:items-end">
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium text-ink">
-                    {d.rule.name} <span className="ml-1 text-[11px] font-normal text-faint">{d.ym} · 예정 {d.dueDate}</span>
+                  <div className="text-sm font-medium text-b27-ink">
+                    {d.rule.name} <span className="ml-1 text-[11px] font-normal text-b27-muted">{d.ym} · 예정 {d.dueDate}</span>
                   </div>
-                  <div className="text-[11px] text-muted">{describe(d.rule)}</div>
+                  <div className="text-[11px] text-b27-muted">{describe(d.rule)}</div>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5 @xl:w-[330px]">
                   <div>
@@ -104,14 +106,14 @@ export default function RecurringDueSection({
                   </div>
                   <div>
                     <label className={lbl}>{usd ? '환산' : '환산 (잠정 · 자동 환율)'}</label>
-                    <div className={`${inp} flex items-center justify-end border-dashed bg-surface-subtle text-muted`}>{fmtUsd(amountUsd)}</div>
+                    <div className={`${inp} flex items-center justify-end bg-transparent font-num text-b27-muted`}>{fmtUsd(amountUsd)}</div>
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-1.5">
-                  <button type="button" onClick={() => onApprove(d)} disabled={busy === d.id} className="h-9 rounded-lg bg-primary px-3 text-xs font-bold text-white disabled:opacity-50">
+                  <button type="button" onClick={() => onApprove(d)} disabled={busy === d.id} className="h-9 rounded-full bg-b27-plus px-3.5 text-xs font-medium text-white disabled:opacity-50">
                     {busy === d.id ? '…' : '승인'}
                   </button>
-                  <button type="button" onClick={() => onSkip(d)} disabled={busy === d.id} className="h-9 rounded-lg border border-line px-3 text-xs text-muted hover:border-accent hover:text-accent disabled:opacity-50">
+                  <button type="button" onClick={() => onSkip(d)} disabled={busy === d.id} className="h-9 rounded-full bg-b27-card px-3 text-xs text-b27-muted disabled:opacity-50">
                     건너뜀
                   </button>
                 </div>
@@ -120,7 +122,7 @@ export default function RecurringDueSection({
           })}
         </ul>
       )}
-      {err && <p className="mt-2 text-xs text-red-700">{err}</p>}
+      {err && <p className="mt-2 text-xs text-b27-expense">{err}</p>}
       {rulesOpen && <RulesModal rules={rules} options={options} describe={describe} onClose={() => setRulesOpen(false)} />}
     </section>
   )
@@ -158,16 +160,16 @@ function RulesModal({ rules, options, describe, onClose }: { rules: RecurringRul
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4 @md:items-center" onClick={onClose}>
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-surface p-5 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="반복 규칙">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-b27-paper p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="반복 규칙">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-[15px] font-bold text-ink">반복 규칙</h3>
+          <h3 className="font-num text-[16px] font-semibold text-b27-ink">반복 규칙</h3>
           <div className="flex items-center gap-2">
             {!f && (
-              <button type="button" onClick={() => setForm({ ...EMPTY })} className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-muted hover:border-primary hover:text-primary">
+              <button type="button" onClick={() => setForm({ ...EMPTY })} className="rounded-full bg-b27-card px-2.5 py-1 text-xs font-medium text-b27-muted">
                 + 규칙 추가
               </button>
             )}
-            <button type="button" onClick={onClose} className="text-xs text-muted hover:text-primary">닫기</button>
+            <button type="button" onClick={onClose} className="rounded-full bg-b27-card px-3 py-1 text-[12px] text-b27-ink transition active:opacity-70">닫기</button>
           </div>
         </div>
 
@@ -247,36 +249,36 @@ function RulesModal({ rules, options, describe, onClose }: { rules: RecurringRul
                 </div>
               )}
             </div>
-            {err && <p className="text-xs text-red-700">{err}</p>}
+            {err && <p className="text-xs text-b27-expense">{err}</p>}
             <div className="flex justify-end gap-2 pt-1">
-              <button type="button" onClick={() => setForm(null)} className="h-9 rounded-lg border border-line px-3 text-sm text-muted">취소</button>
-              <button type="button" onClick={onSave} disabled={saving} className="h-9 rounded-lg bg-primary px-4 text-sm font-bold text-white disabled:opacity-50">{saving ? '저장 중…' : '저장'}</button>
+              <button type="button" onClick={() => setForm(null)} className="h-9 rounded-full bg-b27-card px-3 text-sm text-b27-muted">취소</button>
+              <button type="button" onClick={onSave} disabled={saving} className="h-9 rounded-full bg-b27-ink px-4 text-sm font-medium text-white disabled:opacity-50">{saving ? '저장 중…' : '저장'}</button>
             </div>
           </div>
         ) : (
           <>
             {rules.length === 0 ? (
-              <p className="py-3 text-center text-xs text-faint">규칙이 없습니다.</p>
+              <p className="py-3 text-center text-xs text-b27-muted">규칙이 없습니다.</p>
             ) : (
               <ul className="divide-y divide-line">
                 {rules.map((r) => (
                   <li key={r.id} className={`flex items-center justify-between gap-2 py-2 ${r.isActive ? '' : 'opacity-50'}`}>
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-ink">
-                        {r.name} <span className="ml-1 font-display text-[12px] text-muted">{fmtLocal(r.currency, r.principal)}</span>
-                        <span className="ml-1 text-[11px] text-faint">매월 {r.dayOfMonth}일 · {r.startYm}~{r.endYm ?? ''}</span>
+                      <div className="text-sm font-medium text-b27-ink">
+                        {r.name} <span className="ml-1 font-num text-[12px] text-b27-muted">{fmtLocal(r.currency, r.principal)}</span>
+                        <span className="ml-1 text-[11px] text-b27-muted">매월 {r.dayOfMonth}일 · {r.startYm}~{r.endYm ?? ''}</span>
                       </div>
-                      <div className="truncate text-[11px] text-muted">{describe(r)}</div>
+                      <div className="truncate text-[11px] text-b27-muted">{describe(r)}</div>
                     </div>
                     <div className="flex shrink-0 gap-1">
-                      <button type="button" onClick={() => setForm({ id: r.id, name: r.name, gubun: r.gubun, itemId: r.itemId, accountId: r.accountId, toAccountId: r.toAccountId, currency: r.currency, principal: r.principal, rate: r.rate, dayOfMonth: r.dayOfMonth, startYm: r.startYm, endYm: r.endYm, vendor: r.vendor })} className="rounded-md border border-line px-2 py-1 text-[11px] text-muted hover:border-primary hover:text-primary">수정</button>
-                      <button type="button" onClick={() => onToggle(r)} className="rounded-md border border-line px-2 py-1 text-[11px] text-muted hover:border-accent hover:text-accent">{r.isActive ? '비활성' : '활성'}</button>
+                      <button type="button" onClick={() => setForm({ id: r.id, name: r.name, gubun: r.gubun, itemId: r.itemId, accountId: r.accountId, toAccountId: r.toAccountId, currency: r.currency, principal: r.principal, rate: r.rate, dayOfMonth: r.dayOfMonth, startYm: r.startYm, endYm: r.endYm, vendor: r.vendor })} className="rounded-full bg-b27-card px-2 py-1 text-[11px] text-b27-muted">수정</button>
+                      <button type="button" onClick={() => onToggle(r)} className="rounded-full bg-b27-card px-2 py-1 text-[11px] text-b27-muted">{r.isActive ? '비활성' : '활성'}</button>
                     </div>
                   </li>
                 ))}
               </ul>
             )}
-            {err && <p className="mt-2 text-xs text-red-700">{err}</p>}
+            {err && <p className="mt-2 text-xs text-b27-expense">{err}</p>}
           </>
         )}
       </div>

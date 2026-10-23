@@ -1,4 +1,5 @@
 'use client'
+// MFH-ITEM-MANAGE-BUTTON-V2 — 2027(회계 잔여 b): 모달 = 흰 시트 + 닫기 알약 · 수입/지출 = 알약 세그먼트 · 저장 남색 · 버튼 = 연회색 알약 · ⚙ = 흰 원(폼 면 위)
 // MFH-ITEM-MANAGE-BUTTON-V1
 // 항목 관리 — 버튼(⚙ 또는 라벨) → 모달: 수입/지출 탭 · 대분류별 목록(이름·대분류 인라인 수정 · ▲▼ 순서 · 숨김) · 숨긴 항목(보이기).
 // 숨김 = acct_items.is_active=false — 거래는 그대로, 입력 콤보에서만 빠진다. 순서는 구분 전체를 sort_order 로 재번호.
@@ -12,9 +13,9 @@ type G = '수입' | '지출'
 const CAT_ORDER = ['후원', '헌금', '기타수입', '사역비', '생활비', '사역', '차량', '생활', '운영/행정']
 const CUSTOM = '__custom__'
 const ctl =
-  'h-8 rounded-lg border border-line bg-surface px-2 text-[13px] text-ink outline-none transition focus:border-primary'
+  'h-8 rounded-xl bg-b27-card px-2 text-[13px] text-b27-ink outline-none transition focus:ring-2 focus:ring-b27-ink/15'
 const iconBtn =
-  'inline-flex h-8 w-7 items-center justify-center rounded-md border border-line text-[11px] text-muted transition hover:border-primary hover:text-primary disabled:opacity-30 disabled:hover:border-line disabled:hover:text-muted'
+  'inline-flex h-8 w-7 items-center justify-center rounded-full bg-b27-card text-[11px] text-b27-muted transition disabled:opacity-30'
 
 function groupByCategory(items: AcctOption[]): [string, AcctOption[]][] {
   const map = new Map<string, AcctOption[]>()
@@ -141,7 +142,7 @@ export default function ItemManageButton({
         <button
           type="button"
           onClick={openModal}
-          className="h-9 rounded-lg border border-line px-3 text-xs font-medium text-muted transition hover:border-primary hover:text-primary"
+          className="h-9 rounded-full bg-b27-card px-3 text-xs font-medium text-b27-muted transition"
         >
           {label}
         </button>
@@ -151,7 +152,7 @@ export default function ItemManageButton({
           onClick={openModal}
           aria-label="항목 관리"
           title="항목 관리"
-          className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-line text-[11px] leading-none text-muted transition hover:border-primary hover:text-primary"
+          className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-b27-paper text-[11px] leading-none text-b27-muted transition"
         >
           ⚙
         </button>
@@ -163,19 +164,19 @@ export default function ItemManageButton({
           onClick={close}
         >
           <div
-            className="flex max-h-[88vh] w-full max-w-lg flex-col rounded-2xl bg-surface p-5 shadow-xl"
+            className="flex max-h-[88vh] w-full max-w-lg flex-col rounded-3xl bg-b27-paper p-5"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-label="항목 관리"
           >
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-[15px] font-bold text-ink">항목 관리</h3>
-              <button type="button" onClick={close} className="text-xs text-muted hover:text-primary">
+              <h3 className="font-num text-[16px] font-semibold text-b27-ink">항목 관리</h3>
+              <button type="button" onClick={close} className="rounded-full bg-b27-card px-3 py-1 text-[12px] text-b27-ink transition active:opacity-70">
                 닫기
               </button>
             </div>
 
-            <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-line/40 p-1">
+            <div className="mb-3 grid grid-cols-2 gap-1 rounded-full bg-b27-card p-[3px]">
               {(['지출', '수입'] as G[]).map((g) => (
                 <button
                   key={g}
@@ -185,8 +186,8 @@ export default function ItemManageButton({
                     setDrafts({})
                     setErr('')
                   }}
-                  className={`h-8 rounded-lg text-xs font-semibold transition ${
-                    gubun === g ? 'bg-surface text-primary shadow-sm' : 'text-muted'
+                  className={`h-8 rounded-full text-xs font-medium transition ${
+                    gubun === g ? 'bg-b27-ink text-white' : 'text-b27-muted'
                   }`}
                 >
                   {g} {lists[g].filter((i) => i.active !== false).length}
@@ -194,12 +195,12 @@ export default function ItemManageButton({
               ))}
             </div>
 
-            {err && <p className="mb-2 text-xs font-medium text-accent">{err}</p>}
+            {err && <p className="mb-2 text-xs font-medium text-b27-expense">{err}</p>}
 
             <div className="-mx-1 flex-1 overflow-y-auto px-1">
               {groups.map(([cat, items]) => (
                 <section key={cat} className="mb-4">
-                  <h4 className="mb-1.5 text-[11px] font-semibold text-faint">
+                  <h4 className="mb-1.5 text-[11px] font-semibold text-b27-muted">
                     {cat} <span className="font-normal">{items.length}</span>
                   </h4>
                   <ul className="space-y-1.5">
@@ -234,7 +235,7 @@ export default function ItemManageButton({
                               type="button"
                               onClick={() => onSave(i)}
                               disabled={b}
-                              className="h-8 rounded-md bg-accent px-2.5 text-[11px] font-bold text-white disabled:opacity-40"
+                              className="h-8 rounded-full bg-b27-ink px-2.5 text-[11px] font-medium text-white disabled:opacity-40"
                             >
                               {b ? '…' : '저장'}
                             </button>
@@ -262,7 +263,7 @@ export default function ItemManageButton({
                                 type="button"
                                 onClick={() => onToggle(i, false)}
                                 disabled={!!busy}
-                                className="h-8 rounded-md border border-line px-2 text-[11px] text-muted transition hover:border-accent hover:text-accent disabled:opacity-30"
+                                className="h-8 rounded-full bg-b27-card px-2 text-[11px] text-b27-muted transition disabled:opacity-30"
                               >
                                 숨김
                               </button>
@@ -285,11 +286,11 @@ export default function ItemManageButton({
               ))}
 
               {hidden.length > 0 && (
-                <section className="border-t border-line pt-3">
+                <section className="border-t border-b27-line pt-3">
                   <button
                     type="button"
                     onClick={() => setShowHidden((v) => !v)}
-                    className="text-[11px] font-semibold text-faint hover:text-primary"
+                    className="text-[11px] font-semibold text-b27-muted"
                   >
                     {showHidden ? '▾' : '▸'} 숨긴 항목 {hidden.length}
                   </button>
@@ -297,15 +298,15 @@ export default function ItemManageButton({
                     <ul className="mt-2 space-y-1.5">
                       {hidden.map((i) => (
                         <li key={i.id} className="flex items-center justify-between gap-2">
-                          <span className="min-w-0 truncate text-[13px] text-muted">
+                          <span className="min-w-0 truncate text-[13px] text-b27-muted">
                             {i.name}
-                            <span className="ml-1.5 text-[11px] text-faint">{i.category ?? '기타'}</span>
+                            <span className="ml-1.5 text-[11px] text-b27-muted">{i.category ?? '기타'}</span>
                           </span>
                           <button
                             type="button"
                             onClick={() => onToggle(i, true)}
                             disabled={!!busy}
-                            className="h-8 shrink-0 rounded-md border border-line px-2.5 text-[11px] text-muted transition hover:border-primary hover:text-primary disabled:opacity-30"
+                            className="h-8 shrink-0 rounded-full bg-b27-card px-2.5 text-[11px] text-b27-muted transition disabled:opacity-30"
                           >
                             {busy === i.id ? '…' : '보이기'}
                           </button>
@@ -317,7 +318,7 @@ export default function ItemManageButton({
               )}
             </div>
 
-            <p className="mt-3 text-[11px] leading-relaxed text-faint">
+            <p className="mt-3 text-[11px] leading-relaxed text-b27-muted">
               이름·대분류를 바꾸면 과거 거래에도 그대로 반영됩니다. 숨긴 항목은 입력 목록에서만 빠지고 거래·집계는 유지됩니다.
             </p>
           </div>

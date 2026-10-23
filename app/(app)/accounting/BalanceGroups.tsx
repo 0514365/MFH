@@ -1,4 +1,5 @@
 'use client'
+// MFH-BALANCE-GROUPS-2027 — 2027(회계 잔여 b): 그룹 머리 = 연회색 알약 · Manrope 600 · amtColor = 2027 수입/지출색
 // MFH-BALANCE-GROUPS-V3 — 공시 환율 평가액(valueUsd) 우선 표시 · 장부가 병기 · 하단 적용 환율·평가손익(fx prop)
 // MFH-BALANCE-GROUPS-V2 — 카드 행에 사용자 표기(info)
 // MFH-BALANCE-GROUPS-V1
@@ -73,7 +74,7 @@ export default function BalanceGroups({ balances, fx }: { balances: AccountBalan
     [balances],
   )
 
-  if (balances.length === 0) return <p className="py-2 text-center text-xs text-faint">계좌 정보 없음</p>
+  if (balances.length === 0) return <p className="py-2 text-center text-xs text-b27-muted">계좌 정보 없음</p>
 
   return (
     <div className="space-y-2">
@@ -84,31 +85,31 @@ export default function BalanceGroups({ balances, fx }: { balances: AccountBalan
             <button
               type="button"
               onClick={() => setClosed((c) => ({ ...c, [g.key]: !c[g.key] }))}
-              className="flex w-full items-center justify-between rounded-lg bg-surface-subtle px-2 py-1.5 text-left"
+              className="flex w-full items-center justify-between rounded-full bg-b27-card px-3 py-1.5 text-left"
             >
-              <span className="flex items-center gap-1.5 text-[12px] font-bold text-muted">
+              <span className="flex items-center gap-1.5 text-[12px] font-medium text-b27-ink">
                 <span className={`inline-block text-[9px] transition ${open ? 'rotate-90' : ''}`}>▶</span>
                 {g.label}
-                <span className="text-[10px] font-medium text-faint">{g.sub}</span>
+                <span className="text-[10px] font-medium text-b27-muted">{g.sub}</span>
               </span>
               <span className="flex items-baseline gap-2">
                 {g.local != null && g.cur !== 'USD' && (
                   <span className={`text-[11px] ${amtColor(g.local)}`}>≈ {fmtLocal(g.local, g.cur)}</span>
                 )}
-                <span className={`font-display text-[13px] font-bold ${amtColor(g.usd)}`}>{fmtUsd(g.usd)}</span>
+                <span className={`font-num text-[13px] font-semibold ${amtColor(g.usd)}`}>{fmtUsd(g.usd)}</span>
               </span>
             </button>
             {open && (
               <ul className="mt-1 space-y-1 pl-2 pr-1">
                 {g.rows.map((b) => (
                   <li key={b.id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="min-w-0 truncate text-ink">
+                    <span className="min-w-0 truncate text-b27-ink">
                       {shortName(b)}
                       {b.cardLast4 && b.kind !== '신용카드' && (
-                        <span className="ml-1.5 text-[10px] text-faint">{b.cardLast4}</span>
+                        <span className="ml-1.5 text-[10px] text-b27-muted">{b.cardLast4}</span>
                       )}
                       {b.kind === '신용카드' && b.info && (
-                        <span className="ml-1.5 text-[10px] text-faint">{b.info}</span>
+                        <span className="ml-1.5 text-[10px] text-b27-muted">{b.info}</span>
                       )}
                     </span>
                     <span className="flex shrink-0 items-baseline gap-2">
@@ -118,12 +119,12 @@ export default function BalanceGroups({ balances, fx }: { balances: AccountBalan
                         </span>
                       )}
                       {b.valueUsd != null && Math.abs(b.valueUsd - b.balanceUsd) >= 0.01 && (
-                        <span className="text-[10px] text-faint" title="거래 시점 환율로 쌓은 장부가">
+                        <span className="text-[10px] text-b27-muted" title="거래 시점 환율로 쌓은 장부가">
                           장부 {fmtUsd(b.balanceUsd)}
                         </span>
                       )}
                       <span
-                        className={`font-display font-bold ${amtColor(shownUsd(b))}`}
+                        className={`font-num font-semibold ${amtColor(shownUsd(b))}`}
                         title={b.valueUsd != null ? '공시 환율 평가액' : b.currency !== 'USD' ? '공시 환율 없음 — 장부가' : undefined}
                       >
                         {fmtUsd(shownUsd(b))}
@@ -147,7 +148,7 @@ function FxFooter({ balances, fx }: { balances: AccountBalance[]; fx: FxInfo[] }
   if (need.length === 0) return null
   const { fxDiff } = summarize(balances)
   return (
-    <div className="mt-2 border-t border-line pt-2 text-[10px] leading-relaxed text-faint">
+    <div className="mt-2 border-t border-b27-line pt-2 text-[10px] leading-relaxed text-b27-muted">
       <div>
         공시 환율{' '}
         {need

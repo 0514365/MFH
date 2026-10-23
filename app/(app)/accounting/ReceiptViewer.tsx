@@ -1,4 +1,5 @@
 'use client'
+// MFH-RECEIPT-VIEWER-2027 — 2027(회계 잔여 b): 그림자 없는 흰 시트 · 닫기 알약 · 삭제 = 연한 빨강 · 교체 = 남색
 // MFH-RECEIPT-VIEWER-V1
 // 내역 📎 → 영수증 크게 보기(서명 URL 1시간) · 교체(새 업로드 → setReceipt, 이전 파일은 서버 삭제) · 삭제.
 import { useEffect, useRef, useState } from 'react'
@@ -74,35 +75,35 @@ export default function ReceiptViewer({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 @md:items-center" onClick={onClose}>
       <div
-        className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-2xl bg-surface p-4 shadow-xl"
+        className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-3xl bg-b27-paper p-4"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label="영수증"
       >
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="min-w-0 truncate text-[14px] font-bold text-ink">영수증 · {title}</h3>
-          <button type="button" onClick={onClose} className="shrink-0 text-xs text-muted hover:text-primary">
+          <h3 className="min-w-0 truncate font-num text-[16px] font-semibold text-b27-ink">영수증 · {title}</h3>
+          <button type="button" onClick={onClose} className="shrink-0 rounded-full bg-b27-card px-3 py-1 text-[12px] text-b27-ink transition active:opacity-70">
             닫기
           </button>
         </div>
-        <div className="flex min-h-[200px] flex-1 items-center justify-center overflow-auto rounded-lg bg-line/30">
+        <div className="flex min-h-[200px] flex-1 items-center justify-center overflow-auto rounded-2xl bg-b27-card">
           {url ? (
             <a href={url} target="_blank" rel="noreferrer" title="새 탭에서 원본 보기">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={url} alt="영수증" className="max-h-[70vh] max-w-full object-contain" />
             </a>
           ) : (
-            <span className="text-xs text-faint">{err || '불러오는 중…'}</span>
+            <span className="text-xs text-b27-muted">{err || '불러오는 중…'}</span>
           )}
         </div>
-        {err && url && <p className="mt-2 text-xs font-medium text-accent">{err}</p>}
+        {err && url && <p className="mt-2 text-xs font-medium text-b27-expense">{err}</p>}
         <input ref={fileRef} type="file" accept="image/*" onChange={onReplace} className="hidden" />
         <div className="mt-3 flex justify-end gap-2">
           <button
             type="button"
             onClick={onDelete}
             disabled={busy}
-            className="h-9 rounded-lg border border-line px-3 text-xs text-muted transition hover:border-accent hover:text-accent disabled:opacity-40"
+            className="h-9 rounded-full bg-b27-expense-soft px-3.5 text-xs text-b27-expense transition active:opacity-70 disabled:opacity-40"
           >
             삭제
           </button>
@@ -110,7 +111,7 @@ export default function ReceiptViewer({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="h-9 rounded-lg bg-primary px-3 text-xs font-bold text-white disabled:opacity-40"
+            className="h-9 rounded-full bg-b27-ink px-3.5 text-xs font-medium text-white disabled:opacity-40"
           >
             {busy ? '처리 중…' : '교체'}
           </button>

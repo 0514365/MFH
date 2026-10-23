@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-REPAY-BUTTON-V13 — 2027(회계 잔여 b): 상환·잔액 0 모달 = 그림자 없는 흰 시트(24px) · Manrope 제목 + 닫기 알약 · 표·안내 = 연회색 면 · 방식 = 알약 세그먼트
 // MFH-CARD-REPAY-BUTTON-V12 — 2027(회계 잔여 a): 넓은 화면 「카드 미상환」 줄 = 연한 빨강 면 + 색 사각형 · 「상환 입력」 터키석 알약 · 「잔액 0 맞춤」 흰 알약 (모달은 b 단계)
 // MFH-CARD-REPAY-BUTTON-V11 — compact 「상환」 = 터키석(행동색), 「잔액 0」 = 흰 알약(연한 빨강 면 위용)
 // MFH-CARD-REPAY-BUTTON-V10 — compact 알약 2027 톤(Manrope 500 · 연회색 면 「잔액 0」)
@@ -22,8 +23,8 @@ import { bulkCreateInout } from './actions'
 import { amtColor, fmtLocal, fmtUsd } from './BalanceGroups'
 
 const inp =
-  'h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none transition focus:border-primary'
-const lbl = 'mb-1 block text-[11px] font-medium text-faint'
+  'h-10 w-full rounded-xl bg-b27-card px-3 text-sm text-b27-ink outline-none transition focus:ring-2 focus:ring-b27-ink/15'
+const lbl = 'mb-1 block text-[11px] font-medium text-b27-muted'
 const r2 = (n: number) => Math.round(n * 100) / 100
 const today = () => {
   const d = new Date()
@@ -279,18 +280,18 @@ export default function CardRepayButton({
 
       {zeroOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4 @md:items-center" onClick={() => setZeroOpen(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-surface p-5 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="카드 잔액 0 맞춤">
+          <div className="w-full max-w-md rounded-3xl bg-b27-paper p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="카드 잔액 0 맞춤">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-[15px] font-bold text-ink">카드 잔액 0 맞춤 (환차 정리)</h3>
-              <button type="button" onClick={() => setZeroOpen(false)} className="text-xs text-muted hover:text-primary">닫기</button>
+              <h3 className="font-num text-[16px] font-semibold text-b27-ink">카드 잔액 0 맞춤 (환차 정리)</h3>
+              <button type="button" onClick={() => setZeroOpen(false)} className="rounded-full bg-b27-card px-3 py-1 text-[12px] text-b27-ink transition active:opacity-70">닫기</button>
             </div>
             <div className="mb-3">
               <label className={lbl}>정리일</label>
               <input type="date" value={zeroDate} onChange={(e) => setZeroDate(e.target.value)} className={inp} />
             </div>
-            <div className="overflow-hidden rounded-xl border border-line">
+            <div className="overflow-hidden rounded-xl bg-b27-card">
               <table className="w-full text-[12px]">
-                <thead className="bg-surface-subtle text-[10px] text-faint">
+                <thead className="bg-b27-card text-[10px] text-b27-muted">
                   <tr>
                     <th className="px-2 py-1.5 text-left font-medium">카드</th>
                     <th className="px-2 py-1.5 text-right font-medium">현재 잔액</th>
@@ -302,29 +303,29 @@ export default function CardRepayButton({
                   {cards.map((c) => {
                     const v = Number(zeroAmt[c.id]) || 0
                     return (
-                      <tr key={c.id} className={`border-t border-line ${zeroPick[c.id] ? '' : 'opacity-50'}`}>
+                      <tr key={c.id} className={`border-t border-b27-line ${zeroPick[c.id] ? '' : 'opacity-50'}`}>
                         <td className="px-2 py-1.5">
-                          <label className="flex items-center gap-1.5 text-ink">
+                          <label className="flex items-center gap-1.5 text-b27-ink">
                             <input type="checkbox" checked={!!zeroPick[c.id]} onChange={(e) => setZeroPick((p) => ({ ...p, [c.id]: e.target.checked }))} className="h-4 w-4 accent-[#661F20]" />
                             {cardLabel(c)}
                           </label>
                         </td>
-                        <td className={`px-2 py-1.5 text-right font-display ${amtColor(c.balanceUsd)}`}>{fmtUsd(c.balanceUsd)}</td>
+                        <td className={`px-2 py-1.5 text-right font-num ${amtColor(c.balanceUsd)}`}>{fmtUsd(c.balanceUsd)}</td>
                         <td className="px-1 py-1">
-                          <input type="number" inputMode="decimal" step="0.01" value={zeroAmt[c.id] ?? ''} onChange={(e) => setZeroAmt((a) => ({ ...a, [c.id]: e.target.value }))} className="h-8 w-24 rounded-md border border-line bg-surface px-2 text-right text-[12px] text-ink outline-none focus:border-primary" />
+                          <input type="number" inputMode="decimal" step="0.01" value={zeroAmt[c.id] ?? ''} onChange={(e) => setZeroAmt((a) => ({ ...a, [c.id]: e.target.value }))} className="h-8 w-24 rounded-full bg-b27-paper px-2 text-right text-[12px] text-b27-ink outline-none focus:ring-2 focus:ring-b27-ink/15" />
                         </td>
-                        <td className="px-2 py-1.5 text-[11px] text-muted">{v > 0 ? '수입 · 환차익' : v < 0 ? '지출 · 수수료' : '—'}</td>
+                        <td className="px-2 py-1.5 text-[11px] text-b27-muted">{v > 0 ? '수입 · 환차익' : v < 0 ? '지출 · 수수료' : '—'}</td>
                       </tr>
                     )
                   })}
                 </tbody>
               </table>
             </div>
-            <p className="mt-2 text-[11px] text-faint">조정액 = 현재 잔액의 반대 부호(저장 후 잔액 0). 미상환 결제가 남아 있는 카드는 선택을 해제하세요. 기본 선택 = 잔액 $100 미만.</p>
-            {err && <p className="mt-2 text-xs text-red-700">{err}</p>}
+            <p className="mt-2 text-[11px] text-b27-muted">조정액 = 현재 잔액의 반대 부호(저장 후 잔액 0). 미상환 결제가 남아 있는 카드는 선택을 해제하세요. 기본 선택 = 잔액 $100 미만.</p>
+            {err && <p className="mt-2 text-xs text-b27-expense">{err}</p>}
             <div className="mt-3 flex justify-end gap-2">
-              <button type="button" onClick={() => setZeroOpen(false)} className="h-10 rounded-lg border border-line px-4 text-sm text-muted">취소</button>
-              <button type="button" onClick={onZeroSave} disabled={saving} className="h-10 rounded-lg bg-primary px-4 text-sm font-bold text-white disabled:opacity-50">
+              <button type="button" onClick={() => setZeroOpen(false)} className="h-10 rounded-full bg-b27-card px-4 text-sm text-b27-muted">취소</button>
+              <button type="button" onClick={onZeroSave} disabled={saving} className="h-10 rounded-full bg-b27-ink px-4 text-sm font-medium text-white disabled:opacity-50">
                 {saving ? '저장 중…' : '저장'}
               </button>
             </div>
@@ -334,19 +335,19 @@ export default function CardRepayButton({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4 @md:items-center" onClick={close}>
-          <div className="w-full max-w-md rounded-2xl bg-surface p-5 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="카드대금 상환">
+          <div className="w-full max-w-md rounded-3xl bg-b27-paper p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="카드대금 상환">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-[15px] font-bold text-ink">카드대금 상환</h3>
-              <button type="button" onClick={close} className="text-xs text-muted hover:text-primary">닫기</button>
+              <h3 className="font-num text-[16px] font-semibold text-b27-ink">카드대금 상환</h3>
+              <button type="button" onClick={close} className="rounded-full bg-b27-card px-3 py-1 text-[12px] text-b27-ink transition active:opacity-70">닫기</button>
             </div>
             {hnlCards.length > 0 && krwCards.length > 0 && (
-              <div className="mb-3 flex h-9 overflow-hidden rounded-lg border border-line text-xs">
+              <div className="mb-3 flex h-9 rounded-full bg-b27-card p-[3px] text-xs">
                 {(['HNL', 'KRW'] as const).map((m) => (
                   <button
                     key={m}
                     type="button"
                     onClick={() => { setMode(m); setErr('') }}
-                    className={`flex-1 ${mode === m ? 'bg-primary font-bold text-white' : 'text-muted'}`}
+                    className={`flex-1 rounded-full ${mode === m ? 'bg-b27-ink font-medium text-white' : 'text-b27-muted'}`}
                   >
                     {m === 'HNL' ? 'Ficohsa (렘피라)' : '원화 카드'}
                   </button>
@@ -382,17 +383,17 @@ export default function CardRepayButton({
                   </div>
                 </div>
                 {kCycle && (
-                  <div className="mt-3 space-y-0.5 rounded-xl border border-line px-3 py-2 text-[12px] text-muted">
+                  <div className="mt-3 space-y-0.5 rounded-xl bg-b27-card px-3 py-2 text-[12px] text-b27-muted">
                     <div>
                       확정 청구 ({Number(kCycle.closeDate.slice(5, 7))}/{Number(kCycle.closeDate.slice(8, 10))} 마감 · {Number(kCycle.dueDate.slice(5, 7))}/{Number(kCycle.dueDate.slice(8, 10))} 상환){' '}
-                      <b className={`font-display ${kCycle.overdue ? 'text-red-700' : 'text-ink'}`}>
+                      <b className={`font-num ${kCycle.overdue ? 'text-b27-expense' : 'text-b27-ink'}`}>
                         {fmtLocal(kCycle.billed.own, 'KRW')}
                         {kCycle.billed.usd > 0.005 ? ` + ${fmtUsd(kCycle.billed.usd)}` : ''}
                       </b>
                     </div>
                     <div>
                       이용 중 ({Number(kCycle.nextDueDate.slice(5, 7))}/{Number(kCycle.nextDueDate.slice(8, 10))} 예정){' '}
-                      <b className="font-display text-ink">
+                      <b className="font-num text-b27-ink">
                         {fmtLocal(kCycle.unbilled.own, 'KRW')}
                         {kCycle.unbilled.usd > 0.005 ? ` + ${fmtUsd(kCycle.unbilled.usd)}` : ''}
                       </b>
@@ -400,16 +401,16 @@ export default function CardRepayButton({
                   </div>
                 )}
                 {kCard && !kCycle && (
-                  <div className="mt-3 rounded-xl border border-line px-3 py-2 text-[12px] text-muted">
+                  <div className="mt-3 rounded-xl bg-b27-card px-3 py-2 text-[12px] text-b27-muted">
                     현재 미상환{' '}
-                    <b className="font-display text-ink">
+                    <b className="font-num text-b27-ink">
                       {fmtLocal(Math.max(0, kDue), 'KRW')}
                       {kDueUsd > 0.005 ? ` + ${fmtUsd(kDueUsd)}` : ''}
                     </b>{' '}
-                    · 평가 <span className={`font-display ${amtColor(kCard.valueUsd ?? kCard.balanceUsd)}`}>{fmtUsd(kCard.valueUsd ?? kCard.balanceUsd)}</span>
+                    · 평가 <span className={`font-num ${amtColor(kCard.valueUsd ?? kCard.balanceUsd)}`}>{fmtUsd(kCard.valueUsd ?? kCard.balanceUsd)}</span>
                   </div>
                 )}
-                <p className="mt-2 text-[11px] text-faint">달러 결제분도 원화로 청구된 금액을 합쳐 입력하세요. 상환 후 남는 환차는 「잔액 0 맞춤」으로 정리합니다.</p>
+                <p className="mt-2 text-[11px] text-b27-muted">달러 결제분도 원화로 청구된 금액을 합쳐 입력하세요. 상환 후 남는 환차는 「잔액 0 맞춤」으로 정리합니다.</p>
               </>
             ) : (
             <>
@@ -440,9 +441,9 @@ export default function CardRepayButton({
               </div>
             </div>
 
-            <div className="mt-3 overflow-hidden rounded-xl border border-line">
+            <div className="mt-3 overflow-hidden rounded-xl bg-b27-card">
               <table className="w-full text-[12px]">
-                <thead className="bg-surface-subtle text-[10px] text-faint">
+                <thead className="bg-b27-card text-[10px] text-b27-muted">
                   <tr>
                     <th className="px-2 py-1.5 text-left font-medium">카드</th>
                     <th className="px-2 py-1.5 text-right font-medium">현재</th>
@@ -455,38 +456,38 @@ export default function CardRepayButton({
                   {hnlCards.map((c, i) => {
                     const after = r2(c.balanceUsd + (rt > 0 ? rowHnl(i) / rt : 0) + rowUsd(i))
                     return (
-                      <tr key={c.id} className="border-t border-line">
-                        <td className="px-2 py-1.5 text-ink">{cardLabel(c)}</td>
-                        <td className={`px-2 py-1.5 text-right font-display ${amtColor(c.balanceUsd)}`}>{fmtUsd(c.balanceUsd)}</td>
+                      <tr key={c.id} className="border-t border-b27-line">
+                        <td className="px-2 py-1.5 text-b27-ink">{cardLabel(c)}</td>
+                        <td className={`px-2 py-1.5 text-right font-num ${amtColor(c.balanceUsd)}`}>{fmtUsd(c.balanceUsd)}</td>
                         <td className="px-1 py-1">
-                          <input type="number" inputMode="decimal" value={hnlOverride[c.id] ?? String(autoHnl[i] || '')} onChange={(e) => setHnlOverride((o) => ({ ...o, [c.id]: e.target.value }))} className="h-8 w-24 rounded-md border border-line bg-surface px-2 text-right text-[12px] text-ink outline-none focus:border-primary" />
+                          <input type="number" inputMode="decimal" value={hnlOverride[c.id] ?? String(autoHnl[i] || '')} onChange={(e) => setHnlOverride((o) => ({ ...o, [c.id]: e.target.value }))} className="h-8 w-24 rounded-full bg-b27-paper px-2 text-right text-[12px] text-b27-ink outline-none focus:ring-2 focus:ring-b27-ink/15" />
                         </td>
                         {tUsd > 0 && (
                           <td className="px-1 py-1">
-                            <input type="number" inputMode="decimal" value={usdOverride[c.id] ?? String(autoUsd[i] || '')} onChange={(e) => setUsdOverride((o) => ({ ...o, [c.id]: e.target.value }))} className="h-8 w-20 rounded-md border border-line bg-surface px-2 text-right text-[12px] text-ink outline-none focus:border-primary" />
+                            <input type="number" inputMode="decimal" value={usdOverride[c.id] ?? String(autoUsd[i] || '')} onChange={(e) => setUsdOverride((o) => ({ ...o, [c.id]: e.target.value }))} className="h-8 w-20 rounded-full bg-b27-paper px-2 text-right text-[12px] text-b27-ink outline-none focus:ring-2 focus:ring-b27-ink/15" />
                           </td>
                         )}
-                        <td className={`px-2 py-1.5 text-right font-display font-bold ${amtColor(after)}`}>{fmtUsd(after)}</td>
+                        <td className={`px-2 py-1.5 text-right font-num font-semibold ${amtColor(after)}`}>{fmtUsd(after)}</td>
                       </tr>
                     )
                   })}
-                  <tr className="border-t border-line bg-surface-subtle text-[11px] text-muted">
+                  <tr className="border-t border-b27-line bg-b27-card text-[11px] text-b27-muted">
                     <td className="px-2 py-1.5">합계</td>
                     <td />
-                    <td className={`px-2 py-1.5 text-right ${Math.abs(sumHnl - tHnl) > 0.009 ? 'text-red-700' : ''}`}>{fmtLocal(sumHnl, 'HNL')}</td>
-                    {tUsd > 0 && <td className={`px-2 py-1.5 text-right ${Math.abs(sumUsd - tUsd) > 0.009 ? 'text-red-700' : ''}`}>{fmtUsd(sumUsd)}</td>}
+                    <td className={`px-2 py-1.5 text-right ${Math.abs(sumHnl - tHnl) > 0.009 ? 'text-b27-expense' : ''}`}>{fmtLocal(sumHnl, 'HNL')}</td>
+                    {tUsd > 0 && <td className={`px-2 py-1.5 text-right ${Math.abs(sumUsd - tUsd) > 0.009 ? 'text-b27-expense' : ''}`}>{fmtUsd(sumUsd)}</td>}
                     <td />
                   </tr>
                 </tbody>
               </table>
             </div>
-            <p className="mt-2 text-[11px] text-faint">카드별 미상환 잔액 비율로 자동 분할됩니다. 칸을 고치면 그 값으로 저장되며, 합계는 총액과 같아야 합니다. 상환 후 남는 잔차는 월말 환차익/수수료 1건으로 정리하세요.</p>
+            <p className="mt-2 text-[11px] text-b27-muted">카드별 미상환 잔액 비율로 자동 분할됩니다. 칸을 고치면 그 값으로 저장되며, 합계는 총액과 같아야 합니다. 상환 후 남는 잔차는 월말 환차익/수수료 1건으로 정리하세요.</p>
             </>
             )}
-            {err && <p className="mt-2 text-xs text-red-700">{err}</p>}
+            {err && <p className="mt-2 text-xs text-b27-expense">{err}</p>}
             <div className="mt-3 flex justify-end gap-2">
-              <button type="button" onClick={close} className="h-10 rounded-lg border border-line px-4 text-sm text-muted">취소</button>
-              <button type="button" onClick={onSave} disabled={saving} className="h-10 rounded-lg bg-primary px-4 text-sm font-bold text-white disabled:opacity-50">
+              <button type="button" onClick={close} className="h-10 rounded-full bg-b27-card px-4 text-sm text-b27-muted">취소</button>
+              <button type="button" onClick={onSave} disabled={saving} className="h-10 rounded-full bg-b27-ink px-4 text-sm font-medium text-white disabled:opacity-50">
                 {saving ? '저장 중…' : `이체 저장`}
               </button>
             </div>
