@@ -1,4 +1,5 @@
 'use client'
+// MFH-SUPPORTERS-2027 (DeleteButton.tsx) — 4-7: 2027 토큰.
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -26,7 +27,7 @@ export default function DeleteButton({ id }: { id: string }) {
     <button
       onClick={del}
       disabled={busy}
-      className="rounded-full border border-[#f0c4c4] bg-white px-5 py-2 text-[13px] font-medium text-danger transition hover:bg-accent-soft disabled:opacity-50"
+      className="rounded-2xl bg-b27-expense-soft px-5 py-3.5 text-[14px] font-medium text-b27-expense transition active:opacity-70 disabled:opacity-50"
     >
       {busy ? '삭제 중…' : '삭제'}
     </button>

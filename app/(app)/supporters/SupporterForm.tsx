@@ -1,4 +1,5 @@
 'use client'
+// MFH-SUPPORTER-FORM-V2 — 2027(4-7): theme-2027 · 남색 글자 · 연회색/살구 면 · 강조 = 진한 살구 · 굵기 600 이하.
 
 // MFH-SUPPORTER-FORM-V1
 // 후원자 입력 폼 — 사진 + 기본정보 + 연락처 + 정기후원 + 기도제목/특이사항.
@@ -21,7 +22,6 @@ import {
   amountToNumber,
   amountToRaw,
 } from '@/lib/supporters'
-import '@/app/p/portfolio-theme.css'
 
 type Props = {
   mode: 'new' | 'edit'
@@ -31,8 +31,8 @@ type Props = {
 function FieldLabel({ ko, en }: { ko: string; en: string }) {
   return (
     <label className="mb-2 flex items-baseline gap-1.5">
-      <span className="text-[14px] font-medium text-ink">{ko}</span>
-      <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">{en}</span>
+      <span className="text-[14px] font-medium text-b27-ink">{ko}</span>
+      <span className="font-num text-[9px] font-semibold  text-[#855000]">{en}</span>
     </label>
   )
 }
@@ -186,24 +186,24 @@ export default function SupporterForm({ mode, initial }: Props) {
   }
 
   const input =
-    'w-full rounded-xl border border-line bg-surface px-4 py-3.5 text-sm text-ink outline-none focus:border-primary'
+    'w-full rounded-xl border border-b27-line bg-b27-paper px-4 py-3.5 text-sm text-b27-ink outline-none focus:border-b27-ink'
 
   return (
     <div className="mx-auto max-w-md @xl:max-w-2xl">
-      <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
+      <div className="rounded-3xl border border-b27-line bg-b27-paper p-5 ">
         {/* 사진 */}
         <div className="flex flex-col items-center">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="relative h-24 w-24 overflow-hidden rounded-full border border-line bg-surface-subtle"
+            className="relative h-24 w-24 overflow-hidden rounded-full border border-b27-line bg-b27-card"
             aria-label="사진 선택"
           >
             {photoPreview ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={photoPreview} alt="" className="h-full w-full object-cover" />
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-faint">
+              <span className="flex h-full w-full items-center justify-center text-b27-muted">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
@@ -213,18 +213,18 @@ export default function SupporterForm({ mode, initial }: Props) {
           </button>
           <input ref={fileRef} type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
           <div className="mt-2 flex items-center gap-3 text-xs">
-            <button type="button" onClick={() => fileRef.current?.click()} className="font-medium text-accent">
+            <button type="button" onClick={() => fileRef.current?.click()} className="font-medium text-[#855000]">
               {uploading ? '업로드 중…' : '사진 선택'}
             </button>
             {photoPreview && (
-              <button type="button" onClick={removePhoto} className="text-muted">
+              <button type="button" onClick={removePhoto} className="text-b27-muted">
                 제거
               </button>
             )}
           </div>
         </div>
 
-        <div className="my-5 h-px bg-line" />
+        <div className="my-5 h-px bg-b27-line" />
 
         {/* 이름 */}
         <div>
@@ -256,7 +256,7 @@ export default function SupporterForm({ mode, initial }: Props) {
           <input value={region} onChange={(e) => setRegion(e.target.value)} className={input} placeholder="예: 서울 / 온두라스" />
         </div>
 
-        <div className="my-5 h-px bg-line" />
+        <div className="my-5 h-px bg-b27-line" />
 
         {/* 전화 · 이메일 */}
         <div className="grid grid-cols-2 gap-4">
@@ -288,7 +288,7 @@ export default function SupporterForm({ mode, initial }: Props) {
           </div>
         </div>
 
-        <div className="my-5 h-px bg-line" />
+        <div className="my-5 h-px bg-b27-line" />
 
         {/* 정기후원 */}
         <div>
@@ -297,7 +297,7 @@ export default function SupporterForm({ mode, initial }: Props) {
             <button
               type="button"
               onClick={() => setIsRecurring((v) => !v)}
-              className={`relative h-6 w-11 rounded-full transition ${isRecurring ? 'bg-accent' : 'bg-line'}`}
+              className={`relative h-6 w-11 rounded-full transition ${isRecurring ? 'bg-b27-ink' : 'bg-b27-line'}`}
               aria-pressed={isRecurring}
               aria-label="정기후원 토글"
             >
@@ -334,7 +334,7 @@ export default function SupporterForm({ mode, initial }: Props) {
           )}
         </div>
 
-        <div className="my-5 h-px bg-line" />
+        <div className="my-5 h-px bg-b27-line" />
 
         {/* 주요 기도제목 */}
         <div>
@@ -361,12 +361,12 @@ export default function SupporterForm({ mode, initial }: Props) {
         </div>
       </div>
 
-      {msg && <p className="mt-4 text-center text-sm text-danger">{msg}</p>}
+      {msg && <p className="mt-4 text-center text-sm text-b27-expense">{msg}</p>}
 
       <button
         onClick={save}
         disabled={saving || uploading}
-        className="mt-6 w-full rounded-xl bg-accent py-4 font-display text-[15px] font-bold uppercase tracking-[0.15em] text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
+        className="mt-6 w-full rounded-xl bg-b27-ink py-4 font-num text-[15px] font-semibold  text-white  transition hover:opacity-90 disabled:opacity-50"
       >
         {saving ? '저장 중…' : mode === 'edit' ? 'Update Supporter' : 'Save Supporter'}
       </button>

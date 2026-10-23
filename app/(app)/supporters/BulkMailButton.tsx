@@ -1,4 +1,5 @@
 'use client'
+// MFH-BULK-MAIL-V2 — 2027(4-7): theme-2027 · 남색 글자 · 연회색/살구 면 · 강조 = 진한 살구 · 굵기 600 이하.
 
 // MFH-BULK-MAIL-V1
 // 통합 발송 — 이메일 보유 후원자 전체를 bcc mailto 로 열거나 주소 목록을 복사.
@@ -22,20 +23,20 @@ export default function BulkMailButton({ emails }: { emails: string[] }) {
   }
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface-subtle px-4 py-3">
-      <span className="text-sm text-ink">
+    <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl bg-b27-card px-4 py-3">
+      <span className="text-sm text-b27-ink">
         이메일 보유 <b className="font-semibold">{emails.length}</b>명에게 단체 메일
       </span>
       <a
         href={href}
-        className="ml-auto rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+        className="ml-auto rounded-full bg-b27-ink px-3.5 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
       >
         단체 메일
       </a>
       <button
         type="button"
         onClick={copyAddrs}
-        className="rounded-full border border-line px-3.5 py-1.5 text-xs font-medium text-muted transition hover:border-primary"
+        className="rounded-full bg-b27-card px-3.5 py-1.5 text-xs font-medium text-b27-ink transition active:opacity-70"
       >
         {copied ? '복사됨' : '주소 복사'}
       </button>

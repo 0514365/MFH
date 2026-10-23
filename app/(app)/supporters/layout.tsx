@@ -1,3 +1,4 @@
+// MFH-SUPPORTERS-LAYOUT-V3 — 2027(4-7): theme-2027 · 남색 글자 · 연회색/살구 면 · 강조 = 진한 살구 · 굵기 600 이하.
 // MFH-SUPPORTERS-LAYOUT-V2 — md 이상 상단 세그먼트 네비(셸 e 단계). 본문 폭은 컨테이너 쿼리(@2xl).
 // MFH-SUPPORTERS-LAYOUT-V1
 // 후원자 브랜치 공통 셸 — 재정 관리자(부부) 가드 + 공통 헤더(뒤로 · 중앙 섹션타이틀 · 메인홈·회계 링크) + 하단 네비(4탭 + 중앙 홈).
@@ -9,12 +10,11 @@ import { canManageFinance } from '@/lib/members'
 import SupportersBack from './SupportersBack'
 import SupportersNav, { SupportersSegments } from './SupportersNav'
 import SupportersTitle from './SupportersTitle'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
 const linkBtn =
-  'inline-flex h-10 w-10 items-center justify-center rounded-full text-muted transition hover:bg-surface-subtle hover:text-primary'
+  'inline-flex h-10 w-10 items-center justify-center rounded-full text-b27-muted transition hover:bg-b27-card hover:text-b27-ink'
 
 export default async function SupportersLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -25,12 +25,9 @@ export default async function SupportersLayout({ children }: { children: React.R
   if (!canManageFinance(user.id)) redirect('/')
 
   return (
-    <main className="app-theme mx-auto max-w-md px-4 pb-4 pt-2 @2xl:max-w-5xl @2xl:px-6">
-      <header
-        className="sticky top-0 z-30 -mx-4 mb-4 border-b border-line px-4 py-3 @2xl:-mx-6 @2xl:px-6"
-        style={{ background: 'var(--paper)' }}
-      >
-        <div className="relative flex items-center">
+    <main className="theme-2027 mx-auto max-w-md px-4 pb-4 pt-2 @2xl:max-w-5xl @2xl:px-6">
+      <header className="sticky top-0 z-30 -mx-4 mb-3 flex h-[52px] items-center bg-b27-paper px-3 @2xl:-mx-6 @2xl:px-6">
+        <div className="relative flex w-full items-center">
           {/* 좌: 뒤로(경로 맥락) */}
           <div className="shrink-0">
             <SupportersBack />

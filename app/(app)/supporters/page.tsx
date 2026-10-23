@@ -1,3 +1,4 @@
+// MFH-SUPPORTERS-SUMMARY-V2 — 2027(4-7): theme-2027 · 남색 글자 · 연회색/살구 면 · 강조 = 진한 살구 · 굵기 600 이하.
 // MFH-SUPPORTERS-SUMMARY-V1
 // 후원자 현황(현황 탭) — 통계 4카드 + 이번 달 생일 + 통합발송. 셸은 ./layout.tsx 담당.
 // 목록은 /supporters/list, AI 분석은 /supporters/insights 로 분리.
@@ -50,35 +51,35 @@ export default async function SupportersSummaryPage() {
   return (
     <>
       {supporters.length > 0 && (
-        <div className="mb-4 grid grid-cols-2 gap-2.5 @2xl:grid-cols-4">
-          <div className="rounded-2xl bg-surface-subtle p-3.5">
-            <div className="text-[11px] text-muted">후원자</div>
-            <div className="mt-1 font-display text-[20px] font-bold text-ink">
+        <div className="mb-3 grid grid-cols-2 gap-1.5 @2xl:grid-cols-4">
+          <div className="rounded-2xl bg-b27-tint-3 p-3.5" style={{ color: 'var(--b27-deep-3)' }}>
+            <div className="text-[12px] font-medium">후원자</div>
+            <div className="mt-1 font-num text-[24px] font-semibold leading-tight">
               {activeCount}
-              <span className="ml-0.5 text-[12px] font-medium text-muted">명</span>
+              <span className="ml-0.5 text-[13px] font-medium">명</span>
             </div>
           </div>
-          <div className="rounded-2xl bg-surface-subtle p-3.5">
-            <div className="text-[11px] text-muted">정기후원</div>
-            <div className="mt-1 font-display text-[20px] font-bold text-ink">
+          <div className="rounded-2xl bg-b27-tint-3 p-3.5" style={{ color: 'var(--b27-deep-3)' }}>
+            <div className="text-[12px] font-medium">정기후원</div>
+            <div className="mt-1 font-num text-[24px] font-semibold leading-tight">
               {recurringCount}
-              <span className="ml-0.5 text-[12px] font-medium text-muted">명</span>
+              <span className="ml-0.5 text-[13px] font-medium">명</span>
             </div>
           </div>
-          <div className="rounded-2xl bg-surface-subtle p-3.5">
-            <div className="text-[11px] text-muted">올해 누계</div>
-            <div className="mt-1 font-display text-[18px] font-bold text-ink">{formatUsd(yearUsd)}</div>
+          <div className="rounded-2xl bg-b27-card p-3.5">
+            <div className="text-[12px] font-medium text-b27-muted">올해 누계</div>
+            <div className="mt-1 font-num text-[20px] font-semibold leading-tight text-b27-ink">{formatUsd(yearUsd)}</div>
           </div>
-          <div className="rounded-2xl bg-surface-subtle p-3.5">
-            <div className="text-[11px] text-muted">이번 달</div>
-            <div className="mt-1 font-display text-[18px] font-bold text-ink">{formatUsd(monthUsd)}</div>
+          <div className="rounded-2xl bg-b27-card p-3.5">
+            <div className="text-[12px] font-medium text-b27-muted">이번 달</div>
+            <div className="mt-1 font-num text-[20px] font-semibold leading-tight text-b27-ink">{formatUsd(monthUsd)}</div>
           </div>
         </div>
       )}
 
       {birthdays.length > 0 && (
-        <div className="mb-4 flex items-center gap-2.5 rounded-2xl bg-accent-soft px-4 py-3">
-          <span className="shrink-0 text-accent">
+        <div className="mb-4 flex items-center gap-2.5 rounded-2xl bg-b27-tint-7 px-4 py-3">
+          <span className="shrink-0 text-[#A91E30]">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="8" width="18" height="4" rx="1" />
               <path d="M12 8v13" />
@@ -87,9 +88,9 @@ export default async function SupportersSummaryPage() {
               <path d="M16.5 8a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8" />
             </svg>
           </span>
-          <div className="text-sm text-ink">
-            <span className="font-semibold">이번 달 생일</span>
-            <span className="text-muted">
+          <div className="text-sm text-b27-ink">
+            <span className="font-medium text-[#A91E30]">이번 달 생일</span>
+            <span className="text-b27-muted">
               {' · '}
               {birthdays.map((b) => `${b.name}(${Number(b.date.slice(8, 10))}일)`).join(', ')}
             </span>
@@ -98,7 +99,7 @@ export default async function SupportersSummaryPage() {
       )}
 
       {supporters.length === 0 ? (
-        <p className="mt-16 text-center text-sm leading-relaxed text-faint">
+        <p className="mt-16 text-center text-sm leading-relaxed text-b27-muted">
           아직 후원자가 없습니다.
           <br />
           아래 등록 탭에서 첫 후원자를 추가해 보세요.

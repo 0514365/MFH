@@ -1,4 +1,5 @@
 'use client'
+// MFH-SUPPORTERS-TITLE-V2 — 2027(4-7): theme-2027 · 남색 글자 · 연회색/살구 면 · 강조 = 진한 살구 · 굵기 600 이하.
 // MFH-SUPPORTERS-TITLE-V1
 // 후원자 헤더 타이틀 — 현재 경로에 따라 섹션명 표시(중앙 정렬). layout 헤더에서 절대 중앙 배치.
 import { usePathname } from 'next/navigation'
@@ -21,7 +22,7 @@ function resolveTitle(pathname: string): string {
 export default function SupportersTitle() {
   const pathname = usePathname() ?? '/supporters'
   return (
-    <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[18px] font-bold tracking-tight text-ink">
+    <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap font-num text-[17px] font-semibold text-b27-ink">
       {resolveTitle(pathname)}
     </h1>
   )

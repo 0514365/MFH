@@ -1,4 +1,5 @@
 'use client'
+// MFH-JOURNAL-LINK-PANEL-V2 — 2027(4-7): theme-2027 · 남색 글자 · 연회색/살구 면 · 강조 = 진한 살구 · 굵기 600 이하.
 
 // MFH-JOURNAL-LINK-PANEL-V1
 // 후원자 ↔ 일지 연계(후원자 주도) — 연결된 일지 목록 + 기존 일지 연결/해제.
@@ -76,33 +77,31 @@ export default function JournalLinkPanel({
   }
 
   return (
-    <section className="border-t border-line px-5 py-7">
+    <section className="border-t border-b27-line px-5 py-7">
       <div className="mb-4">
-        <div className="mb-1 font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-          Journal
-        </div>
-        <h2 className="text-[17px] font-bold tracking-tight text-ink">연결된 일지</h2>
+        <div className="mb-2 font-num text-[12px] font-medium text-b27-muted">연결된 일지</div>
+        <h2 className="text-[17px] font-semibold tracking-tight text-b27-ink">연결된 일지</h2>
       </div>
 
       {canEdit && !open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="mb-3 w-full rounded-xl border border-dashed border-line py-2.5 text-sm font-medium text-muted transition hover:border-primary hover:text-primary"
+          className="mb-3 w-full rounded-xl border border-dashed border-b27-line py-2.5 text-sm font-medium text-b27-muted transition hover:border-b27-muted hover:text-b27-ink"
         >
           + 일지 연결
         </button>
       )}
 
       {canEdit && open && (
-        <div className="mb-4 space-y-3 rounded-2xl border border-line bg-surface-subtle p-4">
+        <div className="mb-4 space-y-3 rounded-2xl bg-b27-card p-4">
           {pool.length === 0 ? (
-            <p className="text-xs text-muted">연결할 수 있는 일지가 없습니다.</p>
+            <p className="text-xs text-b27-muted">연결할 수 있는 일지가 없습니다.</p>
           ) : (
             <select
               value={pick}
               onChange={(e) => setPick(e.target.value)}
-              className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
+              className="w-full rounded-xl bg-b27-card px-3 py-2.5 text-sm text-b27-ink outline-none placeholder:text-b27-muted"
             >
               <option value="">일지 선택…</option>
               {pool.map((j) => (
@@ -112,13 +111,13 @@ export default function JournalLinkPanel({
               ))}
             </select>
           )}
-          {msg && <p className="text-sm text-danger">{msg}</p>}
+          {msg && <p className="text-sm text-b27-expense">{msg}</p>}
           <div className="flex gap-2">
             <button
               type="button"
               onClick={link}
               disabled={busy || !pick}
-              className="flex-1 rounded-xl bg-accent py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+              className="flex-1 rounded-xl bg-b27-ink py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
             >
               {busy ? '연결 중…' : '연결'}
             </button>
@@ -129,7 +128,7 @@ export default function JournalLinkPanel({
                 setPick('')
                 setMsg(null)
               }}
-              className="rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-muted"
+              className="rounded-xl bg-b27-paper px-4 py-2.5 text-sm font-medium text-b27-muted"
             >
               취소
             </button>
@@ -138,20 +137,20 @@ export default function JournalLinkPanel({
       )}
 
       {rows.length === 0 ? (
-        <p className="py-4 text-center text-xs text-faint">연결된 일지가 없습니다.</p>
+        <p className="py-4 text-center text-xs text-b27-muted">연결된 일지가 없습니다.</p>
       ) : (
-        <ul className="space-y-2">
+        <ul>
           {rows.map((j) => (
-            <li key={j.id} className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
+            <li key={j.id} className="flex items-center gap-3 border-b border-b27-line px-1 py-2.5 last:border-b-0">
               <Link href={`/journal/${j.id}`} className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold text-ink">{j.headline || '(제목 없음)'}</div>
-                <div className="mt-0.5 text-xs text-muted">{j.entry_date}</div>
+                <div className="truncate text-sm font-semibold text-b27-ink">{j.headline || '(제목 없음)'}</div>
+                <div className="mt-0.5 text-xs text-b27-muted">{j.entry_date}</div>
               </Link>
               {canEdit && (
                 <button
                   type="button"
                   onClick={() => unlink(j.id)}
-                  className="shrink-0 text-xs text-faint hover:text-danger"
+                  className="shrink-0 text-xs text-b27-muted hover:text-danger"
                 >
                   해제
                 </button>

@@ -1,8 +1,9 @@
 'use client'
+// MFH-SUPPORTERS-NAV-V4 — 2027(4-7): theme-2027 · 남색 글자 · 연회색/살구 면 · 강조 = 진한 살구 · 굵기 600 이하.
 // MFH-SUPPORTERS-NAV-V3 — md 이상 하단 탭바 숨김 + SupportersSegments(상단 세그먼트) export(셸 e 단계).
 // MFH-SUPPORTERS-NAV-V2
 // 후원자 브랜치 전용 하단 탭바 — 5버튼: [현황][명단] [홈(중앙·돌출)] [등록][분석].
-// 중앙 홈 = 마룬 원형 FAB(탭바 위로 돌출) + 흰 집 아이콘, 라벨 없음 — 메인 홈 BottomNav 와 동일 패턴.
+// 중앙 홈 = 남색 원형(탭바 위로 돌출) + 흰 집 아이콘, 라벨 없음 — 회계 탭바와 동일 패턴.
 // 전역 BottomNav 는 /supporters 하위에서 숨김(BottomNav HIDDEN_PREFIXES). fixed 라 layout main 이 pb 로 여백 확보.
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -117,12 +118,12 @@ function TabLink({ tab, pathname }: { tab: Tab; pathname: string }) {
       <Link
         href={tab.href}
         aria-current={active ? 'page' : undefined}
-        className={`flex flex-col items-center gap-0.5 py-1 transition ${
-          active ? 'text-accent' : 'text-muted'
+        className={`flex flex-col items-center gap-0.5 py-1.5 text-[11px] transition ${
+          active ? 'font-medium text-b27-ink' : 'text-b27-muted'
         }`}
       >
-        {tab.icon}
-        <span className="text-[11px] font-semibold">{tab.label}</span>
+        <span className="[&>svg]:h-[26px] [&>svg]:w-[26px] [&>svg]:stroke-[1.8]">{tab.icon}</span>
+        {tab.label}
       </Link>
     </li>
   )
@@ -134,12 +135,12 @@ export default function SupportersNav() {
     <>
       {/* fixed 탭바 높이만큼 스페이서(safe-area 포함) */}
       <div
-        className="h-[68px] md:hidden"
-        style={{ height: 'calc(68px + env(safe-area-inset-bottom))' }}
+        className="h-[64px] md:hidden"
+        style={{ height: 'calc(64px + env(safe-area-inset-bottom))' }}
         aria-hidden="true"
       />
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-b27-line bg-b27-paper md:hidden"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 6px)' }}
       >
         <ul className="mx-auto flex max-w-md items-end justify-around px-2 pt-1.5">
@@ -147,10 +148,10 @@ export default function SupportersNav() {
             <TabLink key={tab.href} tab={tab} pathname={pathname} />
           ))}
 
-          {/* 중앙 홈 — 마룬 원형 FAB, 탭바 위로 돌출(-translate-y). 라벨 없음. */}
+          {/* 중앙 홈 — 남색 원 56px, 탭바 위로 돌출(회계 탭바와 동일). 라벨 없음. */}
           <li className="flex-1">
             <Link href="/" aria-label="메인홈" className="flex justify-center">
-              <span className="flex h-14 w-14 -translate-y-4 items-center justify-center rounded-full bg-[#b61821] text-white shadow-lg transition active:scale-95">
+              <span className="flex h-14 w-14 -translate-y-4 items-center justify-center rounded-full bg-b27-ink text-white shadow-[0_8px_18px_-8px_rgba(43,49,96,0.5)] transition active:scale-95">
                 <HomeIcon />
               </span>
             </Link>
@@ -171,7 +172,7 @@ export function SupportersSegments() {
   const tabs = [...LEFT_TABS, ...RIGHT_TABS]
   return (
     <nav aria-label="Supporters 섹션" className="mb-4 hidden md:block">
-      <ul className="flex gap-1 rounded-xl bg-surface-subtle p-1">
+      <ul className="flex gap-1 rounded-full bg-b27-card p-1">
         {tabs.map((tab) => {
           const active = isActive(pathname, tab.href)
           return (
@@ -179,8 +180,8 @@ export function SupportersSegments() {
               <Link
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-semibold transition ${
-                  active ? 'bg-surface text-primary shadow-soft' : 'text-muted hover:text-ink'
+                className={`flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[13px] transition ${
+                  active ? 'bg-b27-ink font-medium text-white' : 'text-b27-muted hover:text-b27-ink'
                 }`}
               >
                 <span className="[&>svg]:h-[18px] [&>svg]:w-[18px]">{tab.icon}</span>

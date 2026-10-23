@@ -1,4 +1,5 @@
 'use client'
+// MFH-MESSAGE-ACTIONS-V2 — 2027(4-7): theme-2027 · 남색 글자 · 연회색/살구 면 · 강조 = 진한 살구 · 굵기 600 이하.
 
 // MFH-MESSAGE-ACTIONS-V1
 // 후원자 개별 메시지 — 발송 서버 없이 메일앱(mailto) + 클립보드 복사로 수동 발송.
@@ -30,7 +31,7 @@ export default function MessageActions({
   const [copied, setCopied] = useState<'' | 'draft' | 'mail'>('')
 
   if (!email) {
-    return <p className="text-xs text-faint">이메일을 등록하면 여기서 바로 메일을 보낼 수 있어요.</p>
+    return <p className="text-xs text-b27-muted">이메일을 등록하면 여기서 바로 메일을 보낼 수 있어요.</p>
   }
 
   const href = `mailto:${email}?subject=${encodeURIComponent('MFH 선교 소식')}&body=${encodeURIComponent(buildBody(name))}`
@@ -49,14 +50,14 @@ export default function MessageActions({
     <div className="flex flex-wrap items-center gap-2">
       <a
         href={href}
-        className="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition hover:opacity-90"
+        className="rounded-full bg-b27-plus px-4 py-2 text-[13px] font-medium text-white transition active:opacity-80"
       >
         메일 보내기
       </a>
       <button
         type="button"
         onClick={() => copy(email, 'mail')}
-        className="rounded-full border border-line px-4 py-2 text-[13px] font-medium text-muted transition hover:border-primary"
+        className="rounded-full bg-b27-card px-4 py-2 text-[13px] font-medium text-b27-ink transition active:opacity-70"
       >
         {copied === 'mail' ? '복사됨' : '주소 복사'}
       </button>
@@ -64,7 +65,7 @@ export default function MessageActions({
         <button
           type="button"
           onClick={() => copy(aiDraft, 'draft')}
-          className="rounded-full border border-line px-4 py-2 text-[13px] font-medium text-muted transition hover:border-primary"
+          className="rounded-full bg-b27-card px-4 py-2 text-[13px] font-medium text-b27-ink transition active:opacity-70"
         >
           {copied === 'draft' ? '복사됨' : 'AI 초안 복사'}
         </button>
