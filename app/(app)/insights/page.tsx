@@ -1,9 +1,9 @@
+// MFH-INSIGHTS-2027 (page.tsx) — 4-6: 2027 토큰.
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import { scrapKey } from '@/lib/insightExport'
 import InsightsClient, { type InsightRow } from './InsightsClient'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +34,7 @@ export default async function InsightsPage() {
   )
 
   return (
-    <main className="app-theme mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
+    <main className="theme-2027 mx-auto max-w-md px-5 pb-8 @xl:max-w-5xl">
       <PageHeader title="Insights" current="insights" />
       <InsightsClient
         initial={(rows ?? []) as InsightRow[]}

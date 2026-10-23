@@ -1,3 +1,4 @@
+// MFH-HONDURAS-BRIEFING-VIEW-V4 — 2027(4-6): theme-2027 · 남색 글자 · 연회색/페리윙클 면 · 강조 = 진한 페리윙클 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-HONDURAS-BRIEFING-VIEW-V3
 // 온두라스 동향 1일치 본문 렌더(날짜 헤더 + 하이라이트 + 4섹션 + 선교 인사이트·기도 포인트 + 푸터).
 // V3: 항목별 발행일(published_at) 배지 + 하이라이트 빈 상태(최신 페이지) 안내 + 안전(safety) tag 수용.
@@ -29,11 +30,12 @@ export type NewsRow = {
 export const NEWS_SELECT = 'id,news_date,sections,highlights,insight,prayer_points,created_at'
 
 // 분야 메타 — 라벨 + 은은한 구분색(채도 낮은 차분 톤).
-export const SECTION_META: { key: keyof Sections; label: string; dot: string }[] = [
-  { key: 'politics', label: '정치', dot: '#80807F' },
-  { key: 'economy', label: '경제', dot: '#5B7B6F' },
-  { key: 'society', label: '사회', dot: '#6B7B91' },
-  { key: 'culture', label: '문화', dot: '#9A6A55' },
+// 2027: 분야색 = 브랜드 블록 번호(정치 8 페리윙클 · 경제 4 민트 · 사회 1 라군 · 문화 3 살구). dot = 블록색(타이틀 알약 사각형).
+export const SECTION_META: { key: keyof Sections; label: string; dot: string; n: number }[] = [
+  { key: 'politics', label: '정치', dot: '#B3B9E2', n: 8 },
+  { key: 'economy', label: '경제', dot: '#C6EBE1', n: 4 },
+  { key: 'society', label: '사회', dot: '#8ED0CE', n: 1 },
+  { key: 'culture', label: '문화', dot: '#FCD79B', n: 3 },
 ]
 
 // 표시할 내용이 있는지(섹션 1건+ 또는 하이라이트 1건+). 빈 상태 판정 공유(타입 가드).
@@ -79,7 +81,7 @@ function relDay(publishedAt?: string | null, baseDate?: string): string {
 function DateBadge({ publishedAt, baseDate }: { publishedAt?: string | null; baseDate?: string }) {
   const label = relDay(publishedAt, baseDate)
   if (!label) return null
-  return <span className="mt-0.5 shrink-0 text-xs font-medium text-faint">{label}</span>
+  return <span className="mt-0.5 shrink-0 text-xs font-medium text-b27-muted">{label}</span>
 }
 
 // 출처 줄 — url(기사 링크)이 있거나 source 자체가 http 면 새 탭 링크, 아니면 텍스트.
@@ -105,14 +107,14 @@ function SourceLine({
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-faint underline decoration-faint/40 underline-offset-2 transition-colors hover:text-accent"
+          className="text-b27-muted underline decoration-b27-line underline-offset-2 transition-colors hover:text-b27-expense"
         >
           출처 · {label} ↗
         </a>
       </p>
     )
   }
-  return <p className={`${className} text-xs text-faint`}>출처 · {s}</p>
+  return <p className={`${className} text-xs text-b27-muted`}>출처 · {s}</p>
 }
 
 function ItemRow({ item, divided, baseDate }: { item: SectionItem; divided: boolean; baseDate?: string }) {
@@ -121,14 +123,14 @@ function ItemRow({ item, divided, baseDate }: { item: SectionItem; divided: bool
   if (!title && !body) return null
   // 분야 박스 안의 기사 row — 첫 기사 외에는 상단 가는 중간선(#ececec)으로만 구분(개별 카드 → 통합 리스트).
   return (
-    <div className={`p-4${divided ? ' border-t' : ''}`} style={divided ? { borderTopColor: '#ececec' } : undefined}>
+    <div className={`px-1 py-3.5${divided ? ' border-t border-b27-line' : ''}`}>
       {title && (
         <div className="flex items-baseline justify-between gap-2">
-          <p className="text-[17px] font-bold leading-snug text-ink">{title}</p>
+          <p className="text-[16px] font-semibold leading-snug text-b27-ink">{title}</p>
           <DateBadge publishedAt={item.published_at} baseDate={baseDate} />
         </div>
       )}
-      {body && <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-muted">{body}</p>}
+      {body && <p className="mt-1.5 whitespace-pre-wrap text-[14.5px] leading-relaxed text-[#4A5072]">{body}</p>}
       <SourceLine source={item.source} url={item.url} />
     </div>
   )
@@ -157,14 +159,14 @@ export default function BriefingView({
     <div className="space-y-6">
       {/* 날짜 헤더 — 우측 끝에 headerAction(지난 동향 보기 등) */}
       <header>
-        <p className="text-sm font-semibold tracking-wide text-muted">{latest ? '오늘의 온두라스' : '지난 동향'}</p>
+        <p className="font-num text-[12px] font-medium text-b27-muted">{latest ? '오늘의 온두라스' : '지난 동향'}</p>
         <div className="mt-0.5 flex items-end justify-between gap-3">
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-2xl font-bold text-ink">
+            <span className="font-num text-2xl font-semibold text-b27-ink">
               {row.news_date}
               {dateSuffix}
             </span>
-            <span className="text-xs text-faint">정치·경제·사회·문화</span>
+            <span className="text-xs text-b27-muted">정치·경제·사회·문화</span>
           </div>
           {headerAction && <div className="shrink-0 pb-0.5">{headerAction}</div>}
         </div>
@@ -172,27 +174,27 @@ export default function BriefingView({
 
       {/* 하이라이트 — San Pedro Sula·한인·안전. 새 소식 있을 때만 글로우 카드. 없으면(최신 페이지) 빈 상태 안내로 "오래된 글 억지 채움"을 방지. */}
       {highlights.length > 0 ? (
-        <section
-          className="rounded-2xl border-l-[3px] border-accent bg-surface p-4"
-          style={{ boxShadow: '0 0 0 1px rgba(182,24,33,0.10), 0 6px 22px -10px rgba(182,24,33,0.22)' }}
-        >
-          <p className="mb-2 text-sm font-bold tracking-wide text-accent">주목 · San Pedro Sula · 한인 · 안전</p>
+        <section className="rounded-2xl bg-b27-tint-8 px-4 py-3.5">
+          <p className="mb-2 flex items-center gap-1.5 font-num text-[12px] font-medium" style={{ color: 'var(--b27-deep-8)' }}>
+            <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-8" aria-hidden="true" />
+            주목 · San Pedro Sula · 한인 · 안전
+          </p>
           <div className="space-y-3">
             {highlights.map((h, i) => (
               <div key={i}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">
+                    <span className="rounded-full bg-b27-paper px-2 py-0.5 text-xs font-medium" style={{ color: 'var(--b27-deep-8)' }}>
                       {(h.tag ?? '').trim() || '주목'}
                     </span>
                     {(h.title ?? '').trim() && (
-                      <span className="text-[17px] font-bold leading-snug text-ink">{h.title!.trim()}</span>
+                      <span className="text-[16px] font-semibold leading-snug text-b27-ink">{h.title!.trim()}</span>
                     )}
                   </div>
                   <DateBadge publishedAt={h.published_at} baseDate={row.news_date} />
                 </div>
                 {(h.body ?? '').trim() && (
-                  <p className="mt-1.5 whitespace-pre-wrap text-base leading-relaxed text-muted">{h.body!.trim()}</p>
+                  <p className="mt-1.5 whitespace-pre-wrap text-[14.5px] leading-relaxed text-[#4A5072]">{h.body!.trim()}</p>
                 )}
                 <SourceLine source={h.source} url={h.url} className="mt-1.5" />
               </div>
@@ -200,11 +202,11 @@ export default function BriefingView({
           </div>
         </section>
       ) : latest ? (
-        <p className="rounded-2xl border border-dashed border-line px-4 py-3 text-center text-sm text-faint">
+        <p className="rounded-2xl bg-b27-card px-4 py-3 text-center text-sm text-b27-muted">
           최근 San Pedro Sula · 한인 · 안전 관련 새 소식이 없습니다 ·{' '}
           <a
             href="/honduras/archive"
-            className="underline decoration-faint/40 underline-offset-2 transition-colors hover:text-accent"
+            className="underline decoration-b27-line underline-offset-2 transition-colors hover:text-b27-expense"
           >
             지난 동향 보기
           </a>
@@ -216,20 +218,23 @@ export default function BriefingView({
         const items = (sections[m.key] ?? []).filter((it) => (it?.title ?? '').trim() || (it?.body ?? '').trim())
         return (
           <section key={m.key}>
-            <div className="mb-2.5 flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-full" style={{ background: m.dot }} />
-              <h2 className="font-display text-xl font-bold text-ink">{m.label}</h2>
-              {items.length > 0 && <span className="text-xs text-faint">{items.length}건</span>}
-            </div>
+            <h2
+              className="mb-1 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[13px] font-semibold"
+              style={{ background: `var(--b27-tint-${m.n})`, color: `var(--b27-deep-${m.n})` }}
+            >
+              <span className="inline-block h-2 w-2 rounded-[2px]" style={{ background: m.dot }} aria-hidden="true" />
+              {m.label}
+              {items.length > 0 && <span className="font-num font-medium text-b27-muted">{items.length}</span>}
+            </h2>
             {items.length > 0 ? (
-              /* 분야 통합 박스 — 전체 테두리 = 분야색(m.dot). 기사들은 박스 안에서 가는 중간선으로 구분. */
-              <div className="overflow-hidden rounded-2xl border bg-surface" style={{ borderColor: m.dot }}>
+              /* 분야 기사 목록 — 행 사이 1px 선 */
+              <div>
                 {items.map((it, i) => (
                   <ItemRow key={i} item={it} divided={i > 0} baseDate={row.news_date} />
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-line bg-surface px-4 py-3 text-sm text-faint">
+              <div className="px-1 py-2 text-sm text-b27-muted">
                 특이사항 없음
               </div>
             )}
@@ -239,29 +244,21 @@ export default function BriefingView({
 
       {/* 선교 인사이트 + 기도 포인트(별도 박스) — 주목과 어울리는 마룬 글로우 추가. 좌측 레일 4px·연회색 면은 결론부 정체성으로 유지. */}
       {((row.insight ?? '').trim() || prayerPoints.length > 0) && (
-        <section
-          className="rounded-2xl border-l-4 border-accent bg-surface-subtle p-5"
-          style={{ boxShadow: '0 0 0 1px rgba(182,24,33,0.10), 0 6px 22px -10px rgba(182,24,33,0.22)' }}
-        >
-          <p className="mb-3 font-display text-2xl font-extrabold tracking-tight text-accent">선교 인사이트</p>
+        <section className="rounded-2xl bg-b27-tint-7 px-4 py-4">
+          <p className="mb-2 flex items-center gap-1.5 font-num text-[12px] font-medium text-[#A91E30]">
+            <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-7" aria-hidden="true" />
+            선교 인사이트
+          </p>
           {(row.insight ?? '').trim() && (
-            <p className="whitespace-pre-wrap text-[17px] leading-relaxed text-ink">{row.insight!.trim()}</p>
+            <p className="whitespace-pre-wrap text-[15.5px] leading-relaxed text-b27-ink">{row.insight!.trim()}</p>
           )}
           {prayerPoints.length > 0 && (
-            <div className="mt-4 rounded-xl border border-line bg-surface p-4">
-              <div className="mb-2.5 flex items-center gap-2">
-                <svg
-                  width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  className="text-accent"
-                >
-                  <path d="M12 21s-7-4.35-9.5-8.5C.5 9 2 5.5 5.5 5.5c2 0 3.5 1.5 4.5 3 1-1.5 2.5-3 4.5-3C18 5.5 19.5 9 21.5 12.5 19 16.65 12 21 12 21z" />
-                </svg>
-                <p className="text-base font-bold text-accent">기도 포인트</p>
-              </div>
+            <div className="mt-3 rounded-xl bg-b27-paper p-4">
+              <p className="mb-2 font-num text-[12px] font-medium text-[#A91E30]">기도 포인트</p>
               <ul className="space-y-2">
                 {prayerPoints.map((p, i) => (
-                  <li key={i} className="flex gap-2.5 text-[15px] leading-relaxed text-ink">
-                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                  <li key={i} className="flex gap-2.5 text-[15px] leading-relaxed text-b27-ink">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#A91E30]" />
                     <span>{p}</span>
                   </li>
                 ))}
@@ -272,7 +269,7 @@ export default function BriefingView({
       )}
 
       {/* 안내 푸터 */}
-      <p className="pt-1 text-center text-xs leading-relaxed text-faint">
+      <p className="pt-1 text-center text-xs leading-relaxed text-b27-muted">
         생성 {row.created_at.slice(0, 10)} · 내부 동향 파악용
         <br />
         편지·Facebook 등 외부 발신에는 정치중립 규칙을 따로 적용합니다.

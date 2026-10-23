@@ -1,3 +1,4 @@
+// MFH-HONDURAS-ARCHIVE-PAGE-V3 — 2027(4-6): theme-2027 · 남색 글자 · 연회색/페리윙클 면 · 강조 = 진한 페리윙클 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-HONDURAS-ARCHIVE-PAGE-V2
 // 온두라스 동향 — 지난 동향 목록(저장된 모든 동향, 최신순). 같은 날 여러 개면 "날짜 (N)" 생성순 넘버링.
 // 항목 클릭 → /honduras/[id] 상세.
@@ -6,7 +7,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import { SECTION_META, NEWS_SELECT, type NewsRow } from '../BriefingView'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,12 +62,12 @@ export default async function HondurasArchivePage() {
     (countMap.get(r.news_date) ?? 1) > 1 ? `${r.news_date} (${seqMap.get(r.id) ?? 1})` : r.news_date
 
   return (
-    <main className="app-theme mx-auto max-w-2xl px-5 py-8">
+    <main className="theme-2027 mx-auto max-w-2xl px-5 py-8">
       <PageHeader title="지난 동향" />
 
       {/* 최신으로 */}
       <div className="mb-4">
-        <Link href="/honduras" className="inline-flex items-center gap-1 text-sm font-semibold text-accent hover:underline">
+        <Link href="/honduras" className="inline-flex items-center gap-1 text-sm font-semibold text-[#303C8D] hover:underline">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5" />
             <path d="M12 19l-7-7 7-7" />
@@ -77,16 +77,16 @@ export default async function HondurasArchivePage() {
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-line bg-surface p-6 text-center">
-          <p className="text-base font-semibold text-primary">저장된 동향이 없습니다</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
+        <div className="rounded-2xl border border-b27-line bg-b27-paper p-6 text-center">
+          <p className="text-base font-semibold text-b27-ink">저장된 동향이 없습니다</p>
+          <p className="mt-2 text-sm leading-relaxed text-b27-muted">
             매일 아침 6시에 자동으로 쌓입니다. 바로 만들려면{' '}
-            <code className="rounded bg-paper px-1 py-0.5 font-mono text-xs">/news-update</code> 를 실행하세요.
+            <code className="rounded bg-b27-paper px-1 py-0.5 font-mono text-xs">/news-update</code> 를 실행하세요.
           </p>
         </div>
       ) : (
         <>
-          <p className="mb-3 text-xs text-faint">총 {rows.length}건</p>
+          <p className="mb-3 text-xs text-b27-muted">총 {rows.length}건</p>
           <div className="space-y-2.5">
             {rows.map((r) => {
               const preview = previewLine(r)
@@ -94,13 +94,13 @@ export default async function HondurasArchivePage() {
                 <Link
                   key={r.id}
                   href={`/honduras/${r.id}`}
-                  className="block rounded-xl border border-line bg-surface p-4 transition hover:border-primary"
+                  className="block rounded-xl border border-b27-line bg-b27-paper p-4 transition hover:border-b27-muted"
                 >
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-display text-lg font-bold text-ink">{dateLabel(r)}</span>
-                    <span className="shrink-0 text-xs text-faint">{countItems(r)}건</span>
+                    <span className="font-num text-lg font-semibold text-b27-ink">{dateLabel(r)}</span>
+                    <span className="shrink-0 text-xs text-b27-muted">{countItems(r)}건</span>
                   </div>
-                  {preview && <p className="mt-1 line-clamp-1 text-sm text-muted">{preview}</p>}
+                  {preview && <p className="mt-1 line-clamp-1 text-sm text-b27-muted">{preview}</p>}
                 </Link>
               )
             })}

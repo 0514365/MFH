@@ -1,4 +1,5 @@
 'use client'
+// MFH-INSIGHTS-CLIENT-V5 — 2027(4-6): theme-2027 · 남색 글자 · 연회색/페리윙클 면 · 강조 = 진한 페리윙클 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-INSIGHTS-CLIENT-V4
 // 목적 렌즈 구조(읽기 전용) — 연주제 strip + 렌즈 카드(Prayer/Balance/Fruit/Letter) + 분야별(Raw) 카드.
@@ -6,6 +7,7 @@
 //  · Balance/Fruit 는 클라에서 직접 집계(무료, Anthropic 미사용).
 //  · 색: palette var 매핑 → 색-슬래시 opacity 금지(요소 opacity-* 만). 동적 클래스 금지(정적 분기).
 
+import { blockColor, blockTint } from '@/lib/palette'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
@@ -44,6 +46,9 @@ export type InsightRow = {
 }
 
 type LensMeta = { key: LensKey; desc: string }
+// 렌즈 · 분야 → 2027 블록 번호(틴트 면 · 진한 톤). 기도제목 블러시 · 리듬 민트 · 열매 살구 · 편지 살몬 / 일지 살몬 · 프로젝트 로즈 · 할 일 살구.
+const LENS_BLOCK: Partial<Record<InsightDomain, number>> = { prayer: 7, balance: 4, fruit: 3, letter: 2 }
+const DOMAIN_BLOCK: Partial<Record<InsightDomain, number>> = { journal: 2, project: 6, task: 3 }
 const LENS_META: LensMeta[] = [
   { key: 'prayer', desc: '기도제목 모으기 (3원칙)' },
   { key: 'balance', desc: '사역·가정 리듬' },
@@ -227,7 +232,7 @@ function useBalance(days: number, enabled: boolean) {
 function BalanceBar({ data, height = 8 }: { data: CategoryBreakdown; height?: number }) {
   return (
     <span
-      className="flex w-full overflow-hidden rounded-full bg-surface-subtle"
+      className="flex w-full overflow-hidden rounded-full bg-b27-card"
       style={{ height }}
     >
       {data.items.map((it) => (
@@ -244,30 +249,30 @@ function BalanceBar({ data, height = 8 }: { data: CategoryBreakdown; height?: nu
 // 렌즈 상세 상단 비중 섹션(합산 막대 + 범례 + 작성자별). 죄책감 아닌 균형 관찰용.
 function BalanceSection({ loading, data }: { loading: boolean; data: BalanceResult | null }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
+    <div className="space-y-3 rounded-2xl border border-b27-line bg-b27-paper p-5">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-accent">분류 비중</div>
+        <div className="text-sm font-semibold text-[#303C8D]">분류 비중</div>
         {data && data.all.total > 0 && (
-          <div className="text-[11px] text-faint">활동 {data.all.total}건</div>
+          <div className="text-[11px] text-b27-muted">활동 {data.all.total}건</div>
         )}
       </div>
       {loading ? (
-        <p className="text-sm text-faint">집계 중…</p>
+        <p className="text-sm text-b27-muted">집계 중…</p>
       ) : !data || data.all.total === 0 ? (
-        <p className="text-sm text-faint">기간 내 활동 기록이 없습니다.</p>
+        <p className="text-sm text-b27-muted">기간 내 활동 기록이 없습니다.</p>
       ) : (
         <>
           <BalanceBar data={data.all} height={10} />
           <ul className="space-y-1.5">
             {data.all.items.map((it) => (
-              <li key={it.category} className="flex items-center gap-2 text-xs text-ink">
+              <li key={it.category} className="flex items-center gap-2 text-xs text-b27-ink">
                 <span
                   className="h-3 w-3 shrink-0 rounded-sm"
                   style={{ background: categoryColor(it.category) }}
                 />
                 <span className="flex-1 truncate">{it.category}</span>
-                <span className="text-muted">{it.count}건</span>
-                <span className="w-9 text-right font-display text-faint">
+                <span className="text-b27-muted">{it.count}건</span>
+                <span className="w-9 text-right font-num text-b27-muted">
                   {Math.round(it.ratio * 100)}%
                 </span>
               </li>
@@ -276,13 +281,13 @@ function BalanceSection({ loading, data }: { loading: boolean; data: BalanceResu
 
           {/* 작성자별(우진/서진아) — 2명 이상일 때만 */}
           {data.byMember.length > 1 && (
-            <div className="space-y-2.5 border-t border-line pt-3">
-              <div className="text-[11px] font-semibold text-muted">작성자별</div>
+            <div className="space-y-2.5 border-t border-b27-line pt-3">
+              <div className="text-[11px] font-semibold text-b27-muted">작성자별</div>
               {data.byMember.map((m) => (
                 <div key={m.userId} className="space-y-1">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-xs font-semibold text-ink">{m.name}</span>
-                    <span className="text-[11px] text-faint">{m.data.total}건</span>
+                    <span className="text-xs font-semibold text-b27-ink">{m.name}</span>
+                    <span className="text-[11px] text-b27-muted">{m.data.total}건</span>
                   </div>
                   <BalanceBar data={m.data} height={7} />
                 </div>
@@ -334,17 +339,17 @@ function FruitTimeline({ items }: { items: FruitItem[] }) {
               className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
               style={{ background: categoryColor(it.category || UNCATEGORIZED) }}
             />
-            {i < items.length - 1 && <span className="w-px flex-1 bg-line" />}
+            {i < items.length - 1 && <span className="w-px flex-1 bg-b27-line" />}
           </div>
           <div className="min-w-0 flex-1 pb-4">
             <div className="flex items-baseline gap-2">
-              <span className="font-display text-xs text-faint">{it.date}</span>
-              {it.category && <span className="text-[11px] text-muted">{it.category}</span>}
+              <span className="font-num text-xs text-b27-muted">{it.date}</span>
+              {it.category && <span className="text-[11px] text-b27-muted">{it.category}</span>}
             </div>
             {it.headline && (
-              <div className="mt-0.5 text-sm font-semibold text-ink">{it.headline}</div>
+              <div className="mt-0.5 text-sm font-semibold text-b27-ink">{it.headline}</div>
             )}
-            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-relaxed text-muted">
+            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-relaxed text-b27-muted">
               {it.thanks}
             </p>
           </div>
@@ -357,15 +362,15 @@ function FruitTimeline({ items }: { items: FruitItem[] }) {
 // 렌즈 상세 상단 타임라인 섹션(로딩·빈 처리 래퍼).
 function FruitSection({ loading, items }: { loading: boolean; items: FruitItem[] | null }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-line bg-surface p-5">
+    <div className="space-y-3 rounded-2xl border border-b27-line bg-b27-paper p-5">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-accent">감사·응답 타임라인</div>
-        {items && items.length > 0 && <div className="text-[11px] text-faint">{items.length}건</div>}
+        <div className="text-sm font-semibold text-[#303C8D]">감사·응답 타임라인</div>
+        {items && items.length > 0 && <div className="text-[11px] text-b27-muted">{items.length}건</div>}
       </div>
       {loading ? (
-        <p className="text-sm text-faint">불러오는 중…</p>
+        <p className="text-sm text-b27-muted">불러오는 중…</p>
       ) : !items || items.length === 0 ? (
-        <p className="text-sm text-faint">기간 내 감사·응답 기록이 없습니다.</p>
+        <p className="text-sm text-b27-muted">기간 내 감사·응답 기록이 없습니다.</p>
       ) : (
         <FruitTimeline items={items} />
       )}
@@ -394,8 +399,8 @@ function PeriodChips({
             onClick={() => onChange(p.value)}
             className={
               active
-                ? `rounded-full border-2 border-accent font-semibold text-accent ${pad}`
-                : `rounded-full border border-line text-muted transition hover:border-primary ${pad}`
+                ? `rounded-full border-2 border-b27-ink font-semibold text-[#303C8D] ${pad}`
+                : `rounded-full border border-b27-line text-b27-muted transition hover:border-b27-muted ${pad}`
             }
           >
             {p.label}
@@ -463,118 +468,78 @@ export default function InsightsClient({
   }
 
   return (
-    <div className="space-y-6">
-      {/* 렌즈 + 종합 — 2열 그리드 */}
-      <div className="grid grid-cols-2 gap-3">
+    <div className="space-y-4">
+      {/* 렌즈 4 — 2×2 틴트 블록(고르는 자리): 이름 · 설명 · (리듬 미니 막대) · 갱신 */}
+      <div className="grid grid-cols-2 gap-[3px] overflow-hidden rounded-2xl bg-b27-paper">
         {LENS_META.map((m) => {
           const mini =
             m.key === 'balance' && homeBalance.data && homeBalance.data.all.total > 0
               ? homeBalance.data.all
               : null
+          const n = LENS_BLOCK[m.key] ?? 8
+          const { tint, deep } = blockTint(n)
           return (
             <button
               key={m.key}
               onClick={() => setView(m.key)}
-              className="flex h-[172px] flex-col rounded-3xl border border-line bg-surface p-4 text-left shadow-sm transition hover:border-primary"
+              className="flex min-h-[112px] flex-col justify-between p-3.5 text-left transition active:opacity-80"
+              style={{ background: tint, color: deep }}
             >
-              <span className={`mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] ${LENS_CHIP[m.key] ?? 'bg-surface-subtle text-muted'}`}>
-                <LensIcon name={m.key} size={22} />
+              <span>
+                <span className="block text-[15px] font-semibold">{LENS_LABEL[m.key]}</span>
+                <span className="mt-0.5 block text-[12px] leading-snug">{m.desc}</span>
               </span>
-              <span className={`mb-1.5 font-display text-[11px] font-bold uppercase tracking-[0.15em] ${LENS_TEXT[m.key] ?? 'text-muted'}`}>
-                {LENS_LABEL[m.key]}
-              </span>
-              <span className="text-[13px] font-medium leading-snug text-ink">{m.desc}</span>
               {mini && (
-                <span className="mt-3 block">
-                  <BalanceBar data={mini} height={6} />
+                <span className="mt-2 block">
+                  <BalanceBar data={mini} height={5} />
                 </span>
               )}
-              <span className="mt-auto block pt-2">
-                {updatedOf(m.key) && (
-                  <span className="font-display text-[9px] uppercase tracking-[0.05em] text-faint">
-                    업데이트 {updatedOf(m.key)}
-                  </span>
-                )}
-              </span>
+              {updatedOf(m.key) && <span className="mt-2 block font-num text-[11px] opacity-80">{updatedOf(m.key)} 갱신</span>}
             </button>
           )
         })}
-
-        {/* 종합(overall) — 가로 카드 */}
-        <button
-          onClick={() => setView('overall')}
-          className="col-span-2 flex items-center gap-4 rounded-3xl bg-[#f3f1ec] p-4 text-left shadow-sm transition hover:opacity-90"
-        >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-white text-accent shadow-sm">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M3 12h18" />
-              <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18" />
-            </svg>
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-display text-[11px] font-bold uppercase tracking-[0.15em] text-[#8a8377]">Overall</span>
-            <span className="block text-[14px] font-semibold text-[#44403c]">일지·프로젝트·할일 종합</span>
-          </span>
-          {updatedOf('overall') && (
-            <span className="shrink-0 text-right">
-              <span className="block font-display text-[9px] uppercase tracking-[0.05em] text-[#a8a29a]">업데이트</span>
-              <span className="mt-0.5 block font-display text-[10px] font-bold uppercase tracking-[0.05em] text-[#44403c]">
-                {updatedOf('overall')}
-              </span>
-            </span>
-          )}
-        </button>
       </div>
 
-      {/* 분야별 분석 */}
-      <div>
-        <div className="mb-4 flex items-center gap-2">
-          <span className="h-5 w-1.5 rounded-full bg-accent" />
-          <h3 className="text-[17px] font-bold tracking-tight text-ink">분야별 분석</h3>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+      {/* 종합 — 페리윙클 요약 면 */}
+      <button
+        onClick={() => setView('overall')}
+        className="flex w-full flex-col gap-1 rounded-2xl bg-b27-tint-8 px-4 py-3.5 text-left transition active:opacity-80"
+      >
+        <span className="flex items-center gap-1.5 font-num text-[12px] font-medium" style={{ color: 'var(--b27-deep-8)' }}>
+          <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-8" aria-hidden="true" />
+          종합
+        </span>
+        <span className="flex items-center justify-between gap-3">
+          <span className="text-[15px] font-semibold text-b27-ink">일지·프로젝트·할 일 종합</span>
+          <span className="shrink-0 font-num text-[12px] text-b27-muted">{updatedOf('overall') ? `${updatedOf('overall')} ›` : '›'}</span>
+        </span>
+      </button>
+
+      {/* 분야별 분석 — 2줄 행(모듈 색 사각형 · 갱신) */}
+      <section>
+        <h3 className="mb-1 inline-flex items-center gap-2 rounded-full bg-b27-card px-3 py-1 text-[13px] font-semibold text-b27-ink">
+          <span className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-8" aria-hidden="true" />
+          분야별 분석
+        </h3>
+        <ul>
           {(['journal', 'project', 'task'] as InsightDomain[]).map((d) => (
-            <button
-              key={d}
-              onClick={() => setView(d)}
-              className={`flex items-center gap-3 rounded-[20px] border border-line bg-surface p-4 text-left shadow-sm transition hover:border-primary ${
-                d === 'task' ? 'col-span-2' : ''
-              }`}
-            >
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${DOMAIN_CHIP[d] ?? 'bg-surface-subtle text-muted'}`}>
-                <DomainIcon domain={d} />
-              </span>
-              {d === 'task' ? (
-                <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                  <span className="text-[13px] font-semibold text-ink">{DOMAIN_TITLE[d] ?? DOMAIN_LABEL[d]}</span>
-                  {updatedOf(d) && (
-                    <span className="shrink-0 font-display text-[9px] uppercase tracking-[0.05em] text-faint">
-                      Upd {updatedOf(d)}
-                    </span>
-                  )}
-                </span>
-              ) : (
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-[12px] font-semibold text-ink">{DOMAIN_TITLE[d] ?? DOMAIN_LABEL[d]}</span>
-                  {updatedOf(d) && (
-                    <span className="mt-0.5 font-display text-[9px] uppercase tracking-[0.05em] text-faint">
-                      Upd {updatedOf(d)}
-                    </span>
-                  )}
-                </span>
-              )}
-            </button>
+            <li key={d} className="border-b border-b27-line last:border-b-0">
+              <button onClick={() => setView(d)} className="flex w-full items-center gap-3 px-1 py-3 text-left transition active:opacity-70">
+                <span className="inline-block h-[9px] w-[9px] shrink-0 rounded-[3px]" style={{ background: blockColor(DOMAIN_BLOCK[d] ?? 8).bg }} aria-hidden="true" />
+                <span className="flex-1 text-[15px] font-medium text-b27-ink">{DOMAIN_TITLE[d] ?? DOMAIN_LABEL[d]}</span>
+                {updatedOf(d) && <span className="shrink-0 font-num text-[11.5px] text-b27-muted">{updatedOf(d)}</span>}
+              </button>
+            </li>
           ))}
-        </div>
-      </div>
+        </ul>
+      </section>
 
-      {/* 보관함 — 최하단 별도 메뉴 */}
+      {/* 보관함 */}
       <Link
         href="/insights/saved"
-        className="flex items-center justify-center gap-2 rounded-[20px] border border-line bg-surface px-4 py-3.5 text-[14px] font-medium text-ink shadow-sm transition hover:border-primary"
+        className="flex items-center justify-center gap-2 rounded-2xl bg-b27-card px-4 py-3.5 text-[14px] font-medium text-b27-ink transition active:opacity-70"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="4" width="18" height="4" rx="1" />
           <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
           <path d="M10 12h4" />
@@ -612,18 +577,18 @@ function LensDetail({
         <button
           onClick={onBack}
           aria-label="뒤로"
-          className="rounded-xl border border-line p-2 text-muted transition hover:border-primary"
+          className="rounded-xl border border-b27-line p-2 text-b27-muted transition hover:border-b27-muted"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
         {isLens(domain) && (
-          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${LENS_CHIP[domain] ?? 'bg-surface-subtle text-muted'}`}>
+          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${LENS_CHIP[domain] ?? 'bg-b27-card text-b27-muted'}`}>
             <LensIcon name={domain} size={18} />
           </span>
         )}
-        <h2 className="font-display text-lg font-bold text-ink">{title}</h2>
+        <h2 className="font-num text-lg font-semibold text-b27-ink">{title}</h2>
       </div>
 
       <DomainInsightBody
@@ -727,7 +692,7 @@ export function DomainInsightBody({
     <div className="space-y-5">
       {(isBalance || isFruit) && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-faint">기간</span>
+          <span className="text-xs text-b27-muted">기간</span>
           <PeriodChips days={days} onChange={setDays} />
         </div>
       )}
@@ -740,9 +705,9 @@ export function DomainInsightBody({
 
       {/* 결과 목록(히스토리) */}
       <div className="space-y-4">
-        <div className="text-sm font-semibold text-accent">저장된 인사이트</div>
+        <div className="text-sm font-semibold text-[#303C8D]">저장된 인사이트</div>
         {rows.length === 0 ? (
-          <p className="text-sm text-faint">아직 저장된 인사이트가 없습니다.</p>
+          <p className="text-sm text-b27-muted">아직 저장된 인사이트가 없습니다.</p>
         ) : (
           rows.map((row) => (
             <InsightCard
@@ -802,12 +767,12 @@ function InsightCard({
   const isManual = row.model === 'manual'
 
   return (
-    <article className="rounded-2xl border border-line bg-surface p-5">
+    <article className="rounded-2xl border border-b27-line bg-b27-paper p-5">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[11px] text-faint">
+        <div className="text-[11px] text-b27-muted">
           {row.period_start} ~ {row.period_end}
         </div>
-        <div className="text-[11px] text-faint">
+        <div className="text-[11px] text-b27-muted">
           {created} · {isManual ? '수동' : 'AI'}
         </div>
       </div>
@@ -815,7 +780,7 @@ function InsightCard({
       <InsightContent
         domain={row.domain}
         content={row.content}
-        className="mt-3 text-sm leading-relaxed text-ink"
+        className="mt-3 text-sm leading-relaxed text-b27-ink"
       />
 
       <div className="mt-4 flex items-center gap-1">
@@ -826,30 +791,30 @@ function InsightCard({
               key={n}
               aria-label={`${n}점`}
               onClick={() => onRate((row.rating ?? 0) === n ? null : n)}
-              className={on ? 'text-lg text-accent' : 'text-lg text-faint'}
+              className={on ? 'text-lg text-[#303C8D]' : 'text-lg text-b27-muted'}
             >
               ★
             </button>
           )
         })}
-        <button onClick={() => setNoteOpen((v) => !v)} className="ml-3 text-xs text-muted underline">
+        <button onClick={() => setNoteOpen((v) => !v)} className="ml-3 text-xs text-b27-muted underline">
           {noteOpen ? '메모 닫기' : '메모'}
         </button>
         {showLetter && (
           <button
             onClick={() => onToggleLetter(!inLetter)}
-            className={inLetter ? 'ml-2 text-xs text-accent underline' : 'ml-2 text-xs text-muted underline'}
+            className={inLetter ? 'ml-2 text-xs text-[#303C8D] underline' : 'ml-2 text-xs text-b27-muted underline'}
           >
             {inLetter ? '편지에 담김' : '편지에 담기'}
           </button>
         )}
         <button
           onClick={isScrapped ? onUnscrap : onScrap}
-          className={isScrapped ? 'ml-2 text-xs text-accent underline' : 'ml-2 text-xs text-muted underline'}
+          className={isScrapped ? 'ml-2 text-xs text-[#303C8D] underline' : 'ml-2 text-xs text-b27-muted underline'}
         >
           {isScrapped ? '보관됨' : '보관'}
         </button>
-        <button onClick={onDelete} className="ml-auto text-xs text-faint underline">
+        <button onClick={onDelete} className="ml-auto text-xs text-b27-muted underline">
           삭제
         </button>
       </div>
@@ -861,14 +826,14 @@ function InsightCard({
             onChange={(e) => setNote(e.target.value)}
             rows={3}
             placeholder="이 인사이트에 대한 메모(다음 분석 개선에 반영)"
-            className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-accent"
+            className="w-full rounded-xl border border-b27-line bg-b27-paper p-3 text-sm text-b27-ink outline-none focus:border-accent"
           />
           <button
             onClick={() => {
               onNote(note.trim())
               setNoteOpen(false)
             }}
-            className="rounded-xl border border-accent px-3 py-1.5 text-sm font-semibold text-accent transition hover:bg-accent-soft"
+            className="rounded-xl border border-b27-ink px-3 py-1.5 text-sm font-semibold text-[#303C8D] transition hover:bg-b27-expense-soft"
           >
             메모 저장
           </button>

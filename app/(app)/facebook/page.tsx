@@ -1,3 +1,4 @@
+// MFH-FB-PAGE-V2 — 2027(4-6): theme-2027 · 남색 글자 · 연회색/페리윙클 면 · 강조 = 진한 페리윙클 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-FB-PAGE-V1
 // 주간 Facebook 게시 추천 — 최신 1주차의 게시안(문구+추천사진+해시태그)을 카드로 표시.
 // 데이터 생성 = Claude Code /fb-update (weekly_fb 저장). 이 페이지는 읽기·복사 전용(게시는 우진 수동).
@@ -6,7 +7,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import FacebookClient, { type FbPostView } from './FacebookClient'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,7 +54,7 @@ export default async function FacebookPage() {
   }
 
   return (
-    <main className="app-theme mx-auto max-w-2xl px-5 pb-8">
+    <main className="theme-2027 mx-auto max-w-2xl px-5 pb-8">
       <PageHeader title="Facebook" />
       <FacebookClient
         weekStart={row?.week_start ?? null}

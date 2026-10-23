@@ -1,3 +1,4 @@
+// MFH-INSIGHTS-2027 (page.tsx) — 4-6: 2027 토큰.
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
@@ -23,13 +24,13 @@ export default async function SavedInsightsPage() {
         <Link
           href="/insights"
           aria-label="뒤로"
-          className="rounded-xl border border-line p-2 text-muted transition hover:border-primary"
+          className="rounded-xl border border-b27-line p-2 text-b27-muted transition hover:border-b27-muted"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </Link>
-        <h1 className="font-display text-lg font-bold text-primary">보관함</h1>
+        <h1 className="font-num text-lg font-semibold text-b27-ink">보관함</h1>
       </div>
       <SavedClient initial={(data ?? []) as ScrapRow[]} />
     </main>

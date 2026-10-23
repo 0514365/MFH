@@ -1,3 +1,4 @@
+// MFH-INSIGHT-CONTENT-V5 — 2027(4-6): theme-2027 · 남색 글자 · 연회색/페리윙클 면 · 강조 = 진한 페리윙클 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-INSIGHT-CONTENT-V4
 // 인사이트·비서 본문 표시 포매터 — 기존 raw whitespace-pre-wrap 출력을 대체.
 //  · 내용(텍스트)은 바꾸지 않고 "표시만" 정리한다 → 기존 저장분에도 즉시 적용.
@@ -48,7 +49,7 @@ function renderInline(text: string, keyBase: number): ReactNode {
   const parts = text.split(/(\*\*.+?\*\*)/g)
   return parts.map((p, i) =>
     /^\*\*.+\*\*$/.test(p) ? (
-      <strong key={`${keyBase}-${i}`} className="font-semibold text-ink">
+      <strong key={`${keyBase}-${i}`} className="font-semibold text-b27-ink">
         {p.slice(2, -2)}
       </strong>
     ) : (
@@ -97,12 +98,12 @@ export default function InsightContent({
           <div key={key++} className="space-y-3">
             {ordered.map((it, j) => (
               <div key={j}>
-                <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${PRAYER_BADGE[it.label] ?? 'bg-surface-subtle text-muted'}`}>
+                <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${PRAYER_BADGE[it.label] ?? 'bg-b27-card text-b27-muted'}`}>
                   {it.label}
                 </span>
                 <p className="mt-1">{renderInline(it.body, key * 100 + j)}</p>
                 {it.brief && (
-                  <p className="mt-1.5 rounded-lg bg-surface-subtle px-3 py-2 text-sm text-muted">
+                  <p className="mt-1.5 rounded-lg bg-b27-card px-3 py-2 text-sm text-b27-muted">
                     {renderInline(it.brief, key * 100 + j + 50)}
                   </p>
                 )}
@@ -114,14 +115,14 @@ export default function InsightContent({
         // 비서 "이번 주 우선"과 동일 톤: 흰 박스 + accent 칩으로 기도제목을 음영 강조
         blocks.push(
           <div key={key++} className="mt-3 rounded-xl bg-white px-3.5 py-3">
-            <span className="inline-block rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-on-accent">
+            <span className="inline-block rounded-full bg-b27-ink px-2 py-0.5 text-[11px] font-semibold text-on-accent">
               기도제목
             </span>
             <ul className="mt-2 space-y-1.5">
               {ordered.map((it, j) => (
                 <li key={j}>
-                  <strong className="font-semibold text-ink">{it.label}</strong>
-                  <span className="text-faint"> · </span>
+                  <strong className="font-semibold text-b27-ink">{it.label}</strong>
+                  <span className="text-b27-muted"> · </span>
                   {renderInline(it.body, key * 100 + j)}
                 </li>
               ))}
@@ -145,7 +146,7 @@ export default function InsightContent({
         <div key={key++} className="space-y-3">
           {group.map((it, j) => (
             <div key={j}>
-              <strong className="font-semibold text-ink">{it.date}</strong>
+              <strong className="font-semibold text-b27-ink">{it.date}</strong>
               <p className="mt-0.5">{renderInline(it.body, key * 100 + j)}</p>
             </div>
           ))}
@@ -174,7 +175,7 @@ export default function InsightContent({
         }
       }
       blocks.push(
-        <p key={key++} className="font-semibold text-ink">
+        <p key={key++} className="font-semibold text-b27-ink">
           {trimmed}
         </p>,
       )
@@ -185,7 +186,7 @@ export default function InsightContent({
     // 4b) 【…부…】(부제가 뒤따라도) 제목 줄 → 볼드
     if (/^【[^】]*】/.test(trimmed)) {
       blocks.push(
-        <p key={key++} className="font-semibold text-ink">
+        <p key={key++} className="font-semibold text-b27-ink">
           {trimmed}
         </p>,
       )
@@ -198,10 +199,10 @@ export default function InsightContent({
     if (assistPick) {
       blocks.push(
         <div key={key++} className="mt-3 rounded-xl bg-white px-3.5 py-3">
-          <span className="inline-block rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-on-accent">
+          <span className="inline-block rounded-full bg-b27-ink px-2 py-0.5 text-[11px] font-semibold text-on-accent">
             {assistPick[1]}
           </span>
-          <p className="mt-1.5 text-ink">{renderInline(assistPick[2], key * 100)}</p>
+          <p className="mt-1.5 text-b27-ink">{renderInline(assistPick[2], key * 100)}</p>
         </div>,
       )
       i++
@@ -211,7 +212,7 @@ export default function InsightContent({
     // 6) 소제목(줄 전체가 **…**) → 타이틀 스타일로 본문과 구분
     if (/^\*\*.+\*\*$/.test(trimmed)) {
       blocks.push(
-        <p key={key++} className="mt-3.5 text-[15px] font-bold leading-snug text-ink first:mt-0">
+        <p key={key++} className="mt-3.5 text-[15px] font-semibold leading-snug text-b27-ink first:mt-0">
           {trimmed.slice(2, -2)}
         </p>,
       )
@@ -222,7 +223,7 @@ export default function InsightContent({
     // 6b) Letter 발행호수(MFH #YYMM) → 크게 볼드
     if (domain === 'letter' && /^MFH\s*#/.test(trimmed)) {
       blocks.push(
-        <p key={key++} className="text-[19px] font-bold tracking-tight text-ink">
+        <p key={key++} className="text-[19px] font-semibold tracking-tight text-b27-ink">
           {trimmed}
         </p>,
       )

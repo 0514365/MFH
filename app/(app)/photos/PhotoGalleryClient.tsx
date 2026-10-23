@@ -1,4 +1,5 @@
 'use client'
+// MFH-PHOTO-GALLERY-CLIENT-V4 — 2027(4-6): theme-2027 · 남색 글자 · 연회색/페리윙클 면 · 강조 = 진한 페리윙클 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-PHOTO-GALLERY-CLIENT-V3
 // 월 선택 → 사역 분류별 사진 그리드.
 //  · 기본: 사진을 탭하면 라이트박스로 크게 보기. '선택' 모드에서만 다중선택 → ZIP 내보내기.
@@ -9,7 +10,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import JSZip from 'jszip'
-import { JOURNAL_CATEGORIES } from '@/lib/constants'
+import { JOURNAL_CATEGORIES, JOURNAL_CATEGORY_BLOCK } from '@/lib/constants'
 import { createClient } from '@/lib/supabase-browser'
 import { canEditEntry } from '@/lib/members'
 import { downloadFile, filenameFromPathOrUrl } from '@/lib/download'
@@ -254,22 +255,22 @@ export default function PhotoGalleryClient({
         <button
           onClick={() => changeMonth(-1)}
           aria-label="이전 달"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-muted transition hover:border-primary"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-b27-muted transition active:opacity-60"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
         <div className="min-w-0 flex-1">
-          <div className="text-[22px] font-semibold tracking-tight text-ink">{monthLabel}</div>
-          <div className="mt-0.5 text-[12px] text-muted">
+          <div className="font-num text-[20px] font-semibold text-b27-ink">{monthLabel}</div>
+          <div className="mt-0.5 text-[12px] text-b27-muted">
             일지 {entryCount}건 · 사진 {items.length}장
           </div>
         </div>
         <button
           onClick={() => changeMonth(1)}
           aria-label="다음 달"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-muted transition hover:border-primary"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-b27-muted transition active:opacity-60"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6" />
@@ -279,45 +280,45 @@ export default function PhotoGalleryClient({
 
       {/* 도구 막대 — 기본: 안내 + '선택' / 선택 모드: 다중선택 도구 */}
       {items.length > 0 && (
-        <div className="sticky top-[64px] z-10 mt-5 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface/95 px-3 py-2 backdrop-blur">
+        <div className="sticky top-[52px] z-10 mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-b27-card px-3 py-2">
           {!selecting ? (
             <>
-              <span className="text-xs text-muted">사진을 탭하면 크게 보고 캡션을 넣을 수 있어요</span>
+              <span className="text-xs text-b27-muted">사진을 탭하면 크게 보고 캡션을 넣을 수 있어요</span>
               <button
                 onClick={() => setSelecting(true)}
-                className="ml-auto rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent transition hover:opacity-80"
+                className="ml-auto rounded-full bg-b27-paper px-3 py-1 text-xs font-medium text-b27-ink transition active:opacity-70"
               >
                 선택
               </button>
             </>
           ) : (
             <>
-              <span className="text-xs text-muted">
+              <span className="text-xs text-b27-muted">
                 {selCount > 0 ? `${selCount}장 선택됨` : '사진을 탭해 선택'}
               </span>
               <button
                 onClick={selectAll}
-                className="rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition hover:border-primary"
+                className="rounded-full bg-b27-paper px-3 py-1 text-xs text-b27-ink transition active:opacity-70"
               >
                 전체 선택
               </button>
               <button
                 onClick={clearSel}
                 disabled={selCount === 0}
-                className="rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition hover:border-primary disabled:opacity-40"
+                className="rounded-full bg-b27-paper px-3 py-1 text-xs text-b27-ink transition active:opacity-70 disabled:opacity-40"
               >
                 해제
               </button>
               <button
                 onClick={exportZip}
                 disabled={busy || selCount === 0}
-                className="ml-auto rounded-full bg-accent px-3.5 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+                className="ml-auto rounded-full bg-b27-ink px-3.5 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-50"
               >
                 {busy ? '내보내는 중…' : 'ZIP 내보내기'}
               </button>
               <button
                 onClick={exitSelect}
-                className="rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition hover:border-primary"
+                className="rounded-full bg-b27-paper px-3 py-1 text-xs text-b27-ink transition active:opacity-70"
               >
                 완료
               </button>
@@ -325,20 +326,29 @@ export default function PhotoGalleryClient({
           )}
         </div>
       )}
-      {msg && <p className="mt-2 text-xs text-muted">{msg}</p>}
+      {msg && <p className="mt-2 text-xs text-b27-muted">{msg}</p>}
 
       {/* 사진 그리드 */}
       <section className="mt-5">
         {items.length === 0 ? (
-          <p className="text-xs text-faint">이 달엔 사진이 없습니다.</p>
+          <p className="text-xs text-b27-muted">이 달엔 사진이 없습니다.</p>
         ) : (
           grouped.map(([cat, list]) => (
             <div key={cat} className="mt-4">
-              <div className="mb-3 flex items-baseline gap-1.5">
-                <span className="text-[17px] font-semibold tracking-tight text-ink">{cat}</span>
-                <span className="text-[12px] font-medium text-muted">{list.length}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 @xl:grid-cols-4">
+              {(() => {
+                const n = JOURNAL_CATEGORY_BLOCK[cat] ?? 1
+                return (
+                  <div
+                    className="mb-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[13px] font-semibold"
+                    style={{ background: `var(--b27-tint-${n})`, color: `var(--b27-deep-${n})` }}
+                  >
+                    <span className="inline-block h-2 w-2 rounded-[2px]" style={{ background: `var(--b27-block-${n})` }} aria-hidden="true" />
+                    {cat}
+                    <span className="font-num font-medium text-b27-muted">{list.length}</span>
+                  </div>
+                )
+              })()}
+              <div className="grid grid-cols-3 gap-[3px] overflow-hidden rounded-[14px] @xl:grid-cols-4">
                 {list.map((p) => {
                   const on = selected.has(p.path)
                   const badge = SOURCE_CFG[p.source].label
@@ -357,12 +367,12 @@ export default function PhotoGalleryClient({
                         decoding="async"
                         className={
                           on
-                            ? 'aspect-square w-full rounded-2xl border-2 border-accent object-cover'
-                            : 'aspect-square w-full rounded-2xl border border-line object-cover transition group-hover:opacity-90'
+                            ? 'aspect-square w-full rounded-2xl border-2 border-b27-ink object-cover'
+                            : 'aspect-square w-full rounded-2xl border border-b27-line object-cover transition group-hover:opacity-90'
                         }
                       />
                       {badge && (
-                        <span className="absolute left-1.5 top-1.5 rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-semibold text-ink shadow-sm">
+                        <span className="absolute left-1.5 top-1.5 rounded-full bg-white/90 px-2 py-0.5 text-[9.5px] font-medium text-b27-ink">
                           {badge}
                         </span>
                       )}
@@ -370,19 +380,19 @@ export default function PhotoGalleryClient({
                         <span
                           className={
                             on
-                              ? 'absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white'
+                              ? 'absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-b27-ink text-[11px] font-semibold text-white'
                               : 'absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-white/80 bg-black/20 text-[11px] text-white'
                           }
                         >
                           {on ? '✓' : ''}
                         </span>
                       )}
-                      <div className="mt-1 truncate text-[10px] text-faint">
+                      <div className="mt-1 truncate text-[10px] text-b27-muted">
                         {p.date}
                         {p.takenAt && p.takenAt !== p.date ? ` · 촬영 ${p.takenAt}` : ''}
                       </div>
                       {p.caption && (
-                        <div className="truncate text-[10px] leading-snug text-muted">{p.caption}</div>
+                        <div className="truncate text-[10px] leading-snug text-b27-muted">{p.caption}</div>
                       )}
                     </button>
                   )
@@ -424,15 +434,15 @@ export default function PhotoGalleryClient({
               ✕
             </button>
 
-            <div className="mt-2 rounded-lg bg-surface px-3 py-2">
+            <div className="mt-2 rounded-xl bg-b27-card px-3 py-2">
               {!editingCaption ? (
                 <>
                   {lightbox.caption ? (
-                    <p className="text-sm text-ink">{lightbox.caption}</p>
+                    <p className="text-sm text-b27-ink">{lightbox.caption}</p>
                   ) : (
-                    <p className="text-sm text-faint">캡션이 없습니다.</p>
+                    <p className="text-sm text-b27-muted">캡션이 없습니다.</p>
                   )}
-                  <p className="mt-0.5 text-xs text-muted">
+                  <p className="mt-0.5 text-xs text-b27-muted">
                     {lightbox.date}
                     {lightbox.takenAt && lightbox.takenAt !== lightbox.date
                       ? ` · 촬영 ${lightbox.takenAt}`
@@ -445,7 +455,7 @@ export default function PhotoGalleryClient({
                   {canEditEntry(lightbox.ownerId, currentUserId) && (
                     <button
                       onClick={startEditCaption}
-                      className="mt-2 text-xs font-semibold text-accent underline"
+                      className="mt-2 text-xs font-semibold text-[#303C8D] underline"
                     >
                       캡션 {lightbox.manualCaption ? '수정' : '직접 입력'}
                     </button>
@@ -459,24 +469,24 @@ export default function PhotoGalleryClient({
                     rows={2}
                     placeholder="사진 설명을 입력하세요"
                     autoFocus
-                    className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary"
+                    className="w-full rounded-lg bg-b27-paper px-3 py-2 text-sm text-b27-ink outline-none"
                   />
                   {lightbox.aiCaption && (
-                    <p className="text-[11px] text-faint">AI 캡션: {lightbox.aiCaption}</p>
+                    <p className="text-[11px] text-b27-muted">AI 캡션: {lightbox.aiCaption}</p>
                   )}
-                  {captionMsg && <p className="text-[11px] text-danger">{captionMsg}</p>}
+                  {captionMsg && <p className="text-[11px] text-b27-expense">{captionMsg}</p>}
                   <div className="flex items-center gap-2">
                     <button
                       onClick={saveCaption}
                       disabled={savingCaption}
-                      className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                      className="rounded-lg bg-b27-ink px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
                     >
                       {savingCaption ? '저장 중…' : '저장'}
                     </button>
                     <button
                       onClick={() => setEditingCaption(false)}
                       disabled={savingCaption}
-                      className="rounded-lg border border-line px-3 py-1.5 text-xs text-muted transition hover:border-primary disabled:opacity-50"
+                      className="rounded-full bg-b27-paper px-3 py-1.5 text-xs text-b27-ink transition active:opacity-70 disabled:opacity-50"
                     >
                       취소
                     </button>

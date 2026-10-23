@@ -1,3 +1,4 @@
+// MFH-PHOTOS-PAGE-V2 — 2027(4-6): theme-2027 · 남색 글자 · 연회색/페리윙클 면 · 강조 = 진한 페리윙클 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-PHOTOS-PAGE-V1
 // 사진 모아보기 — 월별 일지 사진(Signed URL)을 사역 분류별 그리드로. 다중선택 → ZIP 내보내기.
 // 캡션(ai_caption)은 Phase 3 Local 루틴이 비전 분석으로 생성. 텍스트·편지 재료 없음(Phase 1 폐기).
@@ -8,7 +9,6 @@ import { isImageAttachment, taskAttachmentDate, projectAttachmentDate } from '@/
 import type { JournalPhoto, Attachment } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import PhotoGalleryClient, { type PhotoItem } from './PhotoGalleryClient'
-import '@/app/p/portfolio-theme.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -168,7 +168,7 @@ export default async function PhotosPage(props: {
   await collectAttachmentPhotos('projects', 'project', projectAttachmentDate)
 
   return (
-    <main className="app-theme mx-auto max-w-2xl px-5 pb-8">
+    <main className="theme-2027 mx-auto max-w-2xl px-5 pb-8">
       <PageHeader title="Photos" current="photos" />
       <PhotoGalleryClient
         month={month}
