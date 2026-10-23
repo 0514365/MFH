@@ -1,4 +1,5 @@
 'use client';
+// MFH-PORTFOLIO-MISSIONARY-ACCORDION-V4 — 2027: 테두리 카드 → 연회색 면, 약력 보기 = 흰 알약.
 // MFH-PORTFOLIO-MISSIONARY-ACCORDION-V3
 // 선교사 소개 접이식. 서버부모(PortfolioView)가 데이터를 props 로 주입하는 클라이언트 자식.
 // 접힘(기본): 부부사진 1장 + 짧은 개요(coupleIntro) + "약력 보기 ▾"
@@ -29,7 +30,7 @@ export default function MissionaryAccordion({ couplePhotoUrl, coupleIntro, a, b 
   const hasBio = Boolean((a.name && a.bio) || (b.name && b.bio) || a.name || b.name);
 
   return (
-    <div className="rounded-lg border border-line bg-surface p-4 min-[740px]:p-5">
+    <div className="pf-face rounded-2xl bg-surface-subtle p-4 min-[740px]:p-5">
       {/* 접힘 헤더: 부부사진 + 개요 */}
       <div className="flex gap-4">
         {couplePhotoUrl ? (
@@ -37,12 +38,11 @@ export default function MissionaryAccordion({ couplePhotoUrl, coupleIntro, a, b 
           <img
             src={couplePhotoUrl}
             alt={names || '선교사 부부'}
-            className="h-[125px] w-[125px] flex-shrink-0 rounded-lg object-cover min-[1100px]:h-[146px] min-[1100px]:w-[146px]"
+            className="h-[125px] w-[125px] flex-shrink-0 rounded-xl object-cover min-[1100px]:h-[146px] min-[1100px]:w-[146px]"
           />
         ) : (
           <div
-            className="flex h-[125px] w-[125px] flex-shrink-0 items-center justify-center rounded-lg text-xs text-muted min-[1100px]:h-[146px] min-[1100px]:w-[146px]"
-            style={{ background: 'var(--primary-soft)' }}
+            className="flex h-[125px] w-[125px] flex-shrink-0 items-center justify-center rounded-xl bg-surface text-xs text-muted min-[1100px]:h-[146px] min-[1100px]:w-[146px]"
           >
             사진
           </div>
@@ -63,7 +63,7 @@ export default function MissionaryAccordion({ couplePhotoUrl, coupleIntro, a, b 
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-surface-subtle py-2.5 text-sm font-medium text-primary transition hover:border-primary"
+          className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-full bg-surface py-2.5 font-num text-sm font-semibold text-primary transition active:opacity-80"
         >
           {open ? '약력 접기' : '약력 보기'}
           <span aria-hidden className={`transition-transform ${open ? 'rotate-180' : ''}`}>

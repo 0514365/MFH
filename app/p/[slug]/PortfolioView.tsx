@@ -1,3 +1,4 @@
+// MFH-PORTFOLIO-VIEW-V9 — 2027: 히어로 둥근 면(테두리 없음) · 폴백 남색 · 사역소개영상/후원방법 = 알약·연회색 면 · 섹션 머리 색 사각형(CSS).
 // MFH-PORTFOLIO-VIEW-V8
 // 공개 readonly 뷰. 모바일(<740) / 태블릿(740~1099) / 데스크탑(>=1100) 3단계 반응형.
 // V6: 섹션 순서 변경 — 선교편지(LetterSection)를 사역 영상(VideoSummary) 위로 이동.
@@ -35,7 +36,7 @@ type Props = {
 export default function PortfolioView({ portfolio: p, history, videoCategories = [], videos = [], letters = [] }: Props) {
   const heroBg = p.hero_image_url
     ? { backgroundImage: `url(${p.hero_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : { background: 'linear-gradient(135deg, #661F20 0%, #B61821 100%)' };
+    : { background: 'var(--b27-ink)' };
 
   const taglineNames = [p.missionary_a_name, p.missionary_b_name].filter(Boolean).join(' · ');
 
@@ -47,7 +48,7 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
       <div className="mx-auto max-w-6xl px-4 py-6 min-[740px]:px-6 min-[740px]:py-8 min-[1100px]:px-8">
 
         {/* HERO: 가로 긴 배너 + 우하단 흰색 로고 / 선교사명 */}
-        <section className="relative overflow-hidden rounded-xl border border-line">
+        <section className="relative overflow-hidden rounded-2xl">
           <div
             className="h-[220px] w-full min-[740px]:h-[340px] min-[1100px]:h-[420px]"
             style={heroBg}
@@ -122,7 +123,7 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
                   href={youtubeWatchUrl(p.intro_video_url) ?? '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-primary transition hover:border-primary"
+                  className="pf-btn pf-btn--pill flex-shrink-0"
                 >
                   <span
                     className="flex h-[18px] w-[18px] items-center justify-center rounded-full"
@@ -183,9 +184,9 @@ export default function PortfolioView({ portfolio: p, history, videoCategories =
         <footer className="mt-10 border-t border-line pt-7 min-[740px]:mt-12">
           {/* 후원방법 (donation_info 있을 때만) — 제목 + 계좌 한 행, 계좌는 볼드 */}
           {p.donation_info && p.donation_info.trim() && (
-            <div className="mx-auto flex max-w-xl flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-xl border border-line bg-surface px-5 py-4">
-              <h2 className="flex-shrink-0 pf-section-title">후원방법</h2>
-              <p className="whitespace-pre-line text-sm font-bold leading-relaxed text-ink">
+            <div className="mx-auto flex max-w-xl flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-2xl bg-surface-subtle px-5 py-4">
+              <h2 className="flex-shrink-0 font-num text-[15px] font-semibold text-ink">후원방법</h2>
+              <p className="whitespace-pre-line font-num text-sm font-semibold leading-relaxed text-ink">
                 {p.donation_info}
               </p>
             </div>

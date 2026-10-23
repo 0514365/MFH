@@ -1,3 +1,4 @@
+// MFH-PORTFOLIO-VIDEO-SUMMARY-V5 — 2027: 라군 색 사각형 머리, 전체 보기 = 연회색 알약.
 // MFH-PORTFOLIO-VIDEO-SUMMARY-V4
 // 메인 공개페이지의 "사역 영상" = 사역 구분별 카드 그리드.
 // 카드 클릭 → /p/[slug]/videos#cat-<카테고리id> (영상 목록 페이지의 해당 그룹으로 점프).
@@ -34,7 +35,7 @@ export default function VideoSummary({ slug, categories, videos }: Props) {
   return (
     <section className="mt-8 min-[740px]:mt-10">
       <div className="flex items-center justify-between gap-3">
-        <div className="pf-section-head">
+        <div className="pf-section-head pf-dot-1">
           <h2 className="pf-section-title">사역 영상</h2>
           <p className="pf-section-sub">Ministry in action</p>
         </div>

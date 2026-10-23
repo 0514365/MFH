@@ -1,3 +1,4 @@
+// MFH-PORTFOLIO-VIDEO-SECTION-V6 — 2027: 라군 색 사각형 머리·소제목, 그림자 없는 카드.
 // MFH-PORTFOLIO-VIDEO-SECTION-V5
 // 공개 readonly 사역 영상 섹션 — 카테고리별 그룹 + Airbnb 카드 그리드(1/2/3/4열).
 // 클릭 시 새 탭 watch.
@@ -43,7 +44,7 @@ export default function VideoSection({ categories, videos, showHeader = true }: 
   return (
     <section className="mt-4 min-[740px]:mt-5">
       {showHeader && (
-        <div className="pf-section-head">
+        <div className="pf-section-head pf-dot-1">
           <h2 className="pf-section-title">사역 영상</h2>
           <p className="pf-section-sub">Ministry in action</p>
         </div>
@@ -51,7 +52,7 @@ export default function VideoSection({ categories, videos, showHeader = true }: 
       <div className={`${showHeader ? 'mt-4' : ''} space-y-9`}>
         {groups.map((g) => (
           <div key={g.key} id={`cat-${g.key}`} className="scroll-mt-6 min-[740px]:scroll-mt-8">
-            <h3 className="pf-group-title mb-4 flex items-center gap-2">
+            <h3 className="pf-group-title pf-dot-1 mb-4">
               {g.name}
               <span className="pf-count-badge">{g.items.length}개</span>
             </h3>

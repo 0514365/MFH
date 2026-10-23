@@ -1,3 +1,4 @@
+// MFH-LOGIN-V2 — 2027 Minimal Block: 로고(현재 색) + Manrope 제목 + 연회색 입력 면 + 터키석 알약 로그인(행동색).
 'use client'
 
 import { useState } from 'react'
@@ -33,36 +34,34 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6">
-      <p className="font-display text-xs font-semibold tracking-[0.25em] text-accent">
-        MISSION FOR HONDURAS
-      </p>
-      <h1 className="font-display text-4xl font-extrabold text-primary">MFH</h1>
-      <p className="mb-8 mt-1 text-sm text-muted">로그인</p>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo-primary.svg" alt="MFH — Mission for Honduras" className="mb-7 h-10 w-auto self-start" />
+      <h1 className="mb-6 font-num text-[17px] font-semibold text-b27-ink">로그인</h1>
 
-      <label className="mb-1 block text-xs text-muted">이메일</label>
+      <label className="mb-1.5 block text-xs text-b27-muted">이메일</label>
       <input
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="honduras0691@gmail.com"
-        className="mb-4 w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary"
+        className="mb-4 w-full rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink outline-none placeholder:text-b27-muted focus:ring-2 focus:ring-inset focus:ring-b27-ink"
       />
 
-      <label className="mb-1 block text-xs text-muted">비밀번호</label>
+      <label className="mb-1.5 block text-xs text-b27-muted">비밀번호</label>
       <input
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder="••••••••"
-        className="mb-6 w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary"
+        className="mb-6 w-full rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink outline-none placeholder:text-b27-muted focus:ring-2 focus:ring-inset focus:ring-b27-ink"
       />
 
-      {error && <p className="mb-4 text-sm text-danger">{error}</p>}
+      {error && <p className="mb-4 text-sm text-b27-expense">{error}</p>}
 
       <button
         onClick={signIn}
         disabled={loading}
-        className="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
+        className="w-full rounded-full bg-b27-plus py-3 font-num text-sm font-semibold text-white transition active:opacity-80 disabled:opacity-50"
       >
         {loading ? '로그인 중…' : '로그인'}
       </button>

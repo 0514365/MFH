@@ -1,3 +1,4 @@
+// MFH-PORTFOLIO-LETTER-SECTION-V12 — 2027: 로즈 색 사각형 머리 · 최신 배지 = 로즈 틴트 · 최신 편지 = 연회색 면 + 흰 요약 면 · 테두리 없음.
 // MFH-PORTFOLIO-LETTER-SECTION-V11
 // V11: 인사 카드(kind='card')는 최신 선교편지·연도 대표 표지에서 제외(latestIssue) — 목록에는 그대로.
 // 공개 페이지 선교편지 섹션. ① 최신 선교편지(표지 + 요약 기도문) ② 년도별 카드 그리드.
@@ -29,7 +30,7 @@ export default function LetterSection({ letters, slug }: Props) {
 
   return (
     <section className="mt-8 min-[740px]:mt-10">
-      <div className="pf-section-head">
+      <div className="pf-section-head pf-dot-6">
         <h2 className="pf-section-title">선교편지</h2>
         <p className="pf-section-sub">Letters from Honduras</p>
       </div>
@@ -39,7 +40,7 @@ export default function LetterSection({ letters, slug }: Props) {
 
       {/* ② 년도별 카드 그리드 → 전체 페이지의 해당 연도로 점프 */}
       <div className="mt-7 flex items-center justify-between gap-3">
-        <div className="pf-section-head">
+        <div className="pf-section-head pf-dot-6">
           <h2 className="pf-section-title">선교편지 목록</h2>
           <p className="pf-section-sub">Letter archive</p>
         </div>
@@ -68,7 +69,7 @@ export default function LetterSection({ letters, slug }: Props) {
               >
                 {!cover && <span className="pf-media__ph">편지</span>}
               </div>
-              <div className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-ink">
+              <div className="mt-1.5 flex items-center gap-1.5 font-num text-sm font-semibold text-ink">
                 {g.year}년
                 <span className="pf-count-badge">{g.letters.length}편</span>
               </div>
@@ -90,17 +91,17 @@ function LatestLetter({ letter: l }: { letter: LetterWithUrls }) {
 
   const titleRow = (
     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-      <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-white">
+      <span className="rounded-full bg-b27-tint-6 px-2 py-0.5 font-num text-[11px] font-semibold" style={{ color: 'var(--b27-deep-6)' }}>
         최신 선교편지
       </span>
-      <span className="text-base font-bold text-ink min-[740px]:text-lg">{l.title}</span>
+      <span className="text-base font-semibold text-ink min-[740px]:text-lg">{l.title}</span>
       {meta && <span className="text-xs text-muted">{meta}</span>}
     </div>
   );
 
   const prayer =
     l.summary && l.summary.trim() ? (
-      <div className="rounded-lg border border-line bg-surface-subtle p-3">
+      <div className="rounded-xl bg-surface p-3">
         <p className="whitespace-pre-line text-sm leading-relaxed text-ink">{l.summary}</p>
       </div>
     ) : null;
@@ -140,7 +141,7 @@ function LatestLetter({ letter: l }: { letter: LetterWithUrls }) {
     );
 
   return (
-    <div className="mt-4 rounded-xl border border-line bg-surface p-4">
+    <div className="pf-face mt-4 rounded-2xl bg-surface-subtle p-4">
       {/* 데스크탑·태블릿(≥740): 표지(클릭=PDF) 좌 + 우측 칼럼(제목·요약) */}
       <div className="hidden gap-5 min-[740px]:flex">
         {cover('w-[150px]')}
@@ -184,7 +185,7 @@ function LetterCover({
           className="flex h-full w-full items-center justify-center"
           style={{ background: 'var(--surface-subtle)' }}
         >
-          <span className={`text-faint ${small ? 'text-[9px] font-bold' : 'text-2xl'}`} aria-hidden>
+          <span className={`font-num text-faint ${small ? 'text-[9px] font-semibold' : 'text-2xl font-semibold'}`} aria-hidden>
             {video ? '영상' : 'PDF'}
           </span>
         </div>
@@ -202,7 +203,7 @@ function LetterCover({
         </span>
       )}
       {!small && l.number && (
-        <span className="absolute right-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+        <span className="absolute right-1.5 top-1.5 rounded-md px-1.5 py-0.5 font-num text-[10px] font-semibold text-white" style={{ background: 'rgba(43,49,96,0.72)' }}>
           No.{l.number}
         </span>
       )}

@@ -1,3 +1,4 @@
+// MFH-OWNER-BAR-V2 — 2027: 마룬 면 → 흰 바탕 + 남색 글자 + 아래 선, 편집 = 연회색 알약.
 // MFH-OWNER-BAR-V1
 // 공개 포트폴리오(/p/*) 최상단 관리자 전용 바.
 // 로그인한 멤버에게만 표시(userId 없으면 null → 일반 방문자에겐 안 보임 = 공개 페이지는 깔끔하게 유지).
@@ -13,12 +14,12 @@ export default function OwnerBar({ userId }: { userId: string | null }) {
   const isOwner = userId === PORTFOLIO_OWNER_ID
 
   return (
-    <div className="sticky top-0 z-50 border-b border-white/15 bg-primary text-white">
+    <div className="sticky top-0 z-50 border-b border-b27-line bg-white text-b27-ink">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-1.5 min-[740px]:px-6 min-[1100px]:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/"
-            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm font-semibold transition hover:bg-white/10"
+            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-2 py-1 font-num text-sm font-semibold transition hover:bg-b27-card"
           >
             <svg
               width="16"
@@ -36,7 +37,7 @@ export default function OwnerBar({ userId }: { userId: string | null }) {
             </svg>
             MFH 홈
           </Link>
-          <span className="hidden truncate text-[11px] font-medium tracking-wide text-white/60 min-[480px]:inline">
+          <span className="hidden truncate font-num text-[11px] font-medium text-b27-muted min-[480px]:inline">
             관리자 미리보기
           </span>
         </div>
@@ -44,7 +45,7 @@ export default function OwnerBar({ userId }: { userId: string | null }) {
         {isOwner && (
           <Link
             href="/portfolio"
-            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-md border border-white/30 px-2.5 py-1 text-sm font-semibold transition hover:bg-white/10"
+            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-b27-card px-3 py-1 font-num text-sm font-semibold transition active:opacity-80"
           >
             포트폴리오 편집
           </Link>

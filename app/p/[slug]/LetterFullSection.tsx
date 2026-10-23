@@ -1,3 +1,4 @@
+// MFH-PORTFOLIO-LETTER-FULL-SECTION-V2 — 2027: 연도 소제목 로즈 색 사각형.
 // MFH-PORTFOLIO-LETTER-FULL-SECTION-V1
 // /p/[slug]/letters 전용 — 년도별 전체 선교편지 카드 그리드 + 연도 앵커(id="year-YYYY").
 // 메인(/p/[slug])의 "선교편지 목록" 연도 카드에서 #year-YYYY 로 진입(scroll-mt 여백).
@@ -24,7 +25,7 @@ export default function LetterFullSection({ letters }: Props) {
     <div className="mt-4 space-y-9">
       {groups.map((g) => (
         <div key={g.year} id={`year-${g.year}`} className="scroll-mt-6 min-[740px]:scroll-mt-8">
-          <h3 className="pf-group-title mb-4 flex items-center gap-2">
+          <h3 className="pf-group-title pf-dot-6 mb-4">
             {g.year}년
             <span className="pf-count-badge">{g.letters.length}편</span>
           </h3>

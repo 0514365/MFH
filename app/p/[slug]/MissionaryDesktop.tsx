@@ -1,3 +1,4 @@
+// MFH-PORTFOLIO-MISSIONARY-DESKTOP-V3 — 2027: 테두리 카드 → 연회색 면, 요약 글상자 = 흰 면.
 // MFH-PORTFOLIO-MISSIONARY-DESKTOP-V2
 // 데스크탑(≥1100) 전용 선교사 소개 레이아웃. 서버 컴포넌트(상태 없음).
 // 좌: 부부 사진(우측 콘텐츠 높이에 맞춰 stretch). 우: 상단 요약 글상자(가로 전체) + 약력 2열(A | B).
@@ -20,7 +21,7 @@ export default function MissionaryDesktop({ couplePhotoUrl, coupleIntro, a, b }:
   const names = [a.name, b.name].filter(Boolean).join(' · ');
 
   return (
-    <div className="rounded-lg border border-line bg-surface p-6">
+    <div className="rounded-2xl bg-surface-subtle p-6">
       <div className="grid grid-cols-[340px_1fr] items-stretch gap-7">
         {/* 좌: 부부 사진 (우측 높이에 맞춰 stretch) */}
         <div className="min-h-[360px]">
@@ -29,12 +30,11 @@ export default function MissionaryDesktop({ couplePhotoUrl, coupleIntro, a, b }:
             <img
               src={couplePhotoUrl}
               alt={names || '선교사 부부'}
-              className="h-full w-full rounded-lg object-cover"
+              className="h-full w-full rounded-xl object-cover"
             />
           ) : (
             <div
-              className="flex h-full w-full items-center justify-center rounded-lg text-sm text-muted"
-              style={{ background: 'var(--primary-soft)' }}
+              className="flex h-full w-full items-center justify-center rounded-xl bg-surface text-sm text-muted"
             >
               부부 사진
             </div>
@@ -44,7 +44,7 @@ export default function MissionaryDesktop({ couplePhotoUrl, coupleIntro, a, b }:
         {/* 우: 요약 글상자 + 약력 2열 */}
         <div className="min-w-0">
           {coupleIntro && (
-            <div className="rounded-lg border border-line bg-surface-subtle p-4 text-[15px] leading-relaxed text-ink">
+            <div className="rounded-xl bg-surface p-4 text-[15px] leading-relaxed text-ink">
               {coupleIntro}
             </div>
           )}

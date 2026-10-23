@@ -1,4 +1,5 @@
 'use client';
+// MFH-PORTFOLIO-SHARE-BUTTON-V2 — 2027: 테두리 버튼 → 연회색 알약(pf-btn).
 // MFH-PORTFOLIO-SHARE-BUTTON-V1
 // 공개 포트폴리오 주소공유 버튼(헤더 우측). 서버부모 BrandBar 의 client 자식.
 // 동작: navigator.share(모바일 네이티브 공유) 우선 → 미지원 시 클립보드 복사 + "복사됨" 피드백.
@@ -40,7 +41,7 @@ export default function ShareButton() {
       type="button"
       onClick={onShare}
       aria-label="페이지 주소 공유"
-      className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-primary transition hover:border-primary min-[740px]:text-sm"
+      className="pf-btn pf-btn--pill flex-shrink-0 min-[740px]:text-[13px]"
     >
       <svg viewBox="0 0 24 24" fill="none" aria-hidden className="h-4 w-4">
         <path

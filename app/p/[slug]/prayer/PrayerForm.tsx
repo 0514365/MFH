@@ -1,4 +1,5 @@
 'use client'
+// MFH-PRAYER-FORM-V2 — 2027: 제목 Manrope 600 · 빨간 ‹ 돌아가기 · 입력 연회색 면 · 보내기 = 터키석 알약 · 완료 원 = 민트 틴트.
 // MFH-PRAYER-FORM-V1
 // 공개페이지 방문자가 이름+메시지를 남기는 폼(anon insert). 제출 후 감사 화면.
 import { useState } from 'react'
@@ -36,17 +37,17 @@ export default function PrayerForm({ slug }: { slug: string }) {
   }
 
   const input =
-    'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
+    'w-full rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink outline-none placeholder:text-b27-muted focus:ring-2 focus:ring-inset focus:ring-b27-ink'
 
   if (done) {
     return (
       <div className="text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-soft text-primary">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-b27-tint-4" style={{ color: 'var(--b27-deep-4)' }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6 9 17l-5-5" />
           </svg>
         </div>
-        <h1 className="mt-4 font-display text-xl font-bold text-primary">감사합니다</h1>
+        <h1 className="mt-4 font-num text-xl font-semibold text-b27-ink">감사합니다</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           남겨 주신 기도와 응원이 선교사 가정에 큰 힘이 됩니다.
           <br />
@@ -54,7 +55,7 @@ export default function PrayerForm({ slug }: { slug: string }) {
         </p>
         <Link
           href={`/p/${slug}`}
-          className="mt-6 inline-block rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-muted transition hover:border-primary"
+          className="mt-6 inline-block rounded-full bg-b27-card px-4 py-2.5 font-num text-sm font-semibold text-b27-ink transition active:opacity-80"
         >
           ← 포트폴리오로 돌아가기
         </Link>
@@ -64,10 +65,10 @@ export default function PrayerForm({ slug }: { slug: string }) {
 
   return (
     <div>
-      <Link href={`/p/${slug}`} className="text-xs font-semibold text-muted underline">
-        ← 포트폴리오로
+      <Link href={`/p/${slug}`} className="font-num text-[13px] font-semibold text-b27-expense">
+        ‹ 포트폴리오로
       </Link>
-      <h1 className="mt-3 font-display text-2xl font-extrabold text-primary">중보기도</h1>
+      <h1 className="mt-3 font-num text-2xl font-semibold text-b27-ink">중보기도</h1>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         선교사 가정을 위한 기도제목이나 응원의 말을 남겨 주세요.
         <br />
@@ -98,7 +99,7 @@ export default function PrayerForm({ slug }: { slug: string }) {
       <button
         onClick={submit}
         disabled={saving}
-        className="mt-6 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+        className="mt-6 w-full rounded-full bg-b27-plus py-3 font-num text-sm font-semibold text-white transition active:opacity-80 disabled:opacity-50"
       >
         {saving ? '보내는 중…' : '기도·응원 보내기'}
       </button>

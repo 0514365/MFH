@@ -1,3 +1,4 @@
+// MFH-PORTFOLIO-VIDEOS-PAGE-V2 — 2027: 제목 Manrope 600, 돌아가기 = 연회색 알약.
 // MFH-PORTFOLIO-VIDEOS-PAGE-V1
 // /p/[slug]/videos — 공개 사역 영상 전체 목록 전용 페이지.
 // 메인(/p/[slug])의 VideoSummary "전체 영상 보기" 에서 진입. 카테고리별 전체 그리드.
@@ -61,10 +62,10 @@ export default async function PortfolioVideosPage(props: Props) {
 
       <div className="mx-auto max-w-6xl px-4 py-6 min-[740px]:px-6 min-[740px]:py-8 min-[1100px]:px-8">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-primary min-[740px]:text-3xl">사역 영상</h1>
+          <h1 className="font-num text-2xl font-semibold text-primary min-[740px]:text-3xl">사역 영상</h1>
           <Link
             href={`/p/${p.slug}`}
-            className="flex-shrink-0 rounded-md border border-line px-3.5 py-2 text-sm font-medium text-primary transition hover:border-primary"
+            className="pf-btn pf-btn--pill flex-shrink-0"
           >
             ← 포트폴리오
           </Link>

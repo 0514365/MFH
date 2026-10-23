@@ -1,3 +1,4 @@
+// MFH-PORTFOLIO-LETTERS-PAGE-V2 — 2027: 제목 Manrope 600, 돌아가기 = 연회색 알약.
 // MFH-PORTFOLIO-LETTERS-PAGE-V1
 // /p/[slug]/letters — 공개 선교편지 전체 목록 전용 페이지.
 // 메인(/p/[slug])의 "선교편지 목록" 연도 카드에서 #year-YYYY 앵커로 진입.
@@ -67,8 +68,8 @@ export default async function PortfolioLettersPage(props: Props) {
 
       <div className="mx-auto max-w-6xl px-4 py-6 min-[740px]:px-6 min-[740px]:py-8 min-[1100px]:px-8">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-ink min-[740px]:text-3xl">선교편지</h1>
-          <Link href={`/p/${p.slug}`} className="pf-btn pf-btn--outline flex-shrink-0">
+          <h1 className="font-num text-2xl font-semibold text-ink min-[740px]:text-3xl">선교편지</h1>
+          <Link href={`/p/${p.slug}`} className="pf-btn pf-btn--pill flex-shrink-0">
             ← 포트폴리오
           </Link>
         </div>

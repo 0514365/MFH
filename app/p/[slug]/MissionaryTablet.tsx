@@ -1,3 +1,4 @@
+// MFH-PORTFOLIO-MISSIONARY-TABLET-V2 — 2027: 테두리 카드 → 연회색 면, 요약 글상자 = 흰 면.
 // MFH-PORTFOLIO-MISSIONARY-TABLET-V1
 // 태블릿(740~1099, iPad) 전용 선교사 소개 레이아웃. 서버 컴포넌트(상태 없음).
 // 상단: 부부 사진(고정 정사각) + 이름·요약 글상자. 하단: 약력 2열(A | B).
@@ -20,7 +21,7 @@ export default function MissionaryTablet({ couplePhotoUrl, coupleIntro, a, b }: 
   const hasBio = Boolean((a.name || a.bio) || (b.name || b.bio));
 
   return (
-    <div className="rounded-lg border border-line bg-surface p-5">
+    <div className="rounded-2xl bg-surface-subtle p-5">
       {/* 상단: 사진 + 이름·요약 */}
       <div className="flex items-start gap-5">
         {couplePhotoUrl ? (
@@ -28,12 +29,11 @@ export default function MissionaryTablet({ couplePhotoUrl, coupleIntro, a, b }: 
           <img
             src={couplePhotoUrl}
             alt={names || '선교사 부부'}
-            className="h-[200px] w-[200px] flex-shrink-0 rounded-lg object-cover"
+            className="h-[200px] w-[200px] flex-shrink-0 rounded-xl object-cover"
           />
         ) : (
           <div
-            className="flex h-[200px] w-[200px] flex-shrink-0 items-center justify-center rounded-lg text-sm text-muted"
-            style={{ background: 'var(--primary-soft)' }}
+            className="flex h-[200px] w-[200px] flex-shrink-0 items-center justify-center rounded-xl bg-surface text-sm text-muted"
           >
             부부 사진
           </div>
@@ -42,7 +42,7 @@ export default function MissionaryTablet({ couplePhotoUrl, coupleIntro, a, b }: 
         <div className="min-w-0 flex-1">
           {names && <p className="text-lg font-semibold text-primary">{names}</p>}
           {coupleIntro && (
-            <div className="mt-2 rounded-lg border border-line bg-surface-subtle p-4 text-[15px] leading-relaxed text-ink">
+            <div className="mt-2 rounded-xl bg-surface p-4 text-[15px] leading-relaxed text-ink">
               {coupleIntro}
             </div>
           )}
