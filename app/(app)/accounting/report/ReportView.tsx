@@ -401,7 +401,7 @@ export default function ReportView({
 
       {/* 도넛 + 범례 — 조각·범례 탭 = 드릴다운(전체) / 내역(드릴다운) */}
       {legend.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-b27-line px-4 py-8 text-center text-[13px] text-b27-muted">
+        <p className="rounded-2xl bg-b27-card px-4 py-8 text-center text-[13px] text-b27-muted">
           {label} {dg ? dg.cat : kind} 기록이 없어요
         </p>
       ) : (

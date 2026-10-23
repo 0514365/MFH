@@ -21,7 +21,7 @@ export function fmtLocal(n: number, cur: string | null): string {
         : `$${a.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   return n < 0 ? `−${body}` : body
 }
-export const amtColor = (n: number) => (n > 0 ? 'text-blue-700' : n < 0 ? 'text-red-700' : 'text-ink')
+export const amtColor = (n: number) => (n > 0 ? 'text-b27-income' : n < 0 ? 'text-b27-expense' : 'text-b27-ink')
 
 type GroupKey = 'USD' | 'KRW' | 'HNL' | 'CARD'
 const GROUPS: { key: GroupKey; label: string; sub: string }[] = [

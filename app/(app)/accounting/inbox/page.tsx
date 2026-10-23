@@ -28,7 +28,7 @@ export default async function AccountingInboxPage() {
 
   if (!options || rows == null) {
     return (
-      <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-faint">
+      <p className="rounded-2xl bg-b27-card px-4 py-6 text-center text-sm text-b27-muted">
         승인대기 데이터를 불러오지 못했습니다. 잠시 후 다시 시도하세요.
       </p>
     )

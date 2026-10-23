@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-REPAY-BUTTON-V12 — 2027(회계 잔여 a): 넓은 화면 「카드 미상환」 줄 = 연한 빨강 면 + 색 사각형 · 「상환 입력」 터키석 알약 · 「잔액 0 맞춤」 흰 알약 (모달은 b 단계)
 // MFH-CARD-REPAY-BUTTON-V11 — compact 「상환」 = 터키석(행동색), 「잔액 0」 = 흰 알약(연한 빨강 면 위용)
 // MFH-CARD-REPAY-BUTTON-V10 — compact 알약 2027 톤(Manrope 500 · 연회색 면 「잔액 0」)
 // MFH-CARD-REPAY-BUTTON-V9 — compact 모드(달력 카드대금 제목 줄: 작은 「상환」·「잔액 0」 알약 버튼 + 같은 모달)
@@ -222,7 +223,7 @@ export default function CardRepayButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="h-9 rounded-lg bg-primary px-3 text-xs font-bold text-white transition hover:opacity-90"
+        className="h-8 rounded-full bg-b27-plus px-3.5 text-[12.5px] font-medium text-white transition active:opacity-80"
       >
         상환 입력
       </button>
@@ -230,7 +231,7 @@ export default function CardRepayButton({
         type="button"
         onClick={openZero}
         title="상환 후 남은 환차 잔액을 환차익/수수료 1건으로 0 맞춤"
-        className="h-9 rounded-lg border border-line px-3 text-xs font-medium text-muted transition hover:border-primary hover:text-primary"
+        className="h-8 rounded-full bg-b27-paper px-3.5 text-[12.5px] text-b27-ink transition active:opacity-70"
       >
         잔액 0 맞춤
       </button>
@@ -255,19 +256,22 @@ export default function CardRepayButton({
       ) : actionsOnly ? (
         <div className="flex justify-end gap-2">{actions}</div>
       ) : (
-      <div className="mb-4 flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-b27-expense-soft px-4 py-2.5">
         <div className="min-w-0">
-          <div className="text-[13px] font-bold text-ink">카드 미상환</div>
-          <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-muted">
+          <div className="flex items-center gap-1.5 text-[13px] font-medium text-b27-ink">
+            <i className="inline-block h-2 w-2 rounded-[2px] bg-b27-expense" aria-hidden="true" />
+            카드 미상환
+          </div>
+          <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11.5px] text-b27-muted">
             {cards.map((c) => (
               <span key={c.id}>
-                {cardLabel(c)} <b className={`font-display ${amtColor(c.balanceUsd)}`}>{fmtUsd(c.balanceUsd)}</b>
+                {cardLabel(c)} <b className={`font-num font-semibold ${amtColor(c.balanceUsd)}`}>{fmtUsd(c.balanceUsd)}</b>
               </span>
             ))}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className={`font-display text-[14px] font-bold ${amtColor(debt)}`}>{fmtUsd(debt)}</span>
+          <span className={`font-num text-[15px] font-semibold ${amtColor(debt)}`}>{fmtUsd(debt)}</span>
           {actions}
         </div>
       </div>

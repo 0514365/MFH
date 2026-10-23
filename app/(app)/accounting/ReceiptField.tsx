@@ -1,4 +1,5 @@
 'use client'
+// MFH-RECEIPT-FIELD-2027 — 회계 잔여 a: 흰 칸(연회색 폼 면 위) · 테두리·점선 제거
 // MFH-RECEIPT-FIELD-V1
 // 기록 폼 영수증 칸 — 📎 버튼(모바일: 카메라/앨범) → 1600px 축소 업로드(lib/receipt) → 썸네일 미리보기(탭 = 크게) · ✕ 제거.
 // 값은 Storage 경로 하나(acct_inout.receipt_path). 저장 전 업로드분 정리는 호출부(onChange 의 prev)가 판단한다.
@@ -53,25 +54,25 @@ export default function ReceiptField({
       <label className={labelCls}>영수증</label>
       <input ref={fileRef} type="file" accept="image/*" onChange={onPick} className="hidden" />
       {value ? (
-        <div className="flex h-9 items-center gap-1">
+        <div className="flex h-[38px] items-center gap-1">
           <button
             type="button"
             onClick={() => setZoom(true)}
-            className="h-9 w-9 overflow-hidden rounded-lg border border-line bg-line/30"
+            className="h-[38px] w-[38px] overflow-hidden rounded-xl bg-b27-paper"
             aria-label="영수증 크게 보기"
           >
             {url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={url} alt="" className="h-full w-full object-cover" />
             ) : (
-              <span className="text-[11px] text-faint">…</span>
+              <span className="text-[11px] text-b27-muted">…</span>
             )}
           </button>
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="h-9 rounded-lg border border-line px-2 text-[11px] text-muted transition hover:border-primary hover:text-primary disabled:opacity-40"
+            className="h-[38px] rounded-xl bg-b27-paper px-2.5 text-[12px] text-b27-ink transition active:opacity-70 disabled:opacity-40"
           >
             {busy ? '…' : '교체'}
           </button>
@@ -80,7 +81,7 @@ export default function ReceiptField({
             onClick={() => onChange(null, value)}
             disabled={busy}
             aria-label="영수증 제거"
-            className="h-9 w-7 rounded-lg text-sm text-faint transition hover:text-accent"
+            className="h-[38px] w-7 rounded-xl text-sm text-b27-muted transition active:text-b27-expense"
           >
             ✕
           </button>
@@ -90,12 +91,12 @@ export default function ReceiptField({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className="flex h-9 w-full items-center justify-center gap-1 rounded-lg border border-dashed border-line px-3 text-xs text-muted transition hover:border-primary hover:text-primary disabled:opacity-40 @2xl:w-auto"
+          className="flex h-[38px] w-full items-center justify-center gap-1 rounded-xl bg-b27-paper px-3 text-[12px] text-b27-ink transition active:opacity-70 disabled:opacity-40 @2xl:w-auto"
         >
           {busy ? '업로드 중…' : '📎 첨부'}
         </button>
       )}
-      {err && <p className="mt-1 text-[11px] text-accent">{err}</p>}
+      {err && <p className="mt-1 text-[11px] text-b27-expense">{err}</p>}
 
       {zoom && url && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setZoom(false)}>

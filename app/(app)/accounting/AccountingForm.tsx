@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V11 — 2027(회계 잔여 a): 폼 = 연회색 면 + 흰 입력칸 · 「새 기록/수정 중」 타이틀 알약 · 구분 4칸 = 선택 칸만 의미색 면(지출 연빨강·수입 연파랑·이체 페리윙클·조정 회색) · 저장 남색 · 최근 입력 = 타이틀 알약 + 흰 2줄 행
 // MFH-ACCOUNTING-FORM-V10 — ?gubun=이체|조정 프리필(모바일 빠른 기록의 이체·조정 버튼)
 // MFH-ACCOUNTING-FORM-V9 — 환율 입력 제거(2026-09~: 공시·마감 환율 자동, DB 트리거 patch116 가 최종 결정 · 화면은 잠정 환산 표시)
 //   통화가 다른 이체 = 「입금 금액」(입금 계좌 통화)으로 양쪽 실제 금액 기록 → 실제 교환 비율 표시. 2026-08 이전 거래 수정은 예전처럼 환율 입력.
@@ -50,8 +51,19 @@ function fmtUsd(n: number | null): string {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 const inp =
-  'h-9 w-full rounded-lg border border-line bg-surface px-2 text-sm text-ink outline-none transition focus:border-primary'
-const labelCls = 'mb-1 block whitespace-nowrap text-[11px] font-medium text-faint'
+  'h-[38px] w-full rounded-xl bg-b27-paper px-2.5 text-sm text-b27-ink outline-none transition focus:ring-2 focus:ring-b27-ink/15'
+const labelCls = 'mb-1 block whitespace-nowrap font-num text-[11.5px] font-medium text-b27-muted'
+// 자동 계산 칸(환율·환산) — 면 없이 회색 숫자
+const autoCls = 'flex h-[38px] items-center justify-end gap-1.5 px-1 font-num text-sm text-b27-muted'
+// 구분 칸 — 선택된 칸만 의미색 면(빠른 기록과 동일)
+const GUBUN_ON: Record<string, string> = {
+  수입: 'bg-b27-income-soft font-semibold text-b27-income',
+  지출: 'bg-b27-expense-soft font-semibold text-b27-expense',
+  이체: 'bg-b27-tint-8 font-semibold text-[#303C8D]',
+  조정: 'bg-b27-card font-semibold text-b27-ink',
+}
+const gubunBtn = (on: boolean, g: string) =>
+  `flex flex-1 items-center justify-center rounded-xl px-1 transition ${on ? GUBUN_ON[g] : 'bg-b27-paper text-b27-muted'}`
 // 통화별 기본환율(1 USD당 현지통화) — 공시 환율이 없을 때·2026-08 이전 거래 수정 때만 쓰는 대체값.
 const DEFAULT_RATE: Record<'KRW' | 'USD' | 'HNL', string> = { KRW: '1400', USD: '1', HNL: '26.5' }
 // 항목 드롭다운 대분류 그룹 순서 — 항목(acct_items)의 `category` 기준.
@@ -305,16 +317,17 @@ export default function AccountingForm({
   return (
     <div>
       {/* 입력 / 수정 폼 */}
-      <section className="rounded-2xl border border-line bg-surface p-4 @2xl:p-5">
+      <section className="rounded-2xl bg-b27-card p-3.5 @2xl:p-4">
         <div className="mb-3 flex items-center justify-between">
-          <div className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-            {editingId ? 'Edit entry · 수정 중' : 'New entry'}
-          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-b27-paper px-3 py-1 text-[13px] font-medium text-b27-ink">
+            <i className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-2" aria-hidden="true" />
+            {editingId ? '수정 중' : '새 기록'}
+          </span>
           {editingId && (
             <button
               type="button"
               onClick={() => reset()}
-              className="rounded-full border border-line px-3 py-1 text-[11px] font-medium text-muted transition hover:border-primary"
+              className="rounded-full bg-b27-paper px-3 py-1 text-[12px] text-b27-ink transition active:opacity-70"
             >
               수정 취소
             </button>
@@ -323,16 +336,16 @@ export default function AccountingForm({
 
         <div className="flex flex-col gap-2.5 @2xl:flex-row @2xl:flex-wrap @2xl:items-end @2xl:gap-2">
           {/* 구분 토글 */}
-          <div className="@2xl:w-[138px] @2xl:shrink-0">
+          <div className="@2xl:w-[212px] @2xl:shrink-0">
             <label className={labelCls}>구분</label>
-            <div className="flex h-9 overflow-hidden rounded-lg border border-line text-sm">
+            <div className="flex h-[38px] gap-1 text-[13px]">
               <button
                 type="button"
                 onClick={() => {
                   setGubun('수입')
                   setItemId('')
                 }}
-                className={`flex flex-1 items-center justify-center ${gubun === '수입' ? 'bg-emerald-100 font-bold text-emerald-700' : 'text-faint'}`}
+                className={gubunBtn(gubun === '수입', '수입')}
               >
                 수입
               </button>
@@ -342,7 +355,7 @@ export default function AccountingForm({
                   setGubun('지출')
                   setItemId('')
                 }}
-                className={`flex flex-1 items-center justify-center ${gubun === '지출' ? 'bg-red-100 font-bold text-red-700' : 'text-faint'}`}
+                className={gubunBtn(gubun === '지출', '지출')}
               >
                 지출
               </button>
@@ -353,7 +366,7 @@ export default function AccountingForm({
                   setItemId('')
                   setSupporterId('')
                 }}
-                className={`flex flex-1 items-center justify-center ${gubun === '이체' ? 'bg-sky-100 font-bold text-sky-700' : 'text-faint'}`}
+                className={gubunBtn(gubun === '이체', '이체')}
               >
                 이체
               </button>
@@ -365,7 +378,7 @@ export default function AccountingForm({
                   setSupporterId('')
                   setToAccountId('')
                 }}
-                className={`flex flex-1 items-center justify-center ${gubun === '조정' ? 'bg-surface-subtle font-bold text-muted' : 'text-faint'}`}
+                className={gubunBtn(gubun === '조정', '조정')}
                 title="잔액 조정 — 실제 잔액에 맞춰 ± 금액을 기록(수입·지출 집계 제외)"
               >
                 조정
@@ -510,7 +523,7 @@ export default function AccountingForm({
             <div className="@2xl:w-[88px] @2xl:shrink-0">
               <label className={labelCls}>환율 (자동)</label>
               <div
-                className="flex h-9 items-center justify-end rounded-lg border border-dashed border-line bg-surface-subtle px-2 text-sm text-muted"
+                className={autoCls}
                 title={usd ? '달러 거래' : autoFx ? `공시 ${autoFx.date} — 월 마감 때 그달 마감 환율로 확정` : '공시 환율 없음 — 기본값으로 잠정 계산'}
               >
                 {usd ? '1' : withCommas(String(effRate))}
@@ -521,8 +534,8 @@ export default function AccountingForm({
           {/* 환산(USD, 자동) — 잠정(월 마감 때 확정) · 통화가 다른 이체는 실제 교환 비율 */}
           <div className="@2xl:w-[112px] @2xl:shrink-0">
             <label className={labelCls}>{crossFx ? '교환 비율 · $' : legacy || usd ? '환산 $' : '환산 $ (잠정)'}</label>
-            <div className="flex h-9 items-center justify-end gap-1.5 rounded-lg border border-dashed border-line bg-surface-subtle px-2 text-sm text-muted">
-              {crossRate && <span className="text-[10px] text-faint">{crossRate.rate.toLocaleString('en-US', { maximumFractionDigits: 4 })}</span>}
+            <div className={autoCls}>
+              {crossRate && <span className="text-[10px] text-b27-muted">{crossRate.rate.toLocaleString('en-US', { maximumFractionDigits: 4 })}</span>}
               {amountUsd
                 ? `$${amountUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : '—'}
@@ -599,76 +612,76 @@ export default function AccountingForm({
               type="button"
               onClick={onSave}
               disabled={saving}
-              className="flex h-9 w-full items-center justify-center rounded-lg bg-accent text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-50"
+              className="flex h-[38px] w-full items-center justify-center rounded-xl bg-b27-ink text-sm font-medium text-white transition active:opacity-80 disabled:opacity-50"
             >
               {saving ? '…' : editingId ? '수정' : '저장'}
             </button>
           </div>
         </div>
 
-        {err && <p className="mt-2 text-xs font-medium text-accent">{err}</p>}
+        {err && <p className="mt-2 text-xs font-medium text-b27-expense">{err}</p>}
       </section>
 
       {/* 최근 입력 — 방금 입력한 내역 검증용(입력일순 5건). 행 클릭 → 위 폼에서 수정. 수정 중엔 숨김 */}
       {!editingId && (
         <section className="mt-6">
-          <div className="mb-3 flex items-center justify-between px-1">
-            <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-accent">
-              Recent
+          <div className="mb-2 flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-b27-card px-3 py-1 text-[13px] font-medium text-b27-ink">
+              <i className="inline-block h-2 w-2 rounded-[2px] bg-b27-block-2" aria-hidden="true" />
+              최근 입력
+              <span className="font-num text-[12px] font-normal text-b27-muted">{recent5.length}</span>
             </span>
             <Link
               href="/accounting/ledger"
-              className="text-[11px] font-medium text-muted transition hover:text-primary"
+              className="rounded-full bg-b27-card px-3 py-1 text-[12px] text-b27-ink transition active:opacity-70"
             >
               전체 내역 →
             </Link>
           </div>
           {recent5.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-line py-5 text-center text-xs text-faint">
-              입력한 거래가 없습니다.
-            </p>
+            <p className="rounded-2xl bg-b27-card py-5 text-center text-xs text-b27-muted">입력한 거래가 없습니다.</p>
           ) : (
-            <ul className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <ul>
               {recent5.map((r) => (
-                <li key={r.id} className="border-b border-line last:border-0">
+                <li key={r.id} className="border-b border-b27-line last:border-0">
                   <button
                     type="button"
                     onClick={() => startEdit(r)}
-                    className="flex w-full items-start justify-between gap-2 px-4 py-2.5 text-left transition hover:bg-surface-subtle active:bg-surface-subtle"
+                    className="flex w-full items-start justify-between gap-2 px-0.5 py-2.5 text-left transition active:opacity-70"
                   >
                     <div className="flex min-w-0 items-start gap-2">
                       <span
                         className={`shrink-0 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
                           r.gubun === '수입'
-                            ? 'bg-emerald-50 text-emerald-700'
+                            ? 'bg-b27-income-soft text-b27-income'
                             : r.gubun === '지출'
-                              ? 'bg-red-50 text-red-700'
+                              ? 'bg-b27-expense-soft text-b27-expense'
                               : r.gubun === '이체'
-                                ? 'bg-sky-50 text-sky-700'
-                                : 'bg-surface-subtle text-faint'
+                                ? 'bg-b27-tint-8 text-[#303C8D]'
+                                : 'bg-b27-card text-b27-muted'
                         }`}
                       >
                         {r.gubun ?? '—'}
                       </span>
-                      <span className="min-w-0 break-words text-sm text-ink">
+                      <span className="min-w-0 break-words text-sm text-b27-ink">
                         {r.gubun === '이체'
                           ? `${nameOf.get(r.accountId ?? '') ?? ''} → ${nameOf.get(r.toAccountId ?? '') ?? ''}`
                           : r.itemId
                             ? (nameOf.get(r.itemId) ?? '')
                             : ''}
-                        {r.name ? <span className="text-muted"> · {r.name}</span> : ''}
-                        {r.vendor ? <span className="text-faint"> · {r.vendor}</span> : ''}
+                        {r.name ? <span className="text-b27-muted"> · {r.name}</span> : ''}
+                        {r.vendor ? <span className="text-b27-muted"> · {r.vendor}</span> : ''}
                       </span>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span
-                        className={`font-display text-sm font-bold ${
-                          r.gubun === '지출' ? 'text-red-700' : 'text-ink'
+                        className={`font-num text-sm font-semibold ${
+                          r.gubun === '지출' ? 'text-b27-expense' : r.gubun === '수입' ? 'text-b27-income' : 'text-b27-ink'
                         }`}
                       >
                         {fmtUsd(r.amountUsd)}
                       </span>
-                      <span className="hidden text-[11px] text-faint @xl:inline">{r.date ?? ''}</span>
+                      <span className="hidden font-num text-[11px] text-b27-muted @xl:inline">{r.date ?? ''}</span>
                     </div>
                   </button>
                 </li>

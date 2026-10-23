@@ -1,4 +1,5 @@
 'use client'
+// MFH-SEARCH-FILTERS-2027 — 회계 잔여 a: 옛 공용 토큰 → b27 · 검색 알약·최근 검색어·날짜/금액 칸 테두리 제거(연회색 면)
 // MFH-ACCOUNTING-SEARCH-FILTERS-V3 — 실기 피드백: Sheet 높이 고정(72vh) — 대분류 탭을 바꿔도 시트가 내려앉지 않음(내용 적으면 아래 여백)
 // MFH-ACCOUNTING-SEARCH-FILTERS-V2 — 2027 블록 재활용: ItemSheet = 대분류 알약 + 블록 3열 다중선택(✓ + 남색 안쪽 테두리) · AccountSheet = 통화별 이름 행 + 체크 원 · Sheet 헤더 2027(닫기 알약)
 // MFH-ACCOUNTING-SEARCH-FILTERS-V1
@@ -77,11 +78,11 @@ export const summary = (names: string[]) => (names.length === 1 ? names[0] : `${
 
 export const chipCls = (active: boolean) =>
   `shrink-0 rounded-full px-3 py-1.5 text-[14px] font-semibold transition ${
-    active ? 'bg-primary text-white' : 'text-muted hover:text-primary'
+    active ? 'bg-b27-ink text-white' : 'text-b27-muted'
   }`
 export const pickCls = (active: boolean) =>
   `min-w-0 truncate rounded-full px-3 py-1.5 text-left text-[14px] font-semibold transition ${
-    active ? 'bg-primary-soft text-primary' : 'text-muted hover:text-primary'
+    active ? 'bg-b27-card text-b27-ink' : 'text-b27-muted'
   }`
 
 // ===== 최근 검색어 =====
@@ -143,8 +144,8 @@ export function SearchInput({
   }, [])
   return (
     <div className={className}>
-      <label className="flex h-12 items-center gap-2 rounded-full border border-line bg-surface-subtle px-4">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="shrink-0 text-muted" aria-hidden="true">
+      <label className="flex h-12 items-center gap-2 rounded-full bg-b27-card px-4">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="shrink-0 text-b27-muted" aria-hidden="true">
           <circle cx="11" cy="11" r="7" />
           <path d="M20 20l-4-4" />
         </svg>
@@ -162,7 +163,7 @@ export function SearchInput({
             recent.remember(value)
           }}
           placeholder="내용 · 구매처 · 항목 · 금액"
-          className="min-w-0 flex-1 bg-transparent text-[16px] text-ink outline-none placeholder:text-faint"
+          className="min-w-0 flex-1 bg-transparent text-[16px] text-b27-ink outline-none placeholder:text-b27-muted"
         />
         {value && (
           <button
@@ -173,7 +174,7 @@ export function SearchInput({
               ref.current?.focus()
             }}
             aria-label="지우기"
-            className="shrink-0 text-faint"
+            className="shrink-0 text-b27-muted"
           >
             ✕
           </button>
@@ -182,7 +183,7 @@ export function SearchInput({
       {!value && recent.list.length > 0 && (
         <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5">
           {recent.list.map((t) => (
-            <span key={t} className="flex shrink-0 items-center rounded-full border border-line bg-surface pl-3 text-[13px] text-ink">
+            <span key={t} className="flex shrink-0 items-center rounded-full bg-b27-card pl-3 text-[13px] text-b27-ink">
               <button
                 type="button"
                 onClick={() => {
@@ -193,7 +194,7 @@ export function SearchInput({
               >
                 {t}
               </button>
-              <button type="button" onClick={() => recent.forget(t)} aria-label={`${t} 삭제`} className="px-2 py-1 text-[11px] text-faint">
+              <button type="button" onClick={() => recent.forget(t)} aria-label={`${t} 삭제`} className="px-2 py-1 text-[11px] text-b27-muted">
                 ✕
               </button>
             </span>
@@ -208,7 +209,7 @@ export function SearchInput({
 export function FilterRow({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <span className="w-12 shrink-0 text-[14px] font-medium text-ink">{label}</span>
+      <span className="w-12 shrink-0 text-[14px] font-medium text-b27-ink">{label}</span>
       {children}
     </div>
   )
@@ -261,7 +262,7 @@ export function PeriodFilter({
 }) {
   const [rFrom, rTo] = range
   const label = period === 'all' ? '전체 기간' : rFrom || rTo ? `${rFrom ? dotDate(rFrom) : ''} – ${rTo ? dotDate(rTo) : ''}` : ''
-  const dateCls = 'h-9 min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 text-[14px] text-ink md:max-w-[11rem]'
+  const dateCls = 'h-9 min-w-0 flex-1 rounded-xl bg-b27-card px-2.5 text-[14px] text-b27-ink md:max-w-[11rem]'
   return (
     <>
       <ChipRow
@@ -274,11 +275,11 @@ export function PeriodFilter({
       {period === 'custom' ? (
         <div className="flex items-center gap-2 pl-14">
           <input type="date" value={from} onChange={(e) => onFrom(e.target.value)} aria-label="시작일" className={dateCls} />
-          <span className="text-muted">–</span>
+          <span className="text-b27-muted">–</span>
           <input type="date" value={to} onChange={(e) => onTo(e.target.value)} aria-label="종료일" className={dateCls} />
         </div>
       ) : (
-        <p className="pl-14 font-display text-[13px] text-muted">{label}</p>
+        <p className="pl-14 font-num text-[13px] text-b27-muted">{label}</p>
       )}
     </>
   )
@@ -301,7 +302,7 @@ export function SortToggle({
           key={k}
           type="button"
           onClick={() => onChange(k, k === sortKey ? (sortDir === 'desc' ? 'asc' : 'desc') : 'desc')}
-          className={`shrink-0 text-[13px] font-semibold ${sortKey === k ? 'text-ink' : 'text-faint'}`}
+          className={`shrink-0 text-[13px] font-semibold ${sortKey === k ? 'text-b27-ink' : 'text-b27-muted'}`}
         >
           {k === 'amount' ? '금액순' : '날짜순'}
           {sortKey === k && <span className="ml-0.5">{sortDir === 'desc' ? '↓' : '↑'}</span>}
@@ -508,7 +509,7 @@ export function PickRow({
     <FilterRow label={label}>
       <button type="button" onClick={onClick} className={pickCls(active)}>
         {text}
-        <span className="ml-1 text-faint">›</span>
+        <span className="ml-1 text-b27-muted">›</span>
       </button>
       {right}
     </FilterRow>
@@ -521,7 +522,7 @@ export function MoreToggle({ open, filled, onToggle }: { open: boolean; filled: 
     <button
       type="button"
       onClick={onToggle}
-      className={`ml-auto shrink-0 text-[13px] font-medium underline underline-offset-4 ${filled ? 'text-primary' : 'text-muted'}`}
+      className={`ml-auto shrink-0 text-[13px] font-medium underline underline-offset-4 ${filled ? 'text-b27-ink' : 'text-b27-muted'}`}
     >
       {open ? '접기' : '더 보기'}
     </button>
@@ -543,11 +544,11 @@ export function AmountRange({
   symbol: string
 }) {
   const cls =
-    'h-9 min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 text-right font-display text-[14px] text-ink placeholder:text-faint md:max-w-[9rem]'
+    'h-9 min-w-0 flex-1 rounded-xl bg-b27-card px-2.5 text-right font-num text-[14px] text-b27-ink placeholder:text-b27-muted md:max-w-[9rem]'
   return (
     <FilterRow label="금액">
       <input inputMode="decimal" value={min} onChange={(e) => onMin(e.target.value)} placeholder={`${symbol} 최소`} className={cls} />
-      <span className="text-muted">–</span>
+      <span className="text-b27-muted">–</span>
       <input inputMode="decimal" value={max} onChange={(e) => onMax(e.target.value)} placeholder={`${symbol} 최대`} className={cls} />
     </FilterRow>
   )

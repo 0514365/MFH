@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-SEARCH-2027 — 회계 잔여 a: 합계 = 연회색 요약 면(테두리 없음) · 더 보기 = 연회색 알약 · Manrope 600(800/700 금지)
 // MFH-ACCOUNTING-SEARCH-V3 — 필터 UI·기간 계산·최근 검색어를 공용 SearchFilters 로 분리(내역 탭과 공유), 화면은 그대로
 // MFH-ACCOUNTING-SEARCH-V2 — 항목·계좌 바텀시트(다중선택) · 더 보기(사용자 = 계좌 info 우진·진아 · 금액 범위) · 최근 검색어 5개(기기별)
 // MFH-ACCOUNTING-SEARCH-V1
@@ -193,13 +194,13 @@ export default function SearchView({
     >
       {/* 모바일 머리줄 — 검색 · L/$ · ✕ */}
       <div className="flex items-center gap-2 pb-2 md:hidden" style={{ paddingTop: 'calc(12px + env(safe-area-inset-top))' }}>
-        <h1 className="flex-1 text-[24px] font-bold tracking-tight text-ink">검색</h1>
+        <h1 className="flex-1 text-[24px] font-semibold tracking-tight text-b27-ink">검색</h1>
         {hnlRate && <CurToggle />}
         <button
           type="button"
           onClick={close}
           aria-label="닫기"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-surface-subtle"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-b27-ink"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
@@ -238,8 +239,8 @@ export default function SearchView({
 
       {/* 건수 · 정렬 */}
       <div className="mt-5 flex items-center gap-3">
-        <span className="flex-1 text-[14px] text-ink">
-          총 <span className="font-display font-bold">{rows.length.toLocaleString('en-US')}</span>건
+        <span className="flex-1 text-[14px] text-b27-ink">
+          총 <span className="font-num font-semibold">{rows.length.toLocaleString('en-US')}</span>건
         </span>
         <SortToggle
           sortKey={sortKey}
@@ -253,20 +254,20 @@ export default function SearchView({
       </div>
 
       {/* 요약 — 수입·지출(이체·조정 제외) */}
-      <div className="mt-2 grid grid-cols-2 rounded-2xl border border-line bg-surface px-4 py-3">
+      <div className="mt-2 grid grid-cols-2 rounded-2xl bg-b27-card px-4 py-3">
         <div>
-          <div className="text-[13px] font-medium text-muted">수입</div>
-          <div className="mt-0.5 text-right font-display text-[20px] font-bold text-blue-700">{fmtShow(income, showCur)}</div>
+          <div className="text-[13px] font-medium text-b27-muted">수입</div>
+          <div className="mt-0.5 text-right font-num text-[20px] font-semibold text-b27-income">{fmtShow(income, showCur)}</div>
         </div>
-        <div className="border-l border-line pl-4">
-          <div className="text-[13px] font-medium text-muted">지출</div>
-          <div className="mt-0.5 text-right font-display text-[20px] font-bold text-red-700">{fmtShow(expense, showCur)}</div>
+        <div className="border-l border-b27-paper pl-4">
+          <div className="text-[13px] font-medium text-b27-muted">지출</div>
+          <div className="mt-0.5 text-right font-num text-[20px] font-semibold text-b27-expense">{fmtShow(expense, showCur)}</div>
         </div>
       </div>
 
       {/* 결과 */}
       {rows.length === 0 ? (
-        <p className="py-8 text-center text-[14px] text-faint">검색 결과가 없습니다.</p>
+        <p className="py-8 text-center text-[14px] text-b27-muted">검색 결과가 없습니다.</p>
       ) : (
         <ul className="mt-1 divide-y divide-line">
           {rows.slice(0, limit).map((r) => {
@@ -285,21 +286,21 @@ export default function SearchView({
                   onClick={() => (recentQs.remember(q), router.push(`/accounting/entry?edit=${r.id}`))}
                   className={`flex w-full items-center gap-3 py-2.5 text-left ${counted ? '' : 'opacity-60'}`}
                 >
-                  <span className="w-11 shrink-0 font-display text-[13px] text-muted">{rowDate(r.date)}</span>
+                  <span className="w-11 shrink-0 font-num text-[13px] text-b27-muted">{rowDate(r.date)}</span>
                   <CatIcon name={it?.name ?? r.gubun} category={it?.category} color={color} size={36} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-medium text-ink">{main}</span>
-                    {sub && <span className="block truncate text-[11px] text-faint">{sub}</span>}
+                    <span className="block truncate text-[15px] font-medium text-b27-ink">{main}</span>
+                    {sub && <span className="block truncate text-[11px] text-b27-muted">{sub}</span>}
                   </span>
                   <span className="shrink-0 text-right">
                     <span
-                      className={`block font-display text-[15px] font-bold ${
-                        r.gubun === '지출' ? 'text-red-700' : r.gubun === '수입' ? 'text-blue-700' : 'text-muted'
+                      className={`block font-num text-[15px] font-semibold ${
+                        r.gubun === '지출' ? 'text-b27-expense' : r.gubun === '수입' ? 'text-b27-income' : 'text-b27-muted'
                       }`}
                     >
                       {fmtShow(r.gubun === '지출' ? -a : a, showCur)}
                     </span>
-                    {isCard && <span className="text-[10px] text-faint">카드</span>}
+                    {isCard && <span className="text-[10px] text-b27-muted">카드</span>}
                   </span>
                 </button>
               </li>
@@ -311,7 +312,7 @@ export default function SearchView({
         <button
           type="button"
           onClick={() => setLimit(limit + PAGE)}
-          className="mt-2 flex h-10 w-full items-center justify-center rounded-xl border border-dashed border-line text-[13px] font-medium text-muted hover:border-primary hover:text-primary"
+          className="mt-2 flex h-10 w-full items-center justify-center rounded-full bg-b27-card text-[13px] font-medium text-b27-ink transition active:opacity-70"
         >
           더 보기 ({(rows.length - limit).toLocaleString('en-US')}건)
         </button>

@@ -405,7 +405,7 @@ export default function InboxView({
       )}
 
       {rows.length === 0 ? (
-        <p className="mt-6 rounded-2xl border border-dashed border-b27-line px-4 py-8 text-center text-[13px] text-b27-muted">
+        <p className="mt-6 rounded-2xl bg-b27-card px-4 py-8 text-center text-[13px] text-b27-muted">
           승인대기 거래가 없습니다. 매일 22:00 에 새 카드 문자가 수집됩니다.
           <br />
           <Link href="/accounting/ledger" className="mt-2 inline-block text-b27-ink">
@@ -413,7 +413,7 @@ export default function InboxView({
           </Link>
         </p>
       ) : visible.length === 0 ? (
-        <p className="mt-6 rounded-2xl border border-dashed border-b27-line px-4 py-8 text-center text-[13px] text-b27-muted">조건에 맞는 대기 거래가 없습니다.</p>
+        <p className="mt-6 rounded-2xl bg-b27-card px-4 py-8 text-center text-[13px] text-b27-muted">조건에 맞는 대기 거래가 없습니다.</p>
       ) : (
         <ul className="mt-3">
           {visible.map((r) => {
