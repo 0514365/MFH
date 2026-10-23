@@ -1,23 +1,34 @@
 'use client'
+// MFH-THEME-PAGE-V2 — 2027(4-8): 빨간 ‹ 헤더 · [올해|내년] 연도 알약(연말에 다음 해 주제를 미리 입력 — 홈은 그해 1/1부터 자동 전환)
+//   · 맨 위 홈 주제 카드 실시간 미리보기(살구 중간 톤) · 「홈」/「오프닝」 두 묶음 · 목표 = 한 줄씩 입력칸 + 터키석 ＋ · 저장 = 남색.
 
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
+import { brand2027 } from '@/lib/palette'
+import BackButton from '@/components/BackButton'
+
+const THEME_FACE = '#FDE6C1' // 홈 주제 카드와 동일(app/(app)/page.tsx)
 
 export default function ThemePage() {
   const router = useRouter()
-  const year = new Date().getFullYear()
+  const thisYear = new Date().getFullYear()
+  const [year, setYear] = useState(thisYear)
   const [verseRef, setVerseRef] = useState('')
   const [themeEn, setThemeEn] = useState('')
   const [theme, setTheme] = useState('')
   const [quote, setQuote] = useState('')
-  const [goalsText, setGoalsText] = useState('')
+  const [goals, setGoals] = useState<string[]>([''])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
+    let alive = true
+    setLoading(true)
+    setMsg(null)
+    setSaved(false)
     const supabase = createClient()
     void supabase
       .from('year_themes')
@@ -25,27 +36,39 @@ export default function ThemePage() {
       .eq('year', year)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) {
-          const row = data as {
-            theme: string | null
-            goals: unknown
-            verse_ref: string | null
-            theme_en: string | null
-            quote: string | null
-          }
-          setVerseRef(row.verse_ref ?? '')
-          setThemeEn(row.theme_en ?? '')
-          setTheme(row.theme ?? '')
-          setQuote(row.quote ?? '')
-          if (Array.isArray(row.goals)) setGoalsText((row.goals as string[]).join('\n'))
-        }
+        if (!alive) return
+        const row = data as {
+          theme: string | null
+          goals: unknown
+          verse_ref: string | null
+          theme_en: string | null
+          quote: string | null
+        } | null
+        setVerseRef(row?.verse_ref ?? '')
+        setThemeEn(row?.theme_en ?? '')
+        setTheme(row?.theme ?? '')
+        setQuote(row?.quote ?? '')
+        const g = Array.isArray(row?.goals) ? (row?.goals as string[]) : []
+        setGoals(g.length > 0 ? g : [''])
         setLoading(false)
       })
+    return () => {
+      alive = false
+    }
   }, [year])
+
+  function setGoal(i: number, v: string) {
+    setGoals((prev) => prev.map((g, j) => (j === i ? v : g)))
+  }
+
+  function removeGoal(i: number) {
+    setGoals((prev) => (prev.length <= 1 ? [''] : prev.filter((_, j) => j !== i)))
+  }
 
   async function save() {
     setSaving(true)
     setMsg(null)
+    setSaved(false)
     const supabase = createClient()
     const {
       data: { user },
@@ -54,10 +77,7 @@ export default function ThemePage() {
       router.replace('/login')
       return
     }
-    const goals = goalsText
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean)
+    const cleanGoals = goals.map((s) => s.trim()).filter(Boolean)
     const { error } = await supabase.from('year_themes').upsert(
       {
         user_id: user.id,
@@ -66,7 +86,7 @@ export default function ThemePage() {
         theme_en: themeEn.trim() || null,
         theme: theme.trim() || null,
         quote: quote.trim() || null,
-        goals,
+        goals: cleanGoals,
       },
       { onConflict: 'user_id,year' },
     )
@@ -75,80 +95,146 @@ export default function ThemePage() {
       setMsg('저장 실패: ' + error.message)
       return
     }
-    router.replace('/')
-    router.refresh()
+    // 올해 = 홈으로(배너 즉시 반영) · 내년 = 이 화면에 머묾(홈은 1/1부터 표시)
+    if (year === thisYear) {
+      router.replace('/')
+      router.refresh()
+    } else {
+      setSaved(true)
+    }
   }
 
   const input =
-    'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-primary'
-
-  if (loading) {
-    return <main className="mx-auto max-w-md px-6 py-10 text-sm text-faint">불러오는 중…</main>
-  }
+    'w-full rounded-xl bg-b27-card px-4 py-3 text-sm text-b27-ink outline-none placeholder:text-b27-muted focus:ring-2 focus:ring-b27-ink/15'
+  const label = 'mb-1.5 block font-num text-[12px] font-medium text-b27-muted'
+  const previewGoals = goals.map((g) => g.trim()).filter(Boolean)
 
   return (
-    <main className="mx-auto max-w-md px-6 py-10">
-      <Link href="/" className="text-xs text-muted underline">
-        ← 홈
-      </Link>
-      <h1 className="mt-2 font-display text-2xl font-extrabold text-primary">{year} 주제·목표</h1>
-      <p className="mb-6 mt-1 text-xs text-faint">오프닝(스플래시)과 홈 배너에 표시됩니다.</p>
+    <main className="theme-2027 mx-auto max-w-md px-4 pb-10 @xl:max-w-2xl">
+      {/* 상단바 — 빨간 ‹ + 제목 */}
+      <header className="sticky top-0 z-30 -mx-4 mb-2 flex h-[52px] items-center bg-b27-paper pl-3 pr-4">
+        <BackButton href="/" label="주제·목표" variant="text" />
+      </header>
 
-      <label className="mb-1 block text-xs text-muted">구절 참조 (오프닝 상단)</label>
-      <input
-        value={verseRef}
-        onChange={(e) => setVerseRef(e.target.value)}
-        className={input + ' mb-4'}
-        placeholder="예: 이사야 43:19"
-      />
-
-      <label className="mb-1 block text-xs text-muted">영문 주제 (오프닝)</label>
-      <input
-        value={themeEn}
-        onChange={(e) => setThemeEn(e.target.value)}
-        className={input + ' mb-4'}
-        placeholder="예: God Will Make a Way"
-      />
-
-      <label className="mb-1 block text-xs text-muted">국문 주제</label>
-      <input
-        value={theme}
-        onChange={(e) => setTheme(e.target.value)}
-        className={input + ' mb-4'}
-        placeholder="예: 주님이 길을 내십니다"
-      />
-
-      <label className="mb-1 block text-xs text-muted">말씀 인용 (오프닝)</label>
-      <input
-        value={quote}
-        onChange={(e) => setQuote(e.target.value)}
-        className={input + ' mb-4'}
-        placeholder='예: 내가 광야에 길을, 사막에 강을 내리니'
-      />
-
-      <label className="mb-1 block text-xs text-muted">목표 (한 줄에 하나)</label>
-      <textarea
-        value={goalsText}
-        onChange={(e) => setGoalsText(e.target.value)}
-        rows={5}
-        className={input + ' mb-6'}
-        placeholder={'예배당 건축 설계 완료\n방과후학교 정착\n동역자 세우기'}
-      />
-
-      {msg && <p className="mb-4 text-sm text-danger">{msg}</p>}
-
-      <div className="flex gap-2">
-        <button
-          onClick={save}
-          disabled={saving}
-          className="flex-1 rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          {saving ? '저장 중…' : '저장'}
-        </button>
-        <button onClick={() => router.back()} className="rounded-xl border border-line px-5 py-3 text-sm text-muted">
-          취소
-        </button>
+      {/* 연도 — 올해 / 내년 */}
+      <div role="group" aria-label="연도" className="mb-3 inline-flex rounded-full bg-b27-card p-[3px]">
+        {[thisYear, thisYear + 1].map((y) => (
+          <button
+            key={y}
+            type="button"
+            onClick={() => setYear(y)}
+            aria-pressed={year === y}
+            className={`rounded-full px-4 py-1.5 font-num text-[13px] font-medium transition ${
+              year === y ? 'bg-b27-ink text-white' : 'text-b27-muted'
+            }`}
+          >
+            {y}
+          </button>
+        ))}
       </div>
+
+      {/* 홈 주제 카드 미리보기 */}
+      <section className="mb-5 rounded-2xl p-5" style={{ background: THEME_FACE }} aria-label="홈 카드 미리보기">
+        <div className="flex items-center gap-1.5 font-num text-[12px] font-medium tracking-[0.08em]" style={{ color: brand2027.deep3 }}>
+          <i className="inline-block h-2 w-2 rounded-[2px]" style={{ background: brand2027.deep3 }} aria-hidden="true" />
+          {year} THEME
+        </div>
+        <h1 className="mt-1.5 text-[20px] font-semibold leading-snug text-b27-ink">
+          {theme.trim() || <span className="text-b27-muted">국문 주제</span>}
+        </h1>
+        {previewGoals.length > 0 && (
+          <ul className="mt-3 flex flex-col gap-1.5">
+            {previewGoals.map((g, i) => (
+              <li key={i} className="text-[13.5px] leading-snug text-b27-ink">
+                {g}
+              </li>
+            ))}
+          </ul>
+        )}
+        {(verseRef.trim() || themeEn.trim()) && (
+          <p className="mt-3 truncate text-[11px]" style={{ color: brand2027.deep3 }}>
+            오프닝 · {[verseRef.trim(), themeEn.trim()].filter(Boolean).join(' · ')}
+          </p>
+        )}
+      </section>
+
+      {loading ? (
+        <p className="text-sm text-b27-muted">불러오는 중…</p>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <GroupHead>홈</GroupHead>
+          <div>
+            <label className={label} htmlFor="theme-ko">국문 주제</label>
+            <input id="theme-ko" value={theme} onChange={(e) => setTheme(e.target.value)} className={input} placeholder="예: 주님이 길을 내십니다" />
+          </div>
+          <div>
+            <span className={label}>목표 · 한 줄에 하나</span>
+            <div className="flex flex-col gap-2">
+              {goals.map((g, i) => (
+                <div key={i} className="flex items-center gap-1">
+                  <input
+                    value={g}
+                    onChange={(e) => setGoal(i, e.target.value)}
+                    aria-label={`목표 ${i + 1}`}
+                    className={input}
+                    placeholder={i === 0 ? '예: 예배당 건축 설계 완료' : '목표'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeGoal(i)}
+                    aria-label="목표 삭제"
+                    className="flex h-10 w-9 shrink-0 items-center justify-center text-[18px] text-b27-muted active:opacity-70"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setGoals((prev) => [...prev, ''])}
+              className="mt-2 rounded-full bg-b27-plus px-3.5 py-1.5 text-[12.5px] font-medium text-white transition active:opacity-80"
+            >
+              ＋ 목표
+            </button>
+          </div>
+
+          <GroupHead>오프닝(스플래시)</GroupHead>
+          <div>
+            <label className={label} htmlFor="theme-verse">구절 참조</label>
+            <input id="theme-verse" value={verseRef} onChange={(e) => setVerseRef(e.target.value)} className={input} placeholder="예: 이사야 43:19" />
+          </div>
+          <div>
+            <label className={label} htmlFor="theme-en">영문 주제</label>
+            <input id="theme-en" value={themeEn} onChange={(e) => setThemeEn(e.target.value)} className={input} placeholder="예: God Will Make a Way" />
+          </div>
+          <div>
+            <label className={label} htmlFor="theme-quote">말씀 인용</label>
+            <input id="theme-quote" value={quote} onChange={(e) => setQuote(e.target.value)} className={input} placeholder="예: 내가 광야에 길을, 사막에 강을 내리니" />
+          </div>
+
+          {msg && <p className="text-sm text-b27-expense">{msg}</p>}
+          {saved && <p className="text-sm text-[#226C5A]">{year} 주제를 저장했습니다. 홈에는 {year}년 1월 1일부터 표시됩니다.</p>}
+
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="mt-2 w-full rounded-2xl bg-b27-ink py-4 text-[15px] font-medium text-white transition active:opacity-80 disabled:opacity-50"
+          >
+            {saving ? '저장 중…' : '저장'}
+          </button>
+        </div>
+      )}
     </main>
+  )
+}
+
+function GroupHead({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="flex items-center gap-1.5 text-[13px] font-medium text-b27-ink">
+      <i className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ background: brand2027.deep3 }} aria-hidden="true" />
+      {children}
+    </h2>
   )
 }

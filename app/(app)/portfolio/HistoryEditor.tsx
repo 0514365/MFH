@@ -1,4 +1,5 @@
 'use client';
+// MFH-PORTFOLIO-HISTORY-EDITOR-V3 — 2027(4-8): 2줄 행(진행 중 로즈 점 · 제목 / 기간) · 행 탭 = 그 행만 펼쳐 편집(연회색 패널) · 추가 = 터키석 · 저장 = 남색.
 // MFH-PORTFOLIO-HISTORY-EDITOR-V2
 // 선교 연혁 CRUD. is_ongoing 토글 (빨강/회색 점). sort_order 위/아래 화살표로 변경.
 // V2: 외곽 카드/제목 제거 — 편집 페이지 AccordionSection("선교 연혁 관리") 안에 들어감.
@@ -7,6 +8,7 @@ import { useMemo, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import type { PortfolioHistory } from '@/lib/portfolio';
+import { actBtn, saveBtn, toolBtn, delBtn, panelCls, rowCls, inputOnCardCls, errorCls } from './ui';
 
 type Props = {
   initial: PortfolioHistory[];
@@ -39,6 +41,7 @@ export default function HistoryEditor({ initial, userId }: Props) {
   const [rows, setRows] = useState<DraftRow[]>(initial.map(toDraft));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   function updateRow(index: number, patch: Partial<DraftRow>) {
     setRows((prev) =>
@@ -59,6 +62,7 @@ export default function HistoryEditor({ initial, userId }: Props) {
         dirty: true,
       },
     ]);
+    setOpenIdx(rows.length);
   }
 
   async function deleteRow(index: number) {
@@ -79,12 +83,14 @@ export default function HistoryEditor({ initial, userId }: Props) {
       }
     }
     setRows((prev) => prev.filter((_, i) => i !== index));
+    setOpenIdx(null);
     router.refresh();
   }
 
   function moveRow(index: number, direction: -1 | 1) {
     const target = index + direction;
     if (target < 0 || target >= rows.length) return;
+    setOpenIdx(target);
     setRows((prev) => {
       const next = [...prev];
       const a = next[index];
@@ -156,6 +162,7 @@ export default function HistoryEditor({ initial, userId }: Props) {
     }
 
     setBusy(false);
+    setOpenIdx(null);
     router.refresh();
   }
 
@@ -165,92 +172,88 @@ export default function HistoryEditor({ initial, userId }: Props) {
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-end">
-        <button
-          type="button"
-          onClick={addRow}
-          className="rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-soft"
-        >
-          + 항목 추가
-        </button>
-      </div>
-
       {rows.length === 0 ? (
-        <p className="text-xs text-faint">항목이 없습니다. "+ 항목 추가" 를 눌러 시작하세요.</p>
+        <p className="text-[12px] text-b27-muted">항목이 없습니다. 「＋ 항목 추가」로 시작하세요.</p>
       ) : (
-        <ul className="space-y-2">
-          {rows.map((r, i) => (
-            <li
-              key={r.id ?? `new-${i}`}
-              className="rounded-md border border-line bg-surface-subtle p-3"
-            >
-              <div className="grid grid-cols-1 gap-2 @xl:grid-cols-[1fr_2fr]">
-                <input
-                  type="text"
-                  value={r.period_text}
-                  onChange={bindRowText(i, 'period_text')}
-                  placeholder="2016. 2 ~ 현재"
-                  className="rounded-md border border-line bg-surface px-2 py-1.5 text-sm focus:border-primary focus:outline-none"
-                />
-                <input
-                  type="text"
-                  value={r.title}
-                  onChange={bindRowText(i, 'title')}
-                  placeholder="온두라스 선교 파송"
-                  className="rounded-md border border-line bg-surface px-2 py-1.5 text-sm focus:border-primary focus:outline-none"
-                />
-              </div>
-              <div className="mt-2 flex items-center justify-between text-xs">
-                <label className="flex items-center gap-1.5 text-muted">
-                  <input
-                    type="checkbox"
-                    checked={r.is_ongoing}
-                    onChange={(e) => updateRow(i, { is_ongoing: e.target.checked })}
-                    className="h-3.5 w-3.5"
+        <ul>
+          {rows.map((r, i) => {
+            const open = openIdx === i;
+            return (
+              <li key={r.id ?? `new-${i}`}>
+                <button type="button" onClick={() => setOpenIdx(open ? null : i)} aria-expanded={open} className={rowCls}>
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${r.is_ongoing ? 'bg-b27-block-6' : 'bg-b27-line'}`}
+                    aria-label={r.is_ongoing ? '진행 중' : undefined}
                   />
-                  <span>현재 진행 중 (빨간 점)</span>
-                </label>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => moveRow(i, -1)}
-                    disabled={i === 0}
-                    className="rounded border border-line bg-surface px-2 py-1 text-xs disabled:opacity-30"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveRow(i, 1)}
-                    disabled={i === rows.length - 1}
-                    className="rounded border border-line bg-surface px-2 py-1 text-xs disabled:opacity-30"
-                  >
-                    ↓
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteRow(i)}
-                    className="rounded border border-line bg-surface px-2 py-1 text-xs text-danger"
-                  >
-                    삭제
-                  </button>
-                </div>
-              </div>
-            </li>
-          ))}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] text-b27-ink">{r.title || '(빈 항목)'}</span>
+                    <span className="mt-0.5 block font-num text-[11.5px] text-b27-muted">{r.period_text || '기간 없음'}</span>
+                  </span>
+                  {r.dirty && <span className="shrink-0 text-[11px] text-b27-wait">수정됨</span>}
+                </button>
+
+                {open && (
+                  <div className={panelCls}>
+                    <input
+                      type="text"
+                      value={r.period_text}
+                      onChange={bindRowText(i, 'period_text')}
+                      placeholder="2016. 2 ~ 현재"
+                      aria-label="기간"
+                      className={inputOnCardCls}
+                    />
+                    <input
+                      type="text"
+                      value={r.title}
+                      onChange={bindRowText(i, 'title')}
+                      placeholder="온두라스 선교 파송"
+                      aria-label="제목"
+                      className={inputOnCardCls}
+                    />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => updateRow(i, { is_ongoing: !r.is_ongoing })}
+                        aria-pressed={r.is_ongoing}
+                        className={r.is_ongoing ? 'rounded-full bg-b27-ink px-3 py-1.5 text-[12px] text-white' : toolBtn}
+                      >
+                        {r.is_ongoing ? '● 진행 중' : '진행 중 표시'}
+                      </button>
+                      <span className="flex-1" />
+                      <button type="button" onClick={() => moveRow(i, -1)} disabled={i === 0} className={toolBtn} aria-label="위로">
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveRow(i, 1)}
+                        disabled={i === rows.length - 1}
+                        className={toolBtn}
+                        aria-label="아래로"
+                      >
+                        ↓
+                      </button>
+                      <button type="button" onClick={() => deleteRow(i)} className={delBtn}>
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
-      <div className="mt-3 flex items-center justify-between">
-        <div className="text-xs">
-          {error && <span className="text-danger">{error}</span>}
-        </div>
+      <div className="mt-3 flex items-center gap-2">
+        <button type="button" onClick={addRow} className={actBtn}>
+          ＋ 항목 추가
+        </button>
+        {error && <span className={`min-w-0 flex-1 truncate ${errorCls}`}>{error}</span>}
         <button
           type="button"
           onClick={saveAll}
           disabled={busy || rows.every((r) => !r.dirty)}
-          className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          style={{ background: 'var(--accent)' }}
+          className={`ml-auto ${saveBtn}`}
         >
           {busy ? '저장 중…' : '연혁 저장'}
         </button>

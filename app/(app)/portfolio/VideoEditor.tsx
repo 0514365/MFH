@@ -1,4 +1,5 @@
 'use client';
+// MFH-PORTFOLIO-VIDEO-EDITOR-V6 — 2027(4-8): 분류 알약 → ＋ 영상 추가(터키석, 펼침 패널) → 썸네일 + 2줄 행(행 탭 = 그 행만 펼쳐 수정·썸네일·순서·삭제) → 「도구 · CSV」 접힘.
 // MFH-PORTFOLIO-VIDEO-EDITOR-V5
 // 사역 영상 CRUD. 추가 폼(카테고리/년도/제목/영상 URL) + 리스트(미니썸네일 + 수정 + 썸네일설정 + ↑↓ + 삭제).
 // 카테고리 + 영상을 한 섹션으로 묶음(VideoCategoryEditor 포함).
@@ -18,6 +19,7 @@ import { videoThumbnail } from '@/lib/portfolio';
 import { toCSV, parseCSV } from '@/lib/csv';
 import PortfolioPhotoUpload from '@/components/PortfolioPhotoUpload';
 import VideoCategoryEditor from './VideoCategoryEditor';
+import { actBtn, saveBtn, toolBtn, delBtn, panelCls, rowCls, inputOnCardCls, hintCls, errorCls } from './ui';
 
 const CSV_HEADER = ['id', 'category', 'year', 'title', 'youtube_url', 'thumbnail_url', 'sort_order'];
 
@@ -67,6 +69,8 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
   const [eTitle, setETitle] = useState<string>('');
   const [eUrl, setEUrl] = useState<string>('');
   const importRef = useRef<HTMLInputElement>(null);
+  const [adding, setAdding] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   function catName(id: string | null): string {
     if (!id) return '기타';
@@ -249,6 +253,7 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
       setFTitle('');
       setFUrl('');
       setFYear('');
+      setAdding(false);
       router.refresh();
     }
   }
@@ -268,6 +273,7 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
       return;
     }
     setVideos((prev) => prev.filter((x) => x.id !== v.id));
+    setEditId(null);
     router.refresh();
   }
 
@@ -373,243 +379,195 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
     router.refresh();
   }
 
+  function catYearFields(
+    cat: string,
+    setCatV: (v: string) => void,
+    year: string,
+    setYearV: (v: string) => void,
+  ) {
+    return (
+      <div className="grid grid-cols-[1fr_96px] gap-2">
+        <select value={cat} onChange={(e) => setCatV(e.target.value)} aria-label="카테고리" className={inputOnCardCls}>
+          <option value="">카테고리 선택…</option>
+          {cats.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          value={year}
+          onChange={(e) => setYearV(e.target.value)}
+          placeholder="년도"
+          aria-label="년도"
+          className={inputOnCardCls}
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
-      {/* CSV 내보내기 / 가져오기 */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-line bg-surface-subtle p-3">
-        <span className="mr-1 text-xs font-medium text-muted">CSV</span>
-        <button
-          type="button"
-          onClick={exportCSV}
-          disabled={busy || videos.length === 0}
-          className="rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-soft disabled:opacity-40"
-        >
-          내보내기
-        </button>
-        <button
-          type="button"
-          onClick={() => importRef.current?.click()}
-          disabled={busy}
-          className="rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-soft disabled:opacity-40"
-        >
-          가져오기
-        </button>
-        <input
-          ref={importRef}
-          type="file"
-          accept=".csv,text/csv"
-          onChange={onImportFile}
-          className="hidden"
-        />
-        <span className="basis-full text-[11px] text-faint">
-          가져오기는 <b>id</b> 기준 — 있으면 수정, 없으면 추가(빠진 행은 삭제되지 않음). 카테고리는 이름으로 매칭.
-        </span>
-      </div>
-
       {/* 카테고리 관리 */}
-      <div className="mb-4">
+      <div className="mb-3">
         <VideoCategoryEditor initial={initialCategories} userId={userId} />
       </div>
 
-      {/* 영상 추가 폼 */}
-      <div className="mb-4 rounded-md border border-line bg-surface-subtle p-3">
-        <div className="mb-2 grid grid-cols-1 gap-2 @xl:grid-cols-[1fr_120px]">
-          <select
-            value={fCat}
-            onChange={(e) => setFCat(e.target.value)}
-            className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
-          >
-            <option value="">카테고리 선택…</option>
-            {cats.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            value={fYear}
-            onChange={(e) => setFYear(e.target.value)}
-            placeholder="년도"
-            className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
-          />
-        </div>
-        <input
-          type="text"
-          value={fTitle}
-          onChange={(e) => setFTitle(e.target.value)}
-          placeholder="영상 제목"
-          className="mb-2 w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
-        />
-        <input
-          type="url"
-          value={fUrl}
-          onChange={(e) => setFUrl(e.target.value)}
-          placeholder="영상 URL (YouTube · 재생목록 · Facebook 모두 가능)"
-          className="mb-2 w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
-        />
+      {/* 영상 추가 — 터키석 버튼 → 연회색 패널 */}
+      {!adding ? (
         <button
           type="button"
-          onClick={addVideo}
-          disabled={busy}
-          className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          style={{ background: 'var(--accent)' }}
+          onClick={() => {
+            setAdding(true);
+            setEditId(null);
+          }}
+          className={`mb-2 ${actBtn}`}
         >
-          {busy ? '처리 중…' : '영상 추가'}
+          ＋ 영상 추가
         </button>
-      </div>
-
-      {/* 영상 리스트 */}
-      {videos.length === 0 ? (
-        <p className="text-xs text-faint">등록된 영상이 없습니다.</p>
       ) : (
-        <ul className="space-y-2">
+        <div className={panelCls}>
+          <p className="text-[13px] font-medium text-b27-ink">새 영상</p>
+          {catYearFields(fCat, setFCat, fYear, setFYear)}
+          <input
+            type="text"
+            value={fTitle}
+            onChange={(e) => setFTitle(e.target.value)}
+            placeholder="영상 제목"
+            aria-label="영상 제목"
+            className={inputOnCardCls}
+          />
+          <input
+            type="url"
+            value={fUrl}
+            onChange={(e) => setFUrl(e.target.value)}
+            placeholder="영상 URL (YouTube · 재생목록 · Facebook 모두 가능)"
+            aria-label="영상 URL"
+            className={inputOnCardCls}
+          />
+          <div className="flex gap-1.5">
+            <button type="button" onClick={addVideo} disabled={busy} className={saveBtn}>
+              {busy ? '처리 중…' : '추가'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAdding(false);
+                setError(null);
+              }}
+              className={toolBtn}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 영상 리스트 — 썸네일 + 2줄 행 */}
+      {videos.length === 0 ? (
+        <p className="text-[12px] text-b27-muted">등록된 영상이 없습니다.</p>
+      ) : (
+        <ul>
           {videos.map((v, i) => {
             const thumb = videoThumbnail(v);
             const custom = !!(v.thumbnail_url && v.thumbnail_url.trim());
-            const open = thumbEditId === v.id;
+            const thumbOpen = thumbEditId === v.id;
             const editing = editId === v.id;
             return (
-              <li
-                key={v.id}
-                className="rounded-md border border-line bg-surface-subtle p-2"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="relative aspect-video w-[64px] flex-shrink-0 overflow-hidden rounded bg-[#221C1C]">
+              <li key={v.id}>
+                <button
+                  type="button"
+                  onClick={() => (editing ? cancelEdit() : startEdit(v))}
+                  aria-expanded={editing}
+                  className={rowCls}
+                >
+                  <span className="relative aspect-video w-16 shrink-0 overflow-hidden rounded-md bg-b27-card">
                     {thumb ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={thumb} alt="" className="h-full w-full object-cover" />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs text-ink">{v.title}</p>
-                    <p className="text-[10px] text-faint">
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-[11px] text-b27-muted">▶</span>
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] text-b27-ink">{v.title}</span>
+                    <span className="mt-0.5 block truncate font-num text-[11.5px] text-b27-muted">
                       {catName(v.category_id)}
                       {v.year ? ` · ${v.year}` : ''}
                       {custom ? ' · 커스텀 썸네일' : ''}
-                    </p>
-                  </div>
-                  <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-1">
-                    <button
-                      type="button"
-                      onClick={() => (editing ? cancelEdit() : startEdit(v))}
-                      disabled={busy}
-                      className={`rounded border px-2 py-1 text-xs disabled:opacity-30 ${
-                        editing ? 'border-primary text-primary' : 'border-line bg-surface text-muted'
-                      }`}
-                    >
-                      수정
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditId(null);
-                        setThumbEditId(open ? null : v.id);
-                      }}
-                      disabled={busy}
-                      className={`rounded border px-2 py-1 text-xs disabled:opacity-30 ${
-                        open ? 'border-primary text-primary' : 'border-line bg-surface text-muted'
-                      }`}
-                    >
-                      썸네일
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => move(i, -1)}
-                      disabled={i === 0 || busy}
-                      className="rounded border border-line bg-surface px-2 py-1 text-xs disabled:opacity-30"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => move(i, 1)}
-                      disabled={i === videos.length - 1 || busy}
-                      className="rounded border border-line bg-surface px-2 py-1 text-xs disabled:opacity-30"
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteVideo(v)}
-                      disabled={busy}
-                      className="rounded border border-line bg-surface px-2 py-1 text-xs text-danger"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                </div>
+                    </span>
+                  </span>
+                </button>
 
                 {editing && (
-                  <div className="mt-2 border-t border-line pt-2">
-                    <div className="mb-2 grid grid-cols-1 gap-2 @xl:grid-cols-[1fr_120px]">
-                      <select
-                        value={eCat}
-                        onChange={(e) => setECat(e.target.value)}
-                        className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
-                      >
-                        <option value="">카테고리 선택…</option>
-                        {cats.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        value={eYear}
-                        onChange={(e) => setEYear(e.target.value)}
-                        placeholder="년도"
-                        className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
-                      />
-                    </div>
+                  <div className={panelCls}>
+                    {catYearFields(eCat, setECat, eYear, setEYear)}
                     <input
                       type="text"
                       value={eTitle}
                       onChange={(e) => setETitle(e.target.value)}
                       placeholder="영상 제목"
-                      className="mb-2 w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
+                      aria-label="영상 제목"
+                      className={inputOnCardCls}
                     />
                     <input
                       type="url"
                       value={eUrl}
                       onChange={(e) => setEUrl(e.target.value)}
                       placeholder="영상 URL (YouTube · 재생목록 · Facebook 모두 가능)"
-                      className="mb-2 w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
+                      aria-label="영상 URL"
+                      className={inputOnCardCls}
                     />
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => saveEdit(v)}
-                        disabled={busy}
-                        className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                        style={{ background: 'var(--accent)' }}
-                      >
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button type="button" onClick={() => saveEdit(v)} disabled={busy} className={saveBtn}>
                         {busy ? '저장 중…' : '저장'}
                       </button>
                       <button
                         type="button"
-                        onClick={cancelEdit}
+                        onClick={() => setThumbEditId(thumbOpen ? null : v.id)}
                         disabled={busy}
-                        className="rounded-md border border-line bg-surface px-4 py-2 text-sm font-medium text-muted disabled:opacity-50"
+                        aria-pressed={thumbOpen}
+                        className={thumbOpen ? 'rounded-full bg-b27-ink px-3 py-1.5 text-[12px] text-white' : toolBtn}
                       >
-                        취소
+                        썸네일
+                      </button>
+                      <span className="flex-1" />
+                      <button
+                        type="button"
+                        onClick={() => move(i, -1)}
+                        disabled={i === 0 || busy}
+                        className={toolBtn}
+                        aria-label="위로"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => move(i, 1)}
+                        disabled={i === videos.length - 1 || busy}
+                        className={toolBtn}
+                        aria-label="아래로"
+                      >
+                        ↓
+                      </button>
+                      <button type="button" onClick={() => deleteVideo(v)} disabled={busy} className={delBtn}>
+                        삭제
                       </button>
                     </div>
-                  </div>
-                )}
-
-                {open && (
-                  <div className="mt-2 border-t border-line pt-2">
-                    <p className="mb-1.5 text-[10px] text-faint">
-                      커스텀 썸네일 (재생목록·Facebook 등 YouTube 썸네일이 없을 때 사용. 없으면 자동/▶ placeholder)
-                    </p>
-                    <PortfolioPhotoUpload
-                      userId={userId}
-                      kind="video-thumb"
-                      value={v.thumbnail_url ?? ''}
-                      onChange={(url) => setThumb(v, url)}
-                    />
+                    {thumbOpen && (
+                      <div className="rounded-xl bg-b27-paper p-3">
+                        <p className="mb-2 text-[11px] text-b27-muted">
+                          커스텀 썸네일 — 재생목록·Facebook 등 YouTube 썸네일이 없을 때. 없으면 자동/▶ 표시.
+                        </p>
+                        <PortfolioPhotoUpload
+                          userId={userId}
+                          kind="video-thumb"
+                          value={v.thumbnail_url ?? ''}
+                          onChange={(url) => setThumb(v, url)}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </li>
@@ -618,7 +576,36 @@ export default function VideoEditor({ initialCategories, initialVideos, userId }
         </ul>
       )}
 
-      {error && <p className="mt-2 text-[11px] text-danger">{error}</p>}
+      {error && <p className={`mt-2 ${errorCls}`}>{error}</p>}
+
+      {/* 도구 · CSV — 접힘 */}
+      <button
+        type="button"
+        onClick={() => setToolsOpen((o) => !o)}
+        aria-expanded={toolsOpen}
+        className="mt-3 flex w-full items-center gap-2 py-1.5 text-left text-[12.5px] text-b27-muted"
+      >
+        도구 · CSV 내보내기 / 가져오기
+        <span aria-hidden className={`ml-auto transition-transform ${toolsOpen ? 'rotate-180' : ''}`}>
+          ▾
+        </span>
+      </button>
+      {toolsOpen && (
+        <div className={panelCls}>
+          <div className="flex gap-1.5">
+            <button type="button" onClick={exportCSV} disabled={busy || videos.length === 0} className={toolBtn}>
+              내보내기
+            </button>
+            <button type="button" onClick={() => importRef.current?.click()} disabled={busy} className={toolBtn}>
+              가져오기
+            </button>
+          </div>
+          <p className={hintCls}>
+            가져오기는 <b>id</b> 기준 — 있으면 수정, 없으면 추가(빠진 행은 삭제되지 않음). 카테고리는 이름으로 매칭.
+          </p>
+        </div>
+      )}
+      <input ref={importRef} type="file" accept=".csv,text/csv" onChange={onImportFile} className="hidden" />
     </div>
   );
 }

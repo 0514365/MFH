@@ -1,3 +1,4 @@
+// MFH-PORTFOLIO-EDIT-PAGE-V3 — 2027(4-8): theme-2027 래퍼 · 그룹 알약에 건수.
 // MFH-PORTFOLIO-EDIT-PAGE-V2
 // /portfolio — 우진 본인이 포트폴리오 편집. 로그인 필요.
 // V2: 셸 개편 — 고정 헤더(저장·공개토글)는 PortfolioForm 내부. 그룹 접이식(AccordionSection),
@@ -72,17 +73,17 @@ export default async function PortfolioEditPage() {
   const letters = (letterRows ?? []) as PortfolioLetter[];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-10">
+    <div className="theme-2027 mx-auto max-w-3xl px-4 pb-10">
       <PortfolioForm initial={portfolio} userId={user.id}>
-        <AccordionSection title="선교 연혁 관리">
+        <AccordionSection title="선교 연혁" count={history.length}>
           <HistoryEditor initial={history} userId={user.id} />
         </AccordionSection>
 
-        <AccordionSection title="선교편지 관리">
+        <AccordionSection title="선교편지" count={letters.length}>
           <LetterEditor initial={letters} userId={user.id} />
         </AccordionSection>
 
-        <AccordionSection title="사역 영상 관리">
+        <AccordionSection title="사역 영상" count={videos.length}>
           <VideoEditor
             initialCategories={videoCategories}
             initialVideos={videos}

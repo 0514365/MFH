@@ -1,4 +1,5 @@
 'use client';
+// MFH-PORTFOLIO-VIDEO-CATEGORY-EDITOR-V2 — 2027(4-8): 감싸는 면 없음 · 분류 = 라벤더 틴트 알약 · 이름 수정 = 흰 알약 + 남색 링 · 추가 입력 = 연회색 면.
 // MFH-PORTFOLIO-VIDEO-CATEGORY-EDITOR-V1
 // 사역 영상 카테고리 CRUD. 칩 형태. 추가/이름변경(인라인)/삭제/순서(←→).
 // 삭제 시 해당 카테고리 영상은 category_id = null (SQL on delete set null).
@@ -131,17 +132,17 @@ export default function VideoCategoryEditor({ initial, userId }: Props) {
   }
 
   return (
-    <div className="rounded-md bg-surface-subtle p-3">
-      <div className="mb-2 text-xs font-medium text-muted">카테고리</div>
+    <div>
+      <div className="mb-1.5 font-num text-[12px] font-medium text-b27-muted">분류</div>
 
       {cats.length === 0 ? (
-        <p className="mb-2 text-[11px] text-faint">카테고리가 없습니다. 아래에서 추가하세요.</p>
+        <p className="mb-2 text-[11px] text-b27-muted">카테고리가 없습니다. 아래에서 추가하세요.</p>
       ) : (
-        <ul className="mb-3 flex flex-wrap gap-2">
+        <ul className="mb-2 flex flex-wrap gap-1.5">
           {cats.map((cat, i) => (
             <li key={cat.id}>
               {editingId === cat.id ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-primary bg-surface px-2 py-1">
+                <span className="inline-flex items-center gap-1 rounded-full bg-b27-paper px-2.5 py-1 ring-2 ring-b27-ink/20">
                   <input
                     type="text"
                     value={editingName}
@@ -151,21 +152,20 @@ export default function VideoCategoryEditor({ initial, userId }: Props) {
                       if (e.key === 'Escape') setEditingId(null);
                     }}
                     autoFocus
-                    className="w-24 bg-transparent text-[11px] text-ink focus:outline-none"
+                    className="w-24 bg-transparent text-[12px] text-b27-ink focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={saveEdit}
                     disabled={busy}
-                    className="text-[10px] text-primary"
+                    className="text-[11px] font-medium text-b27-ink"
                   >
                     저장
                   </button>
                 </span>
               ) : (
                 <span
-                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                  style={{ background: 'var(--accent-soft)', color: 'var(--primary)' }}
+                  className="inline-flex items-center gap-1 rounded-full bg-b27-tint-5 px-2.5 py-1 text-[12px] text-[#4E39C6]"
                 >
                   <button
                     type="button"
@@ -213,19 +213,19 @@ export default function VideoCategoryEditor({ initial, userId }: Props) {
             if (e.key === 'Enter') addCategory();
           }}
           placeholder="새 카테고리 이름"
-          className="flex-1 rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs focus:border-primary focus:outline-none"
+          className="min-w-0 flex-1 rounded-full bg-b27-card px-3.5 py-1.5 text-[12px] text-b27-ink outline-none placeholder:text-b27-muted focus:ring-2 focus:ring-b27-ink/15"
         />
         <button
           type="button"
           onClick={addCategory}
           disabled={busy || !newName.trim()}
-          className="rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-soft disabled:opacity-40"
+          className="shrink-0 rounded-full bg-b27-card px-3 py-1.5 text-[12px] font-medium text-b27-ink transition active:opacity-70 disabled:opacity-40"
         >
-          + 추가
+          ＋ 분류
         </button>
       </div>
 
-      {error && <p className="mt-2 text-[11px] text-danger">{error}</p>}
+      {error && <p className="mt-2 text-[11px] text-b27-expense">{error}</p>}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 'use client';
+// MFH-PORTFOLIO-FORM-V5 — 2027(4-8): 52px 흰 헤더(Manrope 제목 · [공개|비공개] 알약 세그먼트 · 남색 저장 알약) + 라벤더 상태 줄 · 입력 = 연회색 면 · 묶음 머리 = 라벤더 8px 사각형.
 // MFH-PORTFOLIO-FORM-V4
 // 포트폴리오 편집 셸 + 본문 폼.
 // 상단 고정 헤더(sticky): 저장(이 폼 upsert) + 공개 ON/OFF 토글 + 공개페이지 링크.
@@ -18,6 +19,7 @@ import {
 } from '@/lib/portfolio';
 import PortfolioPhotoUpload from '@/components/PortfolioPhotoUpload';
 import AccordionSection from './AccordionSection';
+import { inputCls, labelCls, hintCls, LAVENDER_BLOCK, LAVENDER_DEEP } from './ui';
 
 const FORM_ID = 'portfolio-main-form';
 
@@ -102,104 +104,106 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
     router.refresh();
   }
 
-  const publicHref = form.is_public && form.slug.trim() ? `/p/${form.slug.trim()}` : null;
+  const slug = form.slug.trim();
+  const publicHref = form.is_public && slug ? `/p/${slug}` : null;
 
   return (
     <div>
-      {/* 고정 헤더 */}
-      <div className="sticky top-0 z-30 -mx-4 mb-4 flex items-center gap-2 border-b border-line bg-paper px-4 py-2.5 shadow-sm">
-        <h1 className="min-w-0 truncate text-sm font-semibold text-primary">포트폴리오 편집</h1>
-        <div className="ml-auto flex flex-shrink-0 items-center gap-2">
-          <span className="text-[11px]">
-            {error ? (
-              <span className="text-danger">{error}</span>
-            ) : saved ? (
-              <span className="text-primary">저장됨</span>
-            ) : null}
-          </span>
-          <button
-            type="button"
-            onClick={() => update('is_public', !form.is_public)}
-            aria-pressed={form.is_public}
-            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-              form.is_public
-                ? 'border-primary bg-primary-soft text-primary'
-                : 'border-line bg-surface text-muted'
-            }`}
-          >
-            {form.is_public ? '공개 ON' : '공개 OFF'}
-          </button>
-          {publicHref && (
-            <a
-              href={publicHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="공개 페이지 보기"
-              className="flex-shrink-0 rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-soft"
+      {/* 고정 헤더 — 제목 · 공개 세그먼트 · 저장 */}
+      <div className="sticky top-0 z-30 -mx-4 flex h-[52px] items-center gap-2 bg-b27-paper pl-4 pr-3">
+        <h1 className="min-w-0 flex-1 truncate font-num text-[17px] font-semibold leading-none text-b27-ink">포트폴리오</h1>
+        <div role="group" aria-label="공개 설정" className="flex shrink-0 rounded-full bg-b27-card p-[3px]">
+          {([true, false] as const).map((v) => (
+            <button
+              key={String(v)}
+              type="button"
+              onClick={() => update('is_public', v)}
+              aria-pressed={form.is_public === v}
+              className={`rounded-full px-2.5 py-1 text-[12px] font-medium transition ${
+                form.is_public === v ? 'bg-b27-ink text-white' : 'text-b27-muted'
+              }`}
             >
-              <span className="@md:hidden">페이지 ↗</span>
-              <span className="hidden @md:inline">공개 페이지 ↗</span>
-            </a>
-          )}
-          <button
-            type="submit"
-            form={FORM_ID}
-            disabled={saving}
-            className="rounded-md px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-            style={{ background: 'var(--accent)' }}
-          >
-            {saving ? '저장 중…' : '저장'}
-          </button>
+              {v ? '공개' : '비공개'}
+            </button>
+          ))}
         </div>
+        <button
+          type="submit"
+          form={FORM_ID}
+          disabled={saving}
+          className="shrink-0 rounded-full bg-b27-ink px-3.5 py-1.5 text-[12.5px] font-medium text-white transition active:opacity-80 disabled:opacity-50"
+        >
+          {saving ? '저장 중…' : '저장'}
+        </button>
+      </div>
+
+      {/* 상태 줄 — 라벤더 틴트 알약(오류·저장됨도 여기) */}
+      <div className="mb-4 flex items-center gap-2 rounded-full bg-b27-tint-5 px-4 py-2.5 text-[12.5px]">
+        <i className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ background: LAVENDER_DEEP }} aria-hidden />
+        <b className="shrink-0 font-medium" style={{ color: LAVENDER_DEEP }}>
+          {form.is_public ? '공개 중' : '비공개'}
+        </b>
+        {error ? (
+          <span className="min-w-0 truncate text-b27-expense">{error}</span>
+        ) : saved ? (
+          <span className="min-w-0 truncate text-b27-ink">저장됨</span>
+        ) : (
+          <span className="min-w-0 truncate font-num text-b27-ink">/p/{slug || '…'}</span>
+        )}
+        {publicHref && (
+          <a
+            href={publicHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto shrink-0 font-medium"
+            style={{ color: LAVENDER_DEEP }}
+          >
+            페이지 ↗
+          </a>
+        )}
       </div>
 
       {/* 본문 폼: ① 기본정보(외부링크 통합) ② 부부·선교사·후원 */}
-      <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
+      <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-2.5">
         {/* ① 기본 정보 */}
         <AccordionSection title="기본 정보" defaultOpen>
-          <Field label="공개 URL slug">
-            <input
-              type="text"
-              value={form.slug}
-              onChange={bindText('slug')}
-              placeholder="mfh"
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            />
-            <p className="mt-1 text-[11px] text-faint">공개 URL: /p/{form.slug || '...'}</p>
-          </Field>
+          <div className="flex flex-col gap-3.5">
+            <Field label="공개 주소">
+              <input type="text" value={form.slug} onChange={bindText('slug')} placeholder="mfh" className={inputCls} />
+              <p className={hintCls}>/p/{form.slug || '…'} · 영문 소문자·숫자·하이픈</p>
+            </Field>
 
-          <Field label="히어로 이미지">
-            <PortfolioPhotoUpload
-              userId={userId}
-              kind="hero"
-              value={form.hero_image_url}
-              onChange={(url) => update('hero_image_url', url)}
-            />
-          </Field>
+            <Field label="히어로 이미지">
+              <PortfolioPhotoUpload
+                userId={userId}
+                kind="hero"
+                value={form.hero_image_url}
+                onChange={(url) => update('hero_image_url', url)}
+              />
+            </Field>
 
-          <Field label="소개 문단">
-            <textarea
-              value={form.intro_text}
-              onChange={bindText('intro_text')}
-              rows={3}
-              placeholder="2016년부터 중미 온두라스에서..."
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            />
-          </Field>
+            <Field label="소개 문단">
+              <textarea
+                value={form.intro_text}
+                onChange={bindText('intro_text')}
+                rows={3}
+                placeholder="2016년부터 중미 온두라스에서..."
+                className={inputCls}
+              />
+            </Field>
 
-          <Field label="공개 이메일">
-            <input
-              type="email"
-              value={form.email_public}
-              onChange={bindText('email_public')}
-              placeholder="honduras0691@gmail.com"
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            />
-          </Field>
+            <Field label="공개 이메일">
+              <input
+                type="email"
+                value={form.email_public}
+                onChange={bindText('email_public')}
+                placeholder="honduras0691@gmail.com"
+                className={inputCls}
+              />
+            </Field>
 
-          {/* 외부 링크 (기본 정보에 통합) */}
-          <div className="mt-4 border-t border-line pt-4">
-            <h3 className="mb-3 text-xs font-semibold text-primary">외부 링크</h3>
+            {/* 외부 링크 (기본 정보에 통합) */}
+            <GroupHead>외부 링크</GroupHead>
 
             <Field label="사역소개 영상 (YouTube)">
               <input
@@ -207,7 +211,7 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
                 value={form.intro_video_url}
                 onChange={bindText('intro_video_url')}
                 placeholder="https://youtu.be/-dEzFmX-mZY"
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className={inputCls}
               />
             </Field>
 
@@ -217,7 +221,7 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
                 value={form.youtube_url}
                 onChange={bindText('youtube_url')}
                 placeholder="https://www.youtube.com/@..."
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className={inputCls}
               />
             </Field>
 
@@ -227,7 +231,7 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
                 value={form.facebook_url}
                 onChange={bindText('facebook_url')}
                 placeholder="https://www.facebook.com/groups/..."
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className={inputCls}
               />
             </Field>
           </div>
@@ -235,42 +239,44 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
 
         {/* ② 부부·선교사 소개 / 후원 안내 */}
         <AccordionSection title="부부·선교사 소개 / 후원 안내">
-          {/* 부부 소개 */}
-          <h3 className="text-xs font-semibold text-primary">부부 소개 (접힘 상태 표시)</h3>
-          <p className="mb-3 mt-1 text-[11px] text-faint">
-            공개 페이지의 선교사 소개는 기본 접힘 — 부부사진과 개요가 먼저 보이고, “약력 보기”를 누르면
-            선교사 ①·② 약력이 펼쳐집니다.
-          </p>
+          <div className="flex flex-col gap-3.5">
+            {/* 부부 소개 */}
+            <div>
+              <GroupHead>부부 소개 (접힘 상태 표시)</GroupHead>
+              <p className={hintCls}>
+                공개 페이지의 선교사 소개는 기본 접힘 — 부부사진과 개요가 먼저 보이고, “약력 보기”를 누르면
+                선교사 ①·② 약력이 펼쳐집니다.
+              </p>
+            </div>
 
-          <Field label="부부 사진">
-            <PortfolioPhotoUpload
-              userId={userId}
-              kind="couple"
-              value={form.couple_photo_url}
-              onChange={(url) => update('couple_photo_url', url)}
-            />
-          </Field>
+            <Field label="부부 사진">
+              <PortfolioPhotoUpload
+                userId={userId}
+                kind="couple"
+                value={form.couple_photo_url}
+                onChange={(url) => update('couple_photo_url', url)}
+              />
+            </Field>
 
-          <Field label="부부 소개 개요 (짧게)">
-            <textarea
-              value={form.couple_intro}
-              onChange={bindText('couple_intro')}
-              rows={3}
-              placeholder="2016년부터 온두라스에서 함께 섬기는 김우진·서진아 선교사 부부입니다."
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            />
-          </Field>
+            <Field label="부부 소개 개요 (짧게)">
+              <textarea
+                value={form.couple_intro}
+                onChange={bindText('couple_intro')}
+                rows={3}
+                placeholder="2016년부터 온두라스에서 함께 섬기는 김우진·서진아 선교사 부부입니다."
+                className={inputCls}
+              />
+            </Field>
 
-          {/* 선교사 ① */}
-          <div className="mt-4 border-t border-line pt-4">
-            <h3 className="mb-3 text-xs font-semibold text-primary">선교사 ① (위에 표시)</h3>
+            {/* 선교사 ① */}
+            <GroupHead>선교사 ① (위에 표시)</GroupHead>
             <Field label="이름">
               <input
                 type="text"
                 value={form.missionary_a_name}
                 onChange={bindText('missionary_a_name')}
                 placeholder="김우진 선교사"
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className={inputCls}
               />
             </Field>
             <Field label="약력 (줄바꿈으로 구분)">
@@ -279,21 +285,19 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
                 onChange={bindText('missionary_a_bio')}
                 rows={5}
                 placeholder="명지대학교 영어영문학과 졸업 (2005)&#10;..."
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className={inputCls}
               />
             </Field>
-          </div>
 
-          {/* 선교사 ② */}
-          <div className="mt-4 border-t border-line pt-4">
-            <h3 className="mb-3 text-xs font-semibold text-primary">선교사 ② (아래에 표시)</h3>
+            {/* 선교사 ② */}
+            <GroupHead>선교사 ② (아래에 표시)</GroupHead>
             <Field label="이름">
               <input
                 type="text"
                 value={form.missionary_b_name}
                 onChange={bindText('missionary_b_name')}
                 placeholder="서진아 선교사"
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className={inputCls}
               />
             </Field>
             <Field label="약력 (줄바꿈으로 구분)">
@@ -301,24 +305,22 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
                 value={form.missionary_b_bio}
                 onChange={bindText('missionary_b_bio')}
                 rows={6}
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className={inputCls}
               />
             </Field>
-          </div>
 
-          {/* 후원 안내 */}
-          <div className="mt-4 border-t border-line pt-4">
-            <h3 className="text-xs font-semibold text-primary">후원 안내</h3>
-            <p className="mb-3 mt-1 text-[11px] text-faint">
-              공개 페이지 맨 아래 “후원방법”에 표시됩니다. 비워 두면 표시되지 않습니다.
-            </p>
+            {/* 후원 안내 */}
+            <div>
+              <GroupHead>후원 안내</GroupHead>
+              <p className={hintCls}>공개 페이지 맨 아래 “후원방법”에 표시됩니다. 비워 두면 표시되지 않습니다.</p>
+            </div>
             <Field label="후원 계좌 / 안내">
               <textarea
                 value={form.donation_info}
                 onChange={bindText('donation_info')}
                 rows={2}
                 placeholder="우리은행 1002-349-524757 (김우진)"
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className={inputCls}
               />
             </Field>
           </div>
@@ -326,16 +328,26 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
       </form>
 
       {/* ④ 연혁 · ⑤ 편지 · ⑥ 영상 (각자 저장) */}
-      <div className="mt-4 space-y-4">{children}</div>
+      <div className="mt-2.5 space-y-2.5">{children}</div>
     </div>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="mb-3 last:mb-0">
-      <label className="mb-1 block text-xs font-medium text-muted">{label}</label>
+    <div>
+      <label className={labelCls}>{label}</label>
       {children}
     </div>
+  );
+}
+
+// 묶음 머리 — 라벤더 8px 사각형 + 이름
+function GroupHead({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="mt-1 flex items-center gap-1.5 text-[13px] font-medium text-b27-ink">
+      <i className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ background: LAVENDER_BLOCK }} aria-hidden />
+      {children}
+    </h3>
   );
 }

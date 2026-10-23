@@ -1,4 +1,5 @@
 'use client';
+// MFH-PORTFOLIO-PHOTO-UPLOAD-V4 — 2027(4-8): 미리보기 72px 둥근 면 + 「바꾸기」(라벤더 진한 톤)·「제거」(회색) 글자 · 빈 상태 = 연회색 면.
 // MFH-PORTFOLIO-PHOTO-UPLOAD-V3
 // 포트폴리오 사진 업로드 (portfolio-photos 공개 버킷).
 // 파일경로: {userId}/{kind}-{timestamp}.{ext}
@@ -73,33 +74,21 @@ export default function PortfolioPhotoUpload({ userId, kind, value, onChange }: 
   return (
     <div>
       {value ? (
-        <div className="flex items-start gap-3">
+        <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={value}
-            alt="미리보기"
-            className="h-20 w-20 rounded-md border border-line object-cover"
-          />
-          <div className="flex-1 space-y-1.5">
-            <p className="break-all text-[11px] text-faint">{value}</p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                disabled={busy}
-                className="rounded-md border border-line bg-surface px-3 py-1 text-xs text-primary disabled:opacity-50"
-              >
-                교체
-              </button>
-              <button
-                type="button"
-                onClick={handleClear}
-                disabled={busy}
-                className="rounded-md border border-line bg-surface px-3 py-1 text-xs text-danger disabled:opacity-50"
-              >
-                제거
-              </button>
-            </div>
+          <img src={value} alt="미리보기" className="h-[72px] w-[72px] shrink-0 rounded-xl object-cover" />
+          <div className="flex gap-3 text-[12px]">
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={busy}
+              className="font-medium text-[#4E39C6] disabled:opacity-50"
+            >
+              {busy ? '업로드 중…' : '바꾸기'}
+            </button>
+            <button type="button" onClick={handleClear} disabled={busy} className="text-b27-muted disabled:opacity-50">
+              제거
+            </button>
           </div>
         </div>
       ) : (
@@ -107,9 +96,9 @@ export default function PortfolioPhotoUpload({ userId, kind, value, onChange }: 
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={busy}
-          className="w-full rounded-md border-2 border-dashed border-line bg-surface-subtle py-4 text-xs text-muted hover:border-primary disabled:opacity-50"
+          className="w-full rounded-xl bg-b27-card py-4 text-[12px] text-b27-muted transition active:opacity-70 disabled:opacity-50"
         >
-          {busy ? '업로드 중…' : '+ 사진 업로드 (JPG/PNG, 5MB 이내)'}
+          {busy ? '업로드 중…' : '＋ 사진 업로드 (JPG/PNG, 5MB 이내)'}
         </button>
       )}
       <input
@@ -119,7 +108,7 @@ export default function PortfolioPhotoUpload({ userId, kind, value, onChange }: 
         onChange={handleFile}
         className="hidden"
       />
-      {error && <p className="mt-1 text-[11px] text-danger">{error}</p>}
+      {error && <p className="mt-1 text-[11px] text-b27-expense">{error}</p>}
     </div>
   );
 }

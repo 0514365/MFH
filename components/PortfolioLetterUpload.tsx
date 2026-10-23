@@ -1,5 +1,6 @@
 'use client';
 
+// MFH-PORTFOLIO-LETTER-UPLOAD-V3 — 2027(4-8): 흰 면 칸(연회색 패널 위) · 올라간 파일 = 진한 민트 ✓.
 // MFH-PORTFOLIO-LETTER-UPLOAD-V2
 // 선교편지용 파일 업로드 (PDF / 표지 이미지 / 모바일 HTML). portfolio-letters 버킷.
 // 경로: {userId}/pdf-{ts}.pdf / {userId}/cover-{ts}.{ext} / {userId}/mobile-{ts}.html
@@ -78,9 +79,11 @@ export default function PortfolioLetterUpload({
         type="button"
         disabled={busy}
         onClick={() => inputRef.current?.click()}
-        className="w-full rounded-md border border-line bg-surface px-3 py-2 text-xs font-medium text-primary hover:bg-primary-soft disabled:opacity-50"
+        className={`w-full rounded-xl bg-b27-paper px-2 py-2.5 text-[12px] font-medium transition active:opacity-70 disabled:opacity-50 ${
+          currentPath ? 'text-[#226C5A]' : 'text-b27-ink'
+        }`}
       >
-        {busy ? '업로드 중…' : currentPath ? `${label} 교체` : label}
+        {busy ? '업로드 중…' : currentPath ? `✓ ${label} 교체` : label}
       </button>
       <input
         ref={inputRef}
@@ -94,11 +97,11 @@ export default function PortfolioLetterUpload({
         }}
       />
       {filename && (
-        <p className="mt-1 truncate text-[10px] text-muted" title={filename}>
+        <p className="mt-1 truncate text-[10px] text-b27-muted" title={filename}>
           {filename}
         </p>
       )}
-      {error && <p className="mt-1 text-[10px] text-danger">{error}</p>}
+      {error && <p className="mt-1 text-[10px] text-b27-expense">{error}</p>}
     </div>
   );
 }
