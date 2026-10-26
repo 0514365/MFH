@@ -23,13 +23,7 @@ const config: Config = {
         'on-primary': 'var(--on-primary)',
         'on-accent': 'var(--on-accent)',
         'on-primary-soft': 'var(--on-primary-soft)',
-        'status-upcoming': 'var(--status-upcoming)',
-        'on-status-upcoming': 'var(--on-status-upcoming)',
-        'status-progress': 'var(--status-progress)',
-        'on-status-progress': 'var(--on-status-progress)',
-        'status-done': 'var(--status-done)',
-        'on-status-done': 'var(--on-status-done)',
-        // MFH 2027 (Minimal Block) — --b27-* 는 :root 에 선언(app/layout.tsx ← lib/palette.ts brand2027). 공용 토큰 브릿지는 .theme-2027 스코프(app/globals.css)
+        // MFH 2027 (Minimal Block) — --b27-* 는 :root 에 선언(app/layout.tsx ← lib/palette.ts brand2027). 위 공용 토큰 이름은 app/globals.css :root 에서 --b27-* 로 매핑
         'b27-ink': 'var(--b27-ink)',
         'b27-plus': 'var(--b27-plus)',
         'b27-paper': 'var(--b27-paper)',
@@ -63,15 +57,14 @@ const config: Config = {
         'b27-income-bar': 'var(--b27-income-bar)',
       },
       fontFamily: {
-        sans: ['Pretendard', 'var(--font-montserrat)', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        display: ['var(--font-montserrat)', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         // 2027 숫자·제목 — Manrope(lib/fonts.ts), 한글은 Pretendard 폴백
         num: ['var(--font-manrope)', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         // 2027 성경 본문 명조 — Noto Serif KR(lib/fonts.ts)
         serif: ['var(--font-serif)', 'Noto Serif KR', 'serif'],
       },
       boxShadow: {
-        soft: '0 2px 12px -4px rgba(34, 28, 28, 0.06)',
+        soft: '0 2px 12px -4px rgba(43, 49, 96, 0.08)', // 2027 남색 계열(이전 마룬 계열 rgba(34,28,28,.06))
       },
     },
   },

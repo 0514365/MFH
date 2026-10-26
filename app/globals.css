@@ -24,11 +24,10 @@ body {
 
 /* 종이 질감 노이즈 오버레이 — 2027 셸(2단계)에서 전역 제거(원칙 7 "밝게": 순백 바탕, 질감 없음). */
 
-/* MFH 2027 "Minimal Block" 테마 스코프 — 색 변수(--b27-*)는 app/layout.tsx 가 lib/palette.ts brand2027 에서 :root 에 주입(전 앱 공통).
-   여기서는 스코프 안에서 기존 공용 토큰(--paper 등)을 2027 값으로 덮어 공용 컴포넌트가 함께 전환되도록 브릿지만 둔다.
-   4-9(2026-10-23): 앱 셸(components/AppShell.tsx) 맨 바깥에 한 번 부착 → 셸 안 전 화면 적용. 셸 밖(/p 공개 · /login · /letters · 스플래시)은
-   :root 의 마룬 `light` 토큰 그대로 — 5단계(로고·스플래시·로그인)에서 정리. */
-.theme-2027 {
+/* MFH 2027 "Minimal Block" — 색 변수(--b27-*)는 app/layout.tsx 가 lib/palette.ts brand2027 에서 :root 에 주입.
+   5-④(2026-10-24): 마룬 `light` 세트 삭제 → 기존 공용 토큰 이름(--primary · --paper 등, Tailwind text-primary/bg-surface…)을
+   여기 :root 에서 한 번만 2027 값으로 잇는다(셸 .theme-2027 · /p .portfolio-theme 의 중복 브릿지 제거). */
+:root {
   --paper: var(--b27-paper);
   --surface: var(--b27-paper);
   --surface-subtle: var(--b27-card);
@@ -39,13 +38,18 @@ body {
   --primary: var(--b27-ink);
   --primary-hover: var(--b27-ink);
   --primary-soft: var(--b27-card);
+  --on-primary: #ffffff;
   --on-primary-soft: var(--b27-ink);
   --accent: var(--b27-plus);
   --accent-hover: var(--b27-plus);
   --accent-soft: var(--b27-card);
+  --on-accent: #ffffff;
   --on-accent-soft: var(--b27-ink);
   --danger: var(--b27-expense);
   --font-num: var(--font-manrope), 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+/* 앱 셸(components/AppShell.tsx) 맨 바깥 — 변수는 :root 로 옮겼고 바탕·글자색만 남는다. */
+.theme-2027 {
   background: var(--b27-paper);
   color: var(--b27-ink);
 }

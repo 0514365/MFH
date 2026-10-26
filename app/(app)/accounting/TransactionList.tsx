@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V20 — 2027 5-④: 선택 체크박스 마룬 → 남색(accent-[#2B3160]).
 // MFH-ACCOUNTING-TXLIST-V19 — 2027 토큰 승격: 종류 칩·월 머리줄 면 리터럴 → b27-income-soft / b27-expense-soft
 // MFH-ACCOUNTING-TXLIST-V18 — 항목·계좌 = 바텀시트 다중선택(SearchFilters) · 더 보기(분류·통화·사용자·금액 원금 범위) — 드롭다운 4개 제거
 // MFH-ACCOUNTING-TXLIST-V17 — 검색 UI 차용(SearchFilters): 둥근 검색창·최근 검색어 · 기간 칩(전체·이번 주·이번 달·지정) · 구분 칩 · 금액순/날짜순 글자 토글 · 검색어에 항목명·금액 숫자
@@ -427,7 +428,7 @@ export default function TransactionList({
 
   const arrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '')
   const colSpan = showCur ? 11 : 8 // 데스크탑 열 수(통화 3열 접힘 반영)
-  const cbCls = 'h-4 w-4 shrink-0 cursor-pointer accent-[#661F20]'
+  const cbCls = 'h-4 w-4 shrink-0 cursor-pointer accent-[#2B3160]'
 
   return (
     <section className="mt-6">

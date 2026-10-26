@@ -1,3 +1,4 @@
+// MFH-LAYOUT-V7 — 2027 5-④: 마룬 `light` 토큰 주입 제거(--b27-* 만 · 공용 토큰 이름 매핑은 globals.css :root).
 // MFH-LAYOUT-V6 — 2027 5단계: themeColor 마룬 → 흰색(흰 셸·상태바 한 면).
 // MFH-LAYOUT-V5 — 성경 본문 명조(Noto Serif KR, --font-serif) 변수 추가.
 // MFH-LAYOUT-V4 — 2027 토큰 승격: --b27-* 변수를 :root 로(전 앱에서 b27-* 클래스 사용 가능). 공용 토큰 브릿지는 여전히 .theme-2027 스코프.
@@ -6,7 +7,7 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 import { montserrat, manrope, notoSerifKr } from '@/lib/fonts'
-import { light, tokensToCssVars, brand2027ToCssVars } from '@/lib/palette'
+import { brand2027ToCssVars } from '@/lib/palette'
 import BadgeSync from '@/components/BadgeSync'
 import './globals.css'
 
@@ -29,7 +30,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <style
           dangerouslySetInnerHTML={{
-            __html: `:root{${tokensToCssVars(light)} ${brand2027ToCssVars()}}`,
+            __html: `:root{${brand2027ToCssVars()}}`,
           }}
         />
         <link

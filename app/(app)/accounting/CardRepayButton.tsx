@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-REPAY-BUTTON-V14 — 2027 5-④: 잔액 0 체크박스 마룬 → 남색(accent-[#2B3160]).
 // MFH-CARD-REPAY-BUTTON-V13 — 2027(회계 잔여 b): 상환·잔액 0 모달 = 그림자 없는 흰 시트(24px) · Manrope 제목 + 닫기 알약 · 표·안내 = 연회색 면 · 방식 = 알약 세그먼트
 // MFH-CARD-REPAY-BUTTON-V12 — 2027(회계 잔여 a): 넓은 화면 「카드 미상환」 줄 = 연한 빨강 면 + 색 사각형 · 「상환 입력」 터키석 알약 · 「잔액 0 맞춤」 흰 알약 (모달은 b 단계)
 // MFH-CARD-REPAY-BUTTON-V11 — compact 「상환」 = 터키석(행동색), 「잔액 0」 = 흰 알약(연한 빨강 면 위용)
@@ -306,7 +307,7 @@ export default function CardRepayButton({
                       <tr key={c.id} className={`border-t border-b27-line ${zeroPick[c.id] ? '' : 'opacity-50'}`}>
                         <td className="px-2 py-1.5">
                           <label className="flex items-center gap-1.5 text-b27-ink">
-                            <input type="checkbox" checked={!!zeroPick[c.id]} onChange={(e) => setZeroPick((p) => ({ ...p, [c.id]: e.target.checked }))} className="h-4 w-4 accent-[#661F20]" />
+                            <input type="checkbox" checked={!!zeroPick[c.id]} onChange={(e) => setZeroPick((p) => ({ ...p, [c.id]: e.target.checked }))} className="h-4 w-4 accent-[#2B3160]" />
                             {cardLabel(c)}
                           </label>
                         </td>

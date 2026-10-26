@@ -1,83 +1,11 @@
 // lib/palette.ts
-// MFH 2026 Brand Kit — 팔레트 토큰 (라이트)
-// CSS 변수(--kebab-case)로 주입해 사용한다. (app/layout.tsx)
-
-export type PaletteTokens = {
-  // Brand
-  primary: string;
-  primaryHover: string;
-  accent: string;
-  accentHover: string;
-  danger: string;
-  // Tint (연한/어두운 채움 + 그 위 글자)
-  primarySoft: string;
-  accentSoft: string;
-  onPrimarySoft: string;
-  onAccentSoft: string;
-  // Neutral
-  paper: string;
-  surface: string;
-  surfaceSubtle: string;
-  line: string;
-  text: string;
-  textMuted: string;
-  textFaint: string;
-  // On-color
-  onPrimary: string;
-  onAccent: string;
-  // Status (2026 개편: upcoming/in_progress/done — 브랜드색과 별개의 기능색, NOTION 식 soft)
-  statusUpcoming: string;
-  onStatusUpcoming: string;
-  statusProgress: string;
-  onStatusProgress: string;
-  statusDone: string;
-  onStatusDone: string;
-};
-
-// ⚠️ 2027(4-9): 마룬 `light` 세트는 셸 밖 화면(/p 공개 · /login · /letters · 스플래시) 전용. 앱 셸 안은 .theme-2027 브릿지가 2027 값으로 덮는다.
-//    로그인·스플래시를 2027 로 바꾸는 5단계에서 정리(/p 는 portfolio-theme.css 와 함께 별도 판단).
-export const light: PaletteTokens = {
-  primary: "#661F20",
-  primaryHover: "#531719",
-  accent: "#B61821",
-  accentHover: "#9A141B",
-  danger: "#B61821",
-  primarySoft: "#F1E4E4",
-  accentSoft: "#FAE3E4",
-  onPrimarySoft: "#661F20",
-  onAccentSoft: "#B61821",
-  paper: "#FFFFFF", // 2027 셸(2단계): 미색 #FAF8F7 → 순백(셸과 본문 경계 제거)
-  surface: "#FFFFFF",
-  surfaceSubtle: "#F2EEEC",
-  line: "#E5DFDC",
-  text: "#221C1C",
-  textMuted: "#80807F",
-  textFaint: "#A8A6A4",
-  onPrimary: "#FFFFFF",
-  onAccent: "#FFFFFF",
-  statusUpcoming: "#F1EFE8",
-  onStatusUpcoming: "#444441",
-  statusProgress: "#E6F1FB",
-  onStatusProgress: "#0C447C",
-  statusDone: "#E1F5EE",
-  onStatusDone: "#0F6E56",
-};
-
-// camelCase 토큰 키 → --kebab-case CSS 변수명
-const toCssVar = (key: string): string =>
-  "--" + key.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
-
-// 토큰 한 세트를 ":root{...}" 내부에 넣을 선언 문자열로 변환
-export function tokensToCssVars(tokens: PaletteTokens): string {
-  return (Object.keys(tokens) as (keyof PaletteTokens)[])
-    .map((k) => `${toCssVar(k as string)}: ${tokens[k]};`)
-    .join(" ");
-}
+// MFH 팔레트 토큰 — 2027 "Minimal Block"(brand2027) 단일 세트.
+// 5-④(2026-10-24): 2026 마룬 `light` 세트 삭제. 기존 공용 토큰 이름(--primary · --paper …)은 app/globals.css :root 에서 --b27-* 로 잇는다.
 
 // ---------------------------------------------------------------------------
 // MFH 2027 리브랜딩 — "Minimal Block" 토큰 (회계 먼저 적용, 2027 전체 확장).
 // 흰 바탕 · 파스텔 블록 8색 + 같은 색 할로(흰 글자 가장자리 대비) · 남색 앵커 · 터키석 ＋ 하나.
-// CSS 변수 접두 --b27-* 로 :root 에 주입(app/layout.tsx). 공용 토큰(--paper 등)을 2027 값으로 덮는 브릿지는 app/globals.css 의 .theme-2027 스코프(앱 셸 맨 바깥에 부착). 기존 `light` 세트와 독립.
+// CSS 변수 접두 --b27-* 로 :root 에 주입(app/layout.tsx). 공용 토큰 이름(--paper 등) → 2027 값 매핑은 app/globals.css 의 :root.
 // 대비(흰 바탕): ink 12.6 · income 6.3 · expense 5.3 · wait 5.0. 블록 위 흰 글자는 할로 50%(3·4번 65%) 기준 3.3~5.8.
 
 export type Brand2027Tokens = {

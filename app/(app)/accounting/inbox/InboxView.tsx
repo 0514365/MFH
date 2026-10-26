@@ -1,4 +1,5 @@
 'use client'
+// MFH-CARD-INBOX-VIEW-V12 — 2027 5-④: 선택 체크박스 마룬 → 남색(accent-[#2B3160]).
 // MFH-CARD-INBOX-VIEW-V11 — 2027 토큰 승격: 「새 상점」 면 리터럴 → b27-wait-soft
 // MFH-CARD-INBOX-VIEW-V10 — 실기 피드백(접힌 행): 1건 = 1행(구매처 · 시각/카드 · 추천 항목 칩(블록 색) · 금액), 행 탭 = 그 행만 펼쳐 항목·계좌·구매처·내용 수정 + 승인/무시
 //   · 제목 줄 「승인 N」 + 「모두 승인」(터키석, 항목 지정된 건) + ⋯ 도구(필터·정렬·전체 선택·일괄 입력). 상태·승인·일괄 로직은 V9 그대로.
@@ -28,7 +29,7 @@ const CUR_SYMBOL: Record<string, string> = { KRW: '₩', USD: '$', HNL: 'L' }
 const CAT_ORDER = ['사역비', '생활비', '사역', '차량', '생활', '운영/행정']
 const ctl =
   'h-9 w-full rounded-lg border border-b27-line bg-b27-paper px-2 text-sm text-b27-ink outline-none transition focus:border-b27-ink'
-const cb = 'h-4 w-4 shrink-0 cursor-pointer accent-[#661F20]'
+const cb = 'h-4 w-4 shrink-0 cursor-pointer accent-[#2B3160]'
 
 function groupByCategory(items: AcctOption[]): [string, AcctOption[]][] {
   const map = new Map<string, AcctOption[]>()
