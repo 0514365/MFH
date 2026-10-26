@@ -1,4 +1,5 @@
 'use client'
+// MFH-TASK-DELETE-BUTTON-V3 — 반복 삭제 범위 모달 tone="danger"(시트 문법 · 빨간 글자).
 // MFH-TASK-DELETE-BUTTON-V2 — 2027(4-2): 연한 빨강 면 + 빨강 글자(상세 하단 버튼 줄 높이 맞춤).
 
 import { useState } from 'react'
@@ -72,6 +73,7 @@ export default function DeleteButton({
           message="어디까지 삭제할까요? ‘남은 모두’는 완료되지 않은 이후 반복 항목을 함께 삭제합니다(완료된 과거 항목은 보존)."
           oneLabel="이 항목만 삭제"
           followingLabel="남은(미완료) 반복 모두 삭제"
+          tone="danger"
           busy={busy}
           onChoose={(s) => runDelete(s)}
           onCancel={() => setModal(false)}

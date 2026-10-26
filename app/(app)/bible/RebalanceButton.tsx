@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-REBALANCE-V3 — 2027 시트 문법: 그림자 없는 흰 시트(24px) · Manrope 제목 + 닫기 알약 · 선택지 = 연회색 면, 고른 안 = 블러시 틴트 + 남색 라디오 · 버튼 알약.
 // MFH-BIBLE-REBALANCE-V2 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-REBALANCE-V1
@@ -90,10 +91,10 @@ export default function RebalanceButton({ plan, days, today }: Props) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4 @md:items-center" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-b27-paper p-5 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="남은 기간 재분배">
+          <div className="w-full max-w-md rounded-3xl bg-b27-paper p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="남은 기간 재분배">
             <div className="mb-1 flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-b27-ink">남은 기간 재분배</h3>
-              <button type="button" onClick={() => setOpen(false)} className="text-xs text-b27-muted hover:text-b27-ink">
+              <h3 className="font-num text-[16px] font-semibold text-b27-ink">남은 기간 재분배</h3>
+              <button type="button" onClick={() => setOpen(false)} className="rounded-full bg-b27-card px-3 py-1 text-[12px] text-b27-ink transition active:opacity-70">
                 닫기
               </button>
             </div>
@@ -114,13 +115,21 @@ export default function RebalanceButton({ plan, days, today }: Props) {
                       type="button"
                       disabled={!r.ok}
                       onClick={() => setPick(o.mode)}
-                      className={`rounded-xl border px-3.5 py-3 text-left transition ${
-                        active ? 'border-b27-ink bg-b27-card' : 'border-b27-line'
+                      aria-pressed={active}
+                      className={`grid grid-cols-[18px_1fr] items-start gap-2.5 rounded-xl px-3.5 py-3 text-left transition active:opacity-80 ${
+                        active ? 'bg-b27-tint-7' : 'bg-b27-card'
                       } ${r.ok ? '' : 'opacity-50'}`}
                     >
+                      <span
+                        aria-hidden
+                        className={`mt-px h-[18px] w-[18px] rounded-full ${
+                          active ? 'bg-b27-ink shadow-[inset_0_0_0_4px_#2B3160,inset_0_0_0_7px_#fff]' : 'shadow-[inset_0_0_0_1.5px_#C9CDD8]'
+                        }`}
+                      />
+                      <div className="min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-[13px] font-semibold text-b27-ink">{o.title}</span>
-                        {r.ok && <span className="text-[11px] text-b27-muted">{r.days.length}일</span>}
+                        {r.ok && <span className="font-num text-[11px] text-b27-muted">{r.days.length}일</span>}
                       </div>
                       <div className="mt-0.5 text-[11px] text-b27-muted">{o.desc}</div>
                       {r.ok ? (
@@ -133,6 +142,7 @@ export default function RebalanceButton({ plan, days, today }: Props) {
                       ) : (
                         <div className="mt-2 text-[12px] text-[#A91E30]">{r.error}</div>
                       )}
+                      </div>
                     </button>
                   )
                 })}
@@ -148,14 +158,14 @@ export default function RebalanceButton({ plan, days, today }: Props) {
             {err && <p className="mt-3 text-[12px] text-[#A91E30]">{err}</p>}
 
             <div className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={() => setOpen(false)} className="h-10 rounded-lg border border-b27-line px-4 text-xs text-b27-muted">
+              <button type="button" onClick={() => setOpen(false)} className="h-10 rounded-full bg-b27-card px-4 text-sm text-b27-muted">
                 취소
               </button>
               <button
                 type="button"
                 onClick={onSave}
                 disabled={!sel?.ok || saving}
-                className="h-10 rounded-lg bg-b27-ink px-4 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+                className="h-10 rounded-full bg-b27-ink px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
               >
                 {saving ? '저장 중…' : '재분배'}
               </button>

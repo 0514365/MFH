@@ -1,4 +1,5 @@
 'use client'
+// MFH-TASK-FORM-2027-V2 — 반복 삭제 범위 모달 tone="danger"(시트 문법 · 빨간 글자).
 // MFH-TASK-FORM-2027-V1 — 2027(4-2): theme-2027 · 빨간 ‹ 새 할 일/할 일 수정 · 연회색 입력칸 · 라벨 Manrope 회색 · 반복 = 알약 ·
 //   중요도 = 살구 블록 4칸 · 상태 = 알약 세그먼트 · 사역 분류 = 블록 선택 · 선행/후속 = 로즈 틴트 면 · 저장 남색.
 
@@ -775,6 +776,7 @@ export default function TaskForm({ mode, initial, presetProjectId, nav, navQuery
           message="어디까지 삭제할까요? ‘남은 모두’는 완료되지 않은 이후 반복 항목을 함께 삭제합니다(완료된 과거 항목은 보존)."
           oneLabel="이 항목만 삭제"
           followingLabel="남은(미완료) 반복 모두 삭제"
+          tone="danger"
           busy={saving}
           onChoose={(s) => runDelete(s)}
           onCancel={() => setScopeModal(null)}
