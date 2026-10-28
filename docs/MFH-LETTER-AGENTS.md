@@ -126,6 +126,7 @@ letter-templates/issues/<YYYY-MM>/
 - 톤: 강렬한 마룬·원색 거부, **파스텔·차분**. 이모지 절제.
 - 로고 배치: `logo-primary`=표지헤더·마무리푸터 / `온두라스로고4`=마무리상단 / `mfh-icon`=CTA.
 - **마감(감사) 카드 고정 요소 — 연락처 QR (2026-06호부터)**: MFH 앱 QR 과 **카카오톡 QR**(`letter-templates/assets/kakao-qr-code.png` — QR 단독 이미지, 각 호 `photos/` 에 복사해 사용)을 함께 배치. **카드뉴스=나란히, 모바일=MFH QR 카드 바로 아래**. 카카오 패널에는 **카카오 ID `woojin22`** 를 항상 기재. **두 패널 모두 전체를 링크로 감싼다** — MFH 패널 `<a href="https://mfh-snowy.vercel.app/p/mfh">`, 카카오 패널 `<a href="https://qr.kakao.com/talk/hzQB2A9YlsL550oRrEI5e_yvT7k-">` (터치 시 각각 공개페이지·카카오톡 연결).
+- **후원계좌 고정 문구 (2026-10-28 변경 — 2609호부터)**: `후원계좌 · 하나은행 183-939319-04737 · 예금주 SEED(김우진)` (카드뉴스는 `<b>후원계좌</b> · 하나은행 183-939319-04737 · 예금주 SEED(김우진)`). 마감 푸터·원고 하단에 이 문구를 그대로 쓴다. **구 계좌(우리은행 1002-349-524757 · 김우진)는 사용 금지** — 직전 호를 복제해도 반드시 이 값으로 교체하고 assembler QA 에서 확인한다. 2606~2608호 발행본은 구 계좌 그대로 둔다(소급 수정 안 함).
 
 **언어·톤·기조**
 - 모든 산출물 한국어. 따뜻하고 담백하게, 과장·상투어 절제.
@@ -147,6 +148,7 @@ letter-templates/issues/<YYYY-MM>/
 | 모바일 마스터 | `letter-templates/mfh-mobile-letter.html` (폭 430) |
 | 로고·표지 | `letter-templates/assets/` |
 | 카카오톡 연락처 QR | `letter-templates/assets/kakao-qr-code.png` (QR 단독·스캔검증됨) — ID `woojin22` · 터치 링크 `https://qr.kakao.com/talk/hzQB2A9YlsL550oRrEI5e_yvT7k-` |
+| 후원계좌 | 하나은행 183-939319-04737 · 예금주 SEED(김우진) (2026-10-28~ · 구 우리은행 계좌 사용 금지) |
 | 자동 수집 스크립트 | `scripts/fetch-letter-materials.mjs` V3 — 다중사진+인사이트(피드백 4신호 ★별점·[편지에담기]·[메모])+보관([보관])+중보 (`.env.local` SERVICE_ROLE_KEY) |
 | 앱 수집(보조) | `/letter-materials` (insights 페이지 진입) |
 | 품질 기준선(모바일+카드뉴스) | `letter-templates/issues/2026-06/` — `letter-mobile.html`·`letter-cardnews.html`·`MFH-2606-cardnews.pdf` (2026-06 리허설 확정본, 참고용 보존) |

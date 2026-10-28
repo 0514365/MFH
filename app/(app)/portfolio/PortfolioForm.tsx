@@ -319,7 +319,7 @@ export default function PortfolioForm({ initial, userId, children }: Props) {
                 value={form.donation_info}
                 onChange={bindText('donation_info')}
                 rows={2}
-                placeholder="우리은행 1002-349-524757 (김우진)"
+                placeholder="하나은행 183-939319-04737 · 예금주 SEED(김우진)"
                 className={inputCls}
               />
             </Field>
