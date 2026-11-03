@@ -1,15 +1,17 @@
-// MFH-MAKE-REEL-V1
+// MFH-MAKE-REEL-V2
 // fb-update 가 만든 result.json 의 reel 을 영상으로 만든다:
-//   사진(journal-photos 버킷) 다운로드 → letter-templates/tools/reel-template.html 채움 → build-video.py → media/out/reel-<week_start>.mp4
+//   사진(journal-photos 버킷) 다운로드 → Remotion props JSON → letter-templates/remotion 렌더(무음) → build-video.py --mux(현장음·음악 믹스)
+//   → media/out/reel-<week_start>.mp4
 // 사용:  npx tsx scripts/make-reel.ts                       (기본 insights-archive/_fb/result.json)
-//        npx tsx scripts/make-reel.ts path/to/result.json [--html-only]
+//        npx tsx scripts/make-reel.ts path/to/result.json [--props-only] [--music bgm.mp3]
 // ⚠ repo 루트에서 실행. 장면의 photo 가 로컬에 이미 있는 파일 경로면 다운로드 없이 그대로 쓴다(테스트용).
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+//   자막에 *어절* 을 쓰면 강조색. 클립은 media/raw 의 파일을 public 폴더(media/out/reel-<week>/clips)에 심볼릭 링크로 둔다.
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'fs'
 import { basename, join, relative, resolve } from 'path'
 import { spawnSync } from 'child_process'
 import { loadEnv, createServiceClient, readJsonFile } from './_shared'
 
-type Scene = { photo?: string; clip?: string; label?: string; caption?: string }
+type Scene = { photo?: string; clip?: string; start?: number; audio?: number; label?: string; caption?: string; motion?: string }
 type Reel = {
   title?: string; label?: string; date_label?: string; cover_photo?: string
   scenes?: Scene[]; end_line?: string
@@ -17,15 +19,21 @@ type Reel = {
 type Result = { week_start?: string; reel?: Reel | null }
 
 const ROOT = process.cwd()
-const TEMPLATE = join(ROOT, 'letter-templates', 'tools', 'reel-template.html')
+const REMOTION = join(ROOT, 'letter-templates', 'remotion')
 const BUILD = join(ROOT, 'letter-templates', 'tools', 'build-video.py')
-const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-const escBr = (s: unknown) => esc(s).replace(/&lt;br\s*\/?&gt;/g, '<br>')
+const LOGO = join(ROOT, 'letter-templates', 'assets', 'logo-white.png')
+const COVER_DUR = 4, SCENE_DUR = 5, END_DUR = 4, CLIP_AUDIO = 0.6
+
+function arg(name: string) {
+  const i = process.argv.indexOf(name)
+  return i > 0 ? process.argv[i + 1] : undefined
+}
 
 async function main() {
   const args = process.argv.slice(2)
-  const htmlOnly = args.includes('--html-only')
-  const fileArg = args.find((a) => !a.startsWith('--')) || join(ROOT, 'insights-archive', '_fb', 'result.json')
+  const propsOnly = args.includes('--props-only')
+  const music = arg('--music')
+  const fileArg = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--music') || join(ROOT, 'insights-archive', '_fb', 'result.json')
   const parsed = readJsonFile<Result>(fileArg)
   const reel = parsed.reel
   if (!reel || !Array.isArray(reel.scenes) || !reel.scenes.length) {
@@ -33,11 +41,14 @@ async function main() {
     return
   }
   const week = parsed.week_start || 'undated'
-  const outDir = join(ROOT, 'media', 'out', `reel-${week}`)
+  const outDir = join(ROOT, 'media', 'out', `reel-${week}`)   // = Remotion public dir
   const photoDir = join(outDir, 'photos')
+  const clipDir = join(outDir, 'clips')
   mkdirSync(photoDir, { recursive: true })
+  mkdirSync(clipDir, { recursive: true })
+  copyFileSync(LOGO, join(outDir, 'logo-white.png'))
 
-  // 사진 확보 — 로컬 파일이면 그대로, 아니면 journal-photos 에서 다운로드.
+  // 사진 확보 — 로컬 파일이면 그대로, 아니면 journal-photos 에서 다운로드. 반환값은 public dir 기준 상대경로.
   let sb: ReturnType<typeof createServiceClient> | null = null
   const cache = new Map<string, string>()
   async function photoPath(p: string | undefined): Promise<string> {
@@ -45,58 +56,71 @@ async function main() {
     if (cache.has(p)) return cache.get(p)!
     let local: string
     if (existsSync(resolve(ROOT, p))) {
-      local = resolve(ROOT, p)
-    } else {
-      sb ??= createServiceClient(loadEnv())
-      const { data, error } = await sb.storage.from('journal-photos').download(p)
-      if (error || !data) throw new Error(`사진 다운로드 실패 ${p}: ${error?.message ?? '빈 응답'}`)
       local = join(photoDir, basename(p))
-      writeFileSync(local, Buffer.from(await data.arrayBuffer()))
+      if (!existsSync(local)) copyFileSync(resolve(ROOT, p), local)
+    } else {
+      local = join(photoDir, basename(p))
+      if (!existsSync(local)) {
+        sb ??= createServiceClient(loadEnv())
+        const { data, error } = await sb.storage.from('journal-photos').download(p)
+        if (error || !data) throw new Error(`사진 다운로드 실패 ${p}: ${error?.message ?? '빈 응답'}`)
+        writeFileSync(local, Buffer.from(await data.arrayBuffer()))
+      }
     }
     const rel = relative(outDir, local)
     cache.set(p, rel)
     return rel
   }
-
-  // 템플릿 분해 — 표지·사진·클립·마무리 네 블록.
-  const tpl = readFileSync(TEMPLATE, 'utf8')
-  const block = (cls: string) => {
-    const m = tpl.match(new RegExp(`<section class="scene ${cls}"[\\s\\S]*?</section>`))
-    if (!m) throw new Error(`템플릿에 ${cls} 장면 없음`)
-    return m[0]
+  // 클립: Remotion public 폴더는 심볼릭 링크를 못 따라가므로, 장면 길이만큼 잘라 세로 1080×1920 mp4 로 변환해 둔다(무음 — 현장음은 원본에서 믹스).
+  function clipPath(p: string, start: number, dur: number): string {
+    const src = resolve(ROOT, p)
+    if (!existsSync(src)) throw new Error(`클립 없음: ${p}`)
+    const out = join(clipDir, basename(src).replace(/\.[^.]+$/, '') + `-${start}s.mp4`)
+    if (!existsSync(out)) {
+      const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(start), '-t', String(dur + 0.5), '-i', src,
+        '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30', '-an',
+        '-c:v', 'libx264', '-crf', '18', '-preset', 'fast', '-pix_fmt', 'yuv420p', out], { stdio: 'inherit' })
+      if (r.status !== 0) throw new Error(`클립 변환 실패: ${p}`)
+    }
+    return relative(outDir, out)
   }
-  const head = tpl.slice(0, tpl.indexOf('<body>') + '<body>'.length)
-  const fill = (html: string, vars: Record<string, string>) =>
-    html.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? '')
 
-  const sections: string[] = []
-  sections.push(fill(block('cover'), {
-    cover_photo: await photoPath(reel.cover_photo || reel.scenes.find((s) => s.photo)?.photo),
-    date_label: esc(reel.date_label || week.slice(0, 7).replace('-', '.')),
-    cover_label: esc(reel.label || '이번 주 소식'),
-    cover_title: escBr(reel.title || 'MFH 소식'),
-  }))
+  const scenes: Record<string, unknown>[] = []
+  scenes.push({
+    kind: 'cover', dur: COVER_DUR,
+    photo: await photoPath(reel.cover_photo || reel.scenes.find((s) => s.photo)?.photo),
+    date_label: reel.date_label || week.slice(0, 7).replace('-', '.'),
+    label: reel.label || '이번 주 소식',
+    title: reel.title || 'MFH 소식',
+  })
   for (const s of reel.scenes) {
     if (s.clip) {
-      const clip = resolve(ROOT, s.clip)
-      if (!existsSync(clip)) throw new Error(`클립 없음: ${s.clip}`)
-      sections.push(fill(block('clip'), { clip: relative(outDir, clip), label: esc(s.label), caption: esc(s.caption) }))
+      const start = s.start ?? 0
+      scenes.push({ kind: 'clip', dur: SCENE_DUR, clip: clipPath(s.clip, start, SCENE_DUR), start: 0,
+        audio: s.audio ?? CLIP_AUDIO, audio_src: resolve(ROOT, s.clip), audio_start: start,
+        label: s.label || '', caption: s.caption || '' })
     } else {
-      sections.push(fill(block('photo'), { photo: await photoPath(s.photo), label: esc(s.label), caption: esc(s.caption) }))
+      scenes.push({ kind: 'photo', dur: SCENE_DUR, photo: await photoPath(s.photo), label: s.label || '', caption: s.caption || '',
+        ...(s.motion ? { motion: s.motion } : {}) })
     }
   }
-  sections.push(fill(block('end'), { end_line: esc(reel.end_line || '') })
-    .replace('../assets/logo-white.png', relative(outDir, join(ROOT, 'letter-templates', 'assets', 'logo-white.png'))))
+  scenes.push({ kind: 'end', dur: END_DUR, end_line: reel.end_line || '', logo: 'logo-white.png' })
 
-  const html = `${head}\n\n${sections.join('\n\n')}\n\n</body>\n</html>\n`
-  const htmlPath = join(outDir, 'reel.html')
-  writeFileSync(htmlPath, html)
-  console.log(`[make-reel] ${relative(ROOT, htmlPath)} · 장면 ${reel.scenes.length + 2}개`)
-  if (htmlOnly) return
+  const propsPath = join(outDir, 'reel.props.json')
+  writeFileSync(propsPath, JSON.stringify({ scenes }, null, 2))
+  console.log(`[make-reel] ${relative(ROOT, propsPath)} · 장면 ${scenes.length}개`)
+  if (propsOnly) return
 
+  // 1) Remotion 렌더(무음)
+  const silent = join(outDir, 'reel-silent.mp4')
+  const r1 = spawnSync('npx', ['remotion', 'render', 'src/index.ts', 'Reel', silent, `--public-dir=${outDir}`, `--props=${propsPath}`, '--log=error'],
+    { cwd: REMOTION, stdio: 'inherit' })
+  if (r1.status !== 0) process.exit(r1.status ?? 1)
+
+  // 2) 오디오 믹스(현장음·음악·음성) + 먹싱
   const mp4 = join(ROOT, 'media', 'out', `reel-${week}.mp4`)
-  const r = spawnSync('python3', [BUILD, htmlPath, mp4], { stdio: 'inherit' })
-  if (r.status !== 0) process.exit(r.status ?? 1)
+  const r2 = spawnSync('python3', [BUILD, propsPath, mp4, '--mux', silent, ...(music ? ['--music', music] : [])], { stdio: 'inherit' })
+  if (r2.status !== 0) process.exit(r2.status ?? 1)
   console.log(`[make-reel] 완료 → ${relative(ROOT, mp4)} (폰으로 보내 FB/IG 앱에서 음원 선택 후 게시)`)
 }
 

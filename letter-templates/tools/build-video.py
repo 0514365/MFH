@@ -72,6 +72,23 @@ def split_scenes(src):
     return head, scenes
 
 
+def split_scenes_json(src):
+    """Remotion props JSON(make-reel.ts) → 오디오 타임라인용 장면 목록. 영상은 --mux 로 받는다."""
+    data = json.load(open(src, encoding="utf-8"))
+    base = os.path.dirname(src)
+    scenes = []
+    for s in data["scenes"]:
+        clip = s.get("audio_src") or s.get("clip")   # 현장음은 원본(audio_src)에서, 없으면 public 의 클립에서
+        scenes.append({
+            "html": None, "dur": float(s["dur"]),
+            "clip": (clip if os.path.isabs(clip) else os.path.normpath(os.path.join(base, clip))) if clip else None,
+            "clip_start": float(s.get("audio_start") if s.get("audio_src") else (s.get("start") or 0)),
+            "clip_audio": float(s.get("audio") or 0),
+            "cap": False, "photo": False, "motion": None, "xfade": None,
+        })
+    return None, scenes
+
+
 def shot(head, scene, png, w, h, workdir, css="", transparent=False):
     page = os.path.join(workdir, f".scene-{os.getpid()}.html")
     with open(page, "w", encoding="utf-8") as f:
@@ -127,7 +144,8 @@ def motion_filter(kind, w, h, n):
     return f"zoompan=z='1+{z}*on/{n}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={n}:s={w}x{h}:fps={FPS}"
 
 
-def build(pngs, scenes, durs, out, w, h, music, voices):
+def build(pngs, scenes, durs, out, w, h, music, voices, mux=None):
+    """mux: Remotion 이 만든 무음 영상 — 영상 필터를 건너뛰고 오디오만 섞어 붙인다."""
     cmd = ["ffmpeg", "-y", "-loglevel", "error"]
     n_in = 0
     vid_in, ov_in, cap_in, amb = [], [], [], []   # 장면별 (영상 idx, 정적 오버레이 idx, 자막 idx) · 현장음 (idx, scene, vol)
@@ -139,8 +157,12 @@ def build(pngs, scenes, durs, out, w, h, music, voices):
             vid_in.append(n_in); n_in += 1
             if sc["clip_audio"] > 0 and probe(sc["clip"])[1]:
                 amb.append((vid_in[-1], i, sc["clip_audio"]))
+            if mux:
+                ov_in.append(None); cap_in.append(None); continue
             cmd += ["-loop", "1", "-t", f"{d}", "-i", png]
             ov_in.append(n_in); n_in += 1
+        elif mux:
+            vid_in.append(None); ov_in.append(None); cap_in.append(None); continue
         else:
             cmd += ["-loop", "1", "-t", f"{d}", "-i", png]
             vid_in.append(n_in); ov_in.append(None); n_in += 1
@@ -149,6 +171,10 @@ def build(pngs, scenes, durs, out, w, h, music, voices):
             cap_in.append(n_in); n_in += 1
         else:
             cap_in.append(None)
+    mux_in = None
+    if mux:
+        cmd += ["-i", mux]
+        mux_in = n_in; n_in += 1
     total = sum(durs) - XFADE * (len(durs) - 1)
     if music:
         cmd += ["-stream_loop", "-1", "-i", music]
@@ -164,6 +190,8 @@ def build(pngs, scenes, durs, out, w, h, music, voices):
     parts = []
     photo_i = 0
     for i, (sc, d) in enumerate(zip(scenes, durs)):
+        if mux:
+            break
         n = int(round(d * FPS))
         if sc["clip"]:
             parts.append(f"[{vid_in[i]}:v]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},"
@@ -186,7 +214,7 @@ def build(pngs, scenes, durs, out, w, h, music, voices):
         else:
             parts.append(f"[b{i}]format=yuv420p[v{i}]")
     last, offset = "v0", 0.0
-    for i in range(1, len(durs)):
+    for i in range(1, len(durs) if not mux else 0):
         offset += durs[i - 1] - XFADE
         tr = scenes[i]["xfade"] or XFADES[(i - 1) % len(XFADES)]
         parts.append(f"[{last}][v{i}]xfade=transition={tr}:duration={XFADE}:offset={offset:.3f}[x{i}]")
@@ -225,9 +253,13 @@ def build(pngs, scenes, durs, out, w, h, music, voices):
         parts.append("[bed]anull[mix]")
     parts.append(f"[mix]loudnorm=I=-14:TP=-1.5:LRA=11,atrim=duration={total}[a]")
 
-    cmd += ["-filter_complex", ";".join(parts), "-map", f"[{last}]", "-map", "[a]",
-            "-c:v", "libx264", "-crf", "18", "-preset", "slow", "-pix_fmt", "yuv420p", "-r", str(FPS),
-            "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-t", f"{total}", out]
+    if mux:
+        cmd += ["-filter_complex", ";".join(parts), "-map", f"{mux_in}:v", "-map", "[a]", "-c:v", "copy",
+                "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-t", f"{total}", out]
+    else:
+        cmd += ["-filter_complex", ";".join(parts), "-map", f"[{last}]", "-map", "[a]",
+                "-c:v", "libx264", "-crf", "18", "-preset", "slow", "-pix_fmt", "yuv420p", "-r", str(FPS),
+                "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-t", f"{total}", out]
     subprocess.run(cmd, check=True)
     return total
 
@@ -240,10 +272,20 @@ def main():
     ap.add_argument("--voice", help="장면별 내레이션 폴더(scene-01.m4a …)")
     ap.add_argument("--size", default="1080x1920")
     ap.add_argument("--keep-frames", action="store_true", help="장면 PNG 를 <out>-frames/ 에 남긴다")
+    ap.add_argument("--mux", help="Remotion 무음 영상 — scenes 는 props JSON, 오디오만 섞어 붙인다")
     args = ap.parse_args()
     w, h = map(int, args.size.split("x"))
 
     src = os.path.abspath(args.scenes)
+    if args.mux:
+        _, scenes = split_scenes_json(src)
+        voices = find_voices(args.voice, len(scenes))
+        durs = [sc["dur"] for sc in scenes]   # 영상은 이미 렌더됐으므로 길이를 바꾸지 않는다
+        total = build([(None, None)] * len(scenes), scenes, durs, os.path.abspath(args.out), w, h, args.music, voices,
+                      mux=os.path.abspath(args.mux))
+        print(f"완료: {args.out} ({total:.1f}초, 장면 {len(scenes)}개 · 클립 {sum(1 for s in scenes if s['clip'])}개 · "
+              f"음성 {sum(1 for v in voices if v)}개 · Remotion 영상 + 오디오 믹스)")
+        return
     head, scenes = split_scenes(src)
     framedir = (os.path.splitext(os.path.abspath(args.out))[0] + "-frames") if args.keep_frames else tempfile.mkdtemp()
     os.makedirs(framedir, exist_ok=True)
