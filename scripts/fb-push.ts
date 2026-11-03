@@ -17,7 +17,9 @@ import {
 
 type Photo = { path: string; caption?: string | null }
 type Post = { text: string; photos?: Photo[]; hashtags?: string[]; rationale?: string | null }
-type Result = { week_start?: string; week_end?: string; posts?: Post[] }
+type ReelScene = { photo?: string; clip?: string; label?: string; caption?: string }
+type Reel = { title?: string; cover_photo?: string; scenes?: ReelScene[]; text?: string; hashtags?: string[]; rationale?: string | null }
+type Result = { week_start?: string; week_end?: string; posts?: Post[]; reel?: Reel | null }
 
 async function main() {
   const env = loadEnv()
@@ -57,6 +59,28 @@ async function main() {
   if (!posts.length) {
     console.error('유효한 게시안이 없습니다(각 게시안에 text 가 필요합니다).')
     process.exit(1)
+  }
+
+  // 릴스(reel) — 앱 /facebook 페이지가 그대로 보이도록 posts 의 한 항목(kind:'reel')으로 넣는다.
+  // 사진 = 표지 + 장면 사진(클립은 path 가 없어 photos 에 안 들어감), 영상 파일은 media/out/reel-<week_start>.mp4 (make-reel.ts).
+  const reel = parsed.reel
+  if (reel && typeof reel === 'object' && Array.isArray(reel.scenes) && reel.scenes.length) {
+    const scenePhotos = [reel.cover_photo, ...reel.scenes.map((s) => s?.photo)]
+      .filter((p): p is string => typeof p === 'string' && !!p.trim())
+    const seen = new Set<string>()
+    const photos = scenePhotos
+      .filter((p) => (seen.has(p) ? false : (seen.add(p), true)))
+      .map((p) => ({ path: p.trim(), caption: reel.scenes!.find((s) => s?.photo === p)?.caption?.toString().trim() || null }))
+    const clips = reel.scenes.filter((s) => s?.clip).length
+    const text = [`[릴스] ${(reel.title ?? '').toString().replace(/<br\s*\/?>/g, ' ').trim()}`, (reel.text ?? '').toString().trim(),
+      `영상: media/out/reel-${parsed.week_start}.mp4 (장면 ${reel.scenes.length}개 · 클립 ${clips}개)`]
+      .filter(Boolean).join('\n')
+    posts.push({
+      text, photos,
+      hashtags: Array.isArray(reel.hashtags) ? reel.hashtags.map((h) => String(h).trim()).filter(Boolean) : [],
+      rationale: (reel.rationale ?? '').toString().trim() || null,
+      kind: 'reel',
+    } as (typeof posts)[number] & { kind: string })
   }
 
   const nowIso = new Date().toISOString()

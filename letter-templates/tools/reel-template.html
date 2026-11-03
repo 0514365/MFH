@@ -1,0 +1,90 @@
+<!doctype html>
+<!-- MFH-REEL-TEMPLATE-V1 · 주중 릴스/쇼츠 장면 템플릿 (9:16 · 1080×1920) · build-video.py 입력 -->
+<!-- 규칙: <section class="scene" data-dur="초"> 하나 = 한 장면. 위 200px·아래 360px 은 릴스/쇼츠 UI 안전영역 — 자막 블록은 그 사이(top 1180~1560)에 둔다.
+     장면 종류: cover(표지) · photo(사진 1장 + 자막) · clip(data-clip 클립 + 자막, 배경 투명) · end(마무리 카드).
+     15~30초 = cover 4초 + photo/clip 3~4개 × 5초 + end 4초. 음악은 넣지 않는다(게시 시 FB/IG 앱 음원 선택). 자막 1~2줄, 36~40자 이내.
+     make-reel.py 가 {{ }} 자리를 채운다. 직접 쓸 때는 자리표시자를 지우고 사용. -->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>MFH 릴스</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nanum+Myeongjo:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    :root { --maroon:#6A2323; --red:#D34D4D; --sand:#F7F5F0; --charcoal:#2D2A26; --blush:#F2B8B8; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--charcoal); }
+    .scene { position:relative; width:1080px; height:1920px; overflow:hidden; background:var(--charcoal); color:#fff;
+             font-family:Pretendard,sans-serif; word-break:keep-all; }
+    .fill { position:absolute; inset:0; }
+    .fill img { width:100%; height:100%; object-fit:cover; }
+    .badge { position:absolute; top:230px; left:64px; z-index:3; font-family:Montserrat,sans-serif; font-weight:700; font-size:26px;
+             letter-spacing:.16em; color:#fff; background:var(--maroon); padding:12px 22px; }
+    /* 자막 블록 — 안전영역 사이 */
+    .cap { position:absolute; left:64px; right:64px; bottom:400px; z-index:3; }
+    .cap .label { font-family:Montserrat,sans-serif; font-weight:700; font-size:26px; letter-spacing:.2em; color:var(--blush);
+                  text-transform:uppercase; margin-bottom:18px; }
+    .cap .line { display:inline; font-size:46px; line-height:1.5; font-weight:600; color:#fff;
+                 background:rgba(45,42,38,.82); box-shadow:14px 0 0 rgba(45,42,38,.82), -14px 0 0 rgba(45,42,38,.82);
+                 box-decoration-break:clone; -webkit-box-decoration-break:clone; }
+    .shade { position:absolute; left:0; right:0; bottom:0; height:900px; z-index:2;
+             background:linear-gradient(to top, rgba(45,42,38,.75), rgba(45,42,38,0)); }
+    /* 표지 */
+    .cover .cap { bottom:440px; }
+    .cover .title { font-family:"Nanum Myeongjo",serif; font-weight:800; font-size:84px; line-height:1.25; color:#fff; }
+    .cover .sub { margin-top:24px; font-size:34px; color:#D9D4CE; }
+    /* 클립 장면 — 영상 위 오버레이이므로 배경을 비운다 */
+    .clip { background:transparent; }
+    /* 마무리 */
+    .end { background:var(--maroon); }
+    .end .inner { position:absolute; left:64px; right:64px; top:560px; text-align:center; }
+    .end .logo { width:220px; margin:0 auto 60px; display:block; }
+    .end .title { font-family:"Nanum Myeongjo",serif; font-weight:800; font-size:72px; line-height:1.3; }
+    .end .sub { margin-top:36px; font-size:36px; line-height:1.7; color:#EBD9D9; }
+    .end .url { margin-top:70px; font-family:Montserrat,sans-serif; font-weight:600; font-size:34px; color:#fff; }
+    .bar { position:absolute; left:0; right:0; bottom:0; height:14px; background:var(--red); z-index:4; }
+  </style>
+</head>
+<body>
+
+<!-- 표지 -->
+<section class="scene cover" data-dur="4">
+  <div class="fill"><img src="{{cover_photo}}" alt="" /></div>
+  <div class="shade"></div>
+  <div class="badge">MFH · {{date_label}}</div>
+  <div class="cap">
+    <div class="label">{{cover_label}}</div>
+    <div class="title">{{cover_title}}</div>
+    <div class="sub">온두라스 · 김우진 · 서진아 선교사</div>
+  </div>
+  <div class="bar"></div>
+</section>
+
+<!-- 사진 장면 -->
+<section class="scene photo" data-dur="5">
+  <div class="fill"><img src="{{photo}}" alt="" /></div>
+  <div class="shade"></div>
+  <div class="cap"><div class="label">{{label}}</div><span class="line">{{caption}}</span></div>
+  <div class="bar"></div>
+</section>
+
+<!-- 클립 장면 (영상 위 자막만) -->
+<section class="scene clip" data-dur="5" data-clip="{{clip}}" data-clip-audio="0.6">
+  <div class="shade"></div>
+  <div class="cap"><div class="label">{{label}}</div><span class="line">{{caption}}</span></div>
+  <div class="bar"></div>
+</section>
+
+<!-- 마무리 -->
+<section class="scene end" data-dur="4">
+  <div class="inner">
+    <img class="logo" src="../assets/logo-white.png" alt="" />
+    <div class="title">기도로<br>함께해 주세요</div>
+    <div class="sub">{{end_line}}</div>
+    <div class="url">mfh-snowy.vercel.app/p/mfh</div>
+  </div>
+  <div class="bar"></div>
+</section>
+
+</body>
+</html>

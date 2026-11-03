@@ -15,7 +15,7 @@
 ## 만든 것
 | 파일 | git | 내용 |
 |---|---|---|
-| `letter-templates/tools/build-letter-video.py` (`MFH-LETTER-VIDEO-V1`) | 미커밋(추적 대상) | 장면 HTML → 장면 PNG(headless Chrome) → mp4(ffmpeg). 3% 확대·0.6초 크로스페이드. `--voice`(장면별 `scene-NN.*`, 음성이 길면 장면을 늘림) · `--music`(짧으면 반복, 음성 동안 자동으로 낮춤) · `--size` · `--keep-frames`. 최종 음량 -14 LUFS |
+| `letter-templates/tools/build-video.py` (`MFH-LETTER-VIDEO-V1`) | 미커밋(추적 대상) | 장면 HTML → 장면 PNG(headless Chrome) → mp4(ffmpeg). 3% 확대·0.6초 크로스페이드. `--voice`(장면별 `scene-NN.*`, 음성이 길면 장면을 늘림) · `--music`(짧으면 반복, 음성 동안 자동으로 낮춤) · `--size` · `--keep-frames`. 최종 음량 -14 LUFS |
 | `letter-templates/issues/2026-09/video/shorts.html` | gitignore (Dropbox 에만) | 9:16 장면 10개. 위 200px·아래 360px 은 릴스/쇼츠 UI 안전영역 |
 | `.../video/narration.md` | gitignore | 장면별 내레이션 대본 + 녹음 요령 + 빌드 명령 |
 | `.../video/MFH-2609-shorts.mp4` | gitignore | 자막만, 음악 없음(약 62초, 19MB) |
@@ -41,7 +41,7 @@
 4. **더 연구할 것**: 우진이 "더 연구" 로 중단함 — 구체 주제는 다음 세션 시작 때 물을 것. 공수 대비 효과·배포 채널·제작 주기가 후보.
 
 ## 운용 (git 밖)
-- 미커밋 잔여물(로컬 Mac, 그대로): `flyers/dongsan-2026-07/`(수정 2 + `_slim_frame.py`) · `applications/` · `reports/2026-H1/06-sermon-manuscript.md` · `scripts/measure-usage.ts` · `docs/bible-qt-kit/` · `letter-templates/assets/2026추석.heic` · 이번 `build-letter-video.py` + 핸드오프 이동(v2dz → archive, v2ea 신규).
+- 미커밋 잔여물(로컬 Mac, 그대로): `flyers/dongsan-2026-07/`(수정 2 + `_slim_frame.py`) · `applications/` · `reports/2026-H1/06-sermon-manuscript.md` · `scripts/measure-usage.ts` · `docs/bible-qt-kit/` · `letter-templates/assets/2026추석.heic` · 이번 `build-video.py` + 핸드오프 이동(v2dz → archive, v2ea 신규).
 - 빌드 소요: 장면 10개 mp4 1개 약 1분(`-preset slow`).
 
 ## 다음 과제
@@ -52,5 +52,5 @@
 
 ## 다음 세션 시작 프롬프트(복사용)
 ```
-docs/MFH-HANDOFF-v2ea.md 와 docs/MFH-LETTER-AGENTS.md 를 읽고 시작. 선교편지 영상화 연구 재개 — 시제품은 letter-templates/issues/2026-09/video/, 스크립트는 letter-templates/tools/build-letter-video.py. 무엇을 더 연구할지 묻고 미결정 항목을 결정 테이블로. 런북 반영은 승인 후.
+docs/MFH-HANDOFF-v2ea.md 와 docs/MFH-LETTER-AGENTS.md 를 읽고 시작. 선교편지 영상화 연구 재개 — 시제품은 letter-templates/issues/2026-09/video/, 스크립트는 letter-templates/tools/build-video.py. 무엇을 더 연구할지 묻고 미결정 항목을 결정 테이블로. 런북 반영은 승인 후.
 ```

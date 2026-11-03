@@ -8,6 +8,8 @@ allowed-tools: Bash, Read, Write
 
 ## 절차
 
+0. **클립 정리** — `media/inbox/` 에 파일이 있으면 먼저 `python3 scripts/index-media.py` 로 `media/raw` 정리·`media/index.md` 갱신(작업지시서의 [영상 클립] 목록이 여기서 나온다).
+
 1. **작업지시서 받기** — 다음을 실행한다:
    `npx tsx scripts/fb-pull.ts $ARGUMENTS`
    인자가 없으면 기본 최근 7일. stderr 의 한 줄 요약은 무시하고, **stdout 전체가 작업지시서**다.
@@ -23,7 +25,11 @@ allowed-tools: Bash, Read, Write
 4. **DB 저장** — 다음을 실행한다:
    `npx tsx scripts/fb-push.ts`
 
-5. **보고** — push 출력(주차·게시안 수·추천사진 수)을 한국어로 1~2줄 요약한다.
+5. **릴스 영상 빌드** — result.json 에 `reel` 이 있으면(작업지시서 3번: 사진·클립 3개 이상일 때만 설계) 다음을 실행한다:
+   `npx tsx scripts/make-reel.ts`
+   → `media/out/reel-<week_start>.mp4` (15~30초 · 음악 없음). 우진이 폰으로 받아 FB/IG 앱에서 음원을 골라 게시한다.
+
+6. **보고** — push·make-reel 출력(주차·게시안 수·추천사진 수·릴스 길이)을 한국어로 1~2줄 요약한다.
 
 ## 주의
 
