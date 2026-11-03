@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
-# MFH-BUILD-VIDEO-V2  (구 build-letter-video.py · 릴스·영상편지 공용)
+# MFH-BUILD-VIDEO-V3  (구 build-letter-video.py · 릴스·영상편지 공용)
 """장면 HTML(<section class="scene" data-dur="초">) → mp4.  사진 장면은 PNG 켄번즈, 클립 장면은 영상 위에 자막 오버레이.
+
+V3: 자막(.cap)은 따로 렌더해 장면 시작 후 페이드+슬라이드업으로 등장. 사진 모션은 줌인/줌아웃/팬 순환, 전환도 순환.
+    사진 장면은 가벼운 색보정(대비·채도·샤픈). 장면 태그에 data-motion="in|out|left|right" / data-xfade="fade|smoothup|…" 로 덮어쓸 수 있다.
 
 사용:
   python3 letter-templates/tools/build-video.py <scenes.html> <out.mp4> [--music bgm.mp3] [--voice voice/] [--size 1080x1920]
@@ -21,12 +24,21 @@ import argparse, json, os, re, subprocess, sys, tempfile
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 FPS = 30
 XFADE = 0.6   # 장면 전환(초)
-ZOOM = 0.03   # 사진 장면당 확대량(3%)
+ZOOM = 0.07   # 사진 장면당 확대·이동량(7%)
 VOICE_LEAD = 0.5   # 장면 시작 후 음성 시작(초)
 VOICE_TAIL = 0.5   # 음성 끝난 뒤 다음 전환까지 여유(초)
 MUSIC_ALONE = 0.8        # 음성 없을 때 음악 볼륨
 MUSIC_UNDER_VOICE = 0.3  # 음성 있을 때 음악 기본 볼륨(덕킹 전)
+CAP_DELAY = 0.35   # 장면 시작 후 자막 등장(초) — 전환이 끝난 뒤
+CAP_RISE = 0.55    # 자막 페이드+슬라이드 시간(초)
+CAP_LIFT = 48      # 자막 슬라이드 거리(px)
+MOTIONS = ["in", "out", "right", "left"]           # 사진 모션 순환
+XFADES = ["smoothup", "fade", "smoothleft", "fade"]  # 전환 순환
+GRADE = "eq=contrast=1.05:saturation=1.10:brightness=0.01,unsharp=5:5:0.45:5:5:0"
 TRANSPARENT_CSS = "<style>html,body,.scene{background:transparent!important}</style>"
+HIDE_CAP_CSS = "<style>.cap{visibility:hidden!important}</style>"
+ONLY_CAP_CSS = ("<style>html,body,.scene{background:transparent!important}"
+                ".scene>*:not(.cap){visibility:hidden!important}</style>")
 
 
 def attr(tag, name):
@@ -52,14 +64,18 @@ def split_scenes(src):
             "clip": os.path.normpath(os.path.join(os.path.dirname(src), clip)) if clip else None,
             "clip_start": float(attr(open_tag, "data-clip-start") or 0),
             "clip_audio": float(attr(open_tag, "data-clip-audio") or 0),
+            "cap": 'class="cap"' in body,           # 자막 블록이 있으면 따로 애니메이션
+            "photo": "<img" in body and not clip,   # 사진 장면이면 모션·색보정
+            "motion": attr(open_tag, "data-motion"),
+            "xfade": attr(open_tag, "data-xfade"),
         })
     return head, scenes
 
 
-def shot(head, scene, png, w, h, workdir, transparent):
+def shot(head, scene, png, w, h, workdir, css="", transparent=False):
     page = os.path.join(workdir, f".scene-{os.getpid()}.html")
     with open(page, "w", encoding="utf-8") as f:
-        f.write(head + (TRANSPARENT_CSS if transparent else "") + scene + "</body></html>")
+        f.write(head + css + scene + "</body></html>")
     cmd = [CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars",
            "--force-device-scale-factor=2", f"--window-size={w},{h}",
            "--virtual-time-budget=8000", f"--screenshot={png}", f"file://{page}"]
@@ -99,11 +115,23 @@ def fit_durations(durs, voices):
     return out
 
 
+def motion_filter(kind, w, h, n):
+    """사진 켄번즈 — 2배 스케일 PNG 위에서 zoompan. in/out = 중앙 줌, left/right = 살짝 확대한 채 수평 이동."""
+    z = ZOOM
+    if kind == "out":
+        return f"zoompan=z='{1+z}-{z}*on/{n}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={n}:s={w}x{h}:fps={FPS}"
+    if kind in ("left", "right"):
+        zz = 1 + z
+        x = f"(iw-iw/zoom)*on/{n}" if kind == "right" else f"(iw-iw/zoom)*(1-on/{n})"
+        return f"zoompan=z='{zz}':x='{x}':y='ih/2-(ih/zoom/2)':d={n}:s={w}x{h}:fps={FPS}"
+    return f"zoompan=z='1+{z}*on/{n}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={n}:s={w}x{h}:fps={FPS}"
+
+
 def build(pngs, scenes, durs, out, w, h, music, voices):
     cmd = ["ffmpeg", "-y", "-loglevel", "error"]
     n_in = 0
-    vid_in, ov_in, amb = [], [], []   # 장면별 (영상 입력 idx, 오버레이 입력 idx) · 현장음 (idx, scene, vol)
-    for i, (png, sc, d) in enumerate(zip(pngs, scenes, durs)):
+    vid_in, ov_in, cap_in, amb = [], [], [], []   # 장면별 (영상 idx, 정적 오버레이 idx, 자막 idx) · 현장음 (idx, scene, vol)
+    for i, ((png, cap_png), sc, d) in enumerate(zip(pngs, scenes, durs)):
         if sc["clip"]:
             if not os.path.exists(sc["clip"]):
                 sys.exit(f"클립 없음: {sc['clip']}")
@@ -116,6 +144,11 @@ def build(pngs, scenes, durs, out, w, h, music, voices):
         else:
             cmd += ["-loop", "1", "-t", f"{d}", "-i", png]
             vid_in.append(n_in); ov_in.append(None); n_in += 1
+        if cap_png:
+            cmd += ["-loop", "1", "-t", f"{d}", "-i", cap_png]
+            cap_in.append(n_in); n_in += 1
+        else:
+            cap_in.append(None)
     total = sum(durs) - XFADE * (len(durs) - 1)
     if music:
         cmd += ["-stream_loop", "-1", "-i", music]
@@ -129,6 +162,7 @@ def build(pngs, scenes, durs, out, w, h, music, voices):
             voice_inputs.append((n_in, i)); n_in += 1
 
     parts = []
+    photo_i = 0
     for i, (sc, d) in enumerate(zip(scenes, durs)):
         n = int(round(d * FPS))
         if sc["clip"]:
@@ -136,15 +170,26 @@ def build(pngs, scenes, durs, out, w, h, music, voices):
                          f"fps={FPS},setsar=1,tpad=stop_mode=clone:stop_duration={d},trim=duration={d},"
                          f"setpts=PTS-STARTPTS[c{i}]")
             parts.append(f"[{ov_in[i]}:v]scale={w}:{h},format=rgba[o{i}]")
-            parts.append(f"[c{i}][o{i}]overlay=0:0:format=auto,format=yuv420p[v{i}]")
+            parts.append(f"[c{i}][o{i}]overlay=0:0:format=auto[b{i}]")
+        elif sc["photo"]:
+            motion = sc["motion"] or MOTIONS[photo_i % len(MOTIONS)]
+            photo_i += 1
+            parts.append(f"[{vid_in[i]}:v]scale={w*2}:{h*2},{motion_filter(motion, w, h, n)},"
+                         f"trim=duration={d},setpts=PTS-STARTPTS,{GRADE}[b{i}]")
         else:
-            parts.append(f"[{vid_in[i]}:v]scale={w*2}:{h*2},zoompan=z='1+{ZOOM}*on/{n}':"
-                         f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={n}:s={w}x{h}:fps={FPS},"
-                         f"trim=duration={d},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
+            parts.append(f"[{vid_in[i]}:v]scale={w}:{h},fps={FPS},trim=duration={d},setpts=PTS-STARTPTS[b{i}]")
+        if cap_in[i] is not None:
+            # 자막: 장면 시작 CAP_DELAY 뒤 CAP_RISE 동안 페이드인 + 아래서 위로(감속) 슬라이드
+            p = f"min(max(t-{CAP_DELAY},0)/{CAP_RISE},1)"
+            parts.append(f"[{cap_in[i]}:v]scale={w}:{h},format=rgba,fade=t=in:st={CAP_DELAY}:d={CAP_RISE}:alpha=1[k{i}]")
+            parts.append(f"[b{i}][k{i}]overlay=x=0:y='{CAP_LIFT}*pow(1-{p},2)':format=auto,format=yuv420p[v{i}]")
+        else:
+            parts.append(f"[b{i}]format=yuv420p[v{i}]")
     last, offset = "v0", 0.0
     for i in range(1, len(durs)):
         offset += durs[i - 1] - XFADE
-        parts.append(f"[{last}][v{i}]xfade=transition=fade:duration={XFADE}:offset={offset:.3f}[x{i}]")
+        tr = scenes[i]["xfade"] or XFADES[(i - 1) % len(XFADES)]
+        parts.append(f"[{last}][v{i}]xfade=transition={tr}:duration={XFADE}:offset={offset:.3f}[x{i}]")
         last = f"x{i}"
 
     starts = [sum(durs[:i]) - XFADE * i for i in range(len(durs))]
@@ -204,11 +249,19 @@ def main():
     os.makedirs(framedir, exist_ok=True)
     os.makedirs(os.path.dirname(os.path.abspath(args.out)) or ".", exist_ok=True)
     pngs = []
+    wd = os.path.dirname(src)
     for i, sc in enumerate(scenes, 1):
         png = os.path.join(framedir, f"scene-{i:02d}.png")
-        shot(head, sc["html"], png, w, h, os.path.dirname(src), transparent=bool(sc["clip"]))
-        pngs.append(png)
-        print(f"  장면 {i}/{len(scenes)} 렌더{' (클립)' if sc['clip'] else ''}")
+        clip = bool(sc["clip"])
+        # 바탕(자막 제외) — 클립 장면은 투명 배경 위 정적 오버레이(그림자·바 등)
+        shot(head, sc["html"], png, w, h, wd,
+             css=(TRANSPARENT_CSS if clip else "") + (HIDE_CAP_CSS if sc["cap"] else ""), transparent=clip)
+        cap_png = None
+        if sc["cap"]:
+            cap_png = os.path.join(framedir, f"scene-{i:02d}-cap.png")
+            shot(head, sc["html"], cap_png, w, h, wd, css=ONLY_CAP_CSS, transparent=True)
+        pngs.append((png, cap_png))
+        print(f"  장면 {i}/{len(scenes)} 렌더{' (클립)' if clip else ''}{' +자막' if cap_png else ''}")
     voices = find_voices(args.voice, len(scenes))
     durs = fit_durations([sc["dur"] for sc in scenes], voices)
     total = build(pngs, scenes, durs, os.path.abspath(args.out), w, h, args.music, voices)
