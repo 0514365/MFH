@@ -6,12 +6,12 @@
 //        npx tsx scripts/make-reel.ts path/to/result.json [--props-only] [--music bgm.mp3]
 // ⚠ repo 루트에서 실행. 장면의 photo 가 로컬에 이미 있는 파일 경로면 다운로드 없이 그대로 쓴다(테스트용).
 //   자막에 *어절* 을 쓰면 강조색. 클립은 media/raw 의 파일을 public 폴더(media/out/reel-<week>/clips)에 심볼릭 링크로 둔다.
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'fs'
+import { copyFileSync, existsSync, mkdirSync, renameSync, writeFileSync } from 'fs'
 import { basename, join, relative, resolve } from 'path'
 import { spawnSync } from 'child_process'
 import { loadEnv, createServiceClient, readJsonFile } from './_shared'
 
-type Scene = { photo?: string; clip?: string; start?: number; audio?: number; label?: string; caption?: string; motion?: string }
+type Scene = { photo?: string; clip?: string; start?: number; audio?: number; label?: string; caption?: string; motion?: string; animate?: boolean }
 type Reel = {
   title?: string; label?: string; date_label?: string; cover_photo?: string
   scenes?: Scene[]; end_line?: string
@@ -67,9 +67,19 @@ async function main() {
         writeFileSync(local, Buffer.from(await data.arrayBuffer()))
       }
     }
+    shrink(local)
     const rel = relative(outDir, local)
     cache.set(p, rel)
     return rel
+  }
+  // 원본 4000px 급 사진은 Chrome 래스터가 불안정(프레임 누락·타일 반복) → 긴 변 2400px 이하로 줄여 둔다(1080×1920 + 켄번즈 7% 에 충분).
+  function shrink(file: string) {
+    const r = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', file], { encoding: 'utf8' })
+    const [w, h] = (r.stdout || '').trim().split(',').map(Number)
+    if (!w || !h || Math.max(w, h) <= 2400) return
+    const tmp = file + '.tmp.jpg'
+    const s = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', file, '-vf', "scale='if(gt(iw,ih),2400,-2)':'if(gt(iw,ih),-2,2400)'", '-q:v', '2', tmp])
+    if (s.status === 0) renameSync(tmp, file)
   }
   // 클립: Remotion public 폴더는 심볼릭 링크를 못 따라가므로, 장면 길이만큼 잘라 세로 1080×1920 mp4 로 변환해 둔다(무음 — 현장음은 원본에서 믹스).
   function clipPath(p: string, start: number, dur: number): string {
@@ -94,6 +104,20 @@ async function main() {
     title: reel.title || 'MFH 소식',
   })
   for (const s of reel.scenes) {
+    // animate: true → fal.ai(Kling) 로 사진을 5초 클립으로(scripts/animate-photo.ts, 같은 사진은 재생성 안 함) → 무음 클립 장면
+    if (s.animate && s.photo && !s.clip) {
+      const local = join(photoDir, basename(s.photo))
+      await photoPath(s.photo)
+      const r = spawnSync('npx', ['tsx', join(ROOT, 'scripts', 'animate-photo.ts'), local], { stdio: 'inherit' })
+      const anim = join(ROOT, 'media', 'out', 'anim', basename(local).replace(/\.[^.]+$/, '') + '.mp4')
+      if (r.status !== 0 || !existsSync(anim)) {
+        console.warn(`[make-reel] 애니메이션 실패 → 켄번즈로 대체: ${basename(local)}`)
+      } else {
+        scenes.push({ kind: 'clip', dur: SCENE_DUR, clip: clipPath(relative(ROOT, anim), 0, SCENE_DUR), start: 0, audio: 0,
+          label: s.label || '', caption: s.caption || '' })
+        continue
+      }
+    }
     if (s.clip) {
       const start = s.start ?? 0
       scenes.push({ kind: 'clip', dur: SCENE_DUR, clip: clipPath(s.clip, start, SCENE_DUR), start: 0,

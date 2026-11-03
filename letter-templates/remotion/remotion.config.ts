@@ -5,5 +5,5 @@ Config.setVideoImageFormat('jpeg')
 Config.setOverwriteOutput(true)
 Config.setConcurrency(4)
 Config.setCrf(21) // 25초 기준 ~20MB (기본 18 은 45MB — 폰 전송 한도 초과)
-// 헤드리스 셸 다운로드 대신 설치된 Chrome 사용(build-video.py 와 동일 경로)
-Config.setBrowserExecutable('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
+// 설치된 Google Chrome 으로 렌더하면 프레임 누락·타일 반복 깜빡임이 생긴다 → Remotion 전용 Chrome Headless Shell 사용
+// (최초 1회 `npx remotion browser ensure` 로 내려받음)
