@@ -1,3 +1,4 @@
+// MFH-QT-PASSAGE-ACCORDION-V5 — 버전 5단(표준새번역 추가). 탭 폭 = 글자 길이, 줄바꿈 금지, 좁으면 가로 스크롤.
 // MFH-QT-PASSAGE-ACCORDION-V4 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-QT-PASSAGE-ACCORDION-V3 (09-25 폰트: VerseText 기본 크기 공유 — 명시 textClassName 제거)
 // 본문 소스를 성서유니온 프록시(/api/qt/passage) → bible_texts(/api/bible/passage)로 교체. Manna PassageAccordion V2 이식.
@@ -86,7 +87,7 @@ export default function PassageAccordion({ book, range, label }: { book: string;
       </button>
       {open && (
         <div className="border-t-2 border-b27-paper bg-b27-paper px-4 pb-5 pt-4">
-          <div className="mb-4 flex max-w-[300px] gap-1.5" role="group" aria-label="성경 버전">
+          <div className="mb-4 flex max-w-[360px] gap-1 overflow-x-auto" role="group" aria-label="성경 버전">
             {BIBLE_VERSIONS.map((v) => {
               const on = v === ver
               return (
@@ -96,7 +97,7 @@ export default function PassageAccordion({ book, range, label }: { book: string;
                   aria-pressed={on}
                   disabled={state.status === 'loading'}
                   onClick={() => switchVer(v)}
-                  className={`flex-1 rounded-full border px-2 py-1.5 text-[11px] font-semibold transition disabled:opacity-70 ${
+                  className={`flex-auto whitespace-nowrap rounded-full border px-1.5 py-1.5 text-[11px] font-semibold transition disabled:opacity-70 ${
                     on ? 'border-b27-ink bg-b27-ink text-on-primary' : 'border-b27-line bg-b27-paper text-b27-muted hover:border-b27-muted'
                   }`}
                 >

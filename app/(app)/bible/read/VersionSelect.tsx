@@ -1,4 +1,5 @@
 'use client'
+// MFH-BIBLE-VERSION-SELECT-V4 — 본문 버전 5단(표준새번역 추가). 탭 폭 = 글자 길이, 줄바꿈 금지, 좁으면 가로 스크롤(Manna SegmentedTabs fit 과 같은 처리).
 // MFH-BIBLE-VERSION-SELECT-V3 — 2027(4-5): theme-2027 · 남색 글자 · 연회색/블러시 면 · 강조 = 진한 블러시 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 
 // MFH-BIBLE-VERSION-SELECT-V2 — 본문 버전 4단(개역개정·새한글·ESV·RVR1960). 쿠키(bible_ver) 저장 후 서버 재렌더.
@@ -13,7 +14,7 @@ export default function VersionSelect({ initial }: { initial: BibleVersion }) {
   const [pending, startTransition] = useTransition()
 
   return (
-    <div className="flex gap-1.5" role="group" aria-label="성경 버전">
+    <div className="flex gap-1 overflow-x-auto" role="group" aria-label="성경 버전">
       {BIBLE_VERSIONS.map((v) => {
         const on = v === value
         return (
@@ -28,7 +29,7 @@ export default function VersionSelect({ initial }: { initial: BibleVersion }) {
               document.cookie = `${BIBLE_VERSION_COOKIE}=${v}; path=/; max-age=31536000; samesite=lax`
               startTransition(() => router.refresh())
             }}
-            className={`flex-1 rounded-full border px-2 py-1.5 text-[11px] font-semibold transition disabled:opacity-70 ${
+            className={`flex-auto whitespace-nowrap rounded-full border px-1.5 py-1.5 text-[11px] font-semibold transition disabled:opacity-70 ${
               on ? 'border-b27-ink bg-b27-ink text-on-primary' : 'border-b27-line bg-b27-paper text-b27-muted hover:border-b27-muted'
             }`}
           >

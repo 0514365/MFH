@@ -1,6 +1,7 @@
+// MFH-BIBLE-SEED-V3 — 표준새번역(nksv) 추가 · 개역개정 깨진 글자 16곳 보정(Manna bible-seed V5, f23f100).
 // MFH-BIBLE-SEED-V2 — RVR1960(rvr) 추가(docs/MANNA-TO-MFH-RVR1960.md, Manna bible-seed V4). V1 = Manna V3 이식(docs/MANNA-TO-MFH-BIBLE-TEXTS.md). 원자료는 BIBLE_DIR(.env.local, 기본 ./Bible).
 // Bible/ 원자료(repo 미포함) → bible_texts(patch105) 시딩(service role).
-// 사용: npx tsx scripts/bible-seed.ts [nkrv|nkt|esv|rvr|all] [--dry]
+// 사용: npx tsx scripts/bible-seed.ts [nkrv|nkt|esv|rvr|nksv|all] [--dry]
 //   --dry = 파싱·검증 리포트만(DB 안 씀). 시딩은 버전 단위 delete 후 insert(재시딩 안전).
 // 전제: 이 Mac(textutil·iconv 계열은 TextDecoder 로 대체) · repo 루트 실행 · patch105 실행 완료.
 // 원자료 형식:
@@ -16,7 +17,10 @@
 //   ESV       <BIBLE_DIR>/영어성경 ESV Bible.rtf (textutil 변환. "Gen 1:1 body" + 줄바꿈 연속. "|"→I, 2kKi→2Ki)
 //             + esv-fill.txt (RTF 원천에서 소실된 1,063절 — PDF 추출 보충, 같은 "Abbr C:V body" 형식)
 //             ESV 가 본문비평상 생략한 17절(막7:16 · 요5:4 · 행8:37 등)은 원래 없음 — 빈 절 아님.
-import { execSync } from 'child_process'
+//   표준새번역 <BIBLE_DIR>/표준새번역_구약/표준구약NN책명.txt + 표준새번역_신약/표준신약NN책명.txt (CP949, 1줄 1절 "창1:1 본문")
+//             ① 문단 표시 ○: 절 첫머리는 제거, 절 중간은 줄바꿈 ② "(22절에 포함되어 있음)" → 그 줄은 빼고 22절을 합절(verse_end)로
+//             ③ "(없음)": 장 중간은 개역개정처럼 "(없음)" 으로 표시(행28:29 의 "없음" 도 통일), 장 끝 자리표시는 뺀다. 소제목 없음.
+import { execFileSync, execSync } from 'child_process'
 import { existsSync, readFileSync, readdirSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, resolve } from 'path'
@@ -47,10 +51,20 @@ function makeRow(v: BibleVersion, order: number, ch: number, verse: number, vers
 }
 
 // ── 개역개정 ────────────────────────────────────────────────────────────────
+// 원자료에서 ? 로 깨진 글자(이 원자료의 ? 16개 전부): 웻(하살마웻·아스마웻) · 훕(훕빔·훕바) · 쁄(쁄라, 사62:4)
+const NKRV_BROKEN: [string, string][] = [
+  ['하살마?', '하살마웻'],
+  ['아스마?', '아스마웻'],
+  ['?빔', '훕빔'],
+  ['?바', '훕바'],
+  ['?라', '쁄라'],
+]
+
 function parseNkrv(): Row[] {
   const dir = join(BIBLE_DIR, '개역개정-text')
   const rows: Row[] = []
   const dec = new TextDecoder('euc-kr')
+  let fixes = 0
   for (const f of readdirSync(dir).filter((f) => f.endsWith('.txt')).sort()) {
     const name = f.replace(/^\d+-\d+/, '').replace(/\.txt$/, '')
     const book = bookByName.get(name)
@@ -59,8 +73,16 @@ function parseNkrv(): Row[] {
     const brokenRe = new RegExp(`^${book.abbr}(\\d+):(\\D.*)$`)
     let pendingTitle = ''
     for (const raw of dec.decode(readFileSync(dir + '/' + f)).split(/\r?\n/)) {
-      const line = raw.trim()
+      let line = raw.trim()
       if (!line) continue
+      for (const [wrong, right] of NKRV_BROKEN) {
+        const n = line.split(wrong).length - 1
+        if (n) {
+          line = line.split(wrong).join(right)
+          fixes += n
+        }
+      }
+      if (line.includes('?')) throw new Error(`개역개정 깨진 글자 미보정 [${f}]: ${line.slice(0, 60)}`)
       const m = verseRe.exec(line)
       if (m) {
         const body = (pendingTitle ? pendingTitle + ' ' : '') + m[4]
@@ -80,6 +102,7 @@ function parseNkrv(): Row[] {
       }
     }
   }
+  console.log(`  [nkrv] 깨진 글자 보정 ${fixes}`)
   return rows
 }
 
@@ -323,6 +346,80 @@ function parseRvr(): Row[] {
   return rows
 }
 
+// ── 표준새번역 ──────────────────────────────────────────────────────────────
+const NKSV_BLANK = /^\(?없음\)?$/
+const NKSV_MERGED = /^\((\d+)절에 포함되어 있음\)$/
+// 원자료 깨진 글자: 「컂」 = 훕(창46:21 · 대상7:12,15 · 대상24:13 의 인명 훕빔·훕바) · 「앟을」 = 않을(욥21:5)
+const NKSV_TYPOS: [string, string][] = [['컂', '훕'], ['앟을', '않을']]
+
+function parseNksv(): Row[] {
+  const sources = [
+    { dir: '표준새번역_구약', offset: 0, count: 39 },
+    { dir: '표준새번역_신약', offset: 39, count: 27 },
+  ]
+  const rows: Row[] = []
+  let fixes = 0
+  let merged = 0
+  let tailBlank = 0
+  for (const { dir, offset, count } of sources) {
+    const path = join(BIBLE_DIR, dir)
+    if (!existsSync(path)) throw new Error(`표준새번역 원자료 없음: ${dir}`)
+    const files = readdirSync(path).filter((f) => f.endsWith('.txt')).sort()
+    if (files.length !== count) throw new Error(`표준새번역 파일 수 ${files.length}/${count}: ${dir}`)
+    for (const f of files) {
+      const no = /(\d{2})/.exec(f) // 파일명의 책 번호 = 정경 순서(Dropbox 한글 파일명 정규화와 무관하게)
+      const book = no ? BIBLE_BOOKS[offset + Number(no[1]) - 1] : undefined
+      if (!book) throw new Error(`표준새번역 책 번호 불명: ${f}`)
+      const verseRe = new RegExp(`^${book.abbr}(\\d+):(\\d+)\\s+(.*)$`)
+      const bookRows: Row[] = []
+      // Node 의 euc-kr 은 CP949 확장 글자를 못 읽어 iconv 로 변환(이 Mac 기본 포함, 잘못된 바이트면 예외)
+      const text = execFileSync('iconv', ['-f', 'CP949', '-t', 'UTF-8', join(path, f)], { maxBuffer: 1 << 26 }).toString('utf8')
+      for (const raw of text.split(/\r?\n/)) {
+        let line = raw.trim()
+        if (!line) continue
+        for (const [wrong, right] of NKSV_TYPOS) {
+          const n = line.split(wrong).length - 1
+          if (n) {
+            line = line.split(wrong).join(right)
+            fixes += n
+          }
+        }
+        const m = verseRe.exec(line)
+        if (!m) throw new Error(`표준새번역 형식 불명 [${f}]: ${line.slice(0, 60)}`)
+        const body = m[3]
+          .replace(/^\(○/, '(')
+          .replace(/^○/, '')
+          .replace(/\s*○\s*/g, '\n')
+        bookRows.push(makeRow('nksv', book.order, Number(m[1]), Number(m[2]), null, body))
+      }
+      // 장 끝 "(없음)" = 자리표시(개역개정에도 없는 절이거나 앞 절에 본문이 합쳐진 절) → 뺀다
+      const lastReal = new Map<number, number>()
+      for (const r of bookRows)
+        if (!NKSV_BLANK.test(r.body) && !NKSV_MERGED.test(r.body)) lastReal.set(r.chapter, r.verse)
+      for (const r of bookRows) {
+        const into = NKSV_MERGED.exec(r.body)
+        if (into) {
+          const target = bookRows.find((t) => t.chapter === r.chapter && t.verse === Number(into[1]))
+          if (!target) throw new Error(`합절 대상 없음 [${f}]: ${r.chapter}:${r.verse}`)
+          target.verse_end = Math.max(target.verse_end ?? target.verse, r.verse)
+          merged++
+          continue
+        }
+        if (NKSV_BLANK.test(r.body)) {
+          if (r.verse > (lastReal.get(r.chapter) ?? 0)) {
+            tailBlank++
+            continue
+          }
+          r.body = '(없음)'
+        }
+        rows.push(r)
+      }
+    }
+  }
+  console.log(`  [nksv] 오자 보정 ${fixes} · 합절로 묶은 줄 ${merged} · 뺀 장 끝 자리표시 ${tailBlank}`)
+  return rows
+}
+
 // ── 검증 리포트 ─────────────────────────────────────────────────────────────
 function report(v: BibleVersion, rows: Row[]) {
   const chapters = new Set(rows.map((r) => r.chap_seq))
@@ -346,10 +443,10 @@ async function main() {
   const args = process.argv.slice(2)
   const dry = args.includes('--dry')
   const target = args.find((a) => !a.startsWith('--')) ?? 'all'
-  const parsers: Record<string, () => Row[]> = { nkrv: parseNkrv, nkt: parseNkt, esv: parseEsv, rvr: parseRvr }
+  const parsers: Record<string, () => Row[]> = { nkrv: parseNkrv, nkt: parseNkt, esv: parseEsv, rvr: parseRvr, nksv: parseNksv }
   const versions = target === 'all' ? (Object.keys(parsers) as BibleVersion[]) : [target as BibleVersion]
   if (versions.some((v) => !parsers[v])) {
-    console.error('사용법: npx tsx scripts/bible-seed.ts [nkrv|nkt|esv|rvr|all] [--dry]')
+    console.error('사용법: npx tsx scripts/bible-seed.ts [nkrv|nkt|esv|rvr|nksv|all] [--dry]')
     process.exit(1)
   }
 
