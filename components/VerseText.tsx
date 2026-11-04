@@ -1,3 +1,4 @@
+// MFH-VERSE-TEXT-V6 — 절 안 줄바꿈 내어쓰기: 둘째 줄부터 본문이 절 번호 뒤에서 시작(flex 번호 칸). 절 중간 소제목 뒤 조각도 같은 칸으로 정렬.
 // MFH-VERSE-TEXT-V5 — 2027(4-5): 본문 명조(font-serif) · 절 번호 진한 블러시(#A91E30).
 // MFH-VERSE-TEXT-V4 — 2027 공용 부품(4-0): 남색 글자 · 연회색 면 · b27 선 · 굵기 600 이하 · 위험 = 지출 빨강.
 // MFH-VERSE-TEXT-V3 — 소제목을 본문보다 크게(19/20px, 우진 09-27) + highlight(검색어 배열) 옵션: 본문 조각 안 일치 구간을 <mark> 로 강조(/bible/study 검색 결과 → 본문 이동용).
@@ -8,6 +9,8 @@
 import type { ReactNode } from 'react'
 
 const HEADING_CLS = 'mb-1.5 mt-4 text-[19px] font-semibold leading-snug text-b27-ink first:mt-0 min-[740px]:text-[20px]'
+// 절 번호 칸 — 폭을 고정해 둘째 줄부터 본문이 번호 뒤로 정렬된다(내어쓰기). 번호가 칸보다 길면(18-19, 10:1) 그 절만 칸이 넓어진다.
+const NUM_COL_CLS = 'min-w-[1.5rem] pr-1 shrink-0 whitespace-nowrap'
 // 본문 기본 크기 — 통독 /bible/read 와 QT 접이식이 공유(한 곳에서 조정).
 export const VERSE_TEXT_CLS = 'font-serif text-[17.5px] leading-[1.9] text-b27-ink min-[740px]:text-[18.5px]'
 
@@ -57,9 +60,13 @@ export default function VerseText({
     const text = p.replace(/^\s+|\s+$/g, '')
     if (!text) return
     out.push(
-      <p key={i} className={textClassName}>
-        {!numbered && <sup className="mr-1 font-num text-[11.5px] font-semibold text-[#A91E30]">{label}</sup>}
-        <span className="whitespace-pre-line">{markText(text, highlight)}</span>
+      <p key={i} className={`flex items-baseline ${textClassName}`}>
+        {numbered ? (
+          <span aria-hidden className={NUM_COL_CLS} />
+        ) : (
+          <sup className={`${NUM_COL_CLS} font-num text-[11.5px] font-semibold text-[#A91E30]`}>{label}</sup>
+        )}
+        <span className="min-w-0 flex-1 whitespace-pre-line">{markText(text, highlight)}</span>
       </p>,
     )
     numbered = true
