@@ -2,6 +2,13 @@
 
 2026-06 리허설에서 확립한 디자인 R&D·출력 자동화를 정리한 것. 다음 호부터 이 흐름으로 진행한다.
 
+## qa-render.py (2026-11 신설)
+모바일·카드뉴스를 실제 렌더링해 캡처하고 기계 점검 리포트를 `issues/<월>/qa/` 에 만든다. 입력 HTML 은 수정하지 않는다. 절차는 `.claude/skills/letter-design-qa/SKILL.md`.
+
+```bash
+python3 letter-templates/tools/qa-render.py letter-templates/issues/2026-10
+```
+
 ## build-mobile-share.py (2026-09 신설)
 모바일 `letter.html` → **단일파일 공유본**(외부 리소스 0 · 실기기·카톡 전달용). 그달 본문 글자로 Nanum Myeongjo·Montserrat(Google Fonts `text=`)·Pretendard(dynamic subset 청크) 를 새로 받아 base64 내장, Tailwind CDN 생성 CSS 를 headless Chrome 으로 추출해 인라인, `photos-web/` 사진 내장.
 

@@ -126,6 +126,7 @@ letter-templates/issues/<YYYY-MM>/
 - 톤: 강렬한 마룬·원색 거부, **파스텔·차분**. 이모지 절제.
 - 로고 배치: `logo-primary`=표지헤더·마무리푸터 / `온두라스로고4`=마무리상단 / `mfh-icon`=CTA.
 - **마감(감사) 카드 고정 요소 — 연락처 QR (2026-06호부터)**: MFH 앱 QR 과 **카카오톡 QR**(`letter-templates/assets/kakao-qr-code.png` — QR 단독 이미지, 각 호 `photos/` 에 복사해 사용)을 함께 배치. **카드뉴스=나란히, 모바일=MFH QR 카드 바로 아래**. 카카오 패널에는 **카카오 ID `woojin22`** 를 항상 기재. **두 패널 모두 전체를 링크로 감싼다** — MFH 패널 `<a href="https://mfh-snowy.vercel.app/p/mfh">`, 카카오 패널 `<a href="https://qr.kakao.com/talk/hzQB2A9YlsL550oRrEI5e_yvT7k-">` (터치 시 각각 공개페이지·카카오톡 연결).
+- **후원 계좌 안내란 (★2610호부터 — 우진 지시)**: 감사 카드 안내란에 **SEED 선교회 로고**(`letter-templates/assets/seed-international-logo.webp`, 글자가 흰색이라 어두운 배경에 배치)와 **한국·미국 계좌를 병기**한다. 한국 = 아래 고정 문구. 미국 = `Check Payable to: SEED USA` / `PO Box 847, La Mirada, CA 90637` / `Zelle: seedfinance@gmail.com` / `(Memo 에 김우진 / 후원자 이름 명기)`. 2610호에는 계좌 변경 안내 코멘트를 함께 넣는다(이후 호 유지 여부는 그때 우진에게 묻는다).
 - **후원계좌 고정 문구 (2026-10-28 변경 — 2609호부터)**: `후원계좌 · 하나은행 183-939319-04737 · 예금주 SEED(김우진)` (카드뉴스는 `<b>후원계좌</b> · 하나은행 183-939319-04737 · 예금주 SEED(김우진)` 한 줄). **모바일은 3행**: `후원계좌`(굵게) / `하나은행 183-939319-04737` / `SEED(김우진)` — `<br>` 줄바꿈(2609 모바일 기준 마크업: `<span class="font-semibold text-brand-sand">후원계좌</span><br>하나은행 183-939319-04737<br>SEED(김우진)`). 마감 푸터·원고 하단에 이 문구를 그대로 쓴다. **구 계좌(우리은행 1002-349-524757 · 김우진)는 사용 금지** — 직전 호를 복제해도 반드시 이 값으로 교체하고 assembler QA 에서 확인한다. 2606~2608호 발행본은 구 계좌 그대로 둔다(소급 수정 안 함).
 
 **언어·톤·기조**
@@ -148,7 +149,8 @@ letter-templates/issues/<YYYY-MM>/
 | 모바일 마스터 | `letter-templates/mfh-mobile-letter.html` (폭 430) |
 | 로고·표지 | `letter-templates/assets/` |
 | 카카오톡 연락처 QR | `letter-templates/assets/kakao-qr-code.png` (QR 단독·스캔검증됨) — ID `woojin22` · 터치 링크 `https://qr.kakao.com/talk/hzQB2A9YlsL550oRrEI5e_yvT7k-` |
-| 후원계좌 | 하나은행 183-939319-04737 · 예금주 SEED(김우진) (2026-10-28~ · 구 우리은행 계좌 사용 금지) |
+| 후원계좌 | 하나은행 183-939319-04737 · 예금주 SEED(김우진) (2026-10-28~ · 구 우리은행 계좌 사용 금지) + SEED USA 병기(2610호~, §6) |
+| SEED 로고 | `letter-templates/assets/seed-international-logo.webp` (후원 계좌 안내란, 2610호~) |
 | 자동 수집 스크립트 | `scripts/fetch-letter-materials.mjs` V3 — 다중사진+인사이트(피드백 4신호 ★별점·[편지에담기]·[메모])+보관([보관])+중보 (`.env.local` SERVICE_ROLE_KEY) |
 | 앱 수집(보조) | `/letter-materials` (insights 페이지 진입) |
 | 품질 기준선(모바일+카드뉴스) | `letter-templates/issues/2026-06/` — `letter-mobile.html`·`letter-cardnews.html`·`MFH-2606-cardnews.pdf` (2026-06 리허설 확정본, 참고용 보존) |
@@ -185,8 +187,10 @@ letter-templates/issues/<YYYY-MM>/
 1. collector  → materials·photos·photo-index (+ 영상편지 호는 `media/index.md` 의 기간 내 클립 목록을 materials 에 첨부)  ▶ 검토 (누락자료 보완)
 2. strategist → **주제 후보 2~3** → **기조문**(도입·강조점) → **개요문**(사실 골자·사진·기도)  ▶ **주제 선정 → 기조문 승인 → 개요문 승인**
 3. writer     → manuscript·image-map (완성 초안)       ▶ **본문 전문(축약 없이) 한 문장씩 검토·수정 → 전체 확정 후 designer**
-4. designer   → 모바일 letter.html (**직전 호 letter.html 복제 · 7·8월 디자인 고정** · 1면1주제)   ▶ 모바일 디자인 확정
-5. designer   → 모바일 확정본 → 카드뉴스 PDF(4:5) 변환(내용 동일·레이아웃/사진 일부 조정)  ▶ 카드뉴스 확정
+4. designer   → 모바일 letter.html (**직전 호 letter.html 복제 · 7·8월 디자인 고정** · 1면1주제)
+   → 팀장: 렌더 QA(`letter-design-qa` 스킬 · `tools/qa-render.py --mobile-only`) FAIL 0 후 보고   ▶ 모바일 디자인 확정 (★2610~)
+5. designer   → 모바일 확정본 → 카드뉴스 PDF(4:5) 변환(내용 동일·레이아웃/사진 일부 조정)
+   → 팀장: 렌더 QA(`letter-design-qa` 스킬 · `tools/qa-render.py --cards-only`) FAIL 0 후 보고   ▶ 카드뉴스 확정 (★2610~)
 6. assembler  → QA → 출력(모바일+PDF) → 포트폴리오 등록 메모   ▶ 최종 확정
    ※ **모바일 공유본(단일파일) 빌드 = `python3 letter-templates/tools/build-mobile-share.py letter-templates/issues/<월>/letter.html letter-templates/issues/<월>/MFH-<호수>-mobile-share.html`** (★2609: 직전 호 공유본의 내장 폰트를 재사용하면 그달 새 글자가 대체폰트로 깨짐 → 매호 그달 글자 서브셋으로 폰트를 새로 만든다. 내부검토용도 같은 스크립트로.)
 7. 팀장       → `News Letter/<YYYYMMDD>_MFH#<번호>_<제목>/` 폴더에 PDF·모바일 공유본 배치
