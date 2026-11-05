@@ -71,7 +71,7 @@
 3. **가정 평강·문제예방·사전축복** 비중.
 
 - 월간 편지 3단 구조(온두라스 / 사역 / 선교사 가정), 굵은 번호 제목 + 맥락 문단 + 대시 불릿, 번호 `MFH #YYMM`.
-- **선교편지 제작은 5-에이전트 팀**(`docs/MFH-LETTER-AGENTS.md`)으로 진행 — collector→strategist→writer→designer→assembler, 매 단계 우진 승인. "○월호 만들어줘"로 가동(팀장이 오케스트레이터).
+- **선교편지 제작은 5-에이전트 팀**(`docs/MFH-LETTER-AGENTS.md`)으로 진행 — collector→strategist→writer→designer→assembler, 매 단계 우진 승인. "○월호 만들어줘"로 가동(팀장이 오케스트레이터). **등록·공유 메시지 후 팀장이 만드는 하이라이트 릴스와 인스타그램 게시까지가 한 호의 끝이다**(§8-1 8~10단계, #2610~).
 
 ## 8. 빌드 단계 / 버전 / 현재 위치
 

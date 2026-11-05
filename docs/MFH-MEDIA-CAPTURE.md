@@ -56,7 +56,7 @@ media/
 ├─ inbox/              iPhone 단축어 도착함 (gitignore) — 정리 스크립트가 비운다
 ├─ raw/YYYY/MM/        원본 클립·음성 메모 (gitignore · Dropbox 에만)
 ├─ index.md            자동 색인 — 날짜별 파일·종류(세로/가로/음성)·길이·해상도·MB
-└─ out/                완성본 mp4 (gitignore) — 릴스 reel-YYYY-MM-DD-*.mp4 · 영상편지 MFH-XXXX-shorts.mp4
+└─ out/                완성본 mp4 (gitignore) — 릴스 reel-YYYY-MM-DD-*.mp4 · 영상편지 MFH-XXXX-shorts.mp4 · 편지 하이라이트 MFH-XXXX-highlight.mp4 + 표지 MFH-XXXX-reel-cover.jpg
 ```
 
 - 용량: 클립 15초 1080p ≈ 30~40MB → 월 20개 ≈ 0.7GB, 연 약 10GB. Dropbox 여유 용량 확인.
@@ -84,6 +84,21 @@ media/
 | 게시 | 폰으로 mp4 전송 → FB/IG 앱(릴스) · YouTube Shorts 선택 | YouTube 업로드 → 앱 `portfolio_videos` 등록 · 편지 공유본에 링크 |
 
 **이 세션에서 확인한 도구 한계**: Canva AI 영상 생성은 유료 플랜 필요(현재 불가) · Figma Weave 미연결. 생성 B-roll 은 2027 재검토. 현행 스크립트 경로가 재현성·브랜드 일관성·비용에서 우선.
+
+### 편지 하이라이트 릴스 (★#2610~ · 원칙은 `MFH-LETTER-AGENTS.md` §8-1)
+
+- **입력**: `letter-templates/issues/<월>/video/shorts-result.json` (직전 호 복제). `reel.variant: "letter"` 를 넣으면 페이드 전환·구분 라벨·표지 배지 없음·마무리 로고 확대가 적용된다.
+- **장면 옵션**: `label`(구분) · `caption`(`\n` 줄바꿈, `*어절*` 강조) · `fit: "contain"`(가로 사진) · `position`(크롭 위치) · `motion` · `dur`. 전환 0.6초가 겹치므로 화면 시간 = `dur` − 0.6초.
+- **빌드**(repo 루트): 약 1분 30초. 렌더 때 Google 폰트를 받으므로 **인터넷 연결이 필요하다**(끊기면 `Timed out loading Google Font`).
+```bash
+npx tsx scripts/make-reel.ts letter-templates/issues/<월>/video/shorts-result.json
+```
+- **표지 이미지**: 표지 장면 프레임을 `media/out/MFH-XXXX-reel-cover.jpg` 로 저장해 게시할 때 표지로 쓴다.
+```bash
+ffmpeg -ss 2.6 -i media/out/MFH-XXXX-highlight.mp4 -frames:v 1 -q:v 2 media/out/MFH-XXXX-reel-cover.jpg
+```
+- **게시 문구**: `issues/<월>/video/reel-post.txt` (캡션·고정 댓글·스토리·링크 스티커·하이라이트 이름). 음악은 인스타 앱에서 고른다.
+- **게시 순서**: `MFH-LETTER-AGENTS.md` §8-1 원칙 8 (편지 게시물 → 릴스 → 스토리 → 하이라이트).
 
 ### 육성 내레이션 녹음·보정 (영상편지)
 
