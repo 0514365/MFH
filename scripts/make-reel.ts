@@ -1,4 +1,6 @@
-// MFH-MAKE-REEL-V2
+// MFH-MAKE-REEL-V4
+// V3: 선교편지 숏츠용 선택 항목 — reel.durations{cover,scene,end} · 장면·표지 fit:'contain'(가로 사진 무크롭) · end_title · hide_url · out_name
+// V4: 하이라이트 숏츠 — reel.variant:'letter' · 장면 dur·position · 자막 \n 줄바꿈
 // fb-update 가 만든 result.json 의 reel 을 영상으로 만든다:
 //   사진(journal-photos 버킷) 다운로드 → Remotion props JSON → letter-templates/remotion 렌더(무음) → build-video.py --mux(현장음·음악 믹스)
 //   → media/out/reel-<week_start>.mp4
@@ -11,10 +13,11 @@ import { basename, join, relative, resolve } from 'path'
 import { spawnSync } from 'child_process'
 import { loadEnv, createServiceClient, readJsonFile } from './_shared'
 
-type Scene = { photo?: string; clip?: string; start?: number; audio?: number; label?: string; caption?: string; motion?: string; animate?: boolean }
+type Scene = { photo?: string; clip?: string; start?: number; audio?: number; label?: string; caption?: string; motion?: string; animate?: boolean; fit?: 'contain'; dur?: number; position?: string }
 type Reel = {
   title?: string; label?: string; date_label?: string; cover_photo?: string
   scenes?: Scene[]; end_line?: string
+  durations?: { cover?: number; scene?: number; end?: number }; cover_fit?: 'contain'; end_title?: string; hide_url?: boolean; out_name?: string; variant?: 'letter'
 }
 type Result = { week_start?: string; reel?: Reel | null }
 
@@ -95,9 +98,10 @@ async function main() {
     return relative(outDir, out)
   }
 
+  const coverDur = reel.durations?.cover ?? COVER_DUR, sceneDur = reel.durations?.scene ?? SCENE_DUR, endDur = reel.durations?.end ?? END_DUR
   const scenes: Record<string, unknown>[] = []
   scenes.push({
-    kind: 'cover', dur: COVER_DUR,
+    kind: 'cover', dur: coverDur, ...(reel.cover_fit ? { fit: reel.cover_fit } : {}),
     photo: await photoPath(reel.cover_photo || reel.scenes.find((s) => s.photo)?.photo),
     date_label: reel.date_label || week.slice(0, 7).replace('-', '.'),
     label: reel.label || '이번 주 소식',
@@ -113,36 +117,37 @@ async function main() {
       if (r.status !== 0 || !existsSync(anim)) {
         console.warn(`[make-reel] 애니메이션 실패 → 켄번즈로 대체: ${basename(local)}`)
       } else {
-        scenes.push({ kind: 'clip', dur: SCENE_DUR, clip: clipPath(relative(ROOT, anim), 0, SCENE_DUR), start: 0, audio: 0,
+        scenes.push({ kind: 'clip', dur: sceneDur, clip: clipPath(relative(ROOT, anim), 0, sceneDur), start: 0, audio: 0,
           label: s.label || '', caption: s.caption || '' })
         continue
       }
     }
     if (s.clip) {
       const start = s.start ?? 0
-      scenes.push({ kind: 'clip', dur: SCENE_DUR, clip: clipPath(s.clip, start, SCENE_DUR), start: 0,
+      scenes.push({ kind: 'clip', dur: sceneDur, clip: clipPath(s.clip, start, sceneDur), start: 0,
         audio: s.audio ?? CLIP_AUDIO, audio_src: resolve(ROOT, s.clip), audio_start: start,
         label: s.label || '', caption: s.caption || '' })
     } else {
-      scenes.push({ kind: 'photo', dur: SCENE_DUR, photo: await photoPath(s.photo), label: s.label || '', caption: s.caption || '',
-        ...(s.motion ? { motion: s.motion } : {}) })
+      scenes.push({ kind: 'photo', dur: s.dur ?? sceneDur, photo: await photoPath(s.photo), label: s.label || '', caption: s.caption || '',
+        ...(s.motion ? { motion: s.motion } : {}), ...(s.fit ? { fit: s.fit } : {}), ...(s.position ? { position: s.position } : {}) })
     }
   }
-  scenes.push({ kind: 'end', dur: END_DUR, end_line: reel.end_line || '', logo: 'logo-white.png' })
+  scenes.push({ kind: 'end', dur: endDur, end_line: reel.end_line || '', logo: 'logo-white.png',
+    ...(reel.end_title ? { title: reel.end_title } : {}), ...(reel.hide_url ? { hide_url: true } : {}) })
 
   const propsPath = join(outDir, 'reel.props.json')
-  writeFileSync(propsPath, JSON.stringify({ scenes }, null, 2))
+  writeFileSync(propsPath, JSON.stringify({ scenes, ...(reel.variant ? { variant: reel.variant } : {}) }, null, 2))
   console.log(`[make-reel] ${relative(ROOT, propsPath)} · 장면 ${scenes.length}개`)
   if (propsOnly) return
 
   // 1) Remotion 렌더(무음)
   const silent = join(outDir, 'reel-silent.mp4')
-  const r1 = spawnSync('npx', ['remotion', 'render', 'src/index.ts', 'Reel', silent, `--public-dir=${outDir}`, `--props=${propsPath}`, '--log=error'],
+  const r1 = spawnSync('npx', ['remotion', 'render', 'src/index.ts', 'Reel', silent, `--public-dir=${outDir}`, `--props=${propsPath}`, '--log=error', '--timeout=180000'],
     { cwd: REMOTION, stdio: 'inherit' })
   if (r1.status !== 0) process.exit(r1.status ?? 1)
 
   // 2) 오디오 믹스(현장음·음악·음성) + 먹싱
-  const mp4 = join(ROOT, 'media', 'out', `reel-${week}.mp4`)
+  const mp4 = join(ROOT, 'media', 'out', reel.out_name || `reel-${week}.mp4`)
   const r2 = spawnSync('python3', [BUILD, propsPath, mp4, '--mux', silent, ...(music ? ['--music', music] : [])], { stdio: 'inherit' })
   if (r2.status !== 0) process.exit(r2.status ?? 1)
   console.log(`[make-reel] 완료 → ${relative(ROOT, mp4)} (폰으로 보내 FB/IG 앱에서 음원 선택 후 게시)`)

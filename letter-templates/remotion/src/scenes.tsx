@@ -1,22 +1,23 @@
-// MFH-REMOTION-SCENES-V1 · 표지·사진·클립·마무리 장면 + 어절 단위 자막. 안전영역: 위 200px · 아래 360px.
+// MFH-REMOTION-SCENES-V2 · 표지·사진·클립·마무리 장면 + 어절 단위 자막. 안전영역: 위 200px · 아래 360px.
 import React from 'react'
 import { AbsoluteFill, Img, OffthreadVideo, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion'
-import { loadFont as loadMyeongjo } from '@remotion/google-fonts/NanumMyeongjo'
+import { getInfo as infoMyeongjo, loadFont as loadMyeongjo } from '@remotion/google-fonts/NanumMyeongjo'
 import { loadFont as loadMontserrat } from '@remotion/google-fonts/Montserrat'
-import { loadFont as loadNoto } from '@remotion/google-fonts/NotoSansKR'
-import { colors, frames, type Motion } from './types'
+import { getInfo as infoNoto, loadFont as loadNoto } from '@remotion/google-fonts/NotoSansKR'
+import { subsetsForText } from './fonts'
+import { colors, frames, type Motion, type Variant } from './types'
 
-// 한글 폰트는 유니코드 범위별 번호 서브셋이라 subsets 를 지정하지 않는다(전체 로드).
-const myeongjo = loadMyeongjo('normal', { weights: ['800'] }).fontFamily
+// 한글 폰트는 유니코드 범위별 번호 서브셋이다 — 이번 렌더에 쓰인 글자의 구간만 받는다(fonts.ts).
+const myeongjo = loadMyeongjo('normal', { weights: ['800'], subsets: subsetsForText(infoMyeongjo().unicodeRanges) }).fontFamily
 const montserrat = loadMontserrat('normal', { weights: ['600', '700'], subsets: ['latin'] }).fontFamily
-const body = loadNoto('normal', { weights: ['500', '600', '700'] }).fontFamily
+const body = loadNoto('normal', { weights: ['600'], subsets: subsetsForText(infoNoto().unicodeRanges) }).fontFamily
 
 const ZOOM = 0.07
 const CAP_DELAY = frames(0.35)
 const WORD_STAGGER = 2 // 어절 간격(프레임) ≈ 0.07초
 
 // ── 사진 켄번즈 ───────────────────────────────────────────────
-const KenBurns: React.FC<{ src: string; motion: Motion; dur: number; grade?: boolean }> = ({ src, motion, dur, grade = true }) => {
+const KenBurns: React.FC<{ src: string; motion: Motion; dur: number; grade?: boolean; position?: string }> = ({ src, motion, dur, grade = true, position }) => {
   const f = useCurrentFrame()
   const p = interpolate(f, [0, frames(dur)], [0, 1], { extrapolateRight: 'clamp' })
   const z = 1 + ZOOM
@@ -31,9 +32,24 @@ const KenBurns: React.FC<{ src: string; motion: Motion; dur: number; grade?: boo
   return (
     <Img
       src={staticFile(src)}
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform,
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: position, transform,
         filter: grade ? 'contrast(1.05) saturate(1.1) brightness(1.01)' : undefined }}
     />
+  )
+}
+
+// 가로 사진을 자르지 않고 싣는다: 흐린 배경 + 원본 비율 사진(위 안전영역·아래 자막 사이)
+const ContainPhoto: React.FC<{ src: string; motion: Motion; dur: number }> = ({ src, motion, dur }) => {
+  const f = useCurrentFrame()
+  const p = interpolate(f, [0, frames(dur)], [0, 1], { extrapolateRight: 'clamp' })
+  const scale = motion === 'out' ? 1.05 - 0.05 * p : 1 + 0.05 * p
+  return (
+    <>
+      <Img src={staticFile(src)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+        filter: 'blur(36px) brightness(.5)', transform: 'scale(1.12)' }} />
+      <Img src={staticFile(src)} style={{ position: 'absolute', left: 0, top: 300, width: 1080, height: 810, objectFit: 'cover',
+        transform: `scale(${scale})`, filter: 'contrast(1.05) saturate(1.1) brightness(1.01)' }} />
+    </>
   )
 }
 
@@ -44,48 +60,65 @@ const Shade: React.FC = () => (
 const Bar: React.FC = () => <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 14, background: colors.red }} />
 
 // ── 자막: 박스가 먼저 떠오르고 어절이 차례로 켜진다. *어절* 은 강조색 ─────────
-const Caption: React.FC<{ label?: string; text: string; bottom?: number }> = ({ label, text, bottom = 400 }) => {
+// 자막의 줄바꿈(\n)은 그대로 줄을 나눈다. variant 'letter' 는 라벨이 칩이고 오른쪽 버튼 영역을 비운다.
+const Caption: React.FC<{ label?: string; text: string; bottom?: number; variant?: Variant }> = ({ label, text, bottom = 400, variant }) => {
   const f = useCurrentFrame()
   const { fps } = useVideoConfig()
   const rise = spring({ frame: f - CAP_DELAY, fps, config: { damping: 200, stiffness: 120 } })
-  const words = text.split(/\s+/).filter(Boolean)
+  const lines = text.split('\n').map((l) => l.split(/\s+/).filter(Boolean))
+  const letter = variant === 'letter'
+  let wordIndex = 0
   return (
-    <div style={{ position: 'absolute', left: 64, right: 64, bottom, opacity: rise, transform: `translateY(${(1 - rise) * 48}px)` }}>
-      {label ? (
+    <div style={{ position: 'absolute', left: 64, right: letter ? 140 : 64, bottom, opacity: rise, transform: `translateY(${(1 - rise) * 48}px)` }}>
+      {label && letter ? (
+        <div style={{ display: 'inline-block', fontFamily: `${montserrat}, ${body}`, fontWeight: 700, fontSize: 36, color: '#fff',
+          background: colors.maroon, padding: '8px 22px', marginBottom: 20 }}>{label}</div>
+      ) : label ? (
         <div style={{ fontFamily: montserrat, fontWeight: 700, fontSize: 26, letterSpacing: '.2em', color: colors.blush,
           textTransform: 'uppercase', marginBottom: 18 }}>{label}</div>
       ) : null}
       <div style={{ fontFamily: body, fontWeight: 600, fontSize: 56, lineHeight: 1.5, color: '#fff', wordBreak: 'keep-all' }}>
-        {words.map((w, i) => {
-          const em = /^\*.+\*$/.test(w)
-          const t = em ? w.slice(1, -1) : w
-          const a = spring({ frame: f - CAP_DELAY - 4 - i * WORD_STAGGER, fps, config: { damping: 200, stiffness: 160 } })
-          return (
-            <span key={i} style={{ display: 'inline-block', background: 'rgba(45,42,38,.82)', padding: '0 14px',
-              marginRight: -0.5, opacity: a, transform: `translateY(${(1 - a) * 18}px)`, color: em ? colors.blush : '#fff' }}>
-              {t}
-            </span>
-          )
-        })}
+        {lines.map((words, li) => (
+          <div key={li}>
+            {words.map((w, wi) => {
+              const em = /^\*.+\*$/.test(w)
+              const t = em ? w.slice(1, -1) : w
+              const a = spring({ frame: f - CAP_DELAY - 4 - wordIndex++ * WORD_STAGGER, fps, config: { damping: 200, stiffness: 160 } })
+              return (
+                <span key={wi} style={{ display: 'inline-block', background: 'rgba(45,42,38,.82)', padding: '0 14px',
+                  marginRight: -0.5, opacity: a, transform: `translateY(${(1 - a) * 18}px)`, color: em ? colors.blush : '#fff' }}>
+                  {t}
+                </span>
+              )
+            })}
+          </div>
+        ))}
       </div>
     </div>
   )
 }
 
 // ── 장면 ───────────────────────────────────────────────────────
-export const Cover: React.FC<{ photo: string; date_label: string; label: string; title: string; dur: number }> = (p) => {
+export const Cover: React.FC<{ photo: string; date_label: string; label: string; title: string; dur: number; fit?: 'contain'; variant?: Variant }> = (p) => {
   const f = useCurrentFrame()
   const { fps } = useVideoConfig()
   const a = spring({ frame: f - 6, fps, config: { damping: 200 } })
   return (
     <AbsoluteFill>
-      <KenBurns src={p.photo} motion="in" dur={p.dur} />
+      {p.fit === 'contain' ? <ContainPhoto src={p.photo} motion="in" dur={p.dur} /> : <KenBurns src={p.photo} motion="in" dur={p.dur} />}
       <Shade />
-      <div style={{ position: 'absolute', top: 230, left: 64, fontFamily: montserrat, fontWeight: 700, fontSize: 26,
-        letterSpacing: '.16em', color: '#fff', background: colors.maroon, padding: '12px 22px' }}>MFH · {p.date_label}</div>
+      {p.variant === 'letter' ? null : (
+        <div style={{ position: 'absolute', top: 200, left: 64, fontFamily: montserrat, fontWeight: 700, fontSize: 26,
+          letterSpacing: '.16em', color: '#fff', background: colors.maroon, padding: '12px 22px' }}>MFH · {p.date_label}</div>
+      )}
       <div style={{ position: 'absolute', left: 64, right: 64, bottom: 440, opacity: a, transform: `translateY(${(1 - a) * 40}px)` }}>
-        <div style={{ fontFamily: montserrat, fontWeight: 700, fontSize: 26, letterSpacing: '.2em', color: colors.blush,
-          textTransform: 'uppercase', marginBottom: 18 }}>{p.label}</div>
+        {p.variant === 'letter' ? (
+          <div style={{ display: 'inline-block', fontFamily: `${montserrat}, ${body}`, fontWeight: 700, fontSize: 36, color: '#fff',
+            background: colors.maroon, padding: '8px 22px', marginBottom: 20 }}>{p.label}</div>
+        ) : (
+          <div style={{ fontFamily: montserrat, fontWeight: 700, fontSize: 26, letterSpacing: '.2em', color: colors.blush,
+            textTransform: 'uppercase', marginBottom: 18 }}>{p.label}</div>
+        )}
         <div style={{ fontFamily: myeongjo, fontWeight: 800, fontSize: 84, lineHeight: 1.25, color: '#fff', wordBreak: 'keep-all' }}>
           {p.title.split(/<br\s*\/?>/i).map((line, i) => <div key={i}>{line}</div>)}
         </div>
@@ -96,16 +129,16 @@ export const Cover: React.FC<{ photo: string; date_label: string; label: string;
   )
 }
 
-export const Photo: React.FC<{ photo: string; label?: string; caption: string; motion: Motion; dur: number }> = (p) => (
+export const Photo: React.FC<{ photo: string; label?: string; caption: string; motion: Motion; dur: number; fit?: 'contain'; position?: string; variant?: Variant }> = (p) => (
   <AbsoluteFill>
-    <KenBurns src={p.photo} motion={p.motion} dur={p.dur} />
+    {p.fit === 'contain' ? <ContainPhoto src={p.photo} motion={p.motion} dur={p.dur} /> : <KenBurns src={p.photo} motion={p.motion} dur={p.dur} position={p.position} />}
     <Shade />
-    <Caption label={p.label} text={p.caption} />
+    <Caption label={p.label} text={p.caption} variant={p.variant} />
     <Bar />
   </AbsoluteFill>
 )
 
-export const Clip: React.FC<{ clip: string; start?: number; label?: string; caption: string; dur: number }> = (p) => (
+export const Clip: React.FC<{ clip: string; start?: number; label?: string; caption: string; dur: number; variant?: Variant }> = (p) => (
   <AbsoluteFill>
     <OffthreadVideo
       src={staticFile(p.clip)}
@@ -114,12 +147,12 @@ export const Clip: React.FC<{ clip: string; start?: number; label?: string; capt
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
     />
     <Shade />
-    <Caption label={p.label} text={p.caption} />
+    <Caption label={p.label} text={p.caption} variant={p.variant} />
     <Bar />
   </AbsoluteFill>
 )
 
-export const End: React.FC<{ end_line: string; logo: string; dur: number }> = (p) => {
+export const End: React.FC<{ end_line: string; logo: string; dur: number; title?: string; hide_url?: boolean; variant?: Variant }> = (p) => {
   const f = useCurrentFrame()
   const { fps } = useVideoConfig()
   const a = spring({ frame: f - 4, fps, config: { damping: 200 } })
@@ -127,10 +160,10 @@ export const End: React.FC<{ end_line: string; logo: string; dur: number }> = (p
     <AbsoluteFill style={{ background: colors.maroon }}>
       <div style={{ position: 'absolute', left: 64, right: 64, top: 560, textAlign: 'center', opacity: a,
         transform: `translateY(${(1 - a) * 30}px)` }}>
-        <Img src={staticFile(p.logo)} style={{ width: 220, margin: '0 auto 60px', display: 'block' }} />
-        <div style={{ fontFamily: myeongjo, fontWeight: 800, fontSize: 72, lineHeight: 1.3, color: '#fff' }}>기도로<br />함께해 주세요</div>
-        <div style={{ marginTop: 36, fontFamily: body, fontSize: 36, lineHeight: 1.7, color: '#EBD9D9' }}>{p.end_line}</div>
-        <div style={{ marginTop: 70, fontFamily: montserrat, fontWeight: 600, fontSize: 34, color: '#fff' }}>mfh-snowy.vercel.app/p/mfh</div>
+        <Img src={staticFile(p.logo)} style={{ width: p.variant === 'letter' ? 360 : 220, margin: '0 auto 60px', display: 'block' }} />
+        <div style={{ fontFamily: myeongjo, fontWeight: 800, fontSize: 72, lineHeight: 1.3, color: '#fff' }}>{p.title ?? <>기도로<br />함께해 주세요</>}</div>
+        <div style={{ marginTop: 36, fontFamily: body, fontSize: p.variant === 'letter' ? 46 : 36, lineHeight: 1.7, color: '#EBD9D9', whiteSpace: 'pre-line' }}>{p.end_line}</div>
+        {p.hide_url ? null : <div style={{ marginTop: 70, fontFamily: montserrat, fontWeight: 600, fontSize: 34, color: '#fff' }}>mfh-snowy.vercel.app/p/mfh</div>}
       </div>
       <Bar />
     </AbsoluteFill>
