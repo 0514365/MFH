@@ -90,4 +90,5 @@ tools: Read, Write, Bash
 3. **PDF 출력(현재 수동)**: `open letter-templates/issues/<월>/letter.html` 로 브라우저에 띄운 뒤, 우진이 `Cmd+P → PDF로 저장`(용지 1080×1350, 여백 없음, 배경 그래픽 켜기). 저장명 `MFH-XXXX.pdf`.
    - (참고) 자동 PDF가 필요하면 puppeteer 도입은 **별도 작업** — 현재 미설치.
 4. `release-notes.md` + **`summary.txt`** 작성 — 등록 정보(년월·호수·제목·표지·PDF) 와 `letters.summary` 확정용 텍스트. PDF·모바일 등록은 팀장이 `scripts/import_letters.py --apply`, summary 는 팀장이 `scripts/set-letter-summary.mjs --set` (둘 다 우진 "발행 진행" 승인 후).
+   - **`share-message.txt`** 도 함께 작성 — 카톡·Facebook 공통 공유 메시지. 형식은 `docs/MFH-LETTER-AGENTS.md` §8-1 「공유 메시지 형식」, 기준 파일 `issues/2026-10/share-message.txt`. 최종 보고에 전문을 포함한다.
 5. 팀장에게 최종 보고 → 우진 확정으로 그달 편지 완료.
