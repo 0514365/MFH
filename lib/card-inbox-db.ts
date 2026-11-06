@@ -1,3 +1,4 @@
+// MFH-CARD-INBOX-DB-V5 — 선지급 승인(prepay, patch120): 지출 대신 이체(지불계좌 → 미수금 계좌), 항목·상점 학습 없음
 // MFH-CARD-INBOX-DB-V4 — 자동 승인(patch110): 최근 자동 승인 목록 · 되돌리기 · 상점 사전 목록 · 자동 토글
 // MFH-CARD-INBOX-DB-V3 — 구매처 표시명 학습 · 추천 실시간(사전 우선)
 // MFH-CARD-INBOX-DB-V2 — 구매처(vendor)·적요 분리, 적요 학습
@@ -87,7 +88,7 @@ export async function approveInboxItem(uid: string, p: InboxApproveInput): Promi
     .maybeSingle()
   if (e0 || !row) return { ok: false, error: '대기 거래를 찾지 못했습니다' }
   if (row.status !== 'pending') return { ok: false, error: '이미 처리된 거래입니다' }
-  if (!p.itemId) return { ok: false, error: '항목을 선택하세요' }
+  if (!p.prepay && !p.itemId) return { ok: false, error: '항목을 선택하세요' }
 
   const usd = row.currency === 'USD'
   const rate = usd ? 1 : p.rate
@@ -96,6 +97,43 @@ export async function approveInboxItem(uid: string, p: InboxApproveInput): Promi
   const amountUsd = usd ? principal : r2(principal / rate)
   const name = p.name.trim() // 적요(무엇을) — 빈칸 허용
   const vendor = p.vendor.trim() || row.merchant // 구매처 표시명 — 비우면 상점명
+
+  // 선지급(patch120): 지출이 아니라 이체(지불계좌 → 미수금 계좌). 항목·구매처 없음, 상점 학습 없음.
+  // 통화가 다르면(USD 카드 → HNL 미수금) 입금 금액은 비워 둔다(USD 금액으로 잔액 반영) — 필요하면 기록 폼 수정에서 입금 금액 입력.
+  if (p.prepay) {
+    if (!p.accountId) return { ok: false, error: '선지급은 지불계좌를 지정하세요' }
+    const { data: recv } = await sb.from('acct_accounts').select('id').eq('kind', '미수금').eq('is_active', true).limit(1).maybeSingle()
+    if (!recv) return { ok: false, error: '미수금 계좌가 없습니다(patch120)' }
+    if (recv.id === p.accountId) return { ok: false, error: '지불계좌가 미수금 계좌입니다' }
+    const { data: ins, error: e1 } = await sb
+      .from('acct_inout')
+      .insert({
+        user_id: uid,
+        gubun: '이체',
+        date: hnDate(row.sms_at),
+        item_id: null,
+        name: name || `${row.merchant} 선지급`,
+        vendor: null,
+        currency: row.currency,
+        principal,
+        rate,
+        amount_usd: amountUsd,
+        account_id: p.accountId,
+        to_account_id: recv.id,
+        to_principal: null,
+        supporter_id: null,
+        source: 'sms',
+      })
+      .select('id')
+      .single()
+    if (e1 || !ins) return { ok: false, error: `장부 저장 실패: ${e1?.message ?? ''}` }
+    const { error: e2 } = await sb
+      .from('card_tx_inbox')
+      .update({ status: 'approved', inout_id: ins.id, decided_at: new Date().toISOString() })
+      .eq('id', p.id)
+    if (e2) return { ok: false, error: `대기열 갱신 실패: ${e2.message}` }
+    return { ok: true }
+  }
 
   const { data: ins, error: e1 } = await sb
     .from('acct_inout')

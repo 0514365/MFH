@@ -9,7 +9,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { requestBadgeRefresh } from '@/lib/badge'
-import { activeOnly, type AcctOptions } from '@/lib/accounting-types'
+import { activeOnly, entryAccounts, type AcctOptions } from '@/lib/accounting-types'
 import type { RecurringDue, RecurringRule, RecurringRuleInput } from '@/lib/recurring-db'
 import { approveRecurring, skipRecurring, saveRecurring, toggleRecurring } from './recurring-actions'
 
@@ -203,7 +203,7 @@ function RulesModal({ rules, options, describe, onClose }: { rules: RecurringRul
                   <label className={lbl}>입금계좌</label>
                   <select value={f.toAccountId ?? ''} onChange={(e) => up({ toAccountId: e.target.value || null })} className={inp}>
                     <option value="">선택</option>
-                    {options.accounts.filter((a) => a.id !== f.accountId).map((a) => (
+                    {entryAccounts(options.accounts).filter((a) => a.id !== f.accountId).map((a) => (
                       <option key={a.id} value={a.id}>{a.name}</option>
                     ))}
                   </select>
@@ -213,7 +213,7 @@ function RulesModal({ rules, options, describe, onClose }: { rules: RecurringRul
                 <label className={lbl}>{f.gubun === '수입' ? '입금계좌' : f.gubun === '이체' ? '출금계좌' : '지불계좌'}</label>
                 <select value={f.accountId} onChange={(e) => up({ accountId: e.target.value })} className={inp}>
                   <option value="">선택</option>
-                  {options.accounts.map((a) => (
+                  {entryAccounts(options.accounts).map((a) => (
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}
                 </select>

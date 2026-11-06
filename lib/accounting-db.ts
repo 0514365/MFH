@@ -1,4 +1,5 @@
 // MFH-ACCOUNTING-DB-V14 — 카드 청구 주기 cycle(확정 청구·이용 중, cycle_end_day + due_day, patch118)
+// MFH-ACCOUNTING-DB-V14 — 계좌 옵션에 kind(미수금 계좌 식별, patch120)
 // MFH-ACCOUNTING-DB-V13 — 신용카드 상환일 dueDay(acct_accounts.due_day, patch117)
 // MFH-ACCOUNTING-DB-V12 — 잔액 = 오늘(온두라스)까지 거래만. 미래 날짜 거래(예약·반복 입력)는 upcoming(예정)으로 분리
 // MFH-ACCOUNTING-DB-V11 — to_principal(통화가 다른 이체 입금 금액, patch116) 읽기·쓰기·실보유 반영. rate·amount_usd 는 DB 트리거가 최종 결정
@@ -63,7 +64,7 @@ export async function getAcctOptions(): Promise<AcctOptions | null> {
     sb.from('supporters').select('id, name').order('name'),
     sb
       .from('acct_accounts')
-      .select('id, name, currency')
+      .select('id, name, currency, kind')
       .eq('is_active', true)
       .order('sort_order')
       .order('name'),
@@ -77,7 +78,7 @@ export async function getAcctOptions(): Promise<AcctOptions | null> {
   }
   out.supporters = (supporters.data ?? []).map((s): AcctOption => ({ id: s.id, name: s.name }))
   out.accounts = (accounts.data ?? []).map(
-    (a): AcctOption => ({ id: a.id, name: a.name, currency: a.currency ?? null }),
+    (a): AcctOption => ({ id: a.id, name: a.name, currency: a.currency ?? null, kind: a.kind ?? null }),
   )
   return out
 }

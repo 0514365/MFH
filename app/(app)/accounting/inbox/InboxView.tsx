@@ -18,7 +18,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { requestBadgeRefresh } from '@/lib/badge'
-import { activeOnly, type AcctOption, type AcctOptions, type InboxRow } from '@/lib/accounting-types'
+import { activeOnly, entryAccounts, receivableAccount, type AcctOption, type AcctOptions, type InboxRow } from '@/lib/accounting-types'
 import { itemPastels } from '@/lib/acct-display'
 import { blockHalo } from '@/lib/palette'
 import { approveInbox, ignoreInbox } from './actions'
@@ -105,7 +105,9 @@ export default function InboxView({
   const items = useMemo(() => activeOnly(options.items['지출']), [options])
   const groups = useMemo(() => groupByCategory(items), [items])
   const categories = useMemo(() => groups.map(([c]) => c).filter((c) => c !== '기타'), [groups])
-  const accountByCurrency = (cur: string) => options.accounts.find((a) => a.currency === cur)?.id ?? ''
+  const accountByCurrency = (cur: string) => entryAccounts(options.accounts).find((a) => a.currency === cur)?.id ?? ''
+  // 미수금(선지급) 계좌(patch120) — 있으면 행마다 「선지급」 버튼(지출 대신 카드 → 미수금 이체로 저장).
+  const receivable = useMemo(() => receivableAccount(options.accounts), [options])
 
   // ── 행별 편집 상태 — 추천값(없으면 빈칸·문자 상점명·통화 기본계좌)으로 초기화. 새 행이 생기면(새 수집) 추가.
   const initDraft = (r: InboxRow): Draft => ({
@@ -226,10 +228,15 @@ export default function InboxView({
     setMsg(`${selIds.length}건에 적용했습니다 — 확인 후 "선택 승인"`)
   }
 
-  async function approve(ids: string[]) {
+  // prepay = 선지급(patch120): 항목 없이 이체(지불계좌 → 미수금)로 저장. 지불계좌는 필수.
+  async function approve(ids: string[], prepay = false) {
     if (!ids.length) return
     const targets = rows.filter((r) => ids.includes(r.id))
-    const missing = targets.filter((r) => !draftOf(r).itemId)
+    if (prepay && targets.some((r) => !draftOf(r).accountId)) {
+      setMsg('선지급은 지불계좌(카드)를 지정해야 합니다')
+      return
+    }
+    const missing = prepay ? [] : targets.filter((r) => !draftOf(r).itemId)
     if (missing.length) {
       setMsg(`항목이 비어 있는 ${missing.length}건은 승인할 수 없습니다 — 항목을 지정하세요`)
       return
@@ -243,12 +250,12 @@ export default function InboxView({
     const res = await approveInbox(
       targets.map((r) => {
         const d = draftOf(r)
-        return { id: r.id, itemId: d.itemId, name: d.name, vendor: d.vendor, accountId: d.accountId || null, rate: rateOf(r) }
+        return { id: r.id, itemId: d.itemId, name: d.name, vendor: d.vendor, accountId: d.accountId || null, rate: rateOf(r), prepay }
       }),
     )
     setBusy(null)
     setSelected(new Set())
-    setMsg(res.ok ? `${res.done}건 승인 — 장부에 저장했습니다` : `${res.done}건 승인${res.error ? ` · 실패: ${res.error}` : ''}`)
+    setMsg(res.ok ? `${res.done}건 ${prepay ? '선지급 저장' : '승인'} — 장부에 저장했습니다` : `${res.done}건 승인${res.error ? ` · 실패: ${res.error}` : ''}`)
     router.refresh()
     requestBadgeRefresh()
   }
@@ -374,7 +381,7 @@ export default function InboxView({
                 <input value={bulk.name} onChange={(e) => setBulk({ ...bulk, name: e.target.value })} placeholder="내용 (유지)" className={ctl} />
                 <select value={bulk.accountId} onChange={(e) => setBulk({ ...bulk, accountId: e.target.value })} className={ctl}>
                   <option value="">계좌 (유지)</option>
-                  {options.accounts.map((a) => (
+                  {entryAccounts(options.accounts).map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
                     </option>
@@ -463,7 +470,7 @@ export default function InboxView({
                       <ItemSelect value={d.itemId} onChange={(v) => setDraft(r.id, { itemId: v })} groups={groups} className={`${panelInput} ${!d.itemId ? 'ring-1 ring-b27-wait' : ''}`} />
                       <select value={d.accountId} onChange={(e) => setDraft(r.id, { accountId: e.target.value })} className={panelInput} aria-label="계좌">
                         <option value="">계좌 (없음)</option>
-                        {options.accounts.map((a) => (
+                        {entryAccounts(options.accounts).map((a) => (
                           <option key={a.id} value={a.id}>
                             {a.name}
                           </option>
@@ -481,6 +488,17 @@ export default function InboxView({
                       >
                         {busy === r.id ? '…' : '승인'}
                       </button>
+                      {receivable && (
+                        <button
+                          type="button"
+                          disabled={rowBusy || !d.accountId}
+                          onClick={() => approve([r.id], true)}
+                          title={`공적 비용 대납 — 지출이 아니라 ${receivable.name} 으로 이체(집계 제외)`}
+                          className="h-10 rounded-full bg-b27-wait-soft px-4 text-[13px] font-medium text-b27-wait disabled:opacity-40"
+                        >
+                          선지급
+                        </button>
+                      )}
                       <button type="button" disabled={rowBusy} onClick={() => ignore([r.id])} className="h-10 rounded-full bg-b27-paper px-4 text-[13px] text-b27-muted disabled:opacity-40">
                         무시
                       </button>

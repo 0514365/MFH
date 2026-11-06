@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-TYPES-V6 — AcctOption.kind(계좌 유형) · 미수금 계좌 헬퍼(isReceivable·entryAccounts·receivableAccount, patch120)
 // MFH-ACCOUNTING-TYPES-V5 — AccountBalance.upcoming(미래 날짜 거래 예정액, 잔액 미포함)
 // MFH-ACCOUNTING-TYPES-V4 — 통화가 다른 이체의 입금 금액(toPrincipal, patch116). 수입·지출 환율은 DB 트리거가 결정
 // MFH-ACCOUNTING-TYPES-V3 — 계좌 실보유(holdings)·공시 환율 평가액(valueUsd, patch114)
@@ -13,9 +14,16 @@ export type Gubun = '수입' | '지출' | '이체' | '조정'
 export type InoutSource = 'manual' | 'csv' | 'sms' | 'notion'
 
 // active=false = 숨긴 항목(acct_items.is_active=false) — 이름 매핑엔 쓰고 입력 콤보에선 제외(activeOnly).
-export type AcctOption = { id: string; name: string; currency?: string | null; category?: string | null; active?: boolean }
+// kind = 계좌 유형(acct_accounts.kind: 현금 · 신용카드 · 미수금). 항목 옵션에는 없음.
+export type AcctOption = { id: string; name: string; currency?: string | null; category?: string | null; active?: boolean; kind?: string | null }
 export const activeOnly = (list: AcctOption[], keepId?: string): AcctOption[] =>
   list.filter((o) => o.active !== false || (!!keepId && o.id === keepId))
+// 미수금(선지급) 계좌(patch120) — 받을 돈 지갑. 선지급 = 지불계좌 → 미수금 이체, 상환 = 미수금 → 입금계좌 이체.
+// 수입·지출·조정·일반 이체의 계좌 콤보에서는 숨긴다(entryAccounts). keepId = 수정 중인 거래의 현재 계좌는 유지.
+export const isReceivable = (a: AcctOption): boolean => a.kind === '미수금'
+export const entryAccounts = (list: AcctOption[], keepId?: string | null): AcctOption[] =>
+  list.filter((a) => !isReceivable(a) || (!!keepId && a.id === keepId))
+export const receivableAccount = (list: AcctOption[]): AcctOption | null => list.find(isReceivable) ?? null
 export type AcctOptions = {
   items: { 수입: AcctOption[]; 지출: AcctOption[] }
   supporters: AcctOption[]
@@ -153,6 +161,7 @@ export type InboxApproveInput = {
   vendor: string // 구매처 표시명(수정 가능, 빈칸이면 상점명)
   accountId: string | null
   rate: number
+  prepay?: boolean // 선지급(patch120): 지출 대신 이체(지불계좌 → 미수금 계좌)로 저장, 항목·상점 학습 없음
 }
 
 // 카드 자동 승인(patch110) — 승인대기 화면 "자동 승인(최근 N일)" 목록 행.
