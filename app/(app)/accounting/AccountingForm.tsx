@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V16 — 회수할 선지급 표 = 전체 폭(구분·날짜·내용 줄과 통화·금액 줄 사이): 체크 · 날짜 · 내용 · 남은 금액, 모두 선택/해제
 // MFH-ACCOUNTING-FORM-V15 — 회수 다중 선택(체크 목록): 금액 = 선택 남은 금액 합계 · 저장 시 선지급마다 회수 행 자동 분할(오래된 순 FIFO 배분, bulkCreateInout). 수정은 단일 연결
 // MFH-ACCOUNTING-FORM-V14 — 회수 모드 「회수할 선지급」 콤보(patch121): 미회수·일부 회수 선지급 목록 → 선택 시 금액(남은 금액)·내용 자동. settlesInoutId 저장. 최근 입력 선지급 칩에 회수 상태
 // MFH-ACCOUNTING-FORM-V13 — 용어: 선지급 돌려받기 = 「회수」(카드대금 「상환」과 구별). 모드명 repay → collect.
@@ -542,45 +543,6 @@ export default function AccountingForm({
           </div>
           )}
 
-          {/* 회수할 선지급(patch121) — 회수 모드만. 새 기록 = 체크 목록(여러 건 → 저장 시 분할) · 수정 = 단일 콤보 */}
-          {isCollect && (
-            <div className="@2xl:w-[300px] @2xl:shrink-0">
-              <label className={labelCls}>
-                회수할 선지급
-                {!editingId && settlesIds.length > 1 && <span className="ml-1 font-normal">· {settlesIds.length}건 → 행 분할 저장</span>}
-              </label>
-              {editingId ? (
-                <select value={settlesIds[0] ?? ''} onChange={(e) => applySettles(e.target.value ? [e.target.value] : [])} className={inp}>
-                  <option value="">연결 안 함</option>
-                  {openPrepays.map((s) => (
-                    <option key={s.row.id} value={s.row.id}>
-                      {prepayLabel(s)}
-                    </option>
-                  ))}
-                </select>
-              ) : openPrepays.length === 0 ? (
-                <div className={fixedCls}>미회수 선지급 없음</div>
-              ) : (
-                <div className="max-h-[132px] overflow-y-auto rounded-xl bg-b27-paper px-2 py-1">
-                  {openPrepays.map((s) => {
-                    const on = settlesIds.includes(s.row.id)
-                    return (
-                      <label key={s.row.id} className="flex cursor-pointer items-center gap-2 py-1 text-[12px] text-b27-ink">
-                        <input
-                          type="checkbox"
-                          checked={on}
-                          onChange={() => applySettles(on ? settlesIds.filter((x) => x !== s.row.id) : [...settlesIds, s.row.id])}
-                          className="h-3.5 w-3.5 accent-[#2B3160]"
-                        />
-                        <span className="min-w-0 flex-1 truncate">{prepayLabel(s)}</span>
-                      </label>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* 이름 (후원금이면 후원자 콤보 + 자유입력) */}
           <div className="@2xl:min-w-0 @2xl:flex-1">
             <label className={labelCls}>내용{isDonation ? ' · 후원자' : ''}</label>
@@ -615,6 +577,70 @@ export default function AccountingForm({
 
           {/* 구매처까지 1행, 통화부터 2행 — 데스크탑 강제 줄바꿈 */}
           <div className="hidden basis-full @2xl:block" aria-hidden="true" />
+
+          {/* 회수할 선지급(patch121) — 회수 모드만. 전체 폭 표(체크 · 날짜 · 내용 · 남은 금액), 1행과 2행 사이. 수정 = 단일 콤보 */}
+          {isCollect && (
+            <div className="basis-full">
+              <div className={`${labelCls} flex items-center justify-between`}>
+                <span>
+                  회수할 선지급
+                  {!editingId && settlesIds.length > 0 && (
+                    <span className="ml-1 font-normal">
+                      · {settlesIds.length}건 선택{settlesIds.length > 1 ? ' → 행 분할 저장' : ''}
+                    </span>
+                  )}
+                </span>
+                {!editingId && openPrepays.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => applySettles(settlesIds.length === openPrepays.length ? [] : openPrepays.map((s) => s.row.id))}
+                    className="font-normal text-b27-ink underline-offset-2 hover:underline"
+                  >
+                    {settlesIds.length === openPrepays.length ? '모두 해제' : '모두 선택'}
+                  </button>
+                )}
+              </div>
+              {editingId ? (
+                <select value={settlesIds[0] ?? ''} onChange={(e) => applySettles(e.target.value ? [e.target.value] : [])} className={`${inp} @2xl:w-[420px]`}>
+                  <option value="">연결 안 함</option>
+                  {openPrepays.map((s) => (
+                    <option key={s.row.id} value={s.row.id}>
+                      {prepayLabel(s)}
+                    </option>
+                  ))}
+                </select>
+              ) : openPrepays.length === 0 ? (
+                <div className={fixedCls}>미회수 선지급 없음</div>
+              ) : (
+                <div className="max-h-[168px] overflow-y-auto rounded-xl bg-b27-paper">
+                  {openPrepays.map((s) => {
+                    const on = settlesIds.includes(s.row.id)
+                    const remain =
+                      s.remainingLocal != null && s.localCur
+                        ? `${s.localCur} ${s.remainingLocal.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+                        : fmtUsd(s.remainingUsd)
+                    return (
+                      <label
+                        key={s.row.id}
+                        className={`flex cursor-pointer items-center gap-3 border-b border-b27-line px-3 py-1.5 text-[13px] last:border-0 ${on ? 'bg-b27-wait-soft' : ''}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={() => applySettles(on ? settlesIds.filter((x) => x !== s.row.id) : [...settlesIds, s.row.id])}
+                          className="h-3.5 w-3.5 shrink-0 accent-[#2B3160]"
+                        />
+                        <span className="w-[44px] shrink-0 font-num text-[12px] text-b27-muted">{(s.row.date ?? '').slice(5).replace('-', '/')}</span>
+                        <span className="min-w-0 flex-1 truncate text-b27-ink">{s.row.name || '선지급'}</span>
+                        {s.status === 'partial' && <span className="shrink-0 rounded-full bg-b27-card px-1.5 py-0.5 text-[10px] text-b27-muted">일부 회수</span>}
+                        <span className="shrink-0 font-num text-[13px] font-medium text-b27-ink">{remain}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 통화 */}
           <div className="@2xl:w-[78px] @2xl:shrink-0">
