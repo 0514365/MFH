@@ -1,6 +1,7 @@
 'use client'
-// MFH-ACCOUNTING-FORM-V12 — 구분 「선지급」·「상환」(patch120): 이체의 두 모드 — 선지급 = 지불계좌 → 미수금(입금 고정) · 상환 = 미수금(출금 고정) → 입금계좌.
-//   미수금 계좌는 수입·지출·조정·일반 이체의 계좌 콤보에서 숨김(entryAccounts). ?gubun=선지급|상환 프리필 · 수정 진입 시 모드 자동 판별.
+// MFH-ACCOUNTING-FORM-V13 — 용어: 선지급 돌려받기 = 「회수」(카드대금 「상환」과 구별). 모드명 repay → collect.
+// MFH-ACCOUNTING-FORM-V12 — 구분 「선지급」·「회수」(patch120): 이체의 두 모드 — 선지급 = 지불계좌 → 미수금(입금 고정) · 회수 = 미수금(출금 고정) → 입금계좌.
+//   미수금 계좌는 수입·지출·조정·일반 이체의 계좌 콤보에서 숨김(entryAccounts). ?gubun=선지급|회수 프리필 · 수정 진입 시 모드 자동 판별.
 // MFH-ACCOUNTING-FORM-V11 — 2027(회계 잔여 a): 폼 = 연회색 면 + 흰 입력칸 · 「새 기록/수정 중」 타이틀 알약 · 구분 4칸 = 선택 칸만 의미색 면(지출 연빨강·수입 연파랑·이체 페리윙클·조정 회색) · 저장 남색 · 최근 입력 = 타이틀 알약 + 흰 2줄 행
 // MFH-ACCOUNTING-FORM-V10 — ?gubun=이체|조정 프리필(모바일 빠른 기록의 이체·조정 버튼)
 // MFH-ACCOUNTING-FORM-V9 — 환율 입력 제거(2026-09~: 공시·마감 환율 자동, DB 트리거 patch116 가 최종 결정 · 화면은 잠정 환산 표시)
@@ -57,7 +58,7 @@ const inp =
 const labelCls = 'mb-1 block whitespace-nowrap font-num text-[11.5px] font-medium text-b27-muted'
 // 자동 계산 칸(환율·환산) — 면 없이 회색 숫자
 const autoCls = 'flex h-[38px] items-center justify-end gap-1.5 px-1 font-num text-sm text-b27-muted'
-// 고정 계좌 표시(선지급 입금 · 상환 출금 = 미수금 계좌) — 입력칸 모양, 수정 불가.
+// 고정 계좌 표시(선지급 입금 · 회수 출금 = 미수금 계좌) — 입력칸 모양, 수정 불가.
 const fixedCls = 'flex h-[38px] items-center truncate rounded-xl bg-b27-paper px-2.5 text-sm text-b27-muted'
 // 구분 칸 — 선택된 칸만 의미색 면(빠른 기록과 동일)
 const GUBUN_ON: Record<string, string> = {
@@ -66,10 +67,10 @@ const GUBUN_ON: Record<string, string> = {
   이체: 'bg-b27-tint-8 font-semibold text-[#303C8D]',
   조정: 'bg-b27-card font-semibold text-b27-ink',
   선지급: 'bg-b27-wait-soft font-semibold text-b27-wait',
-  상환: 'bg-b27-wait-soft font-semibold text-b27-wait',
+  회수: 'bg-b27-wait-soft font-semibold text-b27-wait',
 }
-// 이체 모드(patch120): null = 일반 이체 · prepay = 선지급(입금 = 미수금 고정) · repay = 상환(출금 = 미수금 고정).
-type TransferMode = 'prepay' | 'repay' | null
+// 이체 모드(patch120): null = 일반 이체 · prepay = 선지급(입금 = 미수금 고정) · collect = 회수(출금 = 미수금 고정).
+type TransferMode = 'prepay' | 'collect' | null
 const gubunBtn = (on: boolean, g: string) =>
   `flex flex-1 items-center justify-center rounded-xl px-1 transition ${on ? GUBUN_ON[g] : 'bg-b27-paper text-b27-muted'}`
 // 통화별 기본환율(1 USD당 현지통화) — 공시 환율이 없을 때·2026-08 이전 거래 수정 때만 쓰는 대체값.
@@ -117,12 +118,12 @@ export default function AccountingForm({
   const isTransfer = gubun === '이체'
   const isAdjust = gubun === '조정'
   const noItem = isTransfer || isAdjust // 항목·구매처·후원자 없음
-  // 미수금(선지급) 계좌 — 없으면 선지급·상환 버튼 비활성.
+  // 미수금(선지급) 계좌 — 없으면 선지급·회수 버튼 비활성.
   const receivable = useMemo(() => receivableAccount(options.accounts), [options])
   const isPrepay = isTransfer && mode === 'prepay'
-  const isRepay = isTransfer && mode === 'repay'
+  const isCollect = isTransfer && mode === 'collect'
   // 화면 구분 라벨(저장은 항상 gubun).
-  const shownGubun = isPrepay ? '선지급' : isRepay ? '상환' : gubun
+  const shownGubun = isPrepay ? '선지급' : isCollect ? '회수' : gubun
   const [date, setDate] = useState(todayLocal)
   const [itemId, setItemId] = useState('')
   const [name, setName] = useState('')
@@ -193,15 +194,15 @@ export default function AccountingForm({
     if (isTransfer && fromCur && (fromCur === 'KRW' || fromCur === 'USD' || fromCur === 'HNL') && fromCur !== currency) setCurrency(fromCur)
   }, [isTransfer, fromCur, currency])
 
-  // 구분 버튼 — 선지급·상환은 이체 + 모드(미수금 계좌를 입금/출금에 고정).
-  function pickGubun(g: '수입' | '지출' | '이체' | '조정' | '선지급' | '상환') {
+  // 구분 버튼 — 선지급·회수는 이체 + 모드(미수금 계좌를 입금/출금에 고정).
+  function pickGubun(g: '수입' | '지출' | '이체' | '조정' | '선지급' | '회수') {
     setItemId('')
-    if (g === '선지급' || g === '상환') {
+    if (g === '선지급' || g === '회수') {
       if (!receivable) return setErr('미수금 계좌가 없습니다 — 계좌 추가 후 patch120 으로 유형을 미수금으로 지정하세요')
       setErr('')
       setGubun('이체')
       setSupporterId('')
-      setMode(g === '선지급' ? 'prepay' : 'repay')
+      setMode(g === '선지급' ? 'prepay' : 'collect')
       if (g === '선지급') {
         setToAccountId(receivable.id)
         if (!accountId || accountId === receivable.id) setAccountId(accountByCurrency(currency))
@@ -271,7 +272,7 @@ export default function AccountingForm({
         ? r.toAccountId === receivable.id
           ? 'prepay'
           : r.accountId === receivable.id
-            ? 'repay'
+            ? 'collect'
             : null
         : null,
     )
@@ -318,12 +319,12 @@ export default function AccountingForm({
     handledDate.current = d
     setDate(d)
   }, [searchParams])
-  // 모바일 빠른 기록의 [이체][조정][선지급][상환] → ?gubun= 으로 구분 프리필(1회).
+  // 모바일 빠른 기록의 [이체][조정][선지급][회수] → ?gubun= 으로 구분 프리필(1회).
   const handledGubun = useRef<string | null>(null)
   useEffect(() => {
     const g = searchParams.get('gubun')
     if (!g || searchParams.get('edit') || handledGubun.current === g) return
-    if (g !== '이체' && g !== '조정' && g !== '선지급' && g !== '상환') return
+    if (g !== '이체' && g !== '조정' && g !== '선지급' && g !== '회수') return
     handledGubun.current = g
     pickGubun(g)
     // pickGubun 은 매 렌더 새 함수 — ref 가드로 1회만 실행하므로 deps 제외.
@@ -334,7 +335,7 @@ export default function AccountingForm({
     setErr('')
     if (!noItem && !itemId) return setErr('항목을 선택하세요')
     if (isPrepay && !accountId) return setErr('지불계좌를 선택하세요')
-    if (isRepay && !toAccountId) return setErr('입금계좌를 선택하세요')
+    if (isCollect && !toAccountId) return setErr('입금계좌를 선택하세요')
     if (isTransfer && (!accountId || !toAccountId)) return setErr('출금계좌와 입금계좌를 선택하세요')
     if (isTransfer && accountId === toAccountId) return setErr('출금계좌와 입금계좌가 같습니다')
     if (isAdjust && !accountId) return setErr('조정할 계좌를 선택하세요')
@@ -389,24 +390,24 @@ export default function AccountingForm({
         </div>
 
         <div className="flex flex-col gap-2.5 @2xl:flex-row @2xl:flex-wrap @2xl:items-end @2xl:gap-2">
-          {/* 구분 토글 — 6칸(선지급·상환 = 이체의 모드, patch120) */}
+          {/* 구분 토글 — 6칸(선지급·회수 = 이체의 모드, patch120) */}
           <div className="@2xl:w-[318px] @2xl:shrink-0">
             <label className={labelCls}>구분</label>
             <div className="grid h-[38px] grid-cols-6 gap-1 text-[13px]">
-              {(['수입', '지출', '이체', '조정', '선지급', '상환'] as const).map((g) => (
+              {(['수입', '지출', '이체', '조정', '선지급', '회수'] as const).map((g) => (
                 <button
                   key={g}
                   type="button"
                   onClick={() => pickGubun(g)}
-                  disabled={(g === '선지급' || g === '상환') && !receivable}
+                  disabled={(g === '선지급' || g === '회수') && !receivable}
                   className={`${gubunBtn(shownGubun === g, g)} disabled:opacity-40`}
                   title={
                     g === '조정'
                       ? '잔액 조정 — 실제 잔액에 맞춰 ± 금액을 기록(수입·지출 집계 제외)'
                       : g === '선지급'
                         ? `공적 비용 대납 — 지불계좌 → ${receivable?.name ?? '미수금 계좌'} (집계 제외)`
-                        : g === '상환'
-                          ? `선지급 상환 수령 — ${receivable?.name ?? '미수금 계좌'} → 입금계좌 (집계 제외)`
+                        : g === '회수'
+                          ? `선지급한 돈 돌려받음 — ${receivable?.name ?? '미수금 계좌'} → 입금계좌 (집계 제외)`
                           : undefined
                   }
                 >
@@ -470,7 +471,7 @@ export default function AccountingForm({
               list={isDonation ? 'acct-sup-list' : undefined}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={isDonation ? '후원자 (단체·무명 직접)' : isPrepay ? '예: 학교 행사 음향 대납 · 11/20 상환 예정' : isRepay ? '예: 학교 행사 음향 선지급 상환' : isTransfer ? '예: 9월 카드대금 상환' : isAdjust ? '예: 2026-10-31 실잔액 기준 조정' : ''}
+              placeholder={isDonation ? '후원자 (단체·무명 직접)' : isPrepay ? '예: 학교 행사 음향 대납 · 11/20 회수 예정' : isCollect ? '예: 학교 행사 음향 선지급 회수' : isTransfer ? '예: 9월 카드대금 상환' : isAdjust ? '예: 2026-10-31 실잔액 기준 조정' : ''}
               className={inp}
             />
             {isDonation && (
@@ -572,10 +573,10 @@ export default function AccountingForm({
             </div>
           </div>
 
-          {/* 계좌 — 수입=입금 · 지출=지불 · 이체=출금 · 선지급=지불 · 상환=미수금 고정(표시만). 미수금 계좌는 콤보에서 숨김 */}
+          {/* 계좌 — 수입=입금 · 지출=지불 · 이체=출금 · 선지급=지불 · 회수=미수금 고정(표시만). 미수금 계좌는 콤보에서 숨김 */}
           <div className="@2xl:w-[140px] @2xl:shrink-0">
-            <label className={labelCls}>{gubun === '수입' ? '입금계좌' : isPrepay ? '지불계좌' : isRepay ? '출금계좌 (고정)' : gubun === '이체' ? '출금계좌' : gubun === '조정' ? '조정 계좌' : '지불계좌'}</label>
-            {isRepay ? (
+            <label className={labelCls}>{gubun === '수입' ? '입금계좌' : isPrepay ? '지불계좌' : isCollect ? '출금계좌 (고정)' : gubun === '이체' ? '출금계좌' : gubun === '조정' ? '조정 계좌' : '지불계좌'}</label>
+            {isCollect ? (
               <div className={fixedCls}>{receivable?.name ?? '미수금'}</div>
             ) : (
               <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={inp}>
@@ -702,7 +703,7 @@ export default function AccountingForm({
                         {r.gubun === '이체' && receivable && r.toAccountId === receivable.id
                           ? '선지급'
                           : r.gubun === '이체' && receivable && r.accountId === receivable.id
-                            ? '상환'
+                            ? '회수'
                             : (r.gubun ?? '—')}
                       </span>
                       <span className="min-w-0 break-words text-sm text-b27-ink">

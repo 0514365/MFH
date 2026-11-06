@@ -18,7 +18,7 @@ export type InoutSource = 'manual' | 'csv' | 'sms' | 'notion'
 export type AcctOption = { id: string; name: string; currency?: string | null; category?: string | null; active?: boolean; kind?: string | null }
 export const activeOnly = (list: AcctOption[], keepId?: string): AcctOption[] =>
   list.filter((o) => o.active !== false || (!!keepId && o.id === keepId))
-// 미수금(선지급) 계좌(patch120) — 받을 돈 지갑. 선지급 = 지불계좌 → 미수금 이체, 상환 = 미수금 → 입금계좌 이체.
+// 미수금(선지급) 계좌(patch120) — 받을 돈 지갑. 선지급 = 지불계좌 → 미수금 이체, 회수 = 미수금 → 입금계좌 이체(카드대금 「상환」과 구별).
 // 수입·지출·조정·일반 이체의 계좌 콤보에서는 숨긴다(entryAccounts). keepId = 수정 중인 거래의 현재 계좌는 유지.
 export const isReceivable = (a: AcctOption): boolean => a.kind === '미수금'
 export const entryAccounts = (list: AcctOption[], keepId?: string | null): AcctOption[] =>

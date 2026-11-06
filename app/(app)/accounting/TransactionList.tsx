@@ -4,7 +4,7 @@
 // MFH-ACCOUNTING-TXLIST-V18 — 항목·계좌 = 바텀시트 다중선택(SearchFilters) · 더 보기(분류·통화·사용자·금액 원금 범위) — 드롭다운 4개 제거
 // MFH-ACCOUNTING-TXLIST-V17 — 검색 UI 차용(SearchFilters): 둥근 검색창·최근 검색어 · 기간 칩(전체·이번 주·이번 달·지정) · 구분 칩 · 금액순/날짜순 글자 토글 · 검색어에 항목명·금액 숫자
 // MFH-ACCOUNTING-TXLIST-V16 — 영수증 📎(행 내용 옆) → ReceiptViewer(보기·교체·삭제)
-// MFH-ACCOUNTING-TXLIST-V16 — 미수금 계좌(patch120): 이체 행 칩 「선지급」(입금=미수금)·「상환」(출금=미수금) · 일괄 계좌 변경 콤보에서 제외
+// MFH-ACCOUNTING-TXLIST-V16 — 미수금 계좌(patch120): 이체 행 칩 「선지급」(입금=미수금)·「회수」(출금=미수금) · 일괄 계좌 변경 콤보에서 제외
 // MFH-ACCOUNTING-TXLIST-V15 — 일괄 수정 항목 콤보에서 숨긴 항목 제외(필터 콤보는 포함)
 // MFH-ACCOUNTING-TXLIST-V14 — 조정 행도 클릭 수정 허용(폼 조정 지원)
 // MFH-ACCOUNTING-TXLIST-V14 — initialFilter.account(자산 탭 계좌 → 그 계좌 내역)
@@ -157,14 +157,14 @@ export default function TransactionList({
     for (const a of options.accounts) m.set(a.id, a.name)
     return m
   }, [options])
-  // 이체 행의 표시 구분 — 미수금 계좌가 입금이면 「선지급」, 출금이면 「상환」, 그 외는 구분 그대로(patch120).
+  // 이체 행의 표시 구분 — 미수금 계좌가 입금이면 「선지급」, 출금이면 「회수」, 그 외는 구분 그대로(patch120).
   const receivableId = useMemo(() => receivableAccount(options.accounts)?.id ?? null, [options])
   const gubunLabel = (r: InoutRow): string =>
     r.gubun === '이체' && receivableId
       ? r.toAccountId === receivableId
         ? '선지급'
         : r.accountId === receivableId
-          ? '상환'
+          ? '회수'
           : '이체'
       : (r.gubun ?? '—')
 

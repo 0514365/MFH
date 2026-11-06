@@ -2,7 +2,7 @@
 // MFH-QUICK-ENTRY-V10 — 2027 토큰 승격: 지출/수입 면 리터럴 → b27-expense-soft / b27-income-soft
 // MFH-QUICK-ENTRY-V9 — 2027 실기 피드백: ③ 블록 탭 = 선택(남색 안쪽 테두리) · 내역+구매처 2행 오른쪽 「저장」 버튼(통합 높이)으로 저장(즉시 저장 폐지 — 내역 못 쓰고 넘어가는 실수 방지)
 //   · ① 이체/조정/상세 입력 글자 15px·500·남색
-// MFH-QUICK-ENTRY-V9 — [선지급][상환] 링크(→ 상세 폼 ?gubun=) · 계좌 목록에서 미수금 계좌 제외(patch120)
+// MFH-QUICK-ENTRY-V9 — [선지급][회수] 링크(→ 상세 폼 ?gubun=) · 계좌 목록에서 미수금 계좌 제외(patch120)
 // MFH-QUICK-ENTRY-V8 — 2027 Minimal Block(c-3): 흰 바탕·남색 글자·Manrope. ① 통화 알약(남색)·큰 숫자 남색·[지출][수입] 연한 면 버튼·이체/조정/상세는 글자 링크·키패드 연회색(연산 = 연한 터키석, = 남색)
 //   ② 계좌 = 이름 행 목록(통화 기호 오른쪽, 입력 통화 먼저) ③ 항목 = 블록 3열(이름만, 흰 글자 + 할로, 탭 = 즉시 저장) · 대분류 알약 · 추가 블록. 로직(계산기·저장·2026-09 가드)은 V7 그대로.
 // MFH-QUICK-ENTRY-V7 — 상단 통화 선택은 기호만(L · $ · ₩), 선택 = 마룬 배경 흰 글자, 날짜 글자 축소(겹침 방지)
@@ -310,8 +310,8 @@ export default function QuickEntry({ options, fx, initialDate }: { options: Acct
             <Link href={`/accounting/entry?full=1&date=${date}&gubun=선지급`} className="py-1 active:opacity-60">
               선지급
             </Link>
-            <Link href={`/accounting/entry?full=1&date=${date}&gubun=상환`} className="py-1 active:opacity-60">
-              상환
+            <Link href={`/accounting/entry?full=1&date=${date}&gubun=회수`} className="py-1 active:opacity-60">
+              회수
             </Link>
             <Link href={`/accounting/entry?full=1&date=${date}`} className="py-1 active:opacity-60">
               상세 입력
