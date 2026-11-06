@@ -1,5 +1,6 @@
+// MFH-ACCOUNTING-DB-V16 — settles_inout_id(선지급 ↔ 회수, patch121) 읽기·쓰기 · getPrepayRows(미수금 계좌가 끼는 이체만)
+// MFH-ACCOUNTING-DB-V15 — 계좌 옵션에 kind(미수금 계좌 식별, patch120)
 // MFH-ACCOUNTING-DB-V14 — 카드 청구 주기 cycle(확정 청구·이용 중, cycle_end_day + due_day, patch118)
-// MFH-ACCOUNTING-DB-V14 — 계좌 옵션에 kind(미수금 계좌 식별, patch120)
 // MFH-ACCOUNTING-DB-V13 — 신용카드 상환일 dueDay(acct_accounts.due_day, patch117)
 // MFH-ACCOUNTING-DB-V12 — 잔액 = 오늘(온두라스)까지 거래만. 미래 날짜 거래(예약·반복 입력)는 upcoming(예정)으로 분리
 // MFH-ACCOUNTING-DB-V11 — to_principal(통화가 다른 이체 입금 금액, patch116) 읽기·쓰기·실보유 반영. rate·amount_usd 는 DB 트리거가 최종 결정
@@ -288,16 +289,54 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
   const sb = await createClient()
   let q = sb
     .from('acct_inout')
-    .select(
-      'id, gubun, date, name, vendor, currency, principal, rate, amount_usd, item_id, account_id, to_account_id, supporter_id, created_at, receipt_path, to_principal',
-    )
+    .select(INOUT_COLS)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
   if (limit != null) q = q.limit(limit)
   const { data, error } = await q
   if (error) return null
-  return (data ?? []).map(
-    (r): InoutRow => ({
+  return (data ?? []).map(mapInoutRow)
+}
+
+const INOUT_COLS =
+  'id, gubun, date, name, vendor, currency, principal, rate, amount_usd, item_id, account_id, to_account_id, supporter_id, created_at, receipt_path, to_principal, settles_inout_id'
+
+// 미수금 계좌가 끼는 이체(선지급·회수)만 — 자산 탭 미회수 목록용(patch121). 미수금 계좌가 없으면 [].
+export async function getPrepayRows(): Promise<InoutRow[]> {
+  const sb = await createClient()
+  const { data: recv } = await sb.from('acct_accounts').select('id').eq('kind', '미수금').eq('is_active', true).limit(1).maybeSingle()
+  if (!recv) return []
+  const { data, error } = await sb
+    .from('acct_inout')
+    .select(INOUT_COLS)
+    .eq('gubun', '이체')
+    .or(`to_account_id.eq.${recv.id},account_id.eq.${recv.id}`)
+    .order('date', { ascending: false })
+  if (error) return []
+  return (data ?? []).map(mapInoutRow)
+}
+
+type InoutDbRow = {
+  id: string
+  gubun: string | null
+  date: string | null
+  name: string | null
+  vendor: string | null
+  currency: string | null
+  principal: unknown
+  rate: unknown
+  amount_usd: unknown
+  item_id: string | null
+  account_id: string | null
+  to_account_id: string | null
+  supporter_id: string | null
+  created_at: string | null
+  receipt_path: string | null
+  to_principal: unknown
+  settles_inout_id: string | null
+}
+function mapInoutRow(r: InoutDbRow): InoutRow {
+  return {
       id: r.id,
       gubun: r.gubun,
       date: r.date,
@@ -314,8 +353,8 @@ export async function getRecentInout(limit?: number): Promise<InoutRow[] | null>
       createdTime: r.created_at,
       receiptPath: r.receipt_path ?? null,
       toPrincipal: num(r.to_principal),
-    }),
-  )
+      settlesInoutId: r.settles_inout_id ?? null,
+  }
 }
 
 // ===== write =====
@@ -338,6 +377,7 @@ function toRow(p: InoutInput) {
     account_id: p.accountId ?? null,
     to_account_id: transfer ? (p.toAccountId ?? null) : null,
     to_principal: transfer && p.toPrincipal != null && p.toPrincipal > 0 ? p.toPrincipal : null,
+    settles_inout_id: transfer ? (p.settlesInoutId ?? null) : null,
     supporter_id: noItem ? null : (p.supporterId ?? null),
     ...(p.receiptPath !== undefined ? { receipt_path: p.receiptPath } : {}),
   }

@@ -5,12 +5,13 @@
 // MFH-ACCOUNTING-ASSETS-VIEW-V4 — 2027 Minimal Block(c-4b): 순자산 큰 숫자(남색) + 자산·부채 한 줄 + 공용 CurToggle → 통화 구성 띠 한 줄(블록 색)
 //   → 그룹은 작은 머리줄(이름 · 소계) + 이름/금액 행(아이콘·카드 테두리 없음, 보조 정보는 11px 회색 줄) → 신용카드 그룹(미상환 빨강, 상환 버튼)
 //   → 하단 환율·마감·평가손익·＋ 계좌 글자. 평가 로직(show·summarize·cycle 줄)은 V3 그대로.
+// MFH-ACCOUNTING-ASSETS-VIEW-V4 — 미수금 계좌 행 아래 미회수 선지급 목록(날짜 · 내용 · 경과일 · 남은 금액, patch121)
 // MFH-ACCOUNTING-ASSETS-VIEW-V3 — 신용카드 상환일(N일 상환) · 청구 주기 카드 줄 「MM/DD 상환 … · MM/DD 예정 …」(patch117·118)
 // MFH-ACCOUNTING-ASSETS-VIEW-V2 — 계좌 행에 「예정」(오늘 이후 날짜 거래, 잔액 미포함) 표시
 // 금액 = 공시 환율 평가액(valueUsd, 없으면 장부가). L 표시 = 렘피라 계좌는 실보유 그대로, 그 외는 평가 USD × HNL 공시.
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { AccountBalance, AcctOptions, FxInfo } from '@/lib/accounting-types'
+import { openPrepayments, receivableAccount, summarizePrepayments, type AccountBalance, type AcctOptions, type FxInfo, type InoutRow } from '@/lib/accounting-types'
 import { hnlRateOf, useShowCur, type ShowCur } from '@/lib/acct-display'
 import { brand2027 } from '@/lib/palette'
 import { CurToggle } from '../AccountingTitle'
@@ -41,17 +42,23 @@ export default function AssetsView({
   fx,
   closings,
   options,
+  prepayRows = [],
 }: {
   balances: AccountBalance[]
   fx: FxInfo[]
   closings: ClosingInfo[]
   options: AcctOptions | null
+  prepayRows?: InoutRow[] // 미수금 계좌가 끼는 이체(선지급·회수, patch121)
 }) {
   const router = useRouter()
   const [cur] = useShowCur()
   const hnlRate = useMemo(() => hnlRateOf(fx, balances), [fx, balances])
   const showCur: ShowCur = hnlRate ? cur : 'USD'
   const [adding, setAdding] = useState(false)
+  // 미회수 선지급(patch121) — 미수금 계좌 행 아래 건별 목록(오래된 순 · 남은 금액 · 경과일).
+  const openPrepays = useMemo(() => openPrepayments(summarizePrepayments(prepayRows, options ? receivableAccount(options.accounts) : null)), [prepayRows, options])
+  const todayYmd = new Date().toISOString().slice(0, 10)
+  const daysSince = (ymd: string | null) => (ymd ? Math.max(0, Math.round((Date.parse(todayYmd) - Date.parse(ymd)) / 86400000)) : 0)
 
   // 표시 금액 — L: 렘피라 단일 통화 계좌는 실보유 그대로, 그 외 평가 USD × HNL 공시.
   const show = (b: AccountBalance): number => {
@@ -129,6 +136,20 @@ export default function AssetsView({
           </span>
           <span className={`shrink-0 font-num text-[15px] font-medium ${v < 0 ? 'text-b27-expense' : 'text-b27-ink'}`}>{fmt(v)}</span>
         </button>
+        {b.kind === '미수금' && openPrepays.length > 0 && (
+          <ul className="mb-2 rounded-xl bg-b27-paper px-3 py-1.5">
+            {openPrepays.map((s) => (
+              <li key={s.row.id} className="flex items-center gap-2 py-1 font-num text-[11px] text-b27-muted">
+                <span className="shrink-0">{MD(s.row.date ?? '0000-00-00')}</span>
+                <span className="min-w-0 flex-1 truncate text-b27-ink">{s.row.name || '선지급'}</span>
+                <span className="shrink-0">{s.status === 'partial' ? '일부 · ' : ''}{daysSince(s.row.date)}일</span>
+                <span className="shrink-0 font-medium text-b27-ink">
+                  {s.remainingLocal != null && s.localCur ? fmtLocal(s.remainingLocal, s.localCur) : `$${s.remainingUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </li>
     )
   }

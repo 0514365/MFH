@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V21 — 선지급 칩에 회수 상태(미회수·일부 회수·회수 완료) · 회수 행에 「← 선지급 내용」(patch121)
 // MFH-ACCOUNTING-TXLIST-V20 — 2027 5-④: 선택 체크박스 마룬 → 남색(accent-[#2B3160]).
 // MFH-ACCOUNTING-TXLIST-V19 — 2027 토큰 승격: 종류 칩·월 머리줄 면 리터럴 → b27-income-soft / b27-expense-soft
 // MFH-ACCOUNTING-TXLIST-V18 — 항목·계좌 = 바텀시트 다중선택(SearchFilters) · 더 보기(분류·통화·사용자·금액 원금 범위) — 드롭다운 4개 제거
@@ -41,7 +42,7 @@ import {
   type Period,
 } from './SearchFilters'
 import { itemPastels } from '@/lib/acct-display'
-import { activeOnly, entryAccounts, receivableAccount, type AcctOptions, type InoutRow, type InoutPatch } from '@/lib/accounting-types'
+import { activeOnly, entryAccounts, receivableAccount, summarizePrepayments, PREPAY_STATUS_LABEL, type AcctOptions, type InoutRow, type InoutPatch } from '@/lib/accounting-types'
 import { deleteInout, bulkDeleteInout, bulkPatchInout } from './actions'
 
 function fmtUsd(n: number | null): string {
@@ -158,15 +159,24 @@ export default function TransactionList({
     return m
   }, [options])
   // 이체 행의 표시 구분 — 미수금 계좌가 입금이면 「선지급」, 출금이면 「회수」, 그 외는 구분 그대로(patch120).
-  const receivableId = useMemo(() => receivableAccount(options.accounts)?.id ?? null, [options])
+  const receivable = useMemo(() => receivableAccount(options.accounts), [options])
+  const receivableId = receivable?.id ?? null
+  const prepaySummary = useMemo(() => summarizePrepayments(recent, receivable), [recent, receivable])
+  const rowById = useMemo(() => new Map(recent.map((r) => [r.id, r])), [recent])
   const gubunLabel = (r: InoutRow): string =>
     r.gubun === '이체' && receivableId
       ? r.toAccountId === receivableId
-        ? '선지급'
+        ? `선지급 · ${PREPAY_STATUS_LABEL[prepaySummary.get(r.id)?.status ?? 'open']}`
         : r.accountId === receivableId
           ? '회수'
           : '이체'
       : (r.gubun ?? '—')
+  // 회수 행 보조 표시 — 연결된 선지급 내용.
+  const settlesLabel = (r: InoutRow): string | null => {
+    if (!r.settlesInoutId) return null
+    const p = rowById.get(r.settlesInoutId)
+    return p ? `← ${(p.date ?? '').slice(5).replace('-', '/')} ${p.name || '선지급'}` : null
+  }
 
   // 항목 id → 대분류(acct_items.category) — 거래 행에 소분류와 함께 표기.
   const catOf = useMemo(() => {
@@ -796,6 +806,7 @@ export default function TransactionList({
                                     ? (nameOf.get(r.itemId) ?? '—')
                                     : '—'}
                             </div>
+                            {settlesLabel(r) && <div className="truncate text-[10px] text-b27-muted">{settlesLabel(r)}</div>}
                           </td>
                           <td className="px-2 py-2 text-b27-ink">
                             {r.name || '—'}
@@ -961,6 +972,7 @@ export default function TransactionList({
                                     <span className={`ml-1.5 ${r.gubun === '수입' ? 'text-b27-income' : r.gubun === '지출' ? 'text-b27-expense' : ''}`}>{catOf.get(r.itemId)}</span>
                                   )}
                                   {r.gubun === '이체' || r.gubun === '조정' ? <span className="ml-1.5">{gubunLabel(r)}</span> : null}
+                                  {settlesLabel(r) ? <span className="ml-1.5">{settlesLabel(r)}</span> : null}
                                 </div>
                               </div>
                             </div>

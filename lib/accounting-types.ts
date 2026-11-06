@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-TYPES-V7 — 선지급 ↔ 회수 연결(settlesInoutId, patch121) · summarizePrepayments(건별 회수 상태·남은 금액)
 // MFH-ACCOUNTING-TYPES-V6 — AcctOption.kind(계좌 유형) · 미수금 계좌 헬퍼(isReceivable·entryAccounts·receivableAccount, patch120)
 // MFH-ACCOUNTING-TYPES-V5 — AccountBalance.upcoming(미래 날짜 거래 예정액, 잔액 미포함)
 // MFH-ACCOUNTING-TYPES-V4 — 통화가 다른 이체의 입금 금액(toPrincipal, patch116). 수입·지출 환율은 DB 트리거가 결정
@@ -88,6 +89,7 @@ export type InoutInput = {
   source?: InoutSource // 미지정 = manual
   receiptPath?: string | null // 영수증 Storage 경로(receipts 버킷, patch111). undefined = 건드리지 않음 · null = 제거
   toPrincipal?: number | null // 통화가 다른 이체의 입금 계좌 통화 금액(patch116). 그 외 null
+  settlesInoutId?: string | null // 회수가 가리키는 선지급 거래(patch121). 회수 외 null
 }
 
 export type InoutRow = {
@@ -107,7 +109,62 @@ export type InoutRow = {
   createdTime: string | null // 입력 시각 — '최근 입력' 정렬용
   receiptPath: string | null // 영수증(receipts 버킷)
   toPrincipal: number | null // 통화가 다른 이체의 입금 금액(patch116)
+  settlesInoutId: string | null // 회수 → 선지급 연결(patch121)
 }
+
+// ===== 선지급 회수 상태(patch121) — 순수 계산, 서버·클라이언트 공용 =====
+// 선지급 = 이체(입금 = 미수금) · 회수 = 이체(출금 = 미수금, settlesInoutId 로 선지급 연결).
+// 금액 비교는 USD(amount_usd). 미수금 통화 금액(local)은 양쪽 모두 알 수 있을 때만(선지급: 같은 통화면 원금, 다른 통화면 입금 금액 · 회수: 원금).
+export type PrepayStatus = 'open' | 'partial' | 'done'
+export type PrepaySummary = {
+  row: InoutRow
+  creditUsd: number
+  collectedUsd: number
+  remainingUsd: number
+  status: PrepayStatus
+  localCur: string | null // 미수금 계좌 통화(금액을 그 통화로 알 때만)
+  creditLocal: number | null
+  collectedLocal: number | null
+  remainingLocal: number | null
+  collects: InoutRow[]
+}
+export const PREPAY_STATUS_LABEL: Record<PrepayStatus, string> = { open: '미회수', partial: '일부 회수', done: '회수 완료' }
+export function summarizePrepayments(rows: InoutRow[], receivable: AcctOption | null): Map<string, PrepaySummary> {
+  const out = new Map<string, PrepaySummary>()
+  if (!receivable) return out
+  const rid = receivable.id
+  const rcur = receivable.currency ?? null
+  const prepays = rows.filter((r) => r.gubun === '이체' && r.toAccountId === rid)
+  const collects = rows.filter((r) => r.gubun === '이체' && r.accountId === rid && !!r.settlesInoutId)
+  for (const p of prepays) {
+    const creditUsd = p.amountUsd ?? 0
+    const creditLocal = rcur && p.currency === rcur ? p.principal : rcur && p.toPrincipal != null ? p.toPrincipal : null
+    const mine = collects.filter((c) => c.settlesInoutId === p.id)
+    const collectedUsd = mine.reduce((a, c) => a + (c.amountUsd ?? 0), 0)
+    const localOk = creditLocal != null && mine.every((c) => c.currency === rcur && c.principal != null)
+    const collectedLocal = localOk ? mine.reduce((a, c) => a + (c.principal ?? 0), 0) : null
+    const remainingUsd = creditUsd - collectedUsd
+    const tol = Math.max(0.5, creditUsd * 0.02) // 환차 허용
+    const status: PrepayStatus = collectedUsd <= 0.005 ? 'open' : remainingUsd <= tol ? 'done' : 'partial'
+    out.set(p.id, {
+      row: p,
+      creditUsd,
+      collectedUsd,
+      remainingUsd: Math.max(0, remainingUsd),
+      status,
+      localCur: localOk ? rcur : null,
+      creditLocal: localOk ? creditLocal : null,
+      collectedLocal,
+      remainingLocal: localOk && creditLocal != null && collectedLocal != null ? Math.max(0, creditLocal - collectedLocal) : null,
+      collects: mine,
+    })
+  }
+  return out
+}
+// 미회수·일부 회수 선지급 — 오래된 순.
+export const openPrepayments = (m: Map<string, PrepaySummary>): PrepaySummary[] =>
+  [...m.values()].filter((s) => s.status !== 'done').sort((a, b) => (a.row.date ?? '').localeCompare(b.row.date ?? ''))
+
 
 // 통합 수정(부분 변경) — 지정된 필드만 바꾼다. supporterId '' = 연결 해제. rate 는 USD 외 행만 환율·금액(USD) 재계산.
 export type InoutPatch = {

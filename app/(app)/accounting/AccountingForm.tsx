@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V14 — 회수 모드 「회수할 선지급」 콤보(patch121): 미회수·일부 회수 선지급 목록 → 선택 시 금액(남은 금액)·내용 자동. settlesInoutId 저장. 최근 입력 선지급 칩에 회수 상태
 // MFH-ACCOUNTING-FORM-V13 — 용어: 선지급 돌려받기 = 「회수」(카드대금 「상환」과 구별). 모드명 repay → collect.
 // MFH-ACCOUNTING-FORM-V12 — 구분 「선지급」·「회수」(patch120): 이체의 두 모드 — 선지급 = 지불계좌 → 미수금(입금 고정) · 회수 = 미수금(출금 고정) → 입금계좌.
 //   미수금 계좌는 수입·지출·조정·일반 이체의 계좌 콤보에서 숨김(entryAccounts). ?gubun=선지급|회수 프리필 · 수정 진입 시 모드 자동 판별.
@@ -19,7 +20,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { activeOnly, entryAccounts, isReceivable, receivableAccount, type AcctOption, type AcctOptions, type FxInfo, type InoutRow } from '@/lib/accounting-types'
+import { activeOnly, entryAccounts, isReceivable, openPrepayments, receivableAccount, summarizePrepayments, PREPAY_STATUS_LABEL, type AcctOption, type AcctOptions, type FxInfo, type InoutRow } from '@/lib/accounting-types'
 import { saveInout, updateInout } from './actions'
 import ItemAddButton from './ItemAddButton'
 import ItemManageButton from './ItemManageButton'
@@ -122,6 +123,14 @@ export default function AccountingForm({
   const receivable = useMemo(() => receivableAccount(options.accounts), [options])
   const isPrepay = isTransfer && mode === 'prepay'
   const isCollect = isTransfer && mode === 'collect'
+  // 회수 → 선지급 연결(patch121). 선지급 요약은 전체 목록(recent = 전체 거래)에서 계산.
+  const [settlesId, setSettlesId] = useState('')
+  const prepaySummary = useMemo(() => summarizePrepayments(recent, receivable), [recent, receivable])
+  const openPrepays = useMemo(() => {
+    const list = openPrepayments(prepaySummary)
+    const cur = settlesId ? prepaySummary.get(settlesId) : null
+    return cur && !list.includes(cur) ? [cur, ...list] : list
+  }, [prepaySummary, settlesId])
   // 화면 구분 라벨(저장은 항상 gubun).
   const shownGubun = isPrepay ? '선지급' : isCollect ? '회수' : gubun
   const [date, setDate] = useState(todayLocal)
@@ -203,6 +212,7 @@ export default function AccountingForm({
       setGubun('이체')
       setSupporterId('')
       setMode(g === '선지급' ? 'prepay' : 'collect')
+      if (g === '선지급') setSettlesId('')
       if (g === '선지급') {
         setToAccountId(receivable.id)
         if (!accountId || accountId === receivable.id) setAccountId(accountByCurrency(currency))
@@ -213,6 +223,7 @@ export default function AccountingForm({
       return
     }
     setMode(null)
+    setSettlesId('')
     setGubun(g)
     if (g === '이체' || g === '조정') setSupporterId('')
     if (g === '조정') setToAccountId('')
@@ -239,6 +250,7 @@ export default function AccountingForm({
     setToAccountId('')
     setSupporterId('')
     setMode(null)
+    setSettlesId('')
     setErr('')
   }, [currency, accountByCurrency])
 
@@ -277,6 +289,7 @@ export default function AccountingForm({
         : null,
     )
     setToAccountId(r.toAccountId ?? '')
+    setSettlesId(r.settlesInoutId ?? '')
     setDate(r.date ?? todayLocal())
     setItemId(r.itemId ?? '')
     setName(r.name ?? '')
@@ -355,6 +368,7 @@ export default function AccountingForm({
       accountId: accountId || null,
       toAccountId: isTransfer ? toAccountId || null : null,
       toPrincipal: crossFx ? Number(toPrincipal) : null,
+      settlesInoutId: isCollect ? settlesId || null : null,
       supporterId: noItem ? null : supporterId || null,
       receiptPath,
     }
@@ -462,6 +476,37 @@ export default function AccountingForm({
               ))}
             </select>
           </div>
+          )}
+
+          {/* 회수할 선지급(patch121) — 회수 모드만. 선택하면 금액 = 남은 금액 · 내용 = 선지급 내용 + 회수 */}
+          {isCollect && (
+            <div className="@2xl:w-[260px] @2xl:shrink-0">
+              <label className={labelCls}>회수할 선지급</label>
+              <select
+                value={settlesId}
+                onChange={(e) => {
+                  const id = e.target.value
+                  setSettlesId(id)
+                  const s = id ? prepaySummary.get(id) : null
+                  if (!s) return
+                  const remain = s.remainingLocal != null && s.localCur === currency ? s.remainingLocal : currency === 'USD' ? s.remainingUsd : null
+                  if (remain != null && remain > 0) setPrincipal(String(Math.round(remain * 100) / 100))
+                  if (!name.trim() || name.endsWith(' 회수')) setName(`${s.row.name ?? '선지급'} 회수`)
+                }}
+                className={inp}
+              >
+                <option value="">연결 안 함</option>
+                {openPrepays.map((s) => (
+                  <option key={s.row.id} value={s.row.id}>
+                    {(s.row.date ?? '').slice(5).replace('-', '/')} · {s.row.name || '선지급'} · 남은{' '}
+                    {s.remainingLocal != null && s.localCur
+                      ? `${s.localCur} ${s.remainingLocal.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+                      : fmtUsd(s.remainingUsd)}
+                    {s.status === 'done' ? ' (완료)' : s.status === 'partial' ? ' (일부)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
 
           {/* 이름 (후원금이면 후원자 콤보 + 자유입력) */}
@@ -701,7 +746,7 @@ export default function AccountingForm({
                         }`}
                       >
                         {r.gubun === '이체' && receivable && r.toAccountId === receivable.id
-                          ? '선지급'
+                          ? `선지급 · ${PREPAY_STATUS_LABEL[prepaySummary.get(r.id)?.status ?? 'open']}`
                           : r.gubun === '이체' && receivable && r.accountId === receivable.id
                             ? '회수'
                             : (r.gubun ?? '—')}
