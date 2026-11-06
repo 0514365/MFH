@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V15 — 회수 다중 선택(체크 목록): 금액 = 선택 남은 금액 합계 · 저장 시 선지급마다 회수 행 자동 분할(오래된 순 FIFO 배분, bulkCreateInout). 수정은 단일 연결
 // MFH-ACCOUNTING-FORM-V14 — 회수 모드 「회수할 선지급」 콤보(patch121): 미회수·일부 회수 선지급 목록 → 선택 시 금액(남은 금액)·내용 자동. settlesInoutId 저장. 최근 입력 선지급 칩에 회수 상태
 // MFH-ACCOUNTING-FORM-V13 — 용어: 선지급 돌려받기 = 「회수」(카드대금 「상환」과 구별). 모드명 repay → collect.
 // MFH-ACCOUNTING-FORM-V12 — 구분 「선지급」·「회수」(patch120): 이체의 두 모드 — 선지급 = 지불계좌 → 미수금(입금 고정) · 회수 = 미수금(출금 고정) → 입금계좌.
@@ -21,7 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { activeOnly, entryAccounts, isReceivable, openPrepayments, receivableAccount, summarizePrepayments, PREPAY_STATUS_LABEL, type AcctOption, type AcctOptions, type FxInfo, type InoutRow } from '@/lib/accounting-types'
-import { saveInout, updateInout } from './actions'
+import { bulkCreateInout, saveInout, updateInout } from './actions'
 import ItemAddButton from './ItemAddButton'
 import ItemManageButton from './ItemManageButton'
 import ReceiptField from './ReceiptField'
@@ -124,13 +125,14 @@ export default function AccountingForm({
   const isPrepay = isTransfer && mode === 'prepay'
   const isCollect = isTransfer && mode === 'collect'
   // 회수 → 선지급 연결(patch121). 선지급 요약은 전체 목록(recent = 전체 거래)에서 계산.
-  const [settlesId, setSettlesId] = useState('')
+  // 새 기록은 여러 건 선택 가능(저장 시 선지급마다 회수 행 분할) · 수정은 1건(기존 행의 연결).
+  const [settlesIds, setSettlesIds] = useState<string[]>([])
   const prepaySummary = useMemo(() => summarizePrepayments(recent, receivable), [recent, receivable])
   const openPrepays = useMemo(() => {
     const list = openPrepayments(prepaySummary)
-    const cur = settlesId ? prepaySummary.get(settlesId) : null
-    return cur && !list.includes(cur) ? [cur, ...list] : list
-  }, [prepaySummary, settlesId])
+    const extra = settlesIds.map((id) => prepaySummary.get(id)).filter((s): s is NonNullable<typeof s> => !!s && !list.includes(s))
+    return [...extra, ...list]
+  }, [prepaySummary, settlesIds])
   // 화면 구분 라벨(저장은 항상 gubun).
   const shownGubun = isPrepay ? '선지급' : isCollect ? '회수' : gubun
   const [date, setDate] = useState(todayLocal)
@@ -212,7 +214,7 @@ export default function AccountingForm({
       setGubun('이체')
       setSupporterId('')
       setMode(g === '선지급' ? 'prepay' : 'collect')
-      if (g === '선지급') setSettlesId('')
+      if (g === '선지급') setSettlesIds([])
       if (g === '선지급') {
         setToAccountId(receivable.id)
         if (!accountId || accountId === receivable.id) setAccountId(accountByCurrency(currency))
@@ -223,7 +225,7 @@ export default function AccountingForm({
       return
     }
     setMode(null)
-    setSettlesId('')
+    setSettlesIds([])
     setGubun(g)
     if (g === '이체' || g === '조정') setSupporterId('')
     if (g === '조정') setToAccountId('')
@@ -250,7 +252,7 @@ export default function AccountingForm({
     setToAccountId('')
     setSupporterId('')
     setMode(null)
-    setSettlesId('')
+    setSettlesIds([])
     setErr('')
   }, [currency, accountByCurrency])
 
@@ -289,7 +291,7 @@ export default function AccountingForm({
         : null,
     )
     setToAccountId(r.toAccountId ?? '')
-    setSettlesId(r.settlesInoutId ?? '')
+    setSettlesIds(r.settlesInoutId ? [r.settlesInoutId] : [])
     setDate(r.date ?? todayLocal())
     setItemId(r.itemId ?? '')
     setName(r.name ?? '')
@@ -344,6 +346,24 @@ export default function AccountingForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
+  // 선지급의 남은 금액을 현재 입력 통화로 — 미수금 통화로 알면 그대로, USD 입력이면 USD, 그 외는 USD × 환율.
+  const remainingIn = (s: NonNullable<ReturnType<typeof prepaySummary.get>>): number =>
+    s.remainingLocal != null && s.localCur === currency ? s.remainingLocal : currency === 'USD' ? s.remainingUsd : s.remainingUsd * (effRate > 0 ? effRate : 1)
+  const prepayLabel = (s: NonNullable<ReturnType<typeof prepaySummary.get>>): string =>
+    `${(s.row.date ?? '').slice(5).replace('-', '/')} · ${s.row.name || '선지급'} · 남은 ${
+      s.remainingLocal != null && s.localCur ? `${s.localCur} ${s.remainingLocal.toLocaleString('en-US', { maximumFractionDigits: 2 })}` : fmtUsd(s.remainingUsd)
+    }${s.status === 'done' ? ' (완료)' : s.status === 'partial' ? ' (일부)' : ''}`
+  // 회수할 선지급 선택 변경 → 금액 = 선택한 남은 금액 합계 · 내용 자동(비었거나 자동 문구일 때만).
+  function applySettles(ids: string[]) {
+    setSettlesIds(ids)
+    const picked = ids.map((id) => prepaySummary.get(id)).filter((s): s is NonNullable<typeof s> => !!s)
+    if (!picked.length) return
+    const sum = picked.reduce((a, s) => a + remainingIn(s), 0)
+    if (sum > 0) setPrincipal(String(Math.round(sum * 100) / 100))
+    const auto = !name.trim() || name.endsWith(' 회수')
+    if (auto) setName(picked.length === 1 ? `${picked[0].row.name || '선지급'} 회수` : `선지급 ${picked.length}건 회수`)
+  }
+
   async function onSave() {
     setErr('')
     if (!noItem && !itemId) return setErr('항목을 선택하세요')
@@ -368,12 +388,56 @@ export default function AccountingForm({
       accountId: accountId || null,
       toAccountId: isTransfer ? toAccountId || null : null,
       toPrincipal: crossFx ? Number(toPrincipal) : null,
-      settlesInoutId: isCollect ? settlesId || null : null,
+      settlesInoutId: isCollect ? settlesIds[0] || null : null,
       supporterId: noItem ? null : supporterId || null,
       receiptPath,
     }
     setSaving(true)
-    const res = editingId ? await updateInout(editingId, payload) : await saveInout(payload)
+    // 회수 여러 건 연결(새 기록만): 선지급마다 회수 행 분할 — 오래된 순으로 남은 금액을 채우고 마지막 건이 나머지(FIFO).
+    // 입금 금액(통화가 다른 이체)·환산 USD 는 금액 비율로 나눔. 영수증은 첫 행에만.
+    const multi = isCollect && !editingId && settlesIds.length > 1
+    const res = multi
+      ? await (async () => {
+          const picked = settlesIds
+            .map((id) => prepaySummary.get(id))
+            .filter((s): s is NonNullable<typeof s> => !!s)
+            .sort((a, b) => (a.row.date ?? '').localeCompare(b.row.date ?? ''))
+          const total = payload.principal
+          let left = total
+          const parts: { id: string; amt: number; label: string }[] = []
+          picked.forEach((s, i) => {
+            const amt = i === picked.length - 1 ? left : Math.min(remainingIn(s), left)
+            const a = Math.round(Math.max(0, amt) * 100) / 100
+            if (a > 0) parts.push({ id: s.row.id, amt: a, label: s.row.name || '선지급' })
+            left = Math.max(0, left - a)
+          })
+          if (!parts.length) return { ok: false, error: '배분할 금액이 없습니다' }
+          const sumParts = parts.reduce((x, p) => x + p.amt, 0)
+          let tpLeft = payload.toPrincipal ?? 0
+          let usdLeft = payload.amountUsd
+          const items = parts.map((p, i) => {
+            const last = i === parts.length - 1
+            const share = p.amt / sumParts
+            const tp = payload.toPrincipal != null ? (last ? tpLeft : Math.round(payload.toPrincipal * share * 100) / 100) : null
+            const au = last ? usdLeft : Math.round(payload.amountUsd * share * 100) / 100
+            if (tp != null) tpLeft = Math.round((tpLeft - tp) * 100) / 100
+            usdLeft = Math.round((usdLeft - au) * 100) / 100
+            return {
+              ...payload,
+              principal: p.amt,
+              amountUsd: au,
+              toPrincipal: tp,
+              settlesInoutId: p.id,
+              name: payload.name || `${p.label} 회수`,
+              receiptPath: i === 0 ? payload.receiptPath : null,
+              source: 'manual' as const,
+            }
+          })
+          return bulkCreateInout(items)
+        })()
+      : editingId
+        ? await updateInout(editingId, payload)
+        : await saveInout(payload)
     setSaving(false)
     if (res.ok) {
       reset(false)
@@ -478,34 +542,42 @@ export default function AccountingForm({
           </div>
           )}
 
-          {/* 회수할 선지급(patch121) — 회수 모드만. 선택하면 금액 = 남은 금액 · 내용 = 선지급 내용 + 회수 */}
+          {/* 회수할 선지급(patch121) — 회수 모드만. 새 기록 = 체크 목록(여러 건 → 저장 시 분할) · 수정 = 단일 콤보 */}
           {isCollect && (
-            <div className="@2xl:w-[260px] @2xl:shrink-0">
-              <label className={labelCls}>회수할 선지급</label>
-              <select
-                value={settlesId}
-                onChange={(e) => {
-                  const id = e.target.value
-                  setSettlesId(id)
-                  const s = id ? prepaySummary.get(id) : null
-                  if (!s) return
-                  const remain = s.remainingLocal != null && s.localCur === currency ? s.remainingLocal : currency === 'USD' ? s.remainingUsd : null
-                  if (remain != null && remain > 0) setPrincipal(String(Math.round(remain * 100) / 100))
-                  if (!name.trim() || name.endsWith(' 회수')) setName(`${s.row.name ?? '선지급'} 회수`)
-                }}
-                className={inp}
-              >
-                <option value="">연결 안 함</option>
-                {openPrepays.map((s) => (
-                  <option key={s.row.id} value={s.row.id}>
-                    {(s.row.date ?? '').slice(5).replace('-', '/')} · {s.row.name || '선지급'} · 남은{' '}
-                    {s.remainingLocal != null && s.localCur
-                      ? `${s.localCur} ${s.remainingLocal.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
-                      : fmtUsd(s.remainingUsd)}
-                    {s.status === 'done' ? ' (완료)' : s.status === 'partial' ? ' (일부)' : ''}
-                  </option>
-                ))}
-              </select>
+            <div className="@2xl:w-[300px] @2xl:shrink-0">
+              <label className={labelCls}>
+                회수할 선지급
+                {!editingId && settlesIds.length > 1 && <span className="ml-1 font-normal">· {settlesIds.length}건 → 행 분할 저장</span>}
+              </label>
+              {editingId ? (
+                <select value={settlesIds[0] ?? ''} onChange={(e) => applySettles(e.target.value ? [e.target.value] : [])} className={inp}>
+                  <option value="">연결 안 함</option>
+                  {openPrepays.map((s) => (
+                    <option key={s.row.id} value={s.row.id}>
+                      {prepayLabel(s)}
+                    </option>
+                  ))}
+                </select>
+              ) : openPrepays.length === 0 ? (
+                <div className={fixedCls}>미회수 선지급 없음</div>
+              ) : (
+                <div className="max-h-[132px] overflow-y-auto rounded-xl bg-b27-paper px-2 py-1">
+                  {openPrepays.map((s) => {
+                    const on = settlesIds.includes(s.row.id)
+                    return (
+                      <label key={s.row.id} className="flex cursor-pointer items-center gap-2 py-1 text-[12px] text-b27-ink">
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={() => applySettles(on ? settlesIds.filter((x) => x !== s.row.id) : [...settlesIds, s.row.id])}
+                          className="h-3.5 w-3.5 accent-[#2B3160]"
+                        />
+                        <span className="min-w-0 flex-1 truncate">{prepayLabel(s)}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
 
