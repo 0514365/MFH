@@ -3,6 +3,7 @@
 // MFH-INTERCESSIONS-LIST-V1
 // 멤버 전용 메시지함 — 받은 중보기도 목록 + 읽음 토글 · 삭제.
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
 
@@ -30,6 +31,8 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
 
   const unread = items.filter((i) => !i.is_read).length
 
+  const router = useRouter()
+
   async function toggleRead(it: Intercession) {
     if (busy) return
     setBusy(it.id)
@@ -39,6 +42,7 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
       const supabase = createClient()
       const { error } = await supabase.from('intercessions').update({ is_read: next }).eq('id', it.id)
       if (error) throw error
+      router.refresh() // 재방문 캐시(staleTimes 30초) 비우기 — 다른 화면·뒤로가기에 옛 값이 남지 않게.
     } catch {
       setItems((arr) => arr.map((x) => (x.id === it.id ? { ...x, is_read: it.is_read } : x)))
       alert('처리에 실패했습니다.')
@@ -57,6 +61,7 @@ export default function IntercessionsList({ initial }: { initial: Intercession[]
       const supabase = createClient()
       const { error } = await supabase.from('intercessions').delete().eq('id', it.id)
       if (error) throw error
+      router.refresh()
     } catch {
       setItems(prev)
       alert('삭제에 실패했습니다.')

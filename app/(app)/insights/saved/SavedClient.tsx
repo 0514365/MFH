@@ -4,6 +4,7 @@
 // 보관함 — 스크랩한 인사이트의 영구 복사본 목록(읽기 + 삭제).
 // 인사이트는 도메인별 최신 1행만 유지되므로, 남기고 싶은 건 보관함에 모인다.
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { DOMAIN_LABEL, type InsightDomain } from '@/lib/insightExport'
 import InsightContent from '../InsightContent'
 
@@ -24,6 +25,7 @@ export default function SavedClient({ initial }: { initial: ScrapRow[] }) {
   // 보관 시각(날짜+시:분) — 보는 사람 로컬 기준. SSR=날짜만(UTC) → 마운트 후 시:분(hydration 안전).
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
+  const router = useRouter()
   const fmtAt = (iso: string | null) => {
     if (!iso) return ''
     const d = new Date(iso)
@@ -35,7 +37,10 @@ export default function SavedClient({ initial }: { initial: ScrapRow[] }) {
 
   async function remove(id: string) {
     const res = await fetch(`/api/insights/scraps/${id}`, { method: 'DELETE' })
-    if (res.ok) setRows((r) => r.filter((x) => x.id !== id))
+    if (res.ok) {
+      setRows((r) => r.filter((x) => x.id !== id))
+      router.refresh() // 재방문 캐시(staleTimes 30초) 비우기 — 다른 화면·뒤로가기에 옛 값이 남지 않게.
+    }
   }
 
   if (rows.length === 0) {

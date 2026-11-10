@@ -9,6 +9,7 @@
 
 import { blockColor, blockTint } from '@/lib/palette'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import {
@@ -624,6 +625,8 @@ export function DomainInsightBody({
   onUnscrap: (id: string) => void
 }) {
   const [days, setDays] = useState<number>(30)
+  // 재방문 캐시(staleTimes 30초) 비우기 — 다른 화면·뒤로가기에 옛 값이 남지 않게.
+  const router = useRouter()
 
   const isBalance = domain === 'balance'
   const balance = useBalance(days, isBalance)
@@ -637,6 +640,7 @@ export function DomainInsightBody({
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ rating }),
     }).catch(() => {})
+    router.refresh()
   }
 
   async function saveNote(id: string, note: string) {
@@ -646,6 +650,7 @@ export function DomainInsightBody({
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ feedback_note: note }),
     }).catch(() => {})
+    router.refresh()
   }
 
   async function toggleLetter(id: string, value: boolean) {
@@ -655,11 +660,15 @@ export function DomainInsightBody({
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ in_letter: value }),
     }).catch(() => {})
+    router.refresh()
   }
 
   async function remove(id: string) {
     const res = await fetch(`/api/insights/${id}`, { method: 'DELETE' })
-    if (res.ok) onRemove(id)
+    if (res.ok) {
+      onRemove(id)
+      router.refresh()
+    }
   }
 
   async function scrap(row: InsightRow) {
@@ -676,7 +685,10 @@ export function DomainInsightBody({
         feedback_note: row.feedback_note,
       }),
     })
-    if (res.ok) onScrap(scrapKey(row.domain, row.content))
+    if (res.ok) {
+      onScrap(scrapKey(row.domain, row.content))
+      router.refresh()
+    }
   }
 
   async function unscrap(row: InsightRow) {
@@ -685,7 +697,10 @@ export function DomainInsightBody({
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ source_id: row.id, content: row.content }),
     })
-    if (res.ok) onUnscrap(scrapKey(row.domain, row.content))
+    if (res.ok) {
+      onUnscrap(scrapKey(row.domain, row.content))
+      router.refresh()
+    }
   }
 
   return (

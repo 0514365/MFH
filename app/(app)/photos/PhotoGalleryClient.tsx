@@ -188,6 +188,7 @@ export default function PhotoGalleryClient({
     setLightbox((prev) => (prev ? { ...prev, caption: eff, manualCaption: manual } : prev))
     setSavingCaption(false)
     setEditingCaption(false)
+    router.refresh() // 재방문 캐시(staleTimes 30초) 비우기 — 다른 화면·뒤로가기에 옛 값이 남지 않게.
   }
 
   // 분류별 그룹(시드 카테고리 순서 → 그 외 → 미분류).
