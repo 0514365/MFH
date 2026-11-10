@@ -1,4 +1,7 @@
-// MFH-MAKE-REEL-V4
+// MFH-MAKE-REEL-V6
+// V6b: 사진도 zoom+좌우 motion 이면 넓은 훑기(양옆 인물 얼굴)
+// V6: 클립 줌·좌우 이동(motion·zoom·focus) — 클립은 1620×2880 으로 떠서 확대해도 선명하게. motion 미지정 시 in/left/out/right 순환
+// V5: 클립 장면도 s.dur 지정 가능(기본 릴스 약 60초 설계 대응)
 // V3: 선교편지 숏츠용 선택 항목 — reel.durations{cover,scene,end} · 장면·표지 fit:'contain'(가로 사진 무크롭) · end_title · hide_url · out_name
 // V4: 하이라이트 숏츠 — reel.variant:'letter' · 장면 dur·position · 자막 \n 줄바꿈
 // fb-update 가 만든 result.json 의 reel 을 영상으로 만든다:
@@ -13,7 +16,7 @@ import { basename, join, relative, resolve } from 'path'
 import { spawnSync } from 'child_process'
 import { loadEnv, createServiceClient, readJsonFile } from './_shared'
 
-type Scene = { photo?: string; clip?: string; start?: number; audio?: number; label?: string; caption?: string; motion?: string; animate?: boolean; fit?: 'contain'; dur?: number; position?: string }
+type Scene = { photo?: string; clip?: string; start?: number; audio?: number; label?: string; caption?: string; motion?: string; zoom?: number; focus?: string; animate?: boolean; fit?: 'contain'; dur?: number; position?: string }
 type Reel = {
   title?: string; label?: string; date_label?: string; cover_photo?: string
   scenes?: Scene[]; end_line?: string
@@ -88,10 +91,10 @@ async function main() {
   function clipPath(p: string, start: number, dur: number): string {
     const src = resolve(ROOT, p)
     if (!existsSync(src)) throw new Error(`클립 없음: ${p}`)
-    const out = join(clipDir, basename(src).replace(/\.[^.]+$/, '') + `-${start}s.mp4`)
+    const out = join(clipDir, basename(src).replace(/\.[^.]+$/, '') + `-${start}s-${dur}d-hq.mp4`)
     if (!existsSync(out)) {
       const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(start), '-t', String(dur + 0.5), '-i', src,
-        '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30', '-an',
+        '-vf', 'scale=1620:2880:force_original_aspect_ratio=increase,crop=1620:2880,fps=30', '-an',
         '-c:v', 'libx264', '-crf', '18', '-preset', 'fast', '-pix_fmt', 'yuv420p', out], { stdio: 'inherit' })
       if (r.status !== 0) throw new Error(`클립 변환 실패: ${p}`)
     }
@@ -100,6 +103,8 @@ async function main() {
 
   const coverDur = reel.durations?.cover ?? COVER_DUR, sceneDur = reel.durations?.scene ?? SCENE_DUR, endDur = reel.durations?.end ?? END_DUR
   const scenes: Record<string, unknown>[] = []
+  const CLIP_MOTIONS = ['in', 'right', 'out', 'left']
+  let clipN = 0
   scenes.push({
     kind: 'cover', dur: coverDur, ...(reel.cover_fit ? { fit: reel.cover_fit } : {}),
     photo: await photoPath(reel.cover_photo || reel.scenes.find((s) => s.photo)?.photo),
@@ -124,12 +129,14 @@ async function main() {
     }
     if (s.clip) {
       const start = s.start ?? 0
-      scenes.push({ kind: 'clip', dur: sceneDur, clip: clipPath(s.clip, start, sceneDur), start: 0,
+      const d = s.dur ?? sceneDur
+      scenes.push({ kind: 'clip', dur: d, clip: clipPath(s.clip, start, d), start: 0,
         audio: s.audio ?? CLIP_AUDIO, audio_src: resolve(ROOT, s.clip), audio_start: start,
+        motion: s.motion ?? CLIP_MOTIONS[clipN++ % CLIP_MOTIONS.length], ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.focus ? { focus: s.focus } : {}),
         label: s.label || '', caption: s.caption || '' })
     } else {
       scenes.push({ kind: 'photo', dur: s.dur ?? sceneDur, photo: await photoPath(s.photo), label: s.label || '', caption: s.caption || '',
-        ...(s.motion ? { motion: s.motion } : {}), ...(s.fit ? { fit: s.fit } : {}), ...(s.position ? { position: s.position } : {}) })
+        ...(s.motion ? { motion: s.motion } : {}), ...(s.fit ? { fit: s.fit } : {}), ...(s.position ? { position: s.position } : {}), ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.focus ? { focus: s.focus } : {}) })
     }
   }
   scenes.push({ kind: 'end', dur: endDur, end_line: reel.end_line || '', logo: 'logo-white.png',

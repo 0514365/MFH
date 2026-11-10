@@ -17,9 +17,24 @@ const CAP_DELAY = frames(0.35)
 const WORD_STAGGER = 2 // 어절 간격(프레임) ≈ 0.07초
 
 // ── 사진 켄번즈 ───────────────────────────────────────────────
-const KenBurns: React.FC<{ src: string; motion: Motion; dur: number; grade?: boolean; position?: string }> = ({ src, motion, dur, grade = true, position }) => {
+const KenBurns: React.FC<{ src: string; motion: Motion; dur: number; grade?: boolean; position?: string; zoom?: number; focus?: string }> = ({ src, motion, dur, grade = true, position, zoom, focus }) => {
   const f = useCurrentFrame()
   const p = interpolate(f, [0, frames(dur)], [0, 1], { extrapolateRight: 'clamp' })
+  // zoom 지정 + 좌우 motion = 넓은 훑기: 크롭 위치(object-position)까지 함께 움직여 사진 왼쪽 끝↔오른쪽 끝을 다 보여 준다(양옆 인물 얼굴용)
+  if (zoom && (motion === 'left' || motion === 'right')) {
+    const e = p * p * (3 - 2 * p)
+    const t = motion === 'right' ? e : 1 - e // right = 왼쪽→오른쪽
+    const shift = ((zoom - 1) / (2 * zoom)) * 100
+    const y = (focus ?? '50% 40%').trim().split(/\s+/)[1] ?? '40%'
+    return (
+      <Img
+        src={staticFile(src)}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${t * 100}% ${y}`,
+          transform: `scale(${zoom}) translateX(${shift - shift * 2 * t}%)`, transformOrigin: `50% ${y}`,
+          filter: grade ? 'contrast(1.05) saturate(1.1) brightness(1.01)' : undefined }}
+      />
+    )
+  }
   const z = 1 + ZOOM
   let transform: string
   if (motion === 'in') transform = `scale(${1 + ZOOM * p})`
@@ -129,28 +144,45 @@ export const Cover: React.FC<{ photo: string; date_label: string; label: string;
   )
 }
 
-export const Photo: React.FC<{ photo: string; label?: string; caption: string; motion: Motion; dur: number; fit?: 'contain'; position?: string; variant?: Variant }> = (p) => (
+export const Photo: React.FC<{ photo: string; label?: string; caption: string; motion: Motion; dur: number; fit?: 'contain'; position?: string; zoom?: number; focus?: string; variant?: Variant }> = (p) => (
   <AbsoluteFill>
-    {p.fit === 'contain' ? <ContainPhoto src={p.photo} motion={p.motion} dur={p.dur} /> : <KenBurns src={p.photo} motion={p.motion} dur={p.dur} position={p.position} />}
+    {p.fit === 'contain' ? <ContainPhoto src={p.photo} motion={p.motion} dur={p.dur} /> : <KenBurns src={p.photo} motion={p.motion} dur={p.dur} position={p.position} zoom={p.zoom} focus={p.focus} />}
     <Shade />
     <Caption label={p.label} text={p.caption} variant={p.variant} />
     <Bar />
   </AbsoluteFill>
 )
 
-export const Clip: React.FC<{ clip: string; start?: number; label?: string; caption: string; dur: number; variant?: Variant }> = (p) => (
-  <AbsoluteFill>
-    <OffthreadVideo
-      src={staticFile(p.clip)}
-      startFrom={frames(p.start ?? 0)}
-      muted
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-    />
-    <Shade />
-    <Caption label={p.label} text={p.caption} variant={p.variant} />
-    <Bar />
-  </AbsoluteFill>
-)
+// 클립 줌·좌우 이동: motion 없으면 정지 화면 그대로. focus(transform-origin)로 얼굴 쪽을 확대 중심에 둔다.
+export const Clip: React.FC<{ clip: string; start?: number; label?: string; caption: string; dur: number; variant?: Variant; motion?: Motion; zoom?: number; focus?: string }> = (p) => {
+  const f = useCurrentFrame()
+  const t = interpolate(f, [0, frames(p.dur)], [0, 1], { extrapolateRight: 'clamp' })
+  const e = t * t * (3 - 2 * t) // 부드러운 출발·도착
+  const z = p.zoom ?? 1.2
+  let transform: string | undefined
+  let origin = p.focus ?? '50% 40%'
+  if (p.motion === 'in') transform = `scale(${1 + (z - 1) * e})`
+  else if (p.motion === 'out') transform = `scale(${z - (z - 1) * e})`
+  else if (p.motion === 'left' || p.motion === 'right') {
+    const shift = ((z - 1) / (2 * z)) * 100 // 확대 상태에서 좌우 끝까지(%)
+    const x = p.motion === 'right' ? shift - shift * 2 * e : -shift + shift * 2 * e // right = 화면이 왼쪽→오른쪽을 훑는다
+    transform = `scale(${z}) translateX(${x}%)`
+    origin = `50% ${origin.trim().split(/\s+/)[1] ?? '40%'}`
+  }
+  return (
+    <AbsoluteFill>
+      <OffthreadVideo
+        src={staticFile(p.clip)}
+        startFrom={frames(p.start ?? 0)}
+        muted
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform, transformOrigin: origin }}
+      />
+      <Shade />
+      <Caption label={p.label} text={p.caption} variant={p.variant} />
+      <Bar />
+    </AbsoluteFill>
+  )
+}
 
 export const End: React.FC<{ end_line: string; logo: string; dur: number; title?: string; hide_url?: boolean; variant?: Variant }> = (p) => {
   const f = useCurrentFrame()
