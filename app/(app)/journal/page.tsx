@@ -1,3 +1,4 @@
+// MFH-JOURNAL-PAGE-V4 — 전송량 절감: 썸네일만(일지당 5장) 서명 · 원본은 확대 시 서명 · 사진 원자료는 목록에 보내지 않음.
 // MFH-JOURNAL-PAGE-V3 — 2027(4-1): theme-2027 스코프 · 제목 「일지」 · 새 일지 = 터키석 ＋ 플로팅(모바일) / 헤더 남색 알약(md+).
 // MFH-JOURNAL-PAGE-V2
 import Link from 'next/link'
@@ -14,6 +15,9 @@ import OfflineSync from '@/components/OfflineSync'
 import type { OfflineJournal } from '@/lib/offlineStore'
 
 export const dynamic = 'force-dynamic'
+
+// 목록 카드·미리보기가 그리는 사진 수(JournalList 의 PhotoCollage max 와 같아야 한다).
+const LIST_THUMBS = 5
 
 export default async function JournalPage() {
   const supabase = await createClient()
@@ -39,15 +43,13 @@ export default async function JournalPage() {
   const tasks = (tasksQ.data ?? []) as Pick<Task, 'id' | 'title' | 'done'>[]
   const membersMap = await getMembersMap(supabase)
 
-  // 카드 사진 미리보기 — 모든 일지 사진 경로를 한 번에 서명 URL(1시간)로 변환.
+  // 카드 사진 미리보기 — 화면에 그리는 것만 서명한다: 일지당 앞 LIST_THUMBS 장의 썸네일(없으면 원본).
+  // 원본은 서명하지 않고 경로만 보낸다 → 확대(라이트박스)할 때 브라우저가 직접 서명(PhotoCollage V5).
+  // (전에는 모든 사진의 원본+썸네일을 매번 서명해 목록 응답이 1MB 가까이 불었다.)
   const resolvedByEntry = entries.map((e) => ({ id: e.id, list: resolveJournalPhotos(e) }))
-  // 원본 + 썸네일 경로를 한 번에 서명. 목록 셀은 썸네일을, 라이트박스(클릭)는 원본을 로드.
+  const thumbPathOf = (p: { path: string; thumb_path: string | null }) => p.thumb_path || p.path
   const allPaths = Array.from(
-    new Set(
-      resolvedByEntry.flatMap((r) =>
-        r.list.flatMap((p) => (p.thumb_path ? [p.path, p.thumb_path] : [p.path])),
-      ),
-    ),
+    new Set(resolvedByEntry.flatMap((r) => r.list.slice(0, LIST_THUMBS).map(thumbPathOf))),
   )
   const urlByPath: Record<string, string> = {}
   if (allPaths.length > 0) {
@@ -60,14 +62,15 @@ export default async function JournalPage() {
   }
   const photoMap: Record<string, CollagePhoto[]> = {}
   for (const r of resolvedByEntry) {
-    const cs = r.list.flatMap((p) => {
-      const url = urlByPath[p.path]
-      if (!url) return []
-      const thumb_url = p.thumb_path ? (urlByPath[p.thumb_path] ?? url) : url
+    const cs = r.list.flatMap((p, i) => {
+      const thumb_url = i < LIST_THUMBS ? urlByPath[thumbPathOf(p)] : null
+      // 그려야 하는 칸인데 서명에 실패한 사진은 뺀다(전과 동일).
+      if (i < LIST_THUMBS && !thumb_url) return []
       return [
         {
-          url,
-          thumb_url,
+          url: '',
+          path: p.path,
+          thumb_url: thumb_url ?? null,
           place_name: p.place_name,
           taken_at: p.taken_at ? p.taken_at.slice(0, 10) : null,
           lat: p.lat,
@@ -79,6 +82,9 @@ export default async function JournalPage() {
     })
     if (cs.length > 0) photoMap[r.id] = cs
   }
+
+  // 목록(클라이언트)에는 사진 원자료(photos jsonb·EXIF)를 보내지 않는다 — 표시는 photoMap 만 쓴다.
+  const listEntries: JournalEntry[] = entries.map((e) => ({ ...e, photos: null, photo_meta: null }))
 
   // 오프라인 스냅샷: 최근 30개 일지 + 대표 썸네일(첫 사진). OfflineSync 가 온라인일 때 IndexedDB 에 적재.
   const offlineJournals: OfflineJournal[] = entries.slice(0, 30).map((e, i) => {
@@ -117,7 +123,7 @@ export default async function JournalPage() {
       <DomainInsightPanel domain="journal" />
 
       <JournalList
-        entries={entries}
+        entries={listEntries}
         projects={projects}
         tasks={tasks}
         membersMap={membersMap}

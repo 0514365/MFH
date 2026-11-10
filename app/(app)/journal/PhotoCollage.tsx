@@ -1,4 +1,5 @@
 'use client'
+// MFH-JOURNAL-PHOTO-COLLAGE-V5 — 원본 지연 서명: url 이 비어 있고 path 가 있으면 확대할 때 브라우저가 직접 서명 URL 을 받는다(목록 전송량 절감).
 // MFH-JOURNAL-PHOTO-COLLAGE-V4 — 장수 제한 없는 비율 기반 줄 맞춤 콜라주(가로·세로 구성에 따라 줄 나눔) · max 로 「+N」 접기.
 // MFH-JOURNAL-PHOTO-COLLAGE-V3 — 2027(4-1): 남색 글자 · 연회색 면 · b27 선 · 굵기 600 이하 · 삭제 = 지출 빨강.
 // 일지 사진 콜라주 + 클릭 확대 라이트박스(좌우 이동·키보드·스와이프).
@@ -8,9 +9,15 @@
 // max: 목록 카드·미리보기용 — 앞 max 장만 그리고 마지막 칸에 「+N」(라이트박스는 전체).
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { downloadFile, filenameFromPathOrUrl } from '@/lib/download'
+import { createClient } from '@/lib/supabase-browser'
+
+const BUCKET = 'journal-photos'
 
 export type CollagePhoto = {
+  // 원본 서명 URL. 목록은 '' 로 두고 path 만 보낸다 → 확대할 때 서명.
   url: string
+  // 원본 Storage 경로(url 이 비었을 때 지연 서명용).
+  path?: string | null
   // 콜라주 셀·목록용 썸네일(없으면 url 폴백). 라이트박스(확대)는 항상 url=원본.
   thumb_url?: string | null
   place_name: string | null
@@ -128,6 +135,8 @@ export default function PhotoCollage({
   const [downloading, setDownloading] = useState(false)
   // 크기 정보가 없는 사진의 측정 비율(썸네일 src 기준).
   const [measured, setMeasured] = useState<Record<string, number>>({})
+  // 지연 서명한 원본 URL(경로 기준).
+  const [origUrls, setOrigUrls] = useState<Record<string, string>>({})
   const n = photos.length
   const shownCount = max && n > max ? max : n
   const more = n - shownCount
@@ -157,6 +166,23 @@ export default function PhotoCollage({
     }
   }, [open, close, go])
 
+  // 확대한 사진의 원본 URL 이 없으면 그때 서명(1시간). 실패하면 썸네일이 그대로 보인다.
+  const openPhoto = open != null ? photos[open] : null
+  const pendingPath = openPhoto && !openPhoto.url && openPhoto.path && !origUrls[openPhoto.path] ? openPhoto.path : null
+  useEffect(() => {
+    if (!pendingPath) return
+    let alive = true
+    createClient()
+      .storage.from(BUCKET)
+      .createSignedUrl(pendingPath, 3600)
+      .then(({ data }) => {
+        if (alive && data?.signedUrl) setOrigUrls((cur) => ({ ...cur, [pendingPath]: data.signedUrl }))
+      })
+    return () => {
+      alive = false
+    }
+  }, [pendingPath])
+
   // 표시할 사진의 비율(저장된 크기 → 측정값 → 정사각 가정 순).
   const ratios = useMemo(
     () =>
@@ -173,12 +199,15 @@ export default function PhotoCollage({
 
   const onOpen = (i: number) => setOpen(i)
   const cur = open != null ? photos[open] : null
+  // 원본(있으면) → 없으면 서명 대기 중 썸네일로 먼저 보여 준다.
+  const curFull = cur ? cur.url || (cur.path ? origUrls[cur.path] : '') || '' : ''
+  const curSrc = curFull || cur?.thumb_url || ''
 
   async function onDownload() {
-    if (!cur) return
+    if (!cur || !curFull) return
     setDownloading(true)
     try {
-      await downloadFile(cur.url, filenameFromPathOrUrl(cur.url))
+      await downloadFile(curFull, filenameFromPathOrUrl(cur.path || curFull))
     } finally {
       setDownloading(false)
     }
@@ -241,7 +270,7 @@ export default function PhotoCollage({
               <button
                 type="button"
                 onClick={onDownload}
-                disabled={downloading}
+                disabled={downloading || !curFull}
                 aria-label="원본 저장"
                 className="rounded-full bg-white/10 px-3 py-1 text-sm font-semibold hover:bg-white/20 disabled:opacity-50"
               >
@@ -281,11 +310,15 @@ export default function PhotoCollage({
               </button>
             )}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={cur.url}
-              alt={cur.place_name ?? ''}
-              className="max-h-full max-w-full object-contain"
-            />
+            {curSrc ? (
+              <img
+                src={curSrc}
+                alt={cur.place_name ?? ''}
+                className={`max-h-full max-w-full object-contain ${curFull ? '' : 'h-full w-full opacity-70 blur-[2px]'}`}
+              />
+            ) : (
+              <span className="text-sm text-white/70">불러오는 중…</span>
+            )}
             {n > 1 && (
               <button
                 type="button"
