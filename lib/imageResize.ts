@@ -65,3 +65,22 @@ export async function makeThumbnail(
     return null
   }
 }
+
+// 사진의 표시 기준 가로·세로 px(EXIF 회전 보정 후). 콜라주가 가로/세로 비율로 배치를 정하는 데 쓴다.
+// 읽지 못하면 null(콜라주는 화면에서 썸네일 로드 시 비율을 측정해 폴백).
+export async function readImageSize(file: File): Promise<{ w: number; h: number } | null> {
+  if (!file.type.startsWith('image/')) return null
+  try {
+    let bitmap: ImageBitmap
+    try {
+      bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+    } catch {
+      bitmap = await createImageBitmap(file)
+    }
+    const { width, height } = bitmap
+    bitmap.close?.()
+    return width && height ? { w: width, h: height } : null
+  } catch {
+    return null
+  }
+}

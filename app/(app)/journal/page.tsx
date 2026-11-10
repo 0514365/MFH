@@ -72,6 +72,8 @@ export default async function JournalPage() {
           taken_at: p.taken_at ? p.taken_at.slice(0, 10) : null,
           lat: p.lat,
           lng: p.lng,
+          w: p.w,
+          h: p.h,
         },
       ]
     })

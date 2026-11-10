@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { readPhotoMeta, uploadJournalPhoto, type PhotoMeta } from '@/lib/photo'
+import { readImageSize } from '@/lib/imageResize'
 import CategoryBlocks from './CategoryBlocks'
 import { FLAG_COLOR, FLAG_SOFT } from './JournalFlagsToggle'
 import LinkedPicker, { type PickerItem } from '@/components/LinkedPicker'
@@ -257,6 +258,9 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
     let anyMeta = false
     for (const f of picked) {
       const m = await readPhotoMeta(f)
+      // 가로·세로 px 를 meta 에 함께 저장 — 상세 콜라주가 비율로 배치를 정한다.
+      const size = await readImageSize(f)
+      const meta = size ? { ...(m.raw ?? {}), w: size.w, h: size.h } : m.raw
       if (!firstMeta) firstMeta = m
       if (m.takenAt || m.lat != null) anyMeta = true
       slots.push({
@@ -268,7 +272,7 @@ export default function JournalForm({ mode, initial, initialPhotos, initialInter
         takenAt: m.takenAt ? m.takenAt.slice(0, 10) : '',
         lat: m.lat,
         lng: m.lng,
-        meta: m.raw,
+        meta,
       })
     }
     setPhotos((cur) => [...cur, ...slots])

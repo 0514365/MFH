@@ -1,10 +1,12 @@
 'use client'
+// MFH-JOURNAL-PHOTO-COLLAGE-V4 — 장수 제한 없는 비율 기반 줄 맞춤 콜라주(가로·세로 구성에 따라 줄 나눔) · max 로 「+N」 접기.
 // MFH-JOURNAL-PHOTO-COLLAGE-V3 — 2027(4-1): 남색 글자 · 연회색 면 · b27 선 · 굵기 600 이하 · 삭제 = 지출 빨강.
-
-// MFH-JOURNAL-PHOTO-COLLAGE-V2
-// 일지 사진 콜라주(1~5장) + 클릭 확대 라이트박스(좌우 이동·키보드·스와이프).
-// wide: 상세 페이지 전용 — 데스크탑(≥740px)에서 세로로 길어지지 않게 가로 밴드형으로 재배치.
-import { useCallback, useEffect, useState } from 'react'
+// 일지 사진 콜라주 + 클릭 확대 라이트박스(좌우 이동·키보드·스와이프).
+// 배치: 사진 비율(가로/세로)의 합이 줄 목표치에 가깝도록 줄을 나누고, 한 줄 안에서는 비율대로 폭을 나눠 높이를 맞춘다.
+//   → 가로·세로 사진이 섞여도 거의 잘리지 않는다. 첫 줄은 목표치가 작아 더 크게 보인다.
+// wide: 상세 페이지 전용 — 데스크탑(≥@xl)에서는 줄당 장수를 늘린 배치를 따로 쓴다.
+// max: 목록 카드·미리보기용 — 앞 max 장만 그리고 마지막 칸에 「+N」(라이트박스는 전체).
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { downloadFile, filenameFromPathOrUrl } from '@/lib/download'
 
 export type CollagePhoto = {
@@ -15,53 +17,129 @@ export type CollagePhoto = {
   taken_at: string | null
   lat: number | null
   lng: number | null
+  // 가로·세로 px(업로드 시 저장). 없으면 썸네일 로드 때 측정.
+  w?: number | null
+  h?: number | null
+}
+
+// 줄 나눔 기준 — first/rest: 첫 줄/이후 줄의 비율 합 목표, maxPer: 줄당 최대 장수,
+// minSum: 줄 비율 합 하한(이보다 작으면 셀을 가로로 넓혀 지나치게 길어지지 않게 한다).
+type Variant = { first: number; rest: number; maxPer: number; minSum: number }
+const NARROW: Variant = { first: 2.4, rest: 3.4, maxPer: 4, minSum: 1.0 }
+const WIDE: Variant = { first: 4.0, rest: 5.5, maxPer: 7, minSum: 1.5 }
+
+const RATIO_MIN = 0.56 // 9:16
+const RATIO_MAX = 2.2
+
+function clampRatio(r: number): number {
+  return Math.min(RATIO_MAX, Math.max(RATIO_MIN, r))
+}
+
+// 비율 배열 → 줄별 [시작, 끝) 구간. 각 줄의 (비율 합 − 목표)² 총합이 최소가 되는 분할(DP).
+function layoutRows(ratios: number[], v: Variant): [number, number][] {
+  const n = ratios.length
+  const best: number[] = [0]
+  const prev: number[] = [0]
+  for (let i = 1; i <= n; i++) {
+    best[i] = Infinity
+    prev[i] = i - 1
+    let sum = 0
+    for (let j = i - 1; j >= Math.max(0, i - v.maxPer); j--) {
+      sum += ratios[j]
+      const d = sum - (j === 0 ? v.first : v.rest)
+      const cost = best[j] + d * d
+      if (cost < best[i]) {
+        best[i] = cost
+        prev[i] = j
+      }
+    }
+  }
+  const rows: [number, number][] = []
+  for (let i = n; i > 0; i = prev[i]) rows.unshift([prev[i], i])
+  return rows
 }
 
 function Cell({
   p,
   i,
-  aspect,
+  ratio,
+  more,
   onOpen,
+  onMeasure,
 }: {
   p: CollagePhoto
   i: number
-  aspect: string
+  ratio: number
+  more: number
   onOpen: (i: number) => void
+  onMeasure: (src: string, w: number, h: number) => void
 }) {
+  const src = p.thumb_url || p.url
+  const needMeasure = !(p.w && p.h)
   return (
     <button
       type="button"
       onClick={() => onOpen(i)}
-      className={`group relative ${aspect} w-full overflow-hidden rounded-lg border border-b27-line bg-b27-card`}
+      style={{ flex: `${ratio} 1 0%`, aspectRatio: String(ratio) }}
+      className="group relative min-w-0 overflow-hidden rounded-lg border border-b27-line bg-b27-card"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={p.thumb_url || p.url}
+        src={src}
         alt={p.place_name ?? ''}
         loading="lazy"
         decoding="async"
-        className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
+        // 캐시된 이미지는 hydration 전에 load 가 끝나므로 ref 에서도 한 번 확인.
+        ref={(el) => {
+          if (needMeasure && el && el.complete && el.naturalWidth) onMeasure(src, el.naturalWidth, el.naturalHeight)
+        }}
+        onLoad={(e) => {
+          const el = e.currentTarget
+          if (needMeasure && el.naturalWidth) onMeasure(src, el.naturalWidth, el.naturalHeight)
+        }}
+        className="absolute inset-0 h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
       />
-      {p.place_name && (
-        <span className="absolute bottom-1 left-1 max-w-[92%] truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white">
-          📍 {p.place_name}
+      {more > 0 ? (
+        <span className="absolute inset-0 flex items-center justify-center bg-[rgba(43,49,96,0.55)] font-num text-[18px] font-semibold text-white">
+          +{more}
         </span>
+      ) : (
+        p.place_name && (
+          <span className="absolute bottom-1 left-1 max-w-[92%] truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white">
+            📍 {p.place_name}
+          </span>
+        )
       )}
     </button>
   )
 }
 
-export default function PhotoCollage({ photos, wide = false }: { photos: CollagePhoto[]; wide?: boolean }) {
+export default function PhotoCollage({
+  photos,
+  wide = false,
+  max,
+}: {
+  photos: CollagePhoto[]
+  wide?: boolean
+  max?: number
+}) {
   const [open, setOpen] = useState<number | null>(null)
   const [touchX, setTouchX] = useState<number | null>(null)
   const [downloading, setDownloading] = useState(false)
+  // 크기 정보가 없는 사진의 측정 비율(썸네일 src 기준).
+  const [measured, setMeasured] = useState<Record<string, number>>({})
   const n = photos.length
+  const shownCount = max && n > max ? max : n
+  const more = n - shownCount
 
   const close = useCallback(() => setOpen(null), [])
   const go = useCallback(
     (dir: number) => setOpen((cur) => (cur == null ? cur : (cur + dir + n) % n)),
     [n],
   )
+  const onMeasure = useCallback((src: string, w: number, h: number) => {
+    setMeasured((cur) => (cur[src] ? cur : { ...cur, [src]: w / h }))
+  }, [])
 
   useEffect(() => {
     if (open == null) return
@@ -79,10 +157,21 @@ export default function PhotoCollage({ photos, wide = false }: { photos: Collage
     }
   }, [open, close, go])
 
+  // 표시할 사진의 비율(저장된 크기 → 측정값 → 정사각 가정 순).
+  const ratios = useMemo(
+    () =>
+      photos.slice(0, shownCount).map((p) => {
+        const r = p.w && p.h ? p.w / p.h : (measured[p.thumb_url || p.url] ?? 1)
+        return clampRatio(r)
+      }),
+    [photos, shownCount, measured],
+  )
+  const narrowRows = useMemo(() => layoutRows(ratios, NARROW), [ratios])
+  const wideRows = useMemo(() => (wide ? layoutRows(ratios, WIDE) : null), [ratios, wide])
+
   if (n === 0) return null
 
   const onOpen = (i: number) => setOpen(i)
-  const cellProps = (i: number, aspect: string) => ({ p: photos[i], i, aspect, onOpen })
   const cur = open != null ? photos[open] : null
 
   async function onDownload() {
@@ -95,58 +184,43 @@ export default function PhotoCollage({ photos, wide = false }: { photos: Collage
     }
   }
 
+  function renderRows(rows: [number, number][], v: Variant) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        {rows.map(([from, to]) => {
+          let sum = 0
+          for (let i = from; i < to; i++) sum += ratios[i]
+          // 줄이 너무 길쭉해지면(장수 적고 세로 사진) 셀을 가로로 넓혀 높이를 제한.
+          const scale = sum < v.minSum ? v.minSum / sum : 1
+          return (
+            <div key={from} className="flex gap-1.5">
+              {Array.from({ length: to - from }, (_, k) => from + k).map((i) => (
+                <Cell
+                  key={i}
+                  p={photos[i]}
+                  i={i}
+                  ratio={ratios[i] * scale}
+                  more={i === shownCount - 1 ? more : 0}
+                  onOpen={onOpen}
+                  onMeasure={onMeasure}
+                />
+              ))}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <>
-      {n === 1 && (
-        <Cell {...cellProps(0, wide ? 'aspect-[4/3] @xl:aspect-[16/9]' : 'aspect-[4/3]')} />
-      )}
-
-      {n === 2 && (
-        <div className="grid grid-cols-2 gap-1.5">
-          <Cell {...cellProps(0, wide ? 'aspect-square @xl:aspect-[4/3]' : 'aspect-square')} />
-          <Cell {...cellProps(1, wide ? 'aspect-square @xl:aspect-[4/3]' : 'aspect-square')} />
-        </div>
-      )}
-
-      {n === 3 && (
-        <div className="grid grid-cols-3 gap-1.5">
-          <Cell {...cellProps(0, 'aspect-square')} />
-          <Cell {...cellProps(1, 'aspect-square')} />
-          <Cell {...cellProps(2, 'aspect-square')} />
-        </div>
-      )}
-
-      {n === 4 && (
-        <div className={`grid grid-cols-2 gap-1.5 ${wide ? '@xl:grid-cols-4' : ''}`}>
-          {[0, 1, 2, 3].map((i) => (
-            <Cell key={i} {...cellProps(i, 'aspect-square')} />
-          ))}
-        </div>
-      )}
-
-      {n >= 5 && wide && (
-        // 데스크탑은 5장을 한 줄 밴드로, 모바일은 기존 2+3 배치를 6칸 그리드로 재현.
-        <div className="grid grid-cols-6 gap-1.5 @xl:grid-cols-5">
-          <Cell {...cellProps(0, 'aspect-square col-span-3 @xl:col-span-1')} />
-          <Cell {...cellProps(1, 'aspect-square col-span-3 @xl:col-span-1')} />
-          <Cell {...cellProps(2, 'aspect-square col-span-2 @xl:col-span-1')} />
-          <Cell {...cellProps(3, 'aspect-square col-span-2 @xl:col-span-1')} />
-          <Cell {...cellProps(4, 'aspect-square col-span-2 @xl:col-span-1')} />
-        </div>
-      )}
-
-      {n >= 5 && !wide && (
-        <div className="space-y-1.5">
-          <div className="grid grid-cols-2 gap-1.5">
-            <Cell {...cellProps(0, 'aspect-square')} />
-            <Cell {...cellProps(1, 'aspect-square')} />
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            <Cell {...cellProps(2, 'aspect-square')} />
-            <Cell {...cellProps(3, 'aspect-square')} />
-            <Cell {...cellProps(4, 'aspect-square')} />
-          </div>
-        </div>
+      {wide && wideRows ? (
+        <>
+          <div className="@xl:hidden">{renderRows(narrowRows, NARROW)}</div>
+          <div className="hidden @xl:block">{renderRows(wideRows, WIDE)}</div>
+        </>
+      ) : (
+        renderRows(narrowRows, NARROW)
       )}
 
       {cur && open != null && (

@@ -15,8 +15,16 @@ export type ResolvedPhoto = {
   lat: number | null
   lng: number | null
   meta: Record<string, unknown> | null
+  // 가로·세로 px(업로드 시 meta.w/h 로 저장). 없으면 null — 콜라주가 화면에서 측정.
+  w: number | null
+  h: number | null
   ai_caption: string | null
   caption: string | null
+}
+
+function metaNum(meta: Record<string, unknown> | null | undefined, key: string): number | null {
+  const v = meta?.[key]
+  return typeof v === 'number' && v > 0 ? v : null
 }
 
 // 원본 그대로의 사진 목록(대표 상속 없음). photos 우선, 없으면 레거시 단일 1장.
@@ -33,6 +41,8 @@ function rawList(entry: PhotoSource): ResolvedPhoto[] {
         lat: p.lat ?? null,
         lng: p.lng ?? null,
         meta: p.meta ?? null,
+        w: metaNum(p.meta, 'w'),
+        h: metaNum(p.meta, 'h'),
         ai_caption: p.ai_caption ?? null,
         caption: p.caption ?? null,
       }))
@@ -47,6 +57,8 @@ function rawList(entry: PhotoSource): ResolvedPhoto[] {
         lat: entry.photo_lat ?? null,
         lng: entry.photo_lng ?? null,
         meta: entry.photo_meta ?? null,
+        w: metaNum(entry.photo_meta, 'w'),
+        h: metaNum(entry.photo_meta, 'h'),
         ai_caption: null,
         caption: null,
       },

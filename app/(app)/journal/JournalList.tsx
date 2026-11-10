@@ -218,7 +218,7 @@ function EntrySummary({
         </div>
       </div>
 
-      {photos.length > 0 && <PhotoCollage photos={photos} />}
+      {photos.length > 0 && <PhotoCollage photos={photos} max={5} />}
 
       <Section label="오늘의 기록" text={e.today} />
       <Section label="감사·응답" text={e.thanks} />
@@ -468,7 +468,7 @@ export default function JournalList({
             </Link>
           )}
           {/* 사진 콜라주 — 라이트박스 포함, 본문 링크와 분리 */}
-          {photos.length > 0 && <PhotoCollage photos={photos} />}
+          {photos.length > 0 && <PhotoCollage photos={photos} max={5} />}
           {hasMeta && (
             <div className="flex flex-wrap gap-1.5">
               {e.place_name && (
