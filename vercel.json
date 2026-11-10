@@ -1,4 +1,5 @@
 {
+  "regions": ["pdx1"],
   "crons": [
     { "path": "/api/push/send", "schedule": "0 13 * * *" },
     { "path": "/api/qt/notify", "schedule": "0 11 * * *" }
