@@ -1,3 +1,4 @@
+// MFH-JOURNAL-DETAIL-V3 — 조회 병렬화(로그인+본문 → 나머지 일괄) · 이전/다음은 검색어 없으면 가벼운 칸만.
 // MFH-JOURNAL-DETAIL-V2 — 2027(4-1): theme-2027 · 빨간 ‹ 일지 + ‹n/total› · 분류 색 사각형·날짜(한글) · 제목 22/600 · 메타 = 연회색 알약 ·
 //   플래그 알약(틴트) · 중보 틴트 6 · 사진 밴드 · 섹션 라벨(이모지·영문 제거) · 기도제목 일지 틴트 · 수정 남색 / 삭제 연한 빨강.
 import Link from 'next/link'
@@ -59,81 +60,71 @@ export default async function JournalDetail(props: {
   const params = await props.params
   const searchParams = await props.searchParams
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // 로그인 확인과 본문 조회를 동시에(둘 다 서로를 기다릴 필요가 없다).
+  const [
+    {
+      data: { user },
+    },
+    { data },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('journal_entries').select('*').eq('id', params.id).maybeSingle(),
+  ])
   if (!user) redirect('/login')
-
-  const { data } = await supabase
-    .from('journal_entries')
-    .select('*')
-    .eq('id', params.id)
-    .maybeSingle()
   const entry = data as JournalEntry | null
   if (!entry) notFound()
 
-  const membersMap = await getMembersMap(supabase)
   const canEdit = canEditEntry(entry.user_id, user.id)
-
-  let linkedIntercession: { visitor_name: string; message: string } | null = null
-  if (entry.intercession_id) {
-    const { data: ic } = await supabase
-      .from('intercessions')
-      .select('visitor_name, message')
-      .eq('id', entry.intercession_id)
-      .maybeSingle()
-    linkedIntercession = (ic as { visitor_name: string; message: string }) ?? null
-  }
-
-  // 연계 프로젝트·할일 제목(메타칩용). 연결 없으면 null.
-  let projectTitle: string | null = null
-  if (entry.project_id) {
-    const { data: p } = await supabase.from('projects').select('title').eq('id', entry.project_id).maybeSingle()
-    projectTitle = (p as { title: string } | null)?.title ?? null
-  }
-  let taskTitle: string | null = null
-  if (entry.task_id) {
-    const { data: t } = await supabase.from('tasks').select('title').eq('id', entry.task_id).maybeSingle()
-    taskTitle = (t as { title: string } | null)?.title ?? null
-  }
-  // 연계 후원자 이름(메타칩용). 후원자 상세에서 이 일지를 연결하면 채워짐.
-  let supporterName: string | null = null
-  if (entry.supporter_id) {
-    const { data: sp } = await supabase
-      .from('supporters')
-      .select('name')
-      .eq('id', entry.supporter_id)
-      .maybeSingle()
-    supporterName = (sp as { name: string } | null)?.name ?? null
-  }
 
   // 목록과 동일한 필터+검색+정렬로 전체를 재계산 → 현재 항목의 이전/다음.
   const filter = parseJournalFilter({ get: (k) => {
     const v = searchParams[k]
     return Array.isArray(v) ? (v[v.length - 1] ?? null) : (v ?? null)
   } })
-  const { data: navRows } = await supabase
-    .from('journal_entries')
-    .select('id, user_id, entry_date, category, prayer_candidate, headline, today, thanks, meditation, prayer, place_name, created_at')
-  const orderedIds = applyJournalFilter((navRows ?? []) as any[], filter).map(
-    (e) => e.id as string,
-  )
-  const nav = computeListNav(orderedIds, params.id)
-  const navQuery = searchParamsToQuery(searchParams)
+  // 본문 4칸은 텍스트 검색(q)이 있을 때만 필요 — 없으면 가벼운 칸만 읽는다.
+  const navCols = filter.q
+    ? 'id, user_id, entry_date, category, prayer_candidate, headline, today, thanks, meditation, prayer, place_name, created_at'
+    : 'id, user_id, entry_date, category, prayer_candidate, place_name, created_at'
 
   // photos(우선) 또는 레거시 단일 → 원본+썸네일을 한 번에 서명(1시간). 사진별 장소·좌표는 대표 상속.
   const resolved = resolveJournalPhotos(entry)
   const detailPaths = Array.from(
     new Set(resolved.flatMap((p) => (p.thumb_path ? [p.path, p.thumb_path] : [p.path]))),
   )
+
+  // 멤버 이름 · 연계 중보기도/프로젝트/할일/후원자(메타칩용, 연결 없으면 null) · 이전/다음 · 사진 서명 URL 을 한꺼번에 조회.
+  const [membersMap, icQ, projQ, taskQ, supQ, navQ, signedQ] = await Promise.all([
+    getMembersMap(supabase),
+    entry.intercession_id
+      ? supabase.from('intercessions').select('visitor_name, message').eq('id', entry.intercession_id).maybeSingle()
+      : null,
+    entry.project_id
+      ? supabase.from('projects').select('title').eq('id', entry.project_id).maybeSingle()
+      : null,
+    entry.task_id ? supabase.from('tasks').select('title').eq('id', entry.task_id).maybeSingle() : null,
+    // 후원자 상세에서 이 일지를 연결하면 채워짐.
+    entry.supporter_id
+      ? supabase.from('supporters').select('name').eq('id', entry.supporter_id).maybeSingle()
+      : null,
+    supabase.from('journal_entries').select(navCols),
+    detailPaths.length > 0
+      ? supabase.storage.from('journal-photos').createSignedUrls(detailPaths, 3600)
+      : null,
+  ])
+  const linkedIntercession = (icQ?.data as { visitor_name: string; message: string } | null) ?? null
+  const projectTitle = (projQ?.data as { title: string } | null)?.title ?? null
+  const taskTitle = (taskQ?.data as { title: string } | null)?.title ?? null
+  const supporterName = (supQ?.data as { name: string } | null)?.name ?? null
+
+  const orderedIds = applyJournalFilter((navQ.data ?? []) as any[], filter).map(
+    (e) => e.id as string,
+  )
+  const nav = computeListNav(orderedIds, params.id)
+  const navQuery = searchParamsToQuery(searchParams)
+
   const urlByPath: Record<string, string> = {}
-  if (detailPaths.length > 0) {
-    const { data: signed } = await supabase.storage
-      .from('journal-photos')
-      .createSignedUrls(detailPaths, 3600)
-    for (const s of signed ?? []) {
-      if (s.signedUrl && s.path) urlByPath[s.path] = s.signedUrl
-    }
+  for (const sg of signedQ?.data ?? []) {
+    if (sg.signedUrl && sg.path) urlByPath[sg.path] = sg.signedUrl
   }
   const collage: CollagePhoto[] = resolved.flatMap((p) => {
     const url = urlByPath[p.path]
