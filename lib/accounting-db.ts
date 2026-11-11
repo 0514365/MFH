@@ -363,7 +363,7 @@ function toRow(p: InoutInput) {
   const transfer = p.gubun === '이체'
   const adjust = p.gubun === '조정'
   const noItem = transfer || adjust
-  const vendor = noItem ? null : p.vendor?.trim() || null
+  const vendor = adjust ? null : p.vendor?.trim() || null // 이체는 선지급만 폼에서 구매처를 보낸다
   return {
     gubun: p.gubun,
     date: p.date,

@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-FORM-V17 — 선지급에도 구매처 입력(어디서 대신 결제했는지) — 일반 이체·회수·조정은 그대로 없음
 // MFH-ACCOUNTING-FORM-V16 — 회수할 선지급 표 = 전체 폭(구분·날짜·내용 줄과 통화·금액 줄 사이): 체크 · 날짜 · 내용 · 남은 금액, 모두 선택/해제
 // MFH-ACCOUNTING-FORM-V15 — 회수 다중 선택(체크 목록): 금액 = 선택 남은 금액 합계 · 저장 시 선지급마다 회수 행 자동 분할(오래된 순 FIFO 배분, bulkCreateInout). 수정은 단일 연결
 // MFH-ACCOUNTING-FORM-V14 — 회수 모드 「회수할 선지급」 콤보(patch121): 미회수·일부 회수 선지급 목록 → 선택 시 금액(남은 금액)·내용 자동. settlesInoutId 저장. 최근 입력 선지급 칩에 회수 상태
@@ -124,6 +125,7 @@ export default function AccountingForm({
   // 미수금(선지급) 계좌 — 없으면 선지급·회수 버튼 비활성.
   const receivable = useMemo(() => receivableAccount(options.accounts), [options])
   const isPrepay = isTransfer && mode === 'prepay'
+  const hasVendor = !noItem || isPrepay // 구매처 = 수입·지출 + 선지급
   const isCollect = isTransfer && mode === 'collect'
   // 회수 → 선지급 연결(patch121). 선지급 요약은 전체 목록(recent = 전체 거래)에서 계산.
   // 새 기록은 여러 건 선택 가능(저장 시 선지급마다 회수 행 분할) · 수정은 1건(기존 행의 연결).
@@ -381,7 +383,7 @@ export default function AccountingForm({
       date,
       itemId: noItem ? '' : itemId,
       name: name.trim(),
-      vendor: noItem ? null : vendor.trim() || null,
+      vendor: hasVendor ? vendor.trim() || null : null,
       currency,
       principal: Number(principal),
       rate: crossFx && crossRate && fromCur !== 'USD' ? crossRate.rate : effRate, // 최종값은 DB 트리거가 결정
@@ -562,8 +564,8 @@ export default function AccountingForm({
             )}
           </div>
 
-          {/* 구매처(어디서, 선택) — 이체는 없음 */}
-          {!noItem && (
+          {/* 구매처(어디서, 선택) — 수입·지출·선지급. 일반 이체·회수·조정은 없음 */}
+          {hasVendor && (
             <div className="@2xl:w-[150px] @2xl:shrink-0">
               <label className={labelCls}>구매처</label>
               <input
