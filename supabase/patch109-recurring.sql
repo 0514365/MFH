@@ -2,7 +2,7 @@
 --
 -- 흐름: Claude 예약 작업(매일) → scripts/recurring-due.ts 가 규칙별로 "이번 달 해당일이 지났고 아직 없는" 승인대기(due) 행을 만든다
 --       → 우진이 /accounting/inbox 에서 실제 이체·납부를 확인한 뒤 승인(장부 저장) 또는 건너뜀. 자동 저장은 하지 않는다.
--- 시드: ① 개인→청약 이체 20,000원 매월 10일 ② 국민연금 96,000원 매월 10일(생활비/국민연금) — 2026-11 부터(8~10월은 수동 입력됨).
+-- 시드: ① 개인→청약 이체 20,000원 매월 15일(2026-11 변경, 이전 10일) ② 국민연금 96,000원 매월 10일(생활비/국민연금) — 2026-11 부터(8~10월은 수동 입력됨).
 -- RLS: patch103 패턴(멤버 부부). 멱등. 실행: Supabase 콘솔 SQL Editor. 선행: patch102·104·107.
 
 begin;
@@ -65,7 +65,7 @@ end $$;
 
 -- 시드 2건(없을 때만)
 insert into public.acct_recurring (user_id, name, gubun, item_id, account_id, to_account_id, currency, principal, day_of_month, start_ym)
-select a.user_id, '청약저축 자동이체', '이체', null, a.id, b.id, 'KRW', 20000, 10, '2026-11'
+select a.user_id, '청약저축 자동이체', '이체', null, a.id, b.id, 'KRW', 20000, 15, '2026-11'
 from public.acct_accounts a, public.acct_accounts b
 where a.name = '우리은행(개인)_6154' and b.name = '우리은행(청약)_6537'
   and not exists (select 1 from public.acct_recurring r where r.name = '청약저축 자동이체');
