@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V22 — 구분 필터 다중선택(MultiChipRow) + 「선지급」·「회수」 칩(미수금 계좌 기준, 「이체」 = 일반 이체만)
 // MFH-ACCOUNTING-TXLIST-V21 — 선지급 칩에 회수 상태(미회수·일부 회수·회수 완료) · 회수 행에 「← 선지급 내용」(patch121)
 // MFH-ACCOUNTING-TXLIST-V20 — 2027 5-④: 선택 체크박스 마룬 → 남색(accent-[#2B3160]).
 // MFH-ACCOUNTING-TXLIST-V19 — 2027 토큰 승격: 종류 칩·월 머리줄 면 리터럴 → b27-income-soft / b27-expense-soft
@@ -27,6 +28,7 @@ import {
   AccountSheet,
   AmountRange,
   ChipRow,
+  MultiChipRow,
   ItemSheet,
   MoreToggle,
   PeriodFilter,
@@ -87,14 +89,14 @@ function monthLabel(key: string): string {
 }
 
 type SortKey = 'date' | 'amount'
-const GUBUN_FILTERS = ['전체', '수입', '지출', '이체', '조정'] as const
+const GUBUN_KINDS = ['수입', '지출', '이체', '조정', '선지급', '회수'] as const
 const CUR_FILTERS = ['', 'HNL', 'USD', 'KRW'] as const
 const USERS = ['우진', '진아']
 // 사용자·카드 판별용 계좌 정보(getAccountBalances 의 일부).
 export type LedgerAccountInfo = { id: string; info: string | null; kind: string | null }
-type GubunFilter = '전체' | '수입' | '지출' | '이체' | '조정'
+type GubunKind = (typeof GUBUN_KINDS)[number]
 export type LedgerFilter = { gubun?: string; cat?: string; item?: string; from?: string; to?: string; q?: string; account?: string }
-const isGubun = (g?: string): g is GubunFilter => g === '수입' || g === '지출' || g === '이체' || g === '조정'
+const isGubun = (g: string): g is GubunKind => (GUBUN_KINDS as readonly string[]).includes(g)
 
 const ctl =
   'h-8 rounded-lg border border-b27-line bg-b27-paper px-2 text-xs text-b27-ink outline-none transition focus:border-b27-ink'
@@ -116,7 +118,8 @@ export default function TransactionList({
   onAfterMutate: () => void
   initialFilter?: LedgerFilter // 분석 탭 딥링크(?gubun=&cat=&item=&from=&to=&q=) 선적용
 }) {
-  const [fGubun, setFGubun] = useState<GubunFilter>(isGubun(initialFilter?.gubun) ? initialFilter.gubun : '전체')
+  // 구분 다중선택(빈 집합 = 전체). 딥링크 ?gubun= 은 쉼표로 여러 개.
+  const [fGubuns, setFGubuns] = useState<Set<GubunKind>>(() => new Set((initialFilter?.gubun ?? '').split(',').filter(isGubun)))
   const [fItemIds, setFItemIds] = useState<Set<string>>(() => new Set(initialFilter?.item ? [initialFilter.item] : []))
   const [fAccountIds, setFAccountIds] = useState<Set<string>>(() => new Set(initialFilter?.account ? [initialFilter.account] : []))
   const [fCat, setFCat] = useState(initialFilter?.cat ?? '')
@@ -163,6 +166,9 @@ export default function TransactionList({
   const receivableId = receivable?.id ?? null
   const prepaySummary = useMemo(() => summarizePrepayments(recent, receivable), [recent, receivable])
   const rowById = useMemo(() => new Map(recent.map((r) => [r.id, r])), [recent])
+  // 필터용 종류 — 선지급·회수는 「이체」와 따로 센다.
+  const kindOf = (r: InoutRow): string | null =>
+    r.gubun === '이체' && receivableId ? (r.toAccountId === receivableId ? '선지급' : r.accountId === receivableId ? '회수' : '이체') : r.gubun
   const gubunLabel = (r: InoutRow): string =>
     r.gubun === '이체' && receivableId
       ? r.toAccountId === receivableId
@@ -217,7 +223,7 @@ export default function TransactionList({
     const lo = numOf(fMin)
     const hi = numOf(fMax)
     const filtered = recent.filter((r) => {
-      if (fGubun !== '전체' && r.gubun !== fGubun) return false
+      if (fGubuns.size && !fGubuns.has(kindOf(r) as GubunKind)) return false
       if (fItemIds.size && !(r.itemId && fItemIds.has(r.itemId))) return false
       const accs = [r.accountId, r.toAccountId].filter((x): x is string => !!x)
       if (fAccountIds.size && !accs.some((x) => fAccountIds.has(x))) return false
@@ -266,7 +272,7 @@ export default function TransactionList({
       }
       return { key, rows, inUsd, outUsd, net, netUsd: inUsd - outUsd }
     })
-  }, [recent, fGubun, fItemIds, fAccountIds, fCat, fCur, fUser, userAccIds, fMin, fMax, eFrom, eTo, dq, sortKey, sortDir, catOf, nameOf, periodMode])
+  }, [recent, fGubuns, receivableId, fItemIds, fAccountIds, fCat, fCur, fUser, userAccIds, fMin, fMax, eFrom, eTo, dq, sortKey, sortDir, catOf, nameOf, periodMode])
 
   const visibleIds = useMemo(() => groups.flatMap((g) => g.rows.map((r) => r.id)), [groups])
   // 항목 열 폭(em): 일반 행 = 항목 이름 1줄, 이체·조정 행 = 2줄 → 보이는 행 중 최대 필요폭. 통화 열 펼치면 65% 로 축소(내용 열 확보).
@@ -285,7 +291,7 @@ export default function TransactionList({
   const shownCount = visibleIds.length
   const moreFilled = !!(fCat || fCur || fUser || fMin.trim() || fMax.trim())
   const hasFilter =
-    fGubun !== '전체' ||
+    fGubuns.size > 0 ||
     fItemIds.size > 0 ||
     fAccountIds.size > 0 ||
     !!fCat ||
@@ -300,7 +306,7 @@ export default function TransactionList({
   useEffect(() => {
     setSelected(new Set())
     setBulkOpen(false)
-  }, [fGubun, fItemIds, fAccountIds, fCat, fCur, fUser, fMin, fMax, eFrom, eTo, dq, sortKey, sortDir])
+  }, [fGubuns, fItemIds, fAccountIds, fCat, fCur, fUser, fMin, fMax, eFrom, eTo, dq, sortKey, sortDir])
 
   // 선택 행 분석 — 통합 수정 대상(수입·지출만), 구분 혼합 여부.
   const selRows = useMemo(() => recent.filter((r) => selected.has(r.id)), [recent, selected])
@@ -342,7 +348,7 @@ export default function TransactionList({
     })
   }
   function resetFilters() {
-    setFGubun('전체')
+    setFGubuns(new Set())
     setFItemIds(new Set())
     setFAccountIds(new Set())
     setFCat('')
@@ -458,11 +464,11 @@ export default function TransactionList({
       <SearchInput value={q} onChange={setQ} onCommit={setDq} recent={recentQs} className="[&>label]:border-0 [&>label]:bg-b27-paper" />
       <div className="mt-3 space-y-2">
         <PeriodFilter period={period} onPeriod={setPeriod} from={fFrom} to={fTo} onFrom={setFFrom} onTo={setFTo} range={[eFrom, eTo]} />
-        <ChipRow
+        <MultiChipRow
           label="구분"
-          options={GUBUN_FILTERS}
-          value={fGubun}
-          onChange={setFGubun}
+          options={receivableId ? GUBUN_KINDS : GUBUN_KINDS.filter((g) => g !== '선지급' && g !== '회수')}
+          value={fGubuns}
+          onChange={setFGubuns}
         />
         <PickRow
           label="항목"

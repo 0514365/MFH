@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-SEARCH-V4 — 구분 다중선택(MultiChipRow) + 「선지급」·「회수」 칩(미수금 계좌 기준, 「이체」 = 일반 이체만) · ?g= 쉼표 구분
 // MFH-ACCOUNTING-SEARCH-2027 — 회계 잔여 a: 합계 = 연회색 요약 면(테두리 없음) · 더 보기 = 연회색 알약 · Manrope 600(800/700 금지)
 // MFH-ACCOUNTING-SEARCH-V3 — 필터 UI·기간 계산·최근 검색어를 공용 SearchFilters 로 분리(내역 탭과 공유), 화면은 그대로
 // MFH-ACCOUNTING-SEARCH-V2 — 항목·계좌 바텀시트(다중선택) · 더 보기(사용자 = 계좌 info 우진·진아 · 금액 범위) · 최근 검색어 5개(기기별)
@@ -9,7 +10,7 @@
 // 모바일(<md) = 전체 화면 고정(헤더·탭바 덮음, ✕ = 뒤로), md 이상 = 일반 페이지(셸 헤더 「검색」).
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { AccountBalance, AcctOptions, FxInfo, InoutRow } from '@/lib/accounting-types'
+import { receivableAccount, type AccountBalance, type AcctOptions, type FxInfo, type InoutRow } from '@/lib/accounting-types'
 import { PASTEL_NEUTRAL, fmtShow, hnlRateOf, itemPastels, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
 import { CatIcon } from '@/lib/acct-icons'
 import { CurToggle } from '../AccountingTitle'
@@ -17,6 +18,7 @@ import {
   AccountSheet,
   AmountRange,
   ChipRow,
+  MultiChipRow,
   ItemSheet,
   MoreToggle,
   PeriodFilter,
@@ -37,8 +39,9 @@ import {
   type SortKey,
 } from '../SearchFilters'
 
-type GFilter = '전체' | '수입' | '지출' | '이체'
-const GUBUNS: GFilter[] = ['전체', '수입', '지출', '이체']
+const GUBUNS = ['수입', '지출', '이체', '선지급', '회수'] as const
+type GKind = (typeof GUBUNS)[number]
+const isGKind = (g: string): g is GKind => (GUBUNS as readonly string[]).includes(g)
 const USERS = ['우진', '진아']
 const PAGE = 200
 
@@ -74,7 +77,9 @@ export default function SearchView({
   const [period, setPeriod] = useState<Period>(isPeriod(initial.p) ? initial.p : 'all')
   const [from, setFrom] = useState(isYmd(initial.from) ? initial.from : '')
   const [to, setTo] = useState(isYmd(initial.to) ? initial.to : '')
-  const [gubun, setGubun] = useState<GFilter>(GUBUNS.includes(initial.g as GFilter) ? (initial.g as GFilter) : '전체')
+  // 구분 다중선택(빈 집합 = 전체). 선지급·회수 = 미수금 계좌가 입금/출금인 이체.
+  const [gubun, setGubun] = useState<Set<GKind>>(() => new Set((initial.g ?? '').split(',').filter(isGKind)))
+  const receivableId = useMemo(() => receivableAccount(options.accounts)?.id ?? null, [options])
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [limit, setLimit] = useState(PAGE)
@@ -104,7 +109,7 @@ export default function SearchView({
     set('p', period === 'all' ? '' : period)
     set('from', period === 'custom' ? from : '')
     set('to', period === 'custom' ? to : '')
-    set('g', gubun === '전체' ? '' : gubun)
+    set('g', [...gubun].join(','))
     set('items', [...itemIds].join(','))
     set('acc', [...accIds].join(','))
     set('u', user)
@@ -143,7 +148,10 @@ export default function SearchView({
       if ((rFrom || rTo) && !r.date) return false
       if (rFrom && r.date! < rFrom) return false
       if (rTo && r.date! > rTo) return false
-      if (gubun !== '전체' && r.gubun !== gubun) return false
+      if (gubun.size) {
+        const kind = r.gubun === '이체' && receivableId ? (r.toAccountId === receivableId ? '선지급' : r.accountId === receivableId ? '회수' : '이체') : r.gubun
+        if (!gubun.has(kind as GKind)) return false
+      }
       if (itemIds.size && !(r.itemId && itemIds.has(r.itemId))) return false
       const accs = [r.accountId, r.toAccountId].filter((x): x is string => !!x)
       if (accIds.size && !accs.some((x) => accIds.has(x))) return false
@@ -161,7 +169,7 @@ export default function SearchView({
     else if (sortDir === 'asc') out.reverse()
     return out
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recent, dq, rFrom, rTo, gubun, itemIds, accIds, user, userAccIds, minAmt, maxAmt, itemOf, sortKey, sortDir, showCur, hnlRate])
+  }, [recent, dq, rFrom, rTo, gubun, receivableId, itemIds, accIds, user, userAccIds, minAmt, maxAmt, itemOf, sortKey, sortDir, showCur, hnlRate])
 
   const { income, expense } = useMemo(() => {
     let income = 0
@@ -213,7 +221,7 @@ export default function SearchView({
       {/* 필터 */}
       <div className="mt-3 space-y-2">
         <PeriodFilter period={period} onPeriod={setPeriod} from={from} to={to} onFrom={setFrom} onTo={setTo} range={[rFrom, rTo]} />
-        <ChipRow label="구분" options={GUBUNS} value={gubun} onChange={setGubun} />
+        <MultiChipRow label="구분" options={receivableId ? GUBUNS : GUBUNS.filter((g) => g !== '선지급' && g !== '회수')} value={gubun} onChange={setGubun} />
         <PickRow
           label="항목"
           text={itemIds.size === 0 ? '전체 항목' : summary([...itemIds].map((id) => itemOf.get(id)?.name ?? '—'))}

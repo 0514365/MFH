@@ -1,4 +1,5 @@
 'use client'
+// MFH-SEARCH-FILTERS-V4 — MultiChipRow(칩 다중선택, 「전체」 = 선택 없음) — 내역 탭 구분 필터
 // MFH-SEARCH-FILTERS-2027 — 회계 잔여 a: 옛 공용 토큰 → b27 · 검색 알약·최근 검색어·날짜/금액 칸 테두리 제거(연회색 면)
 // MFH-ACCOUNTING-SEARCH-FILTERS-V3 — 실기 피드백: Sheet 높이 고정(72vh) — 대분류 탭을 바꿔도 시트가 내려앉지 않음(내용 적으면 아래 여백)
 // MFH-ACCOUNTING-SEARCH-FILTERS-V2 — 2027 블록 재활용: ItemSheet = 대분류 알약 + 블록 3열 다중선택(✓ + 남색 안쪽 테두리) · AccountSheet = 통화별 이름 행 + 체크 원 · Sheet 헤더 2027(닫기 알약)
@@ -235,6 +236,40 @@ export function ChipRow<T extends string>({
         {options.map((o) => (
           <button key={o || '__all'} type="button" onClick={() => onChange(o)} aria-pressed={value === o} className={chipCls(value === o)}>
             {labelOf ? labelOf(o) : o}
+          </button>
+        ))}
+      </div>
+    </FilterRow>
+  )
+}
+
+// 칩 다중선택 줄 — 「전체」(= 선택 없음) + 옵션 토글(여러 개 동시 선택).
+export function MultiChipRow<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  options: readonly T[]
+  value: Set<T>
+  onChange: (v: Set<T>) => void
+}) {
+  const toggle = (o: T) => {
+    const n = new Set(value)
+    if (n.has(o)) n.delete(o)
+    else n.add(o)
+    onChange(n)
+  }
+  return (
+    <FilterRow label={label}>
+      <div className="flex flex-wrap gap-1">
+        <button type="button" onClick={() => onChange(new Set())} aria-pressed={value.size === 0} className={chipCls(value.size === 0)}>
+          전체
+        </button>
+        {options.map((o) => (
+          <button key={o} type="button" onClick={() => toggle(o)} aria-pressed={value.has(o)} className={chipCls(value.has(o))}>
+            {o}
           </button>
         ))}
       </div>
