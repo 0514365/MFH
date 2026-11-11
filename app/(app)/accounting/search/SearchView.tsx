@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-SEARCH-V5 — 필터 기억(useFilterMemory 'search'): 행 → 수정 화면 왕복 후 검색 조건·정렬 복원
 // MFH-ACCOUNTING-SEARCH-V4 — 구분 다중선택(MultiChipRow) + 「선지급」·「회수」 칩(미수금 계좌 기준, 「이체」 = 일반 이체만) · ?g= 쉼표 구분
 // MFH-ACCOUNTING-SEARCH-2027 — 회계 잔여 a: 합계 = 연회색 요약 면(테두리 없음) · 더 보기 = 연회색 알약 · Manrope 600(800/700 금지)
 // MFH-ACCOUNTING-SEARCH-V3 — 필터 UI·기간 계산·최근 검색어를 공용 SearchFilters 로 분리(내역 탭과 공유), 화면은 그대로
@@ -19,6 +20,8 @@ import {
   AmountRange,
   ChipRow,
   MultiChipRow,
+  markFilterReturn,
+  useFilterMemory,
   ItemSheet,
   MoreToggle,
   PeriodFilter,
@@ -90,6 +93,27 @@ export default function SearchView({
   const [maxAmt, setMaxAmt] = useState(initial.max ?? '')
   const [moreOpen, setMoreOpen] = useState(!!(initial.u || initial.min || initial.max))
   const [sheet, setSheet] = useState<'item' | 'account' | null>(null)
+  // 수정 화면 왕복 후 검색 조건 복원(행 탭이 markFilterReturn('search')).
+  useFilterMemory(
+    'search',
+    { q, period, from, to, g: [...gubun], items: [...itemIds], acc: [...accIds], user, min: minAmt, max: maxAmt, sortKey, sortDir },
+    (s) => {
+      setQ(s.q ?? '')
+      setDq(s.q ?? '')
+      if (isPeriod(s.period)) setPeriod(s.period)
+      setFrom(s.from ?? '')
+      setTo(s.to ?? '')
+      if (Array.isArray(s.g)) setGubun(new Set(s.g.filter(isGKind)))
+      if (Array.isArray(s.items)) setItemIds(new Set(s.items))
+      if (Array.isArray(s.acc)) setAccIds(new Set(s.acc))
+      setUser(s.user ?? '')
+      setMinAmt(s.min ?? '')
+      setMaxAmt(s.max ?? '')
+      setMoreOpen(!!(s.user || s.min || s.max))
+      if (s.sortKey === 'date' || s.sortKey === 'amount') setSortKey(s.sortKey)
+      if (s.sortDir === 'asc' || s.sortDir === 'desc') setSortDir(s.sortDir)
+    },
+  )
 
   const [cur] = useShowCur()
   const hnlRate = useMemo(() => hnlRateOf(fx, balances), [fx, balances])
@@ -291,7 +315,7 @@ export default function SearchView({
               <li key={r.id}>
                 <button
                   type="button"
-                  onClick={() => (recentQs.remember(q), router.push(`/accounting/entry?edit=${r.id}`))}
+                  onClick={() => (recentQs.remember(q), markFilterReturn('search'), router.push(`/accounting/entry?edit=${r.id}`))}
                   className={`flex w-full items-center gap-3 py-2.5 text-left ${counted ? '' : 'opacity-60'}`}
                 >
                   <span className="w-11 shrink-0 font-num text-[13px] text-b27-muted">{rowDate(r.date)}</span>

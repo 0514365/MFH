@@ -37,7 +37,7 @@ export default async function AccountingSearchPage({
       options={options}
       balances={balances}
       fx={fx}
-      initial={{ q: one('q'), p: one('p'), from: one('from'), to: one('to'), g: one('g') }}
+      initial={{ q: one('q'), p: one('p'), from: one('from'), to: one('to'), g: one('g'), items: one('items'), acc: one('acc'), u: one('u'), min: one('min'), max: one('max') }}
     />
   )
 }

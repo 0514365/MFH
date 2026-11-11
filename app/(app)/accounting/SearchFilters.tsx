@@ -1,4 +1,5 @@
 'use client'
+// MFH-SEARCH-FILTERS-V5 — useFilterMemory · markFilterReturn: 행 → 수정 화면으로 갔다 돌아오면 필터 복원(sessionStorage)
 // MFH-SEARCH-FILTERS-V4 — MultiChipRow(칩 다중선택, 「전체」 = 선택 없음) — 내역 탭 구분 필터
 // MFH-SEARCH-FILTERS-2027 — 회계 잔여 a: 옛 공용 토큰 → b27 · 검색 알약·최근 검색어·날짜/금액 칸 테두리 제거(연회색 면)
 // MFH-ACCOUNTING-SEARCH-FILTERS-V3 — 실기 피드백: Sheet 높이 고정(72vh) — 대분류 탭을 바꿔도 시트가 내려앉지 않음(내용 적으면 아래 여백)
@@ -8,7 +9,7 @@
 // · SearchInput(둥근 검색창 + ✕ + 최근 검색어 5개, 기기별 localStorage) · FilterRow(라벨 + 칩) · PeriodFilter(전체·이번 주·이번 달·지정)
 // · SortToggle(금액순 · 날짜순, 같은 것 다시 = 방향) · Sheet(바텀시트) · ItemSheet(항목 아이콘 다중선택) · AccountSheet(계좌 다중선택)
 // · rangeOf(기간 → [from, to]) · matchText(내용·구매처·항목명·금액 숫자)
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { AcctOption, AcctOptions, InoutRow } from '@/lib/accounting-types'
 import { PASTEL_NEUTRAL, type Pastel } from '@/lib/acct-display'
 import { blockHalo } from '@/lib/palette'
@@ -85,6 +86,37 @@ export const pickCls = (active: boolean) =>
   `min-w-0 truncate rounded-full px-3 py-1.5 text-left text-[14px] font-semibold transition ${
     active ? 'bg-b27-card text-b27-ink' : 'text-b27-muted'
   }`
+
+// ===== 필터 기억(수정 화면 왕복) =====
+// 필터 상태를 화면별(key)로 sessionStorage 에 계속 저장하고, 행을 눌러 수정 화면으로 갈 때 markFilterReturn(key) 로 표시해 둔다.
+// 그 화면이 다시 마운트되면(뒤로·저장 후 복귀) 표시가 자기 것일 때만 1회 복원 — 탭으로 새로 들어온 경우는 복원하지 않는다.
+const FILTER_KEY = (key: string) => `mfh-acct-filter-${key}`
+const RETURN_KEY = 'mfh-acct-filter-return'
+// 복원은 첫 페인트 전에(깜빡임 방지) — 서버 렌더에서는 useEffect 로 대체(React 18 경고 회피).
+const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
+export function markFilterReturn(key: string) {
+  try {
+    sessionStorage.setItem(RETURN_KEY, key)
+  } catch {}
+}
+export function useFilterMemory<T>(key: string, state: T, restore: (saved: Partial<T>) => void) {
+  const json = JSON.stringify(state)
+  useIsoLayoutEffect(() => {
+    try {
+      const flag = sessionStorage.getItem(RETURN_KEY)
+      if (flag) sessionStorage.removeItem(RETURN_KEY)
+      if (flag !== key) return
+      const saved = JSON.parse(sessionStorage.getItem(FILTER_KEY(key)) ?? 'null')
+      if (saved && typeof saved === 'object') restore(saved as Partial<T>)
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(FILTER_KEY(key), json)
+    } catch {}
+  }, [key, json])
+}
 
 // ===== 최근 검색어 =====
 const RECENT_KEY = 'mfh-acct-search-recent'

@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V23 — 필터 기억(useFilterMemory 'ledger'): 행 → 수정 화면 왕복 후 필터·정렬 복원
 // MFH-ACCOUNTING-TXLIST-V22 — 구분 필터 다중선택(MultiChipRow) + 「선지급」·「회수」 칩(미수금 계좌 기준, 「이체」 = 일반 이체만)
 // MFH-ACCOUNTING-TXLIST-V21 — 선지급 칩에 회수 상태(미회수·일부 회수·회수 완료) · 회수 행에 「← 선지급 내용」(patch121)
 // MFH-ACCOUNTING-TXLIST-V20 — 2027 5-④: 선택 체크박스 마룬 → 남색(accent-[#2B3160]).
@@ -29,6 +30,8 @@ import {
   AmountRange,
   ChipRow,
   MultiChipRow,
+  useFilterMemory,
+  isPeriod,
   ItemSheet,
   MoreToggle,
   PeriodFilter,
@@ -138,6 +141,29 @@ export default function TransactionList({
   const recentQs = useRecentQueries()
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  // 수정 화면 왕복 후 필터 복원(LedgerView 의 onEdit 이 markFilterReturn('ledger')).
+  useFilterMemory(
+    'ledger',
+    { g: [...fGubuns], items: [...fItemIds], acc: [...fAccountIds], cat: fCat, cur: fCur, user: fUser, min: fMin, max: fMax, from: fFrom, to: fTo, period, q, sortKey, sortDir },
+    (s) => {
+      if (Array.isArray(s.g)) setFGubuns(new Set(s.g.filter(isGubun)))
+      if (Array.isArray(s.items)) setFItemIds(new Set(s.items))
+      if (Array.isArray(s.acc)) setFAccountIds(new Set(s.acc))
+      setFCat(s.cat ?? '')
+      setFCur(s.cur ?? '')
+      setFUser(s.user ?? '')
+      setFMin(s.min ?? '')
+      setFMax(s.max ?? '')
+      setMoreOpen(!!(s.cat || s.cur || s.user || s.min || s.max))
+      setFFrom(s.from ?? '')
+      setFTo(s.to ?? '')
+      if (isPeriod(s.period)) setPeriod(s.period)
+      setQ(s.q ?? '')
+      setDq(s.q ?? '')
+      if (s.sortKey === 'date' || s.sortKey === 'amount') setSortKey(s.sortKey)
+      if (s.sortDir === 'asc' || s.sortDir === 'desc') setSortDir(s.sortDir)
+    },
+  )
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [showCur, setShowCur] = useState(false) // 원화·렘피라·달러 3열 — 기본 숨김
   const [busyId, setBusyId] = useState<string | null>(null)
