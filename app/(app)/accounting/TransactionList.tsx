@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V24 — 데스크탑 표 셀 인라인 수정: 날짜·항목·내용·구매처·금액 칸 클릭 → 그 자리 입력(Enter·칸 밖 = 저장, Esc = 취소, Tab = 옆 칸). 그 외 칸 클릭 = 세부 화면
 // MFH-ACCOUNTING-TXLIST-V23 — 필터 기억(useFilterMemory 'ledger'): 행 → 수정 화면 왕복 후 필터·정렬 복원
 // MFH-ACCOUNTING-TXLIST-V22 — 구분 필터 다중선택(MultiChipRow) + 「선지급」·「회수」 칩(미수금 계좌 기준, 「이체」 = 일반 이체만)
 // MFH-ACCOUNTING-TXLIST-V21 — 선지급 칩에 회수 상태(미회수·일부 회수·회수 완료) · 회수 행에 「← 선지급 내용」(patch121)
@@ -98,6 +99,11 @@ const USERS = ['우진', '진아']
 // 사용자·카드 판별용 계좌 정보(getAccountBalances 의 일부).
 export type LedgerAccountInfo = { id: string; info: string | null; kind: string | null }
 type GubunKind = (typeof GUBUN_KINDS)[number]
+// 표에서 바로 고칠 수 있는 칸(왼쪽 → 오른쪽 = Tab 순서).
+type CellField = 'date' | 'item' | 'name' | 'vendor' | 'amount'
+const CELL_ORDER: CellField[] = ['date', 'item', 'name', 'vendor', 'amount']
+const cellInp = 'h-7 w-full min-w-0 rounded-md border border-b27-ink bg-b27-paper px-1.5 text-[13px] text-b27-ink outline-none'
+const cellHover = 'cursor-text transition hover:bg-b27-paper hover:shadow-[inset_0_0_0_1px_var(--b27-line)]'
 export type LedgerFilter = { gubun?: string; cat?: string; item?: string; from?: string; to?: string; q?: string; account?: string }
 const isGubun = (g: string): g is GubunKind => (GUBUN_KINDS as readonly string[]).includes(g)
 
@@ -105,7 +111,7 @@ const ctl =
   'h-8 rounded-lg border border-b27-line bg-b27-paper px-2 text-xs text-b27-ink outline-none transition focus:border-b27-ink'
 
 export default function TransactionList({
-  recent,
+  recent: recentProp,
   options,
   editingId,
   onEdit,
@@ -121,6 +127,18 @@ export default function TransactionList({
   onAfterMutate: () => void
   initialFilter?: LedgerFilter // 분석 탭 딥링크(?gubun=&cat=&item=&from=&to=&q=) 선적용
 }) {
+  // 인라인 수정 낙관 반영 — 저장 직후 서버 새로고침 전까지 덮어 보여 준다(새 목록이 오면 비움).
+  const [overrides, setOverrides] = useState<Map<string, Partial<InoutRow>>>(new Map())
+  useEffect(() => setOverrides(new Map()), [recentProp])
+  const recent = useMemo(() => (overrides.size ? recentProp.map((r) => (overrides.has(r.id) ? { ...r, ...overrides.get(r.id) } : r)) : recentProp), [recentProp, overrides])
+  // 수정 중인 칸 — ref 가 기준(Enter·Tab 뒤에 늦게 오는 blur 가 다른 칸을 건드리지 않게), state 는 화면용.
+  type Cell = { id: string; field: CellField; value: string }
+  const [cell, setCell] = useState<Cell | null>(null)
+  const cellRef = useRef<Cell | null>(null)
+  const putCell = (c: Cell | null) => {
+    cellRef.current = c
+    setCell(c)
+  }
   // 구분 다중선택(빈 집합 = 전체). 딥링크 ?gubun= 은 쉼표로 여러 개.
   const [fGubuns, setFGubuns] = useState<Set<GubunKind>>(() => new Set((initialFilter?.gubun ?? '').split(',').filter(isGubun)))
   const [fItemIds, setFItemIds] = useState<Set<string>>(() => new Set(initialFilter?.item ? [initialFilter.item] : []))
@@ -435,6 +453,109 @@ export default function TransactionList({
       if (!res.ok) setErr(`${res.done}건 삭제 · 일부 실패: ${res.error ?? ''}`)
     } else setErr(res.error ?? '삭제 실패')
   }
+
+  // ===== 셀 인라인 수정 =====
+  // 칸별 수정 가능 여부 — 항목 = 수입·지출 · 구매처 = 수입·지출·선지급 · 금액 = 수입·지출·같은 통화 이체(조정·통화가 다른 이체는 세부 화면).
+  const canEdit = (r: InoutRow, f: CellField): boolean => {
+    const io = r.gubun === '수입' || r.gubun === '지출'
+    if (f === 'date' || f === 'name') return true
+    if (f === 'item') return io
+    if (f === 'vendor') return io || kindOf(r) === '선지급'
+    return (io || (r.gubun === '이체' && r.toPrincipal == null)) && r.principal != null
+  }
+  const cellValue = (r: InoutRow, f: CellField): string =>
+    f === 'date' ? (r.date ?? '') : f === 'item' ? (r.itemId ?? '') : f === 'name' ? (r.name ?? '') : f === 'vendor' ? (r.vendor ?? '') : String(r.principal ?? '')
+  const openCell = (r: InoutRow, f: CellField) => {
+    setErr('')
+    putCell({ id: r.id, field: f, value: cellValue(r, f) })
+  }
+  // 저장(값이 그대로면 닫기만). step = Tab(1)·Shift+Tab(−1) 이면 같은 행의 옆 칸을 연다.
+  async function commitCell(id: string, field: CellField, valueOverride?: string, step = 0) {
+    const c = cellRef.current
+    if (!c || c.id !== id || c.field !== field) return // 이미 닫혔거나 다른 칸으로 넘어감
+    const r = recent.find((x) => x.id === c.id)
+    putCell(null)
+    if (!r) return
+    const v = (valueOverride ?? c.value).trim()
+    const patch: InoutPatch = {}
+    const local: Partial<InoutRow> = {}
+    if (c.field === 'date') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return
+      if (v !== r.date) (patch.date = v), (local.date = v)
+    } else if (c.field === 'item') {
+      if (v && v !== r.itemId) (patch.itemId = v), (local.itemId = v)
+    } else if (c.field === 'name') {
+      if (v !== (r.name ?? '')) (patch.name = v), (local.name = v)
+    } else if (c.field === 'vendor') {
+      if (v !== (r.vendor ?? '')) (patch.vendor = v), (local.vendor = v || null)
+    } else {
+      const n = numOf(v)
+      if (n == null || !(n > 0)) {
+        if (v) setErr('금액은 0보다 큰 숫자여야 합니다')
+        return
+      }
+      if (n !== r.principal) {
+        patch.principal = n
+        local.principal = n
+        local.amountUsd = r.currency === 'USD' ? n : r.rate ? Math.round((n / r.rate) * 100) / 100 : r.amountUsd
+      }
+    }
+    if (step) {
+      const order = CELL_ORDER.filter((f) => canEdit(r, f))
+      const next = order[order.indexOf(c.field) + step]
+      if (next) putCell({ id: r.id, field: next, value: cellValue({ ...r, ...local }, next) })
+    }
+    if (Object.keys(patch).length === 0) return
+    setOverrides((m) => new Map(m).set(r.id, { ...m.get(r.id), ...local }))
+    const res = await bulkPatchInout([{ id: r.id, gubun: r.gubun as '수입' | '지출' }], patch)
+    if (res.done > 0) onAfterMutate()
+    else {
+      setOverrides((m) => {
+        const n = new Map(m)
+        n.delete(r.id)
+        return n
+      })
+      setErr(res.error ?? '수정 실패')
+    }
+  }
+  const isCell = (r: InoutRow, f: CellField) => cell?.id === r.id && cell.field === f
+  // 칸 td 속성 — 수정 가능하면 클릭 = 그 자리 수정(행 클릭의 세부 화면 이동을 막음), 아니면 행 클릭 그대로.
+  const cellTd = (r: InoutRow, f: CellField) =>
+    canEdit(r, f)
+      ? {
+          onClick: (e: React.MouseEvent) => {
+            e.stopPropagation()
+            if (!isCell(r, f)) openCell(r, f)
+          },
+          title: isCell(r, f) ? undefined : '눌러서 바로 수정',
+        }
+      : {}
+  // 입력칸 공통 — Enter = 저장 · Esc = 취소 · Tab = 저장 후 옆 칸 · 칸 밖 = 저장.
+  const cellInputProps = (r: InoutRow, f: CellField) => ({
+    autoFocus: true,
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.select?.(),
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const c = cellRef.current
+      if (c && c.id === r.id && c.field === f) putCell({ ...c, value: e.target.value })
+    },
+    onBlur: () => void commitCell(r.id, f),
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') void commitCell(r.id, f)
+      else if (e.key === 'Escape') putCell(null)
+      else if (e.key === 'Tab') {
+        e.preventDefault()
+        void commitCell(r.id, f, undefined, e.shiftKey ? -1 : 1)
+      }
+    },
+  })
+
+  // 금액 입력칸 — 그 거래 통화의 원금(기호 + 숫자).
+  const amountInput = (r: InoutRow) => (
+    <span className="inline-flex items-center gap-1">
+      <span className="text-[11px] text-b27-muted">{CUR_SYMBOL[r.currency ?? ''] ?? r.currency}</span>
+      <input inputMode="decimal" value={cell!.value} {...cellInputProps(r, 'amount')} className={`${cellInp} w-[6.5rem] text-right font-num`} aria-label="금액" />
+    </span>
+  )
 
   async function onBulkPatch() {
     if (editableTargets.length === 0) {
@@ -821,9 +942,34 @@ export default function TransactionList({
                               {gubunLabel(r)}
                             </span>
                           </td>
-                          <td className="whitespace-nowrap px-2 py-2 text-b27-muted">{r.date ?? '—'}</td>
+                          <td className={`whitespace-nowrap px-2 py-2 text-b27-muted ${canEdit(r, 'date') ? cellHover : ''}`} {...cellTd(r, 'date')}>
+                            {isCell(r, 'date') ? <input type="date" value={cell!.value} {...cellInputProps(r, 'date')} className={`${cellInp} w-[8.5rem]`} aria-label="날짜" /> : (r.date ?? '—')}
+                          </td>
                           {/* 항목 — 최대 2줄(대분류 + 이름 / 이체·조정은 line-clamp-2), 폭 제한 → 내용 열이 남는 폭 전부 */}
-                          <td className="px-2 py-2 text-b27-ink" style={itemColStyle}>
+                          <td className={`px-2 py-2 text-b27-ink ${canEdit(r, 'item') ? cellHover : ''}`} style={itemColStyle} {...cellTd(r, 'item')}>
+                            {isCell(r, 'item') ? (
+                              <select
+                                autoFocus
+                                value={cell!.value}
+                                onChange={(e) => void commitCell(r.id, 'item', e.target.value)}
+                                onBlur={() => {
+                                  const c = cellRef.current
+                                  if (c && c.id === r.id && c.field === 'item') putCell(null)
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') putCell(null)
+                                }}
+                                className={cellInp}
+                                aria-label="항목"
+                              >
+                                {activeOnly(options.items[r.gubun as '수입' | '지출'], r.itemId ?? undefined).map((o) => (
+                                  <option key={o.id} value={o.id}>
+                                    {o.category ? `${o.category} · ${o.name}` : o.name}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <>
                             {r.itemId && catOf.get(r.itemId) && (
                               <div className="whitespace-nowrap text-[10px] font-medium leading-tight text-b27-muted">
                                 {catOf.get(r.itemId)}
@@ -839,9 +985,11 @@ export default function TransactionList({
                                     : '—'}
                             </div>
                             {settlesLabel(r) && <div className="truncate text-[10px] text-b27-muted">{settlesLabel(r)}</div>}
+                              </>
+                            )}
                           </td>
-                          <td className="px-2 py-2 text-b27-ink">
-                            {r.name || '—'}
+                          <td className={`px-2 py-2 text-b27-ink ${cellHover}`} {...cellTd(r, 'name')}>
+                            {isCell(r, 'name') ? <input value={cell!.value} {...cellInputProps(r, 'name')} className={cellInp} aria-label="내용" /> : r.name || '—'}
                             {r.receiptPath && (
                             <button
                               type="button"
@@ -857,22 +1005,25 @@ export default function TransactionList({
                             </button>
                           )}
                           </td>
-                          <td className="max-w-[9rem] truncate px-2 py-2 text-b27-muted" title={r.vendor ?? undefined}>{r.vendor || '—'}</td>
+                          <td className={`max-w-[9rem] truncate px-2 py-2 text-b27-muted ${canEdit(r, 'vendor') ? cellHover : ''}`} {...cellTd(r, 'vendor')} title={isCell(r, 'vendor') ? undefined : (r.vendor ?? (canEdit(r, 'vendor') ? '눌러서 바로 수정' : undefined))}>
+                            {isCell(r, 'vendor') ? <input value={cell!.value} {...cellInputProps(r, 'vendor')} className={cellInp} aria-label="구매처" /> : r.vendor || '—'}
+                          </td>
                           {showCur && (
                             <>
-                              <td className={`whitespace-nowrap px-2 py-2 text-right font-num ${gubunColor(r.gubun, r.amountUsd)}`}>
-                                {fmtColCell(r.currency, 'KRW', r.principal)}
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-num ${gubunColor(r.gubun, r.amountUsd)} ${r.currency === 'KRW' && canEdit(r, 'amount') ? cellHover : ''}`} {...(r.currency === 'KRW' ? cellTd(r, 'amount') : {})}>
+                                {r.currency === 'KRW' && isCell(r, 'amount') ? amountInput(r) : fmtColCell(r.currency, 'KRW', r.principal)}
                               </td>
-                              <td className={`whitespace-nowrap px-2 py-2 text-right font-num ${gubunColor(r.gubun, r.amountUsd)}`}>
-                                {fmtColCell(r.currency, 'HNL', r.principal)}
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-num ${gubunColor(r.gubun, r.amountUsd)} ${r.currency === 'HNL' && canEdit(r, 'amount') ? cellHover : ''}`} {...(r.currency === 'HNL' ? cellTd(r, 'amount') : {})}>
+                                {r.currency === 'HNL' && isCell(r, 'amount') ? amountInput(r) : fmtColCell(r.currency, 'HNL', r.principal)}
                               </td>
-                              <td className={`whitespace-nowrap px-2 py-2 text-right font-num ${gubunColor(r.gubun, r.amountUsd)}`}>
-                                {fmtColCell(r.currency, 'USD', r.principal)}
+                              <td className={`whitespace-nowrap px-2 py-2 text-right font-num ${gubunColor(r.gubun, r.amountUsd)} ${r.currency === 'USD' && canEdit(r, 'amount') ? cellHover : ''}`} {...(r.currency === 'USD' ? cellTd(r, 'amount') : {})}>
+                                {r.currency === 'USD' && isCell(r, 'amount') ? amountInput(r) : fmtColCell(r.currency, 'USD', r.principal)}
                               </td>
                             </>
                           )}
-                          <td className={`whitespace-nowrap px-2 py-2 text-right font-num font-medium ${gubunColor(r.gubun, r.amountUsd)}`}>
-                            {fmtUsd(r.amountUsd)}
+                          {/* 환산$ — 통화 열을 접었을 때는 이 칸에서 원금(그 거래 통화)을 고친다 */}
+                          <td className={`whitespace-nowrap px-2 py-2 text-right font-num font-medium ${gubunColor(r.gubun, r.amountUsd)} ${!showCur && canEdit(r, 'amount') ? cellHover : ''}`} {...(!showCur ? cellTd(r, 'amount') : {})}>
+                            {!showCur && isCell(r, 'amount') ? amountInput(r) : fmtUsd(r.amountUsd)}
                           </td>
                           <td className="whitespace-nowrap px-2 py-2" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end">

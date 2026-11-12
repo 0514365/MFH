@@ -102,7 +102,8 @@ export async function bulkPatchInout(
     patch.name != null ||
     patch.vendor != null ||
     patch.supporterId !== undefined ||
-    (patch.rate != null && patch.rate > 0)
+    (patch.rate != null && patch.rate > 0) ||
+    (patch.principal != null && patch.principal > 0)
   if (!hasAny) return { ok: false, done: 0, error: '변경할 값을 하나 이상 입력하세요' }
   const res = await patchInoutFieldsBulk(
     targets.map((t) => t.id),

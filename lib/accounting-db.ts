@@ -490,8 +490,23 @@ export async function patchInoutFieldsBulk(
   if (!ids.length) return { ok: false, done: 0, error: '선택된 거래가 없습니다' }
   const row = patchToRow(patch)
   const rate = patch.rate != null && patch.rate > 0 ? patch.rate : null
-  if (!row && !rate) return { ok: false, done: 0, error: '변경할 값을 하나 이상 입력하세요' }
+  const principal = patch.principal != null && patch.principal > 0 ? patch.principal : null
+  if (!row && !rate && !principal) return { ok: false, done: 0, error: '변경할 값을 하나 이상 입력하세요' }
   const sb = await createClient()
+  // 원금 변경(목록 인라인 수정) — 수입·지출·같은 통화 이체만. 금액(USD) = 원금 ÷ 저장된 환율(2026-09 이후는 트리거가 다시 정함).
+  if (principal) {
+    const { data, error } = await sb.from('acct_inout').select('id, gubun, currency, rate, to_principal').in('id', ids)
+    if (error) return { ok: false, done: 0, error: `금액 수정 실패: ${error.message}` }
+    for (const r of data ?? []) {
+      if (r.gubun === '조정' || r.to_principal != null) return { ok: false, done: 0, error: '조정·통화가 다른 이체의 금액은 세부 화면에서 수정하세요' }
+      const rt = num(r.rate)
+      const upd: Record<string, number> = { principal }
+      if (r.currency === 'USD') upd.amount_usd = principal
+      else if (rt && rt > 0) upd.amount_usd = r2(principal / rt)
+      const { error: e2 } = await sb.from('acct_inout').update(upd).eq('id', r.id)
+      if (e2) return { ok: false, done: 0, error: `금액 수정 실패: ${e2.message}` }
+    }
+  }
   if (row) {
     const { error } = await sb.from('acct_inout').update(row).in('id', ids)
     if (error) return { ok: false, done: 0, error: `수정 실패: ${error.message}` }

@@ -175,6 +175,7 @@ export type InoutPatch = {
   vendor?: string // 구매처
   rate?: number // 환율(1 USD 당 현지통화) → amount_usd = principal ÷ rate
   supporterId?: string | '' // '' = 해제
+  principal?: number // 원금(그 거래 통화) — 수입·지출·같은 통화 이체만. 금액(USD)은 저장된 환율로 재계산(2026-09 이후는 DB 트리거)
 }
 
 export type DonationYearly = {
