@@ -19,7 +19,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import type { AccountBalance, AcctOptions, FxInfo, InoutRow } from '@/lib/accounting-types'
+import { unpaidCardRows, type AccountBalance, type AcctOptions, type FxInfo, type InoutRow } from '@/lib/accounting-types'
 import { PASTEL_NEUTRAL, fmtShow, hnlRateOf, itemPastels, toShow, useShowCur, type ShowCur } from '@/lib/acct-display'
 import { CurToggle, HeaderMonthNav, HeaderPortal } from './AccountingTitle'
 import CardRepayButton from './CardRepayButton'
@@ -191,24 +191,14 @@ export default function CalendarHome({
     }
     return [...groups.values()]
   }, [balances, hnlRate])
-  // 카드사별 미상환 결제 — 카드 계좌마다 최근 결제(지출·카드 출금 이체)부터 장부 잔액(USD)을 채울 때까지.
-  // 상환은 오래된 결제부터 갚은 것으로 본다(건별 상환 표시가 없으므로). recent 는 날짜 내림차순.
+  // 카드사별 미상환 결제 — 카드 계좌별 unpaidCardRows(최근 결제부터 장부 잔액만큼)를 카드사로 묶는다.
   const unpaidByBrand = useMemo(() => {
     const m = new Map<string, InoutRow[]>()
     if (!today) return m
     for (const b of balances) {
       if (b.kind !== '신용카드') continue
-      let left = -b.balanceUsd
       const brand = b.name.split(' ')[0]
-      const rows = m.get(brand) ?? []
-      for (const r of recent) {
-        if (left <= 0.005) break
-        if (r.accountId !== b.id || (r.gubun !== '지출' && r.gubun !== '이체')) continue
-        if (!r.date || r.date > today) continue
-        rows.push(r)
-        left -= r.amountUsd ?? 0
-      }
-      m.set(brand, rows)
+      m.set(brand, [...(m.get(brand) ?? []), ...unpaidCardRows(recent, b.id, b.balanceUsd, today)])
     }
     for (const rows of m.values()) rows.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
     return m

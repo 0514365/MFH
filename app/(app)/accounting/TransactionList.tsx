@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V25 — 「카드 · 미상환」 필터 칩(unpaidCardRows: 최근 결제부터 카드 잔액만큼) · ?unpaid=1 딥링크 · 필터 기억 포함
 // MFH-ACCOUNTING-TXLIST-V24 — 데스크탑 표 셀 인라인 수정: 날짜·항목·내용·구매처·금액 칸 클릭 → 그 자리 입력(Enter·칸 밖 = 저장, Esc = 취소, Tab = 옆 칸). 그 외 칸 클릭 = 세부 화면
 // MFH-ACCOUNTING-TXLIST-V23 — 필터 기억(useFilterMemory 'ledger'): 행 → 수정 화면 왕복 후 필터·정렬 복원
 // MFH-ACCOUNTING-TXLIST-V22 — 구분 필터 다중선택(MultiChipRow) + 「선지급」·「회수」 칩(미수금 계좌 기준, 「이체」 = 일반 이체만)
@@ -48,7 +49,7 @@ import {
   type Period,
 } from './SearchFilters'
 import { itemPastels } from '@/lib/acct-display'
-import { activeOnly, entryAccounts, receivableAccount, summarizePrepayments, PREPAY_STATUS_LABEL, type AcctOptions, type InoutRow, type InoutPatch } from '@/lib/accounting-types'
+import { activeOnly, entryAccounts, receivableAccount, summarizePrepayments, unpaidCardRows, PREPAY_STATUS_LABEL, type AcctOptions, type InoutRow, type InoutPatch } from '@/lib/accounting-types'
 import { deleteInout, bulkDeleteInout, bulkPatchInout } from './actions'
 
 function fmtUsd(n: number | null): string {
@@ -97,14 +98,14 @@ const GUBUN_KINDS = ['수입', '지출', '이체', '조정', '선지급', '회�
 const CUR_FILTERS = ['', 'HNL', 'USD', 'KRW'] as const
 const USERS = ['우진', '진아']
 // 사용자·카드 판별용 계좌 정보(getAccountBalances 의 일부).
-export type LedgerAccountInfo = { id: string; info: string | null; kind: string | null }
+export type LedgerAccountInfo = { id: string; info: string | null; kind: string | null; balanceUsd?: number }
 type GubunKind = (typeof GUBUN_KINDS)[number]
 // 표에서 바로 고칠 수 있는 칸(왼쪽 → 오른쪽 = Tab 순서).
 type CellField = 'date' | 'item' | 'name' | 'vendor' | 'amount'
 const CELL_ORDER: CellField[] = ['date', 'item', 'name', 'vendor', 'amount']
 const cellInp = 'h-7 w-full min-w-0 rounded-md border border-b27-ink bg-b27-paper px-1.5 text-[13px] text-b27-ink outline-none'
 const cellHover = 'cursor-text transition hover:bg-b27-paper hover:shadow-[inset_0_0_0_1px_var(--b27-line)]'
-export type LedgerFilter = { gubun?: string; cat?: string; item?: string; from?: string; to?: string; q?: string; account?: string }
+export type LedgerFilter = { gubun?: string; cat?: string; item?: string; from?: string; to?: string; q?: string; account?: string; unpaid?: string }
 const isGubun = (g: string): g is GubunKind => (GUBUN_KINDS as readonly string[]).includes(g)
 
 const ctl =
@@ -145,6 +146,7 @@ export default function TransactionList({
   const [fAccountIds, setFAccountIds] = useState<Set<string>>(() => new Set(initialFilter?.account ? [initialFilter.account] : []))
   const [fCat, setFCat] = useState(initialFilter?.cat ?? '')
   const [fCur, setFCur] = useState('')
+  const [fUnpaid, setFUnpaid] = useState(initialFilter?.unpaid === '1') // 카드 미상환 결제만
   const [fUser, setFUser] = useState('')
   const [fMin, setFMin] = useState('')
   const [fMax, setFMax] = useState('')
@@ -162,13 +164,14 @@ export default function TransactionList({
   // 수정 화면 왕복 후 필터 복원(LedgerView 의 onEdit 이 markFilterReturn('ledger')).
   useFilterMemory(
     'ledger',
-    { g: [...fGubuns], items: [...fItemIds], acc: [...fAccountIds], cat: fCat, cur: fCur, user: fUser, min: fMin, max: fMax, from: fFrom, to: fTo, period, q, sortKey, sortDir },
+    { g: [...fGubuns], items: [...fItemIds], acc: [...fAccountIds], cat: fCat, cur: fCur, user: fUser, min: fMin, max: fMax, from: fFrom, to: fTo, period, q, sortKey, sortDir, unpaid: fUnpaid },
     (s) => {
       if (Array.isArray(s.g)) setFGubuns(new Set(s.g.filter(isGubun)))
       if (Array.isArray(s.items)) setFItemIds(new Set(s.items))
       if (Array.isArray(s.acc)) setFAccountIds(new Set(s.acc))
       setFCat(s.cat ?? '')
       setFCur(s.cur ?? '')
+      setFUnpaid(!!s.unpaid)
       setFUser(s.user ?? '')
       setFMin(s.min ?? '')
       setFMax(s.max ?? '')
@@ -255,6 +258,13 @@ export default function TransactionList({
     }
     return m
   }, [accountInfo])
+  // 카드 미상환 결제 id — 카드 계좌별 unpaidCardRows 합집합.
+  const unpaidIds = useMemo(() => {
+    const s = new Set<string>()
+    if (!today) return s
+    for (const a of accountInfo) if (a.kind === '신용카드') for (const r of unpaidCardRows(recentProp, a.id, a.balanceUsd ?? 0, today)) s.add(r.id)
+    return s
+  }, [accountInfo, recentProp, today])
   useEffect(() => {
     const id = setTimeout(() => setDq(q), 200)
     return () => clearTimeout(id)
@@ -268,6 +278,7 @@ export default function TransactionList({
     const hi = numOf(fMax)
     const filtered = recent.filter((r) => {
       if (fGubuns.size && !fGubuns.has(kindOf(r) as GubunKind)) return false
+      if (fUnpaid && !unpaidIds.has(r.id)) return false
       if (fItemIds.size && !(r.itemId && fItemIds.has(r.itemId))) return false
       const accs = [r.accountId, r.toAccountId].filter((x): x is string => !!x)
       if (fAccountIds.size && !accs.some((x) => fAccountIds.has(x))) return false
@@ -316,7 +327,7 @@ export default function TransactionList({
       }
       return { key, rows, inUsd, outUsd, net, netUsd: inUsd - outUsd }
     })
-  }, [recent, fGubuns, receivableId, fItemIds, fAccountIds, fCat, fCur, fUser, userAccIds, fMin, fMax, eFrom, eTo, dq, sortKey, sortDir, catOf, nameOf, periodMode])
+  }, [recent, fGubuns, fUnpaid, unpaidIds, receivableId, fItemIds, fAccountIds, fCat, fCur, fUser, userAccIds, fMin, fMax, eFrom, eTo, dq, sortKey, sortDir, catOf, nameOf, periodMode])
 
   const visibleIds = useMemo(() => groups.flatMap((g) => g.rows.map((r) => r.id)), [groups])
   // 항목 열 폭(em): 일반 행 = 항목 이름 1줄, 이체·조정 행 = 2줄 → 보이는 행 중 최대 필요폭. 통화 열 펼치면 65% 로 축소(내용 열 확보).
@@ -336,6 +347,7 @@ export default function TransactionList({
   const moreFilled = !!(fCat || fCur || fUser || fMin.trim() || fMax.trim())
   const hasFilter =
     fGubuns.size > 0 ||
+    fUnpaid ||
     fItemIds.size > 0 ||
     fAccountIds.size > 0 ||
     !!fCat ||
@@ -350,7 +362,7 @@ export default function TransactionList({
   useEffect(() => {
     setSelected(new Set())
     setBulkOpen(false)
-  }, [fGubuns, fItemIds, fAccountIds, fCat, fCur, fUser, fMin, fMax, eFrom, eTo, dq, sortKey, sortDir])
+  }, [fGubuns, fUnpaid, fItemIds, fAccountIds, fCat, fCur, fUser, fMin, fMax, eFrom, eTo, dq, sortKey, sortDir])
 
   // 선택 행 분석 — 통합 수정 대상(수입·지출만), 구분 혼합 여부.
   const selRows = useMemo(() => recent.filter((r) => selected.has(r.id)), [recent, selected])
@@ -393,6 +405,7 @@ export default function TransactionList({
   }
   function resetFilters() {
     setFGubuns(new Set())
+    setFUnpaid(false)
     setFItemIds(new Set())
     setFAccountIds(new Set())
     setFCat('')
@@ -617,6 +630,9 @@ export default function TransactionList({
           value={fGubuns}
           onChange={setFGubuns}
         />
+        {cardIds.size > 0 && (
+          <ChipRow label="카드" options={['', '미상환'] as const} value={fUnpaid ? '미상환' : ''} onChange={(v) => setFUnpaid(v === '미상환')} labelOf={(v) => v || '전체'} />
+        )}
         <PickRow
           label="항목"
           text={fItemIds.size === 0 ? '전체 항목' : summary([...fItemIds].map((id) => nameOf.get(id) ?? '—'))}

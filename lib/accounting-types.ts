@@ -112,6 +112,22 @@ export type InoutRow = {
   settlesInoutId: string | null // 회수 → 선지급 연결(patch121)
 }
 
+// ===== 카드 미상환 결제 — 순수 계산, 달력·내역 공용 =====
+// 건별 상환 표시가 없으므로 상환은 오래된 결제부터 갚은 것으로 보고, 최근 결제(지출·카드 출금 이체)부터
+// 카드 장부 잔액(USD, 음수 = 부채)을 채울 때까지를 미상환으로 본다. rows 는 날짜 내림차순(getRecentInout 순서), 미래 날짜 제외.
+export function unpaidCardRows(rows: InoutRow[], cardId: string, balanceUsd: number, today: string): InoutRow[] {
+  const out: InoutRow[] = []
+  let left = -balanceUsd
+  for (const r of rows) {
+    if (left <= 0.005) break
+    if (r.accountId !== cardId || (r.gubun !== '지출' && r.gubun !== '이체')) continue
+    if (!r.date || r.date > today) continue
+    out.push(r)
+    left -= r.amountUsd ?? 0
+  }
+  return out
+}
+
 // ===== 선지급 회수 상태(patch121) — 순수 계산, 서버·클라이언트 공용 =====
 // 선지급 = 이체(입금 = 미수금) · 회수 = 이체(출금 = 미수금, settlesInoutId 로 선지급 연결).
 // 금액 비교는 USD(amount_usd). 미수금 통화 금액(local)은 양쪽 모두 알 수 있을 때만(선지급: 같은 통화면 원금, 다른 통화면 입금 금액 · 회수: 원금).

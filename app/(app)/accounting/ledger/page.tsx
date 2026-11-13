@@ -1,3 +1,4 @@
+// MFH-ACCOUNTING-LEDGER-PAGE-V6 — 카드 잔액(balanceUsd) 전달 + ?unpaid=1(카드 미상환 필터)
 // MFH-ACCOUNTING-LEDGER-PAGE-V5 — 계좌 info·kind(사용자·카드 필터) 전달
 // MFH-ACCOUNTING-LEDGER-PAGE-V4 — ?account 계좌 필터(자산 탭 딥링크)
 // MFH-ACCOUNTING-LEDGER-PAGE-V3 — ?gubun·cat·item·from·to·q 쿼리 → 필터 선적용(분석 탭 딥링크)
@@ -18,13 +19,13 @@ export default async function AccountingLedgerPage({
     const v = sp[k]
     return typeof v === 'string' && v ? v : undefined
   }
-  const initialFilter = { gubun: one('gubun'), cat: one('cat'), item: one('item'), from: one('from'), to: one('to'), q: one('q'), account: one('account') }
+  const initialFilter = { gubun: one('gubun'), cat: one('cat'), item: one('item'), from: one('from'), to: one('to'), q: one('q'), account: one('account'), unpaid: one('unpaid') }
   const [options, recent, balances] = await Promise.all([
     getAcctOptions(),
     getRecentInout().then((r) => r ?? []),
     getAccountBalances().then((b) => b ?? []),
   ])
-  const accountInfo = balances.map((b) => ({ id: b.id, info: b.info, kind: b.kind }))
+  const accountInfo = balances.map((b) => ({ id: b.id, info: b.info, kind: b.kind, balanceUsd: b.balanceUsd }))
 
   if (!options) {
     return (
