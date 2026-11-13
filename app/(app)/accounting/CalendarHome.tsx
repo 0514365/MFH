@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-CALENDAR-V26 — 카드대금 행 탭 = 그 카드사 미상환 결제만 아래 목록에 필터(다시 탭·✕·날짜 탭 = 해제). 미상환 = 최근 결제부터 잔액만큼(상환은 오래된 결제부터 갚은 것으로 봄)
 // MFH-ACCOUNTING-CALENDAR-V25 — 2027 토큰 승격: 카드대금 면 리터럴 → b27-tint-2
 // MFH-ACCOUNTING-CALENDAR-V24 — 당김 안내를 고정 묶음(달력) 아래 경계로: 달력은 고정, 그 아래 틈이 벌어지며 80px 에 닿으면 「놓으면 기록 화면으로」
 // MFH-ACCOUNTING-CALENDAR-V23 — 실기 피드백: 모바일 상단(제목 줄·승인대기·달력) sticky 고정, 카드대금·선택일 내역만 스크롤 · 기록 = 맨 위에서 아래로 당기기(기존 페이지 끝 밀어올리기 폐지)
@@ -70,6 +71,8 @@ export default function CalendarHome({
       } catch {}
       return n
     })
+  // 카드대금 행 탭 → 그 카드사 미상환 결제만 목록에(null = 선택일 내역)
+  const [cardFilter, setCardFilter] = useState<string | null>(null)
   const [cur] = useShowCur()
   const hnlRate = useMemo(() => hnlRateOf(fx, balances), [fx, balances])
   const showCur: ShowCur = hnlRate ? cur : 'USD'
@@ -188,6 +191,28 @@ export default function CalendarHome({
     }
     return [...groups.values()]
   }, [balances, hnlRate])
+  // 카드사별 미상환 결제 — 카드 계좌마다 최근 결제(지출·카드 출금 이체)부터 장부 잔액(USD)을 채울 때까지.
+  // 상환은 오래된 결제부터 갚은 것으로 본다(건별 상환 표시가 없으므로). recent 는 날짜 내림차순.
+  const unpaidByBrand = useMemo(() => {
+    const m = new Map<string, InoutRow[]>()
+    if (!today) return m
+    for (const b of balances) {
+      if (b.kind !== '신용카드') continue
+      let left = -b.balanceUsd
+      const brand = b.name.split(' ')[0]
+      const rows = m.get(brand) ?? []
+      for (const r of recent) {
+        if (left <= 0.005) break
+        if (r.accountId !== b.id || (r.gubun !== '지출' && r.gubun !== '이체')) continue
+        if (!r.date || r.date > today) continue
+        rows.push(r)
+        left -= r.amountUsd ?? 0
+      }
+      m.set(brand, rows)
+    }
+    for (const rows of m.values()) rows.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+    return m
+  }, [balances, recent, today])
   // 가장 가까운 상환일(카드사 dueDay 중 오늘 이후 첫 날) — 접힘 줄 라벨 · 자동 펼침 판정
   const nextDue = useMemo(() => {
     if (!today) return null
@@ -234,6 +259,8 @@ export default function CalendarHome({
   const selDay = byDay.get(selected)
   const notThisMonth = ym !== today.slice(0, 7)
   const pending = cardPending + recPending
+  const filterRows = cardFilter ? (unpaidByBrand.get(cardFilter) ?? []) : null
+  const listRows = filterRows ?? dayRows
 
   return (
     <div className="space-y-5 font-sans text-b27-ink">
@@ -315,7 +342,10 @@ export default function CalendarHome({
               <button
                 key={key}
                 type="button"
-                onClick={() => setSelected(key)}
+                onClick={() => {
+                  setCardFilter(null)
+                  setSelected(key)
+                }}
                 aria-current={isToday ? 'date' : undefined}
                 className={`flex h-10 items-center justify-center rounded-lg transition ${isSel && !isToday ? 'bg-b27-card' : ''}`}
               >
@@ -344,7 +374,7 @@ export default function CalendarHome({
       </div>
 
       {/* 카드대금 — 접힘 줄 = 연한 빨강 알약(총액 · 가장 가까운 상환일 · ▾), 탭 = 펼침(기기별 기억, 상환 3일 전 자동).
-          펼침 = 흰 바탕 행(카드사 · 매월 N일 · 금액, 탭 = 자산 탭) + [상환][잔액 0][자산 →] */}
+          펼침 = 흰 바탕 행(카드사 · 매월 N일 · 금액, 탭 = 아래 목록을 그 카드사 미상환 결제로 필터) + [상환][잔액 0][자산 →] */}
       {cardDue.length > 0 && (
         <section>
           <button
@@ -364,7 +394,13 @@ export default function CalendarHome({
           {cardExpanded && (
             <div className="px-1 pt-1">
               {cardDue.map((g) => (
-                <Link key={g.brand} href="/accounting/assets" className="flex items-center justify-between gap-3 border-b border-b27-line py-2.5">
+                <button
+                  key={g.brand}
+                  type="button"
+                  onClick={() => setCardFilter(cardFilter === g.brand ? null : g.brand)}
+                  aria-pressed={cardFilter === g.brand}
+                  className={`flex w-full items-center justify-between gap-3 border-b border-b27-line py-2.5 text-left transition ${cardFilter === g.brand ? '-mx-2 w-[calc(100%+16px)] rounded-lg bg-b27-card px-2' : ''}`}
+                >
                   <span className="min-w-0">
                     <span className="block truncate text-[14px] text-b27-ink">
                       {g.brand}
@@ -373,7 +409,7 @@ export default function CalendarHome({
                     {g.dueDay && <span className="block font-num text-[11px] text-b27-muted">매월 {g.dueDay}일</span>}
                   </span>
                   <span className="shrink-0 font-num text-[14px] font-medium text-b27-expense">{fmtGroup(g)}</span>
-                </Link>
+                </button>
               ))}
               <div className="flex items-center justify-end gap-1.5 pb-1 pt-2">
                 <CardRepayButton balances={balances} options={options} compact />
@@ -389,24 +425,37 @@ export default function CalendarHome({
       {/* 선택일 내역 — 10px 색 사각형 · 이름 · 금액 */}
       <section className="px-1">
         <div className="flex items-baseline justify-between font-num text-[12px] text-b27-muted">
-          <span>
-            {sel.getMonth() + 1}월 {sel.getDate()}일 ({WEEK[sel.getDay()]})
-          </span>
-          <span className="flex gap-3">
-            {selDay && selDay.inc !== 0 && <span className="text-b27-income">+{fmtFull(selDay.inc, showCur)}</span>}
-            {selDay && selDay.exp !== 0 && <span className="text-b27-expense">−{fmtFull(selDay.exp, showCur)}</span>}
-          </span>
+          {filterRows ? (
+            <>
+              <span className="text-b27-expense">
+                {cardFilter} 미상환 <span className="font-medium">{filterRows.length}</span>건
+              </span>
+              <button type="button" onClick={() => setCardFilter(null)} className="rounded-full bg-b27-card px-2.5 py-1 leading-none text-b27-muted">
+                ✕ 필터 해제
+              </button>
+            </>
+          ) : (
+            <>
+              <span>
+                {sel.getMonth() + 1}월 {sel.getDate()}일 ({WEEK[sel.getDay()]})
+              </span>
+              <span className="flex gap-3">
+                {selDay && selDay.inc !== 0 && <span className="text-b27-income">+{fmtFull(selDay.inc, showCur)}</span>}
+                {selDay && selDay.exp !== 0 && <span className="text-b27-expense">−{fmtFull(selDay.exp, showCur)}</span>}
+              </span>
+            </>
+          )}
         </div>
-        {dayRows.length === 0 ? (
-          <p className="py-6 text-center text-[12px] text-b27-muted">거래 없음</p>
+        {listRows.length === 0 ? (
+          <p className="py-6 text-center text-[12px] text-b27-muted">{filterRows ? '미상환 결제 없음' : '거래 없음'}</p>
         ) : (
           <ul>
-            {dayRows.map((r) => {
+            {listRows.map((r) => {
               const it = r.itemId ? itemOf.get(r.itemId) : undefined
               const counted = r.gubun === '수입' || r.gubun === '지출'
               const color = (counted && r.itemId ? itemColor.get(r.itemId) : undefined) ?? PASTEL_NEUTRAL
               const label = it?.name ?? r.gubun ?? '—'
-              const sub = [r.name, r.vendor].filter(Boolean).join(' · ')
+              const sub = [filterRows && r.date ? `${Number(r.date.slice(5, 7))}/${Number(r.date.slice(8, 10))}` : '', r.name, r.vendor].filter(Boolean).join(' · ')
               const isCard = r.gubun === '지출' && !!r.accountId && cardIds.has(r.accountId)
               const a = amt(r)
               return (
