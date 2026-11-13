@@ -1,4 +1,5 @@
 'use client'
+// MFH-ACCOUNTING-TXLIST-V26 — 필터 면 압축: 넓은 화면 2열 격자 · 기간 범위는 칩 옆(「전체 기간」 줄 제거) · 검색창 옆 「모두 해제 N」(목록 머리줄 「필터 초기화」 대체)
 // MFH-ACCOUNTING-TXLIST-V25 — 「카드 · 미상환」 필터 칩(unpaidCardRows: 최근 결제부터 카드 잔액만큼) · ?unpaid=1 딥링크 · 필터 기억 포함
 // MFH-ACCOUNTING-TXLIST-V24 — 데스크탑 표 셀 인라인 수정: 날짜·항목·내용·구매처·금액 칸 클릭 → 그 자리 입력(Enter·칸 밖 = 저장, Esc = 취소, Tab = 옆 칸). 그 외 칸 클릭 = 세부 화면
 // MFH-ACCOUNTING-TXLIST-V23 — 필터 기억(useFilterMemory 'ledger'): 행 → 수정 화면 왕복 후 필터·정렬 복원
@@ -345,18 +346,20 @@ export default function TransactionList({
   const itemColStyle = { width: `${itemColEm}em`, minWidth: `${itemColEm}em`, maxWidth: `${itemColEm}em` }
   const shownCount = visibleIds.length
   const moreFilled = !!(fCat || fCur || fUser || fMin.trim() || fMax.trim())
-  const hasFilter =
-    fGubuns.size > 0 ||
-    fUnpaid ||
-    fItemIds.size > 0 ||
-    fAccountIds.size > 0 ||
-    !!fCat ||
-    !!fCur ||
-    !!fUser ||
-    !!fMin.trim() ||
-    !!fMax.trim() ||
-    period !== 'all' ||
-    !!q.trim()
+  // 켜진 필터 수(종류 기준) — 「모두 해제 N」
+  const activeCount = [
+    fGubuns.size > 0,
+    fUnpaid,
+    fItemIds.size > 0,
+    fAccountIds.size > 0,
+    !!fCat,
+    !!fCur,
+    !!fUser,
+    !!(fMin.trim() || fMax.trim()),
+    period !== 'all',
+    !!q.trim(),
+  ].filter(Boolean).length
+  const hasFilter = activeCount > 0
 
   // 필터·정렬이 바뀌면 선택을 초기화(보이지 않는 선택에 작업되는 혼란 방지).
   useEffect(() => {
@@ -621,18 +624,28 @@ export default function TransactionList({
     <section className="mt-6">
       {/* 검색·필터 — 연회색 면으로 목록과 분리(검색창은 흰 알약). 부품은 검색 화면(SearchFilters)과 공용 */}
       <div className="rounded-2xl bg-b27-card px-3 pb-3 pt-3 max-md:-mx-1">
-      <SearchInput value={q} onChange={setQ} onCommit={setDq} recent={recentQs} className="[&>label]:border-0 [&>label]:bg-b27-paper" />
-      <div className="mt-3 space-y-2">
-        <PeriodFilter period={period} onPeriod={setPeriod} from={fFrom} to={fTo} onFrom={setFFrom} onTo={setFTo} range={[eFrom, eTo]} />
+      <div className="flex items-start gap-2">
+        <SearchInput value={q} onChange={setQ} onCommit={setDq} recent={recentQs} className="min-w-0 flex-1 [&>label]:border-0 [&>label]:bg-b27-paper" />
+        {hasFilter && (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="flex h-12 shrink-0 items-center gap-1.5 rounded-full bg-b27-paper px-4 text-[13px] font-medium text-b27-ink transition active:opacity-70"
+          >
+            모두 해제
+            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-b27-ink px-1 font-num text-[11px] text-white">{activeCount}</span>
+          </button>
+        )}
+      </div>
+      {/* 넓은 화면 = 2열 격자(기간|구분 · 항목|계좌 · 카드|통화 · 분류 · 사용자|금액), 좁은 화면 = 1열 */}
+      <div className="mt-3 grid gap-x-8 gap-y-2 @2xl:grid-cols-2">
+        <PeriodFilter compact period={period} onPeriod={setPeriod} from={fFrom} to={fTo} onFrom={setFFrom} onTo={setFTo} range={[eFrom, eTo]} />
         <MultiChipRow
           label="구분"
           options={receivableId ? GUBUN_KINDS : GUBUN_KINDS.filter((g) => g !== '선지급' && g !== '회수')}
           value={fGubuns}
           onChange={setFGubuns}
         />
-        {cardIds.size > 0 && (
-          <ChipRow label="카드" options={['', '미상환'] as const} value={fUnpaid ? '미상환' : ''} onChange={(v) => setFUnpaid(v === '미상환')} labelOf={(v) => v || '전체'} />
-        )}
         <PickRow
           label="항목"
           text={fItemIds.size === 0 ? '전체 항목' : summary([...fItemIds].map((id) => nameOf.get(id) ?? '—'))}
@@ -646,9 +659,11 @@ export default function TransactionList({
           onClick={() => setSheet('account')}
           right={<MoreToggle open={moreOpen} filled={moreFilled} onToggle={() => setMoreOpen(!moreOpen)} />}
         />
+        {cardIds.size > 0 && (
+          <ChipRow label="카드" options={['', '미상환'] as const} value={fUnpaid ? '미상환' : ''} onChange={(v) => setFUnpaid(v === '미상환')} labelOf={(v) => v || '전체'} />
+        )}
         {moreOpen && (
           <>
-            <ChipRow label="분류" options={['', ...catOptions]} value={fCat} onChange={setFCat} labelOf={(c) => c || '전체'} />
             <ChipRow
               label="통화"
               options={CUR_FILTERS}
@@ -656,6 +671,9 @@ export default function TransactionList({
               onChange={setFCur}
               labelOf={(c) => (c ? CUR_SYMBOL[c] : '전체')}
             />
+            <div className="@2xl:col-span-2">
+              <ChipRow label="분류" options={['', ...catOptions]} value={fCat} onChange={setFCat} labelOf={(c) => c || '전체'} />
+            </div>
             {userAccIds.size > 0 && (
               <ChipRow label="사용자" options={['', ...userAccIds.keys()]} value={fUser} onChange={setFUser} labelOf={(u) => u || '전체'} />
             )}
@@ -682,15 +700,6 @@ export default function TransactionList({
             거래 내역
             <span className="ml-1.5 font-normal text-b27-muted">{shownCount}건</span>
           </h2>
-          {hasFilter && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="rounded-full border border-b27-line px-2.5 py-0.5 text-[11px] font-medium text-b27-muted transition hover:border-b27-ink"
-            >
-              필터 초기화
-            </button>
-          )}
         </div>
         <div className="flex items-center gap-3 @2xl:hidden">
           <SortToggle

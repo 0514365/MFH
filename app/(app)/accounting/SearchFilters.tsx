@@ -318,6 +318,7 @@ export function PeriodFilter({
   onFrom,
   onTo,
   range,
+  compact = false,
 }: {
   period: Period
   onPeriod: (p: Period) => void
@@ -326,10 +327,33 @@ export function PeriodFilter({
   onFrom: (v: string) => void
   onTo: (v: string) => void
   range: [string, string]
+  compact?: boolean // 내역 탭: 범위 표시를 칩 옆에(「전체 기간」 줄 없음), 지정일 때만 날짜 줄
 }) {
   const [rFrom, rTo] = range
   const label = period === 'all' ? '전체 기간' : rFrom || rTo ? `${rFrom ? dotDate(rFrom) : ''} – ${rTo ? dotDate(rTo) : ''}` : ''
   const dateCls = 'h-9 min-w-0 flex-1 rounded-xl bg-b27-card px-2.5 text-[14px] text-b27-ink md:max-w-[11rem]'
+  if (compact)
+    return (
+      <div className="space-y-2">
+        <FilterRow label="기간">
+          <div className="flex flex-wrap items-center gap-1">
+            {PERIODS.map((p) => (
+              <button key={p.key} type="button" onClick={() => onPeriod(p.key)} aria-pressed={period === p.key} className={chipCls(period === p.key)}>
+                {p.label}
+              </button>
+            ))}
+            {period !== 'all' && period !== 'custom' && label && <span className="ml-1 font-num text-[12px] text-b27-muted">{label}</span>}
+          </div>
+        </FilterRow>
+        {period === 'custom' && (
+          <div className="flex items-center gap-2 pl-14">
+            <input type="date" value={from} onChange={(e) => onFrom(e.target.value)} aria-label="시작일" className={dateCls} />
+            <span className="text-b27-muted">–</span>
+            <input type="date" value={to} onChange={(e) => onTo(e.target.value)} aria-label="종료일" className={dateCls} />
+          </div>
+        )}
+      </div>
+    )
   return (
     <>
       <ChipRow
