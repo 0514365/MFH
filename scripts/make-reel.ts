@@ -1,4 +1,5 @@
-// MFH-MAKE-REEL-V7
+// MFH-MAKE-REEL-V8
+// V8: reel.volume(0~1) — loudnorm 뒤 최종 음량 배율(예 0.5 = 절반). reel.story 는 대본 기록용(렌더에 안 쓰임)
 // V7: fit:'letterbox' — 가로 사진·클립을 원본 비율로(클립은 세로 크롭 없이 1920 폭으로 변환), 위 레터박스 = label(프로그램 제목)
 // V6b: 사진도 zoom+좌우 motion 이면 넓은 훑기(양옆 인물 얼굴)
 // V6: 클립 줌·좌우 이동(motion·zoom·focus) — 클립은 1620×2880 으로 떠서 확대해도 선명하게. motion 미지정 시 in/left/out/right 순환
@@ -21,7 +22,7 @@ type Scene = { photo?: string; clip?: string; start?: number; audio?: number; la
 type Reel = {
   title?: string; label?: string; date_label?: string; cover_photo?: string
   scenes?: Scene[]; end_line?: string
-  durations?: { cover?: number; scene?: number; end?: number }; cover_fit?: 'contain'; end_title?: string; hide_url?: boolean; out_name?: string; variant?: 'letter'
+  durations?: { cover?: number; scene?: number; end?: number }; cover_fit?: 'contain'; end_title?: string; hide_url?: boolean; out_name?: string; variant?: 'letter'; volume?: number; story?: string
 }
 type Result = { week_start?: string; reel?: Reel | null }
 
@@ -158,6 +159,14 @@ async function main() {
   const mp4 = join(ROOT, 'media', 'out', reel.out_name || `reel-${week}.mp4`)
   const r2 = spawnSync('python3', [BUILD, propsPath, mp4, '--mux', silent, ...(music ? ['--music', music] : [])], { stdio: 'inherit' })
   if (r2.status !== 0) process.exit(r2.status ?? 1)
+  if (typeof reel.volume === 'number' && reel.volume > 0 && reel.volume !== 1) {
+    const tmp = mp4.replace(/\.mp4$/, '.vol.mp4')
+    const r3 = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-map', '0', '-c:v', 'copy', '-af', `volume=${reel.volume}`,
+      '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', tmp], { stdio: 'inherit' })
+    if (r3.status !== 0) process.exit(r3.status ?? 1)
+    renameSync(tmp, mp4)
+    console.log(`[make-reel] 음량 ×${reel.volume}`)
+  }
   console.log(`[make-reel] 완료 → ${relative(ROOT, mp4)} (폰으로 보내 FB/IG 앱에서 음원 선택 후 게시)`)
 }
 
