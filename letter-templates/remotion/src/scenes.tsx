@@ -1,4 +1,5 @@
-// MFH-REMOTION-SCENES-V2 · 표지·사진·클립·마무리 장면 + 어절 단위 자막. 안전영역: 위 200px · 아래 360px.
+// MFH-REMOTION-SCENES-V3 · 표지·사진·클립·마무리 장면 + 어절 단위 자막. 안전영역: 위 200px · 아래 360px.
+// V3: fit 'letterbox' — 가로 사진·영상을 원본 비율로 가운데 두고, 위 레터박스에 프로그램 제목(label)·아래 레터박스에 자막
 import React from 'react'
 import { AbsoluteFill, Img, OffthreadVideo, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion'
 import { getInfo as infoMyeongjo, loadFont as loadMyeongjo } from '@remotion/google-fonts/NanumMyeongjo'
@@ -76,15 +77,16 @@ const Bar: React.FC = () => <div style={{ position: 'absolute', left: 0, right: 
 
 // ── 자막: 박스가 먼저 떠오르고 어절이 차례로 켜진다. *어절* 은 강조색 ─────────
 // 자막의 줄바꿈(\n)은 그대로 줄을 나눈다. variant 'letter' 는 라벨이 칩이고 오른쪽 버튼 영역을 비운다.
-const Caption: React.FC<{ label?: string; text: string; bottom?: number; variant?: Variant }> = ({ label, text, bottom = 400, variant }) => {
+const Caption: React.FC<{ label?: string; text: string; bottom?: number; variant?: Variant; inline?: boolean }> = ({ label, text, bottom = 400, variant, inline }) => {
   const f = useCurrentFrame()
   const { fps } = useVideoConfig()
   const rise = spring({ frame: f - CAP_DELAY, fps, config: { damping: 200, stiffness: 120 } })
   const lines = text.split('\n').map((l) => l.split(/\s+/).filter(Boolean))
   const letter = variant === 'letter'
   let wordIndex = 0
+  const place: React.CSSProperties = inline ? { position: 'relative' } : { position: 'absolute', left: 64, right: letter ? 140 : 64, bottom }
   return (
-    <div style={{ position: 'absolute', left: 64, right: letter ? 140 : 64, bottom, opacity: rise, transform: `translateY(${(1 - rise) * 48}px)` }}>
+    <div style={{ ...place, opacity: rise, transform: `translateY(${(1 - rise) * 48}px)` }}>
       {label && letter ? (
         <div style={{ display: 'inline-block', fontFamily: `${montserrat}, ${body}`, fontWeight: 700, fontSize: 36, color: '#fff',
           background: colors.maroon, padding: '8px 22px', marginBottom: 20 }}>{label}</div>
@@ -110,6 +112,39 @@ const Caption: React.FC<{ label?: string; text: string; bottom?: number; variant
         ))}
       </div>
     </div>
+  )
+}
+
+// ── 레터박스: 위 = 프로그램 제목 · 가운데 = 원본 비율 사진/영상(천천히 확대) · 아래 = 자막 ─────────
+const Letterbox: React.FC<{ label?: string; caption: string; dur: number; motion?: Motion; children: (style: React.CSSProperties) => React.ReactNode }> = (p) => {
+  const f = useCurrentFrame()
+  const { fps } = useVideoConfig()
+  const t = interpolate(f, [0, frames(p.dur)], [0, 1], { extrapolateRight: 'clamp' })
+  const scale = p.motion === 'out' ? 1.06 - 0.06 * t : 1 + 0.06 * t
+  const a = spring({ frame: f - 3, fps, config: { damping: 200 } })
+  return (
+    <AbsoluteFill style={{ background: colors.charcoal, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 64px 48px',
+        opacity: a, transform: `translateY(${(1 - a) * 24}px)` }}>
+        {p.label ? (
+          <>
+            <div style={{ fontFamily: montserrat, fontWeight: 700, fontSize: 26, letterSpacing: '.2em', color: colors.blush, marginBottom: 14 }}>
+              FESTIVAL COREANO · UNAH
+            </div>
+            <div style={{ fontFamily: myeongjo, fontWeight: 800, fontSize: 76, lineHeight: 1.2, color: '#fff', wordBreak: 'keep-all' }}>{p.label}</div>
+            <div style={{ width: 96, height: 8, background: colors.red, marginTop: 26 }} />
+          </>
+        ) : null}
+      </div>
+      <div style={{ width: 1080, overflow: 'hidden', lineHeight: 0 }}>
+        {p.children({ display: 'block', width: 1080, height: 'auto', transform: `scale(${scale})`,
+          filter: 'contrast(1.05) saturate(1.1) brightness(1.01)' })}
+      </div>
+      <div style={{ flex: 1, padding: '52px 64px 0' }}>
+        <Caption text={p.caption} inline />
+      </div>
+      <Bar />
+    </AbsoluteFill>
   )
 }
 
@@ -144,7 +179,11 @@ export const Cover: React.FC<{ photo: string; date_label: string; label: string;
   )
 }
 
-export const Photo: React.FC<{ photo: string; label?: string; caption: string; motion: Motion; dur: number; fit?: 'contain'; position?: string; zoom?: number; focus?: string; variant?: Variant }> = (p) => (
+export const Photo: React.FC<{ photo: string; label?: string; caption: string; motion: Motion; dur: number; fit?: 'contain' | 'letterbox'; position?: string; zoom?: number; focus?: string; variant?: Variant }> = (p) => p.fit === 'letterbox' ? (
+  <Letterbox label={p.label} caption={p.caption} dur={p.dur} motion={p.motion}>
+    {(style) => <Img src={staticFile(p.photo)} style={style} />}
+  </Letterbox>
+) : (
   <AbsoluteFill>
     {p.fit === 'contain' ? <ContainPhoto src={p.photo} motion={p.motion} dur={p.dur} /> : <KenBurns src={p.photo} motion={p.motion} dur={p.dur} position={p.position} zoom={p.zoom} focus={p.focus} />}
     <Shade />
@@ -154,8 +193,15 @@ export const Photo: React.FC<{ photo: string; label?: string; caption: string; m
 )
 
 // 클립 줌·좌우 이동: motion 없으면 정지 화면 그대로. focus(transform-origin)로 얼굴 쪽을 확대 중심에 둔다.
-export const Clip: React.FC<{ clip: string; start?: number; label?: string; caption: string; dur: number; variant?: Variant; motion?: Motion; zoom?: number; focus?: string }> = (p) => {
+export const Clip: React.FC<{ clip: string; start?: number; label?: string; caption: string; dur: number; variant?: Variant; motion?: Motion; zoom?: number; focus?: string; fit?: 'letterbox' }> = (p) => {
   const f = useCurrentFrame()
+  if (p.fit === 'letterbox') {
+    return (
+      <Letterbox label={p.label} caption={p.caption} dur={p.dur} motion={p.motion === 'out' ? 'out' : 'in'}>
+        {(style) => <OffthreadVideo src={staticFile(p.clip)} startFrom={frames(p.start ?? 0)} muted style={style} />}
+      </Letterbox>
+    )
+  }
   const t = interpolate(f, [0, frames(p.dur)], [0, 1], { extrapolateRight: 'clamp' })
   const e = t * t * (3 - 2 * t) // 부드러운 출발·도착
   const z = p.zoom ?? 1.2

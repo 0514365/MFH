@@ -1,4 +1,4 @@
-// MFH-REMOTION-TYPES-V3 · make-reel.ts 가 넘기는 장면 JSON 계약. 자산 경로는 --public-dir 기준 상대경로(staticFile).
+// MFH-REMOTION-TYPES-V4 · V4: fit 'letterbox'(가로 사진·영상 원본 비율 + 위 제목·아래 자막) · make-reel.ts 가 넘기는 장면 JSON 계약. 자산 경로는 --public-dir 기준 상대경로(staticFile).
 export const FPS = 30
 export const W = 1080
 export const H = 1920
@@ -12,10 +12,10 @@ export type Variant = 'letter'
 export type Scene =
   | { kind: 'cover'; dur: number; photo: string; date_label: string; label: string; title: string; fit?: 'contain' }
   // position: 꽉 채운 사진의 크롭 위치(CSS object-position)
-  | { kind: 'photo'; dur: number; photo: string; label?: string; caption: string; motion?: Motion; fit?: 'contain'; position?: string; zoom?: number; focus?: string }
+  | { kind: 'photo'; dur: number; photo: string; label?: string; caption: string; motion?: Motion; fit?: 'contain' | 'letterbox'; position?: string; zoom?: number; focus?: string }
   // audio / audio_src / audio_start: 현장음 볼륨·원본 파일·시작점 — build-video.py --mux 가 읽는다(Remotion 은 무시)
   // motion·zoom·focus: 클립 줌/좌우 이동 — zoom=최대 배율(예 1.4), focus=확대 중심(CSS transform-origin, 얼굴 위치 예 '45% 35%')
-  | { kind: 'clip'; dur: number; clip: string; start?: number; motion?: Motion; zoom?: number; focus?: string; audio?: number; audio_src?: string; audio_start?: number; label?: string; caption: string }
+  | { kind: 'clip'; dur: number; clip: string; start?: number; motion?: Motion; zoom?: number; focus?: string; audio?: number; audio_src?: string; audio_start?: number; label?: string; caption: string; fit?: 'letterbox' }
   | { kind: 'end'; dur: number; end_line: string; logo: string; title?: string; hide_url?: boolean }
 
 export type ReelProps = { scenes: Scene[]; variant?: Variant }

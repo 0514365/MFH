@@ -1,4 +1,5 @@
-// MFH-MAKE-REEL-V6
+// MFH-MAKE-REEL-V7
+// V7: fit:'letterbox' — 가로 사진·클립을 원본 비율로(클립은 세로 크롭 없이 1920 폭으로 변환), 위 레터박스 = label(프로그램 제목)
 // V6b: 사진도 zoom+좌우 motion 이면 넓은 훑기(양옆 인물 얼굴)
 // V6: 클립 줌·좌우 이동(motion·zoom·focus) — 클립은 1620×2880 으로 떠서 확대해도 선명하게. motion 미지정 시 in/left/out/right 순환
 // V5: 클립 장면도 s.dur 지정 가능(기본 릴스 약 60초 설계 대응)
@@ -16,7 +17,7 @@ import { basename, join, relative, resolve } from 'path'
 import { spawnSync } from 'child_process'
 import { loadEnv, createServiceClient, readJsonFile } from './_shared'
 
-type Scene = { photo?: string; clip?: string; start?: number; audio?: number; label?: string; caption?: string; motion?: string; zoom?: number; focus?: string; animate?: boolean; fit?: 'contain'; dur?: number; position?: string }
+type Scene = { photo?: string; clip?: string; start?: number; audio?: number; label?: string; caption?: string; motion?: string; zoom?: number; focus?: string; animate?: boolean; fit?: 'contain' | 'letterbox'; dur?: number; position?: string }
 type Reel = {
   title?: string; label?: string; date_label?: string; cover_photo?: string
   scenes?: Scene[]; end_line?: string
@@ -88,13 +89,13 @@ async function main() {
     if (s.status === 0) renameSync(tmp, file)
   }
   // 클립: Remotion public 폴더는 심볼릭 링크를 못 따라가므로, 장면 길이만큼 잘라 세로 1080×1920 mp4 로 변환해 둔다(무음 — 현장음은 원본에서 믹스).
-  function clipPath(p: string, start: number, dur: number): string {
+  function clipPath(p: string, start: number, dur: number, keepAspect = false): string {
     const src = resolve(ROOT, p)
     if (!existsSync(src)) throw new Error(`클립 없음: ${p}`)
-    const out = join(clipDir, basename(src).replace(/\.[^.]+$/, '') + `-${start}s-${dur}d-hq.mp4`)
+    const out = join(clipDir, basename(src).replace(/\.[^.]+$/, '') + `-${start}s-${dur}d-${keepAspect ? 'lb' : 'hq'}.mp4`)
     if (!existsSync(out)) {
       const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(start), '-t', String(dur + 0.5), '-i', src,
-        '-vf', 'scale=1620:2880:force_original_aspect_ratio=increase,crop=1620:2880,fps=30', '-an',
+        '-vf', keepAspect ? 'scale=1920:-2,fps=30' : 'scale=1620:2880:force_original_aspect_ratio=increase,crop=1620:2880,fps=30', '-an',
         '-c:v', 'libx264', '-crf', '18', '-preset', 'fast', '-pix_fmt', 'yuv420p', out], { stdio: 'inherit' })
       if (r.status !== 0) throw new Error(`클립 변환 실패: ${p}`)
     }
@@ -130,7 +131,7 @@ async function main() {
     if (s.clip) {
       const start = s.start ?? 0
       const d = s.dur ?? sceneDur
-      scenes.push({ kind: 'clip', dur: d, clip: clipPath(s.clip, start, d), start: 0,
+      scenes.push({ kind: 'clip', dur: d, clip: clipPath(s.clip, start, d, s.fit === 'letterbox'), start: 0, ...(s.fit === 'letterbox' ? { fit: 'letterbox' } : {}),
         audio: s.audio ?? CLIP_AUDIO, audio_src: resolve(ROOT, s.clip), audio_start: start,
         motion: s.motion ?? CLIP_MOTIONS[clipN++ % CLIP_MOTIONS.length], ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.focus ? { focus: s.focus } : {}),
         label: s.label || '', caption: s.caption || '' })
