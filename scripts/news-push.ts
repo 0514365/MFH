@@ -1,3 +1,4 @@
+// MFH-NEWS-PUSH-V3 — speech_script(듣기용 낭독 대본, patch122) 저장. 컬럼이 아직 없으면 대본만 빼고 저장한다.
 // MFH-NEWS-PUSH-V2
 // Claude Code 가 만든 result.json(온두라스 동향 브리핑)을 읽어 honduras_news 테이블에 upsert + repo 아카이브.
 //   · V2: 항목별 published_at(기사 발행일, YYYY-MM-DD) 통과. 안전 레이어는 highlights tag="안전"로 수용(스키마 무변경).
@@ -31,6 +32,7 @@ type Result = {
   highlights?: Highlight[]
   insight?: string
   prayer_points?: unknown
+  speech_script?: unknown
 }
 
 const SECTION_KEYS = ['politics', 'economy', 'society', 'culture'] as const
@@ -106,6 +108,10 @@ async function main() {
     ? parsed.prayer_points.map((p) => String(p ?? '').trim()).filter(Boolean)
     : []
 
+  // 듣기용 낭독 대본(선택) — 앱 "듣기" 버튼·시리 단축어가 읽는다. 없으면 앱이 제목·본문으로 조립.
+  const speechScript =
+    typeof parsed.speech_script === 'string' && parsed.speech_script.trim() ? parsed.speech_script.trim() : null
+
   const nowIso = new Date().toISOString()
   const row = {
     user_id: USER_ID,
@@ -117,18 +123,26 @@ async function main() {
     model: 'claude-code',
     created_at: nowIso, // 각 행의 생성 시각(같은 날 여러 행이면 순번 기준).
   }
-  const { error } = await sb.from('honduras_news').insert(row)
+  let speechSaved = !!speechScript
+  const fullRow: Record<string, unknown> = speechScript ? { ...row, speech_script: speechScript } : row
+  let { error } = await sb.from('honduras_news').insert(fullRow)
+  // patch122 미적용(speech_script 컬럼 없음)이면 대본만 빼고 다시 저장 — 브리핑 자체는 놓치지 않는다.
+  if (error && speechScript && /speech_script/.test(error.message)) {
+    console.error('[news-push] speech_script 컬럼이 없습니다(patch122 미적용) — 대본 없이 저장합니다.')
+    speechSaved = false
+    ;({ error } = await sb.from('honduras_news').insert(row))
+  }
   if (error) {
     console.error(`[news-push] 저장 실패: ${error.message}`)
     process.exit(1)
   }
 
   // 영구 아카이브 — JSONL 누적(gitignore).
-  appendArchiveJsonl('_news', 'honduras_news.jsonl', { ...row, generated_at: nowIso })
+  appendArchiveJsonl('_news', 'honduras_news.jsonl', { ...row, speech_script: speechScript, generated_at: nowIso })
 
   const counts = SECTION_KEYS.map((k) => `${k} ${sections[k]?.length ?? 0}`).join(' · ')
   console.log(
-    `[news-push] 저장 ✓ ${parsed.news_date} · ${counts} · 하이라이트 ${highlights.length} · 인사이트 ${insight ? '있음' : '없음'} · 기도포인트 ${prayerPoints.length} (user_id=${USER_ID.slice(0, 8)}…)`,
+    `[news-push] 저장 ✓ ${parsed.news_date} · ${counts} · 하이라이트 ${highlights.length} · 인사이트 ${insight ? '있음' : '없음'} · 기도포인트 ${prayerPoints.length} · 낭독대본 ${speechSaved ? `${speechScript?.length ?? 0}자` : '없음'} (user_id=${USER_ID.slice(0, 8)}…)`,
   )
 }
 

@@ -1,3 +1,4 @@
+// MFH-HONDURAS-BRIEFING-VIEW-V5 — speech(낭독 텍스트)가 있으면 날짜 아래 "듣기" 버튼(ListenButton).
 // MFH-HONDURAS-BRIEFING-VIEW-V4 — 2027(4-6): theme-2027 · 남색 글자 · 연회색/페리윙클 면 · 강조 = 진한 페리윙클 · 굵기 600 이하 · 영문 대문자 머리글 해제.
 // MFH-HONDURAS-BRIEFING-VIEW-V3
 // 온두라스 동향 1일치 본문 렌더(날짜 헤더 + 하이라이트 + 4섹션 + 선교 인사이트·기도 포인트 + 푸터).
@@ -7,6 +8,7 @@
 // 폰트: 모바일 가독성 우선 — 본문 16px(text-base) 기준, 제목·헤더는 한 단계씩 위.
 // dateSuffix: 같은 날 여러 동향이면 " (N)" 넘버링. headerAction: 날짜 행 우측 끝 링크(지난 동향 등).
 import type { ReactNode } from 'react'
+import ListenButton from './ListenButton'
 
 export type SectionItem = { title?: string | null; body?: string | null; source?: string | null; url?: string | null; published_at?: string | null }
 export type Sections = {
@@ -141,11 +143,13 @@ export default function BriefingView({
   latest = false,
   dateSuffix = '',
   headerAction,
+  speech,
 }: {
   row: NewsRow
   latest?: boolean
   dateSuffix?: string
   headerAction?: ReactNode
+  speech?: string
 }) {
   const sections = row.sections ?? {}
   const highlights = (Array.isArray(row.highlights) ? row.highlights : []).filter(
@@ -170,6 +174,11 @@ export default function BriefingView({
           </div>
           {headerAction && <div className="shrink-0 pb-0.5">{headerAction}</div>}
         </div>
+        {speech && (
+          <div className="mt-3">
+            <ListenButton text={speech} />
+          </div>
+        )}
       </header>
 
       {/* 하이라이트 — San Pedro Sula·한인·안전. 새 소식 있을 때만 글로우 카드. 없으면(최신 페이지) 빈 상태 안내로 "오래된 글 억지 채움"을 방지. */}

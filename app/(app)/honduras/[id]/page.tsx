@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import BriefingView, { hasBriefingContent, NEWS_SELECT, type NewsRow } from '../BriefingView'
 import { seqSuffix } from '@/lib/honduras'
+import { fetchSpeechScript, speechText } from '@/lib/honduras-speech'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,8 @@ export default async function HondurasDetailPage(props: { params: Promise<{ id: 
   const row = data as NewsRow | null
 
   const dateSuffix = row ? await seqSuffix(supabase, row.news_date, row.id) : ''
+  // 듣기 버튼용 낭독 텍스트 — 저장된 대본(patch122) 우선, 없으면 제목·본문 조립본.
+  const speech = row ? speechText(row, await fetchSpeechScript(supabase, row.id)) : ''
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-8">
@@ -47,7 +50,7 @@ export default async function HondurasDetailPage(props: { params: Promise<{ id: 
       </div>
 
       {hasBriefingContent(row) ? (
-        <BriefingView row={row} dateSuffix={dateSuffix} />
+        <BriefingView row={row} dateSuffix={dateSuffix} speech={speech} />
       ) : (
         <div className="rounded-2xl border border-b27-line bg-b27-paper p-6 text-center">
           <p className="text-base font-semibold text-b27-ink">동향을 찾을 수 없습니다</p>

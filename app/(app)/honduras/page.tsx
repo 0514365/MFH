@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase-server'
 import PageHeader from '@/components/PageHeader'
 import BriefingView, { hasBriefingContent, NEWS_SELECT, type NewsRow } from './BriefingView'
 import { seqSuffix } from '@/lib/honduras'
+import { fetchSpeechScript, speechText } from '@/lib/honduras-speech'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +31,8 @@ export default async function HondurasPage() {
   const row = data as NewsRow | null
 
   const dateSuffix = row ? await seqSuffix(supabase, row.news_date, row.id) : ''
+  // 듣기 버튼용 낭독 텍스트 — 저장된 대본(patch122) 우선, 없으면 제목·본문 조립본.
+  const speech = row ? speechText(row, await fetchSpeechScript(supabase, row.id)) : ''
 
   // 날짜 행 우측 끝 — 지난 동향(목록)으로.
   const archiveLink = (
@@ -50,7 +53,7 @@ export default async function HondurasPage() {
       <PageHeader title="온두라스 동향" />
 
       {hasBriefingContent(row) ? (
-        <BriefingView row={row} latest dateSuffix={dateSuffix} headerAction={archiveLink} />
+        <BriefingView row={row} latest dateSuffix={dateSuffix} headerAction={archiveLink} speech={speech} />
       ) : (
         <div className="rounded-2xl border border-b27-line bg-b27-paper p-6 text-center">
           <p className="text-base font-semibold text-b27-ink">아직 오늘 브리핑이 없습니다</p>
